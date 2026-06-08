@@ -7,14 +7,14 @@ import SidebarFunGame from './SidebarFunGame'
 import SidebarLogoutButton from './SidebarLogoutButton'
 
 const GUILD_CHANNELS = [
-  { icon: '❤️', label: 'Health',    dbEnum: 'HEALTH',    level: 72, href: '/skills/health',    sub: 'Wellness & Fitness' },
-  { icon: '⚒️', label: 'Projects',  dbEnum: 'PROJECTS',  level: 18, href: '/skills/projects',  sub: 'Building & Creating' },
-  { icon: '💼', label: 'Business',  dbEnum: 'BUSINESS',  level: 31, href: '/skills/business',  sub: 'Wine Sales & Strategy' },
-  { icon: '👥', label: 'Community', dbEnum: 'COMMUNITY', level: 80, href: '/skills/community', sub: 'Group Discussions' },
-  { icon: '🎣', label: 'Fishing',   dbEnum: 'FISHING',   level: 55, href: '/skills/fishing',   sub: 'Outdoor Adventures' },
-  { icon: '🍳', label: 'Cooking',   dbEnum: 'FOOD',      level: 65, href: '/skills/food',      sub: 'Recipes & Pairings' },
-  { icon: '🌱', label: 'Farming',   dbEnum: 'GARDENING', level: 45, href: '/skills/gardening', sub: 'Garden & Nature' },
-  { icon: '🗺️', label: 'Adventure', dbEnum: 'TRAVEL',    level: 65, href: '/skills/travel',    sub: 'Adventures & Places' },
+  { icon: '❤️', label: 'Health',    dbEnum: 'HEALTH',    href: '/skills/health',    sub: 'Wellness & Fitness' },
+  { icon: '⚒️', label: 'Projects',  dbEnum: 'PROJECTS',  href: '/skills/projects',  sub: 'Building & Creating' },
+  { icon: '💼', label: 'Business',  dbEnum: 'BUSINESS',  href: '/skills/business',  sub: 'Wine Sales & Strategy' },
+  { icon: '👥', label: 'Community', dbEnum: 'COMMUNITY', href: '/skills/community', sub: 'Group Discussions' },
+  { icon: '🎣', label: 'Fishing',   dbEnum: 'FISHING',   href: '/skills/fishing',   sub: 'Outdoor Adventures' },
+  { icon: '🍳', label: 'Cooking',   dbEnum: 'FOOD',      href: '/skills/food',      sub: 'Recipes & Pairings' },
+  { icon: '🌱', label: 'Farming',   dbEnum: 'GARDENING', href: '/skills/gardening', sub: 'Garden & Nature' },
+  { icon: '🗺️', label: 'Adventure', dbEnum: 'TRAVEL',    href: '/skills/travel',    sub: 'Adventures & Places' },
 ]
 
 
@@ -25,10 +25,21 @@ export default async function SkillsPanel() {
   let totalXp = 0
   let userBadges: string[] = []
   const postCounts: Record<string, number> = {}
+  const adminSkillLevels: Record<string, number> = {}
 
   try {
     const rows = await prisma.post.groupBy({ by: ['skill'], _count: { id: true } })
     for (const r of rows) postCounts[r.skill] = r._count.id
+
+    const adminUser = await prisma.user.findFirst({
+      where: { role: 'ADMIN' },
+      select: { skills: { select: { skill: true, xp: true } } },
+    })
+    if (adminUser?.skills) {
+      for (const sk of adminUser.skills) {
+        adminSkillLevels[sk.skill] = xpToLevel(sk.xp)
+      }
+    }
 
     if (session?.user?.id) {
       const skills = await prisma.userSkill.findMany({ where: { userId: session.user.id } })
@@ -148,7 +159,7 @@ export default async function SkillsPanel() {
                 <div className="text-[5.5px] truncate" style={{ color: 'var(--text-3)' }}>{ch.sub}</div>
               </div>
               <div className="text-right shrink-0">
-                <div className="text-[6px] font-bold" style={{ color: 'var(--gold)' }}>{ch.level}</div>
+                <div className="text-[6px] font-bold" style={{ color: 'var(--gold)' }}>{adminSkillLevels[ch.dbEnum] ?? 1}</div>
                 {(postCounts[ch.dbEnum] ?? 0) > 0 && (
                   <div className="text-[5px]" style={{ color: 'var(--text-3)' }}>{postCounts[ch.dbEnum]}p</div>
                 )}
