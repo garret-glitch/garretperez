@@ -2,6 +2,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { getSkillByEnum } from '@/lib/skills'
 import { BADGE_META } from '@/lib/badges'
+import HoustonPixelArt from '@/components/HoustonPixelArt'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -69,7 +70,7 @@ export default async function Home() {
 
       {/* ─── HERO ─────────────────────────────────────────── */}
       <div className="hero-panel">
-        <div className="flex gap-6 flex-wrap">
+        <div className="flex gap-5 flex-wrap">
 
           {/* Profile Photo */}
           <div className="shrink-0">
@@ -91,11 +92,25 @@ export default async function Home() {
                 ⚔ Level {GARRET_TOTAL}
               </span>
             </div>
-            <div className="body-text text-[13px] font-semibold mb-1" style={{ color: 'var(--text-1)' }}>
+            <div className="body-text text-[13px] font-semibold mb-0.5" style={{ color: 'var(--text-1)' }}>
               Sales Supervisor · Builder · Family Man
             </div>
-            <div className="body-text text-[12px] mb-3" style={{ color: 'var(--text-2)' }}>
+            <div className="body-text text-[12px] mb-2" style={{ color: 'var(--text-2)' }}>
               📍 Houston, TX
+            </div>
+
+            {/* Stat chips */}
+            <div className="flex gap-2 mb-2">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg"
+                style={{ background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.22)' }}>
+                <span className="text-[10px] font-bold" style={{ color: 'var(--gold)' }}>{totalUsers}</span>
+                <span className="text-[6px]" style={{ color: 'var(--text-3)' }}>Members</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg"
+                style={{ background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.22)' }}>
+                <span className="text-[10px] font-bold" style={{ color: 'var(--gold)' }}>{totalPosts}</span>
+                <span className="text-[6px]" style={{ color: 'var(--text-3)' }}>Posts</span>
+              </div>
             </div>
 
             {/* XP bar */}
@@ -107,49 +122,43 @@ export default async function Home() {
             </div>
 
             {/* Current quest */}
-            <div className="inline-flex items-center gap-2 mt-2 px-3 py-1.5 rounded-lg text-[7px]"
+            <div className="inline-flex items-center gap-2 mt-1.5 px-3 py-1.5 rounded-lg text-[7px]"
               style={{ background: 'rgba(200,155,60,0.08)', border: '1px solid rgba(200,155,60,0.25)', color: 'var(--gold)' }}>
               ⚔ Current Quest: Build the Ultimate Haunted House Experience
             </div>
           </div>
 
-          {/* Contact info — all details */}
-          <div className="shrink-0 flex flex-col gap-2.5" style={{ minWidth: 180 }}>
-            <div className="text-[6px] uppercase tracking-widest mb-1" style={{ color: 'var(--text-3)' }}>Contact</div>
+          {/* Contact info + Houston art */}
+          <div className="shrink-0 flex flex-col gap-2" style={{ minWidth: 175, maxWidth: 210 }}>
+            {/* Houston pixel art */}
+            <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--border-dim)' }}>
+              <HoustonPixelArt />
+            </div>
+
+            <div className="text-[6px] uppercase tracking-widest mt-0.5" style={{ color: 'var(--text-3)' }}>Contact</div>
 
             <a href="tel:346-604-1635"
-              className="flex items-center gap-2.5 body-text text-[12px] hover:opacity-80 transition-opacity"
+              className="flex items-center gap-2 body-text text-[12px] hover:opacity-80 transition-opacity"
               style={{ color: 'var(--text-1)' }}>
-              <span className="text-base">📞</span>
+              <span>📞</span>
               <span>(346) 604-1635</span>
             </a>
 
             <a href="mailto:gis.owner@gmail.com"
-              className="flex items-center gap-2.5 body-text text-[12px] hover:opacity-80 transition-opacity"
+              className="flex items-center gap-2 body-text text-[12px] hover:opacity-80 transition-opacity"
               style={{ color: 'var(--text-1)' }}>
-              <span className="text-base">✉️</span>
+              <span>✉️</span>
               <span>gis.owner@gmail.com</span>
             </a>
 
             <a href="https://www.linkedin.com/in/garretperez" target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-2.5 body-text text-[12px] hover:opacity-80 transition-opacity"
+              className="flex items-center gap-2 body-text text-[12px] hover:opacity-80 transition-opacity"
               style={{ color: '#5b9bd5' }}>
-              <span className="text-base">🔗</span>
+              <span>🔗</span>
               <span>linkedin.com/in/garretperez</span>
             </a>
 
-            <a href="/resume" className="osrs-btn text-[7px] text-center mt-1 w-full">📄 View Resume</a>
-
-            <div className="flex gap-2 mt-1">
-              <div className="text-center flex-1 rounded-lg py-1.5" style={{ background: 'var(--bg-page)', border: '1px solid var(--border-dim)' }}>
-                <div className="text-[10px] font-bold" style={{ color: 'var(--gold)' }}>{totalUsers}</div>
-                <div className="text-[5px]" style={{ color: 'var(--text-3)' }}>Members</div>
-              </div>
-              <div className="text-center flex-1 rounded-lg py-1.5" style={{ background: 'var(--bg-page)', border: '1px solid var(--border-dim)' }}>
-                <div className="text-[10px] font-bold" style={{ color: 'var(--gold)' }}>{totalPosts}</div>
-                <div className="text-[5px]" style={{ color: 'var(--text-3)' }}>Posts</div>
-              </div>
-            </div>
+            <a href="/resume" className="osrs-btn text-[7px] text-center mt-0.5">📄 View Resume</a>
           </div>
         </div>
       </div>
