@@ -1,84 +1,100 @@
-import Link from 'next/link';
-import { getAllPosts } from '@/lib/posts';
-import PostCard from '@/components/PostCard';
-import ProjectCard from '@/components/ProjectCard';
+import { auth } from '@/auth'
+import { prisma } from '@/lib/prisma'
+import { getSkillByEnum } from '@/lib/skills'
+import Link from 'next/link'
 
-const featuredProjects = [
-  {
-    title: 'Project One',
-    description: 'A brief description of what this project does and why it matters.',
-    tags: ['React', 'TypeScript'],
-    github: 'https://github.com',
-  },
-  {
-    title: 'Project Two',
-    description: 'Another interesting project you built and are proud of.',
-    tags: ['Node.js', 'PostgreSQL'],
-    github: 'https://github.com',
-  },
-];
+export const dynamic = 'force-dynamic'
 
-export default function Home() {
-  const posts = getAllPosts().slice(0, 3);
+export default async function Home() {
+  const session = await auth()
+
+  let recentPosts: Array<{
+    id: string; title: string; skill: string; createdAt: Date
+    user: { username: string }
+  }> = []
+
+  try {
+    recentPosts = await prisma.post.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+      include: { user: { select: { username: true } } },
+    })
+  } catch {
+    // DB not configured yet
+  }
 
   return (
-    <div className="space-y-20">
-      {/* Hero */}
-      <section>
-        <h1 className="text-4xl font-bold text-gray-900 sm:text-5xl">
-          Hi, I&apos;m Garret
-        </h1>
-        <p className="mt-4 text-xl text-gray-600 max-w-2xl">
-          I&apos;m a sales supervisor passionate about leading teams, hitting targets,
-          and always finding ways to grow. This is where I share my work and thoughts.
+    <div className="space-y-4">
+      <div className="osrs-panel">
+        <div className="text-center py-2">
+          <div className="text-3xl mb-2">⚔</div>
+          <h1 className="text-[13px] text-[#3c2a1e] font-bold leading-relaxed">
+            Garret&apos;s World
+          </h1>
+          <p className="text-[8px] text-[#5c3d1e] mt-2 leading-relaxed">
+            A community blog where doing things earns XP!
+          </p>
+          {session?.user ? (
+            <p className="mt-3 text-[9px] text-[#3c2a1e]">
+              Welcome back,{' '}
+              <span className="text-[#8b4513] font-bold">{session.user.name}</span>!
+            </p>
+          ) : (
+            <div className="flex justify-center gap-2 mt-4">
+              <Link href="/login" className="osrs-btn">Login</Link>
+              <Link href="/register" className="osrs-btn">Join Free</Link>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="osrs-panel-dark">
+        <h2 className="text-[10px] text-[#ff981f] font-bold mb-3">⚡ How to Earn XP</h2>
+        <ul className="space-y-1.5 text-[8px] text-[#ffe066]">
+          <li>📝 Post in any skill section → <span className="text-[#ffcc44]">+50 XP</span></li>
+          <li>🍳 Add a recipe to Cooking → <span className="text-[#ffcc44]">+50 XP</span></li>
+          <li>🍷 Win Wine Trivia (7+/10) → <span className="text-[#ffcc44]">+25 XP</span></li>
+          <li>🃏 Complete Matching Game → <span className="text-[#ffcc44]">+25 XP</span></li>
+          <li>🌅 Login daily → <span className="text-[#ffcc44]">+10 XP bonus</span></li>
+        </ul>
+        <p className="text-[7px] text-[#c5a882] mt-3">
+          Click any skill in the panel → to get started!
         </p>
-        <div className="mt-6 flex gap-4">
-          <Link
-            href="/projects"
-            className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 transition-colors"
-          >
-            See my work
-          </Link>
-          <Link
-            href="/contact"
-            className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            Get in touch
-          </Link>
-        </div>
-      </section>
+      </div>
 
-      {/* Featured projects */}
-      <section>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Featured Projects</h2>
-          <Link href="/projects" className="text-sm text-indigo-600 hover:underline">
-            View all →
-          </Link>
-        </div>
-        <div className="grid sm:grid-cols-2 gap-4">
-          {featuredProjects.map(p => (
-            <ProjectCard key={p.title} project={p} />
-          ))}
-        </div>
-      </section>
-
-      {/* Latest posts */}
-      {posts.length > 0 && (
-        <section>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Latest Posts</h2>
-            <Link href="/blog" className="text-sm text-indigo-600 hover:underline">
-              View all →
-            </Link>
+      {recentPosts.length > 0 ? (
+        <div>
+          <h2 className="text-[10px] text-[#ffcc44] mb-2">📜 Recent Activity</h2>
+          <div className="space-y-2">
+            {recentPosts.map(post => {
+              const skill = getSkillByEnum(post.skill)
+              return (
+                <Link
+                  key={post.id}
+                  href={skill?.href ?? '/'}
+                  className="osrs-panel-dark block hover:bg-[#3d2a18] transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg shrink-0">{skill?.icon ?? '📝'}</span>
+                    <div className="min-w-0">
+                      <div className="text-[9px] text-[#ff981f] truncate">{post.title}</div>
+                      <div className="text-[7px] text-[#c5a882]">
+                        {post.user.username} · {skill?.label} · {new Date(post.createdAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              )
+            })}
           </div>
-          <div className="space-y-4">
-            {posts.map(p => (
-              <PostCard key={p.slug} post={p} />
-            ))}
-          </div>
-        </section>
+        </div>
+      ) : (
+        <div className="osrs-panel text-center py-4">
+          <p className="text-[8px] text-[#5c3d1e]">
+            No posts yet! Click a skill on the right →
+          </p>
+        </div>
       )}
     </div>
-  );
+  )
 }

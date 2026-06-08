@@ -1,10 +1,10 @@
-import { Metadata } from 'next';
-import ProjectCard from '@/components/ProjectCard';
+import { Metadata } from 'next'
+import ProjectCard from '@/components/ProjectCard'
 
 export const metadata: Metadata = {
-  title: 'Projects | Garret Perez',
-  description: 'Things I have built.',
-};
+  title: "Projects | Garret's World",
+  description: 'Things Garret has built.',
+}
 
 const projects = [
   {
@@ -26,20 +26,18 @@ const projects = [
     link: 'https://example.com',
     github: 'https://github.com',
   },
-];
+]
 
 export default function Projects() {
   return (
-    <div>
-      <h1 className="text-3xl font-bold text-gray-900">Projects</h1>
-      <p className="mt-3 text-gray-600 max-w-2xl">
-        Things I&apos;ve built — side projects, open source work, and experiments.
-      </p>
-      <div className="mt-8 grid sm:grid-cols-2 gap-4">
-        {projects.map(p => (
-          <ProjectCard key={p.title} project={p} />
-        ))}
+    <div className="space-y-4">
+      <div className="osrs-panel">
+        <h1 className="text-[14px] text-[#3c2a1e] font-bold">⚒ Projects</h1>
+        <p className="text-[8px] text-[#5c3d1e] mt-1">Things I&apos;ve built.</p>
+      </div>
+      <div className="space-y-3">
+        {projects.map(p => <ProjectCard key={p.title} project={p} />)}
       </div>
     </div>
-  );
+  )
 }

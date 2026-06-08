@@ -1,45 +1,56 @@
-import { Metadata } from 'next';
+import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Contact | Garret Perez',
-  description: 'Get in touch.',
-};
+  title: "Contact | Garret's World",
+  description: 'Get in touch with Garret.',
+}
 
 export default function Contact() {
   return (
-    <div className="max-w-xl">
-      <h1 className="text-3xl font-bold text-gray-900">Contact</h1>
-      <p className="mt-3 text-gray-600">
-        I&apos;m always open to interesting conversations, collaborations, or just a hello.
-      </p>
-      <div className="mt-8 space-y-4">
+    <div className="space-y-4">
+      <div className="osrs-panel">
+        <h1 className="text-[14px] text-[#3c2a1e] font-bold">📬 Contact</h1>
+        <p className="text-[8px] text-[#5c3d1e] mt-1">
+          Open to conversations, collaborations, or just a hello.
+        </p>
+      </div>
+      <div className="space-y-3">
+        <a href="tel:3466041635" className="osrs-panel-dark block hover:bg-[#3d2a18] transition-colors">
+          <div className="flex items-center gap-3">
+            <span className="text-xl">📞</span>
+            <div>
+              <div className="text-[9px] text-[#ff981f]">Phone</div>
+              <div className="text-[8px] text-[#ffe066]">346-604-1635</div>
+            </div>
+          </div>
+        </a>
         <a
           href="mailto:gis.owner@gmail.com"
-          className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:border-indigo-300 transition-colors group"
+          className="osrs-panel-dark block hover:bg-[#3d2a18] transition-colors"
         >
-          <span className="text-2xl">✉️</span>
-          <div>
-            <div className="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">
-              Email
+          <div className="flex items-center gap-3">
+            <span className="text-xl">✉️</span>
+            <div>
+              <div className="text-[9px] text-[#ff981f]">Email</div>
+              <div className="text-[8px] text-[#ffe066]">gis.owner@gmail.com</div>
             </div>
-            <div className="text-sm text-gray-500">gis.owner@gmail.com</div>
           </div>
         </a>
         <a
           href="https://github.com/garret-glitch"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:border-indigo-300 transition-colors group"
+          className="osrs-panel-dark block hover:bg-[#3d2a18] transition-colors"
         >
-          <span className="text-2xl">💻</span>
-          <div>
-            <div className="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">
-              GitHub
+          <div className="flex items-center gap-3">
+            <span className="text-xl">💻</span>
+            <div>
+              <div className="text-[9px] text-[#ff981f]">GitHub</div>
+              <div className="text-[8px] text-[#ffe066]">@garret-glitch</div>
             </div>
-            <div className="text-sm text-gray-500">@garret-glitch</div>
           </div>
         </a>
       </div>
     </div>
-  );
+  )
 }

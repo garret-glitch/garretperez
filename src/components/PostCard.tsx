@@ -1,21 +1,21 @@
-import Link from 'next/link';
-import type { PostMeta } from '@/lib/posts';
+import Link from 'next/link'
+import type { PostMeta } from '@/lib/posts'
 
 export default function PostCard({ post }: { post: PostMeta }) {
   const formatted = post.date
-    ? new Date(post.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-    : '';
+    ? new Date(post.date).toLocaleDateString('en-US', {
+        year: 'numeric', month: 'long', day: 'numeric',
+      })
+    : ''
   return (
-    <Link href={`/blog/${post.slug}`} className="block group">
-      <article className="border border-gray-200 rounded-lg p-6 hover:border-indigo-300 hover:shadow-sm transition-all">
-        {formatted && <time className="text-xs text-gray-500">{formatted}</time>}
-        <h2 className="mt-1 font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
-          {post.title}
-        </h2>
+    <Link href={`/blog/${post.slug}`} className="block">
+      <div className="osrs-panel-dark hover:bg-[#3d2a18] transition-colors">
+        {formatted && <time className="text-[7px] text-[#c5a882]">{formatted}</time>}
+        <h2 className="text-[10px] text-[#ff981f] font-bold mt-0.5">{post.title}</h2>
         {post.description && (
-          <p className="mt-1 text-sm text-gray-600 line-clamp-2">{post.description}</p>
+          <p className="text-[8px] text-[#ffe066] mt-1 line-clamp-2">{post.description}</p>
         )}
-      </article>
+      </div>
     </Link>
-  );
+  )
 }

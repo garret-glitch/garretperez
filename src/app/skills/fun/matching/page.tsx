@@ -1,0 +1,155 @@
+'use client'
+import { useState, useRef } from 'react'
+import Link from 'next/link'
+
+const PAIRS = ['🍷', '🍺', '🍸', '🍹', '🥂', '🍾', '🫗', '🧀']
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
+interface Card {
+  id: number
+  value: string
+  isFlipped: boolean
+  isMatched: boolean
+}
+
+function createDeck(): Card[] {
+  return shuffle([...PAIRS, ...PAIRS]).map((value, id) => ({
+    id,
+    value,
+    isFlipped: false,
+    isMatched: false,
+  }))
+}
+
+export default function MatchingGamePage() {
+  const [cards, setCards] = useState<Card[]>(createDeck)
+  const [firstFlip, setFirstFlip] = useState<number | null>(null)
+  const [moves, setMoves] = useState(0)
+  const [matches, setMatches] = useState(0)
+  const [locked, setLocked] = useState(false)
+  const [won, setWon] = useState(false)
+  const [xpMsg, setXpMsg] = useState('')
+  const hasAwardedXp = useRef(false)
+
+  function resetGame() {
+    setCards(createDeck())
+    setFirstFlip(null)
+    setMoves(0)
+    setMatches(0)
+    setLocked(false)
+    setWon(false)
+    setXpMsg('')
+    hasAwardedXp.current = false
+  }
+
+  async function handleClick(cardId: number) {
+    if (locked) return
+    const card = cards.find(c => c.id === cardId)
+    if (!card || card.isFlipped || card.isMatched) return
+
+    const flipped = cards.map(c => c.id === cardId ? { ...c, isFlipped: true } : c)
+    setCards(flipped)
+
+    if (firstFlip === null) {
+      setFirstFlip(cardId)
+      return
+    }
+
+    setMoves(m => m + 1)
+    setLocked(true)
+
+    const firstCard = cards.find(c => c.id === firstFlip)!
+
+    if (firstCard.value === card.value) {
+      const newMatches = matches + 1
+      setMatches(newMatches)
+      setCards(prev =>
+        prev.map(c => c.id === cardId || c.id === firstFlip ? { ...c, isMatched: true } : c)
+      )
+      setFirstFlip(null)
+      setLocked(false)
+
+      if (newMatches === PAIRS.length) {
+        setWon(true)
+        if (!hasAwardedXp.current) {
+          hasAwardedXp.current = true
+          const r = await fetch('/api/minigame/win', { method: 'POST' })
+          if (r.ok) setXpMsg('+25 Fun XP earned!')
+          else if (r.status === 401) setXpMsg('Login to save your XP!')
+        }
+      }
+    } else {
+      setTimeout(() => {
+        setCards(prev =>
+          prev.map(c => c.id === cardId || c.id === firstFlip ? { ...c, isFlipped: false } : c)
+        )
+        setFirstFlip(null)
+        setLocked(false)
+      }, 800)
+    }
+  }
+
+  if (won) {
+    return (
+      <div className="space-y-4">
+        <div className="osrs-panel text-center">
+          <div className="text-4xl mb-3">🏆</div>
+          <h2 className="text-[12px] text-[#3c2a1e] font-bold">You win!</h2>
+          <p className="text-[9px] text-[#5c3d1e] mt-2">Completed in {moves} moves</p>
+          {xpMsg && <p className="text-[9px] text-[#007700] mt-2">{xpMsg}</p>}
+          <div className="flex gap-2 justify-center mt-4">
+            <button onClick={resetGame} className="osrs-btn">Play Again</button>
+            <Link href="/skills/fun" className="osrs-btn">← Back</Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="osrs-panel">
+        <div className="flex items-center justify-between mb-2">
+          <h1 className="text-[10px] text-[#3c2a1e] font-bold">🃏 Matching Game</h1>
+          <span className="text-[7px] text-[#5c3d1e]">
+            Moves: {moves} | {matches}/{PAIRS.length} matched
+          </span>
+        </div>
+        <p className="text-[7px] text-[#5c3d1e] mb-3">Match all pairs to earn +25 Fun XP!</p>
+
+        <div className="grid grid-cols-4 gap-1.5">
+          {cards.map(card => (
+            <button
+              key={card.id}
+              onClick={() => handleClick(card.id)}
+              className={`
+                h-14 text-2xl border-2 transition-all
+                ${card.isMatched
+                  ? 'border-green-700 bg-green-900 opacity-50 cursor-default'
+                  : card.isFlipped
+                    ? 'border-[#d4aa70] bg-[#5c3d1e] cursor-default'
+                    : 'border-[#5c3d1e] bg-[#3c2a1e] hover:bg-[#4d3828] cursor-pointer'
+                }
+              `}
+            >
+              {card.isFlipped || card.isMatched ? card.value : '?'}
+            </button>
+          ))}
+        </div>
+
+        <button onClick={resetGame} className="osrs-btn mt-3">Reset</button>
+      </div>
+      <Link href="/skills/fun" className="text-[8px] text-[#ff981f] hover:underline">
+        ← Back to Fun
+      </Link>
+    </div>
+  )
+}

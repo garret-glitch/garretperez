@@ -1,39 +1,41 @@
-import type { Metadata } from "next";
-import localFont from "next/font/local";
-import "./globals.css";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
-});
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
-});
+import type { Metadata } from 'next'
+import './globals.css'
+import { auth } from '@/auth'
+import ContactHeader from '@/components/ContactHeader'
+import SiteHeader from '@/components/SiteHeader'
+import SkillsPanel from '@/components/SkillsPanel'
+import Footer from '@/components/Footer'
+import SessionProvider from '@/components/SessionProvider'
 
 export const metadata: Metadata = {
-  title: "Garret Perez",
-  description: "Personal website — portfolio, blog, and projects.",
-};
+  title: "Garret's World",
+  description: 'A community blog where you earn XP for doing things!',
+}
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
+  const session = await auth()
+
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <Navbar />
-        <main className="max-w-5xl mx-auto px-4 sm:px-6 py-12">
-          {children}
-        </main>
-        <Footer />
+      <body>
+        <SessionProvider session={session}>
+          <div className="min-h-screen flex flex-col">
+            <ContactHeader />
+            <SiteHeader />
+            <div className="flex flex-1 w-full max-w-[1100px] mx-auto gap-2 px-2 py-3">
+              <main className="flex-1 min-w-0">
+                {children}
+              </main>
+              <SkillsPanel />
+            </div>
+            <Footer />
+          </div>
+        </SessionProvider>
       </body>
     </html>
-  );
+  )
 }

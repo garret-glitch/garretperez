@@ -1,27 +1,138 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #3c2a1e;
+  --foreground: #ffe066;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #3c2a1e;
+  color: #ffe066;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;
+  line-height: 1.8;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+@layer components {
+  .osrs-panel {
+    background-color: #c5a882;
+    color: #3c2a1e;
+    border: 3px solid;
+    border-color: #e8cc99 #5c3d1e #5c3d1e #e8cc99;
+    padding: 12px;
   }
+
+  .osrs-panel-dark {
+    background-color: #2b1c0e;
+    color: #ffe066;
+    border: 3px solid;
+    border-color: #5c3d1e #d4aa70 #d4aa70 #5c3d1e;
+    padding: 12px;
+  }
+
+  .osrs-btn {
+    display: inline-block;
+    background-color: #c5a882;
+    color: #3c2a1e;
+    padding: 4px 10px;
+    font-size: 9px;
+    font-family: 'Press Start 2P', monospace;
+    cursor: pointer;
+    border: 2px solid;
+    border-color: #e8cc99 #5c3d1e #5c3d1e #e8cc99;
+    transition: all 0.1s;
+    text-align: center;
+    line-height: 1.4;
+    user-select: none;
+  }
+
+  .osrs-btn:hover:not(:disabled) {
+    background-color: #a08050;
+    color: #ffcc44;
+  }
+
+  .osrs-btn:active:not(:disabled) {
+    border-color: #5c3d1e #e8cc99 #e8cc99 #5c3d1e;
+  }
+
+  .osrs-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .osrs-input {
+    display: block;
+    background-color: #1a1208;
+    color: #ffe066;
+    padding: 6px 8px;
+    font-size: 9px;
+    font-family: 'Press Start 2P', monospace;
+    border: 2px solid;
+    border-color: #5c3d1e #d4aa70 #d4aa70 #5c3d1e;
+    outline: none;
+    width: 100%;
+    line-height: 1.6;
+  }
+
+  .osrs-input:focus {
+    border-color: #ff981f #5c3d1e #5c3d1e #ff981f;
+  }
+
+  .osrs-input::placeholder {
+    color: #5c3d1e;
+    font-size: 8px;
+  }
+
+  .osrs-input:disabled {
+    opacity: 0.55;
+  }
+
+  .skill-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 2px;
+    cursor: pointer;
+    background-color: #3c2a1e;
+    text-decoration: none;
+    transition: background-color 0.1s;
+    min-height: 52px;
+  }
+
+  .skill-cell:hover {
+    background-color: #4d3828;
+  }
+}
+
+/* OSRS-style prose for blog posts */
+.prose {
+  color: #ffe066;
+  font-size: 9px;
+  line-height: 1.9;
+}
+.prose h1, .prose h2, .prose h3 {
+  color: #ff981f;
+  font-family: 'Press Start 2P', monospace;
+}
+.prose a { color: #ff981f; text-decoration: underline; }
+.prose code {
+  background-color: #1a1208;
+  color: #ffcc44;
+  padding: 1px 4px;
+  font-size: 8px;
+}
+.prose pre {
+  background-color: #1a1208;
+  border: 2px solid #5c3d1e;
+  padding: 12px;
 }
