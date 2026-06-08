@@ -164,51 +164,43 @@ export default async function Home() {
           </h2>
           <div className="space-y-3 body-text" style={{ color: '#9898b8' }}>
             <p>
-              I&apos;m a wine sales professional based in Houston, TX working in H-E-B distribution
-              and team management. Outside of work I&apos;m building, creating, and running community
-              projects.
+              I&apos;m a sales professional based in Houston, TX with a focus on distribution,
+              team management, and building strong customer relationships.
             </p>
             <p>
-              Every year I run a full neighborhood haunted house, maintain a garden, go fishing,
-              and take on home projects. This site is where I document all of it — and where you
-              can join the conversation.
+              Outside of work, I&apos;m always building something. From home projects and DIY builds
+              to maintaining a garden, fishing local waters, and taking on new challenges, I enjoy
+              learning through hands-on experience.
+            </p>
+            <p>
+              I&apos;m passionate about community and creating spaces where people can connect,
+              share ideas, and help each other grow.
+            </p>
+            <p>
+              This site is where I document my projects, share what I&apos;m learning, and invite
+              others to be part of the conversation. Explore the projects, join the discussions,
+              and let&apos;s build something great together.
             </p>
           </div>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {['Wine Sales', 'Team Leadership', 'DIY Builds', 'Community Events', 'Fishing', 'Gardening'].map(tag => (
-              <span key={tag} className="text-[6px] px-2 py-1 rounded"
-                style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-2)' }}>
-                {tag}
-              </span>
-            ))}
-          </div>
-          {!session?.user && (
-            <div className="mt-4 flex gap-2">
-              <Link href="/register" className="osrs-btn flex-1 text-center text-[7px]">✨ Join Community</Link>
-              <Link href="/login" className="osrs-btn text-center text-[7px]">Login</Link>
-            </div>
-          )}
         </div>
 
         {/* My Projects */}
         <div className="rp-card">
-          <h2 className="text-[9px] mb-4 flex items-center gap-2" style={{ color: 'var(--text-1)' }}>
+          <h2 className="text-[9px] mb-3 flex items-center gap-2" style={{ color: 'var(--text-1)' }}>
             <span style={{ color: 'var(--gold)' }}>⚒️</span> My Projects
           </h2>
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             {PROJECTS.map(p => (
-              <Link key={p.title} href={p.href} className="block quest-card">
-                <div className="flex items-center gap-3">
-                  <span className="text-lg shrink-0">{p.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="text-[7px] font-bold truncate" style={{ color: 'var(--text-1)' }}>{p.title}</span>
-                      <span className="text-[6px] shrink-0" style={{ color: 'var(--text-3)' }}>{p.updated}</span>
-                    </div>
-                    <div className="prog-bar mb-1">
-                      <div className="prog-bar-fill" style={{ width: `${p.progress}%` }} />
-                    </div>
-                    <div className="text-[5.5px]" style={{ color: 'var(--text-3)' }}>{p.progress}% complete</div>
+              <Link key={p.title} href={p.href} className="flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors hover:opacity-80"
+                style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-dim)' }}>
+                <span className="text-base shrink-0">{p.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="text-[7px] font-bold truncate" style={{ color: 'var(--text-1)' }}>{p.title}</span>
+                    <span className="text-[6px] shrink-0" style={{ color: 'var(--gold)' }}>{p.progress}%</span>
+                  </div>
+                  <div className="prog-bar">
+                    <div className="prog-bar-fill" style={{ width: `${p.progress}%` }} />
                   </div>
                 </div>
               </Link>
