@@ -53,59 +53,72 @@ export default async function SkillsPanel() {
       {/* ── Profile block ─────────────────────────────── */}
       <div className="px-4 py-4 border-b shrink-0" style={{ borderColor: 'var(--border-dim)' }}>
 
-        {/* Avatar + name — shows logged-in user when authenticated, otherwise Garret */}
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center text-xs font-bold shrink-0"
-            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--gold)' }}>
-            {session?.user ? initials : 'GP'}
-          </div>
-          <div>
-            <div className="text-[8px] font-bold" style={{ color: 'var(--text-1)' }}>
-              {session?.user ? session.user.name : 'Garret Perez'}
+        {session?.user ? (
+          <>
+            {/* Logged-in: show user avatar + name + XP */}
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center text-xs font-bold shrink-0"
+                style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--gold)' }}>
+                {initials}
+              </div>
+              <div>
+                <div className="text-[8px] font-bold" style={{ color: 'var(--text-1)' }}>{session.user.name}</div>
+                <div className="text-[6px] mt-0.5" style={{ color: 'var(--gold)' }}>Lv {userLevel} · {totalXp.toLocaleString()} XP</div>
+              </div>
             </div>
-            <div className="text-[6px] mt-0.5" style={{ color: 'var(--gold)' }}>
-              {session?.user ? `Lv ${userLevel} · ${totalXp.toLocaleString()} XP` : `Total Level ${GARRET_TOTAL}`}
-            </div>
-          </div>
-        </div>
 
-        {/* Home + Resume side by side */}
-        <div className="flex gap-1.5 mb-2">
-          <Link href="/"
-            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[6.5px] font-bold transition-opacity hover:opacity-85"
-            style={{
-              background: 'linear-gradient(135deg, rgba(200,155,60,0.2) 0%, rgba(200,155,60,0.08) 100%)',
-              border: '1px solid rgba(200,155,60,0.45)',
-              color: 'var(--gold)',
-            }}>
-            <span>🏠</span><span>Home</span>
-          </Link>
-          {session?.user ? (
-            <SidebarLogoutButton />
-          ) : (
-            <Link href="/resume"
-              className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[6.5px] transition-opacity hover:opacity-80"
-              style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-2)' }}>
-              <span>📄</span><span>Resume</span>
+            <div className="flex gap-1.5 mb-2">
+              <Link href="/"
+                className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[6.5px] font-bold transition-opacity hover:opacity-85"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(200,155,60,0.2) 0%, rgba(200,155,60,0.08) 100%)',
+                  border: '1px solid rgba(200,155,60,0.45)',
+                  color: 'var(--gold)',
+                }}>
+                <span>🏠</span><span>Home</span>
+              </Link>
+              <SidebarLogoutButton />
+            </div>
+
+            {isAdmin && (
+              <Link href="/admin"
+                className="flex items-center justify-center gap-1 w-full py-1.5 rounded-lg text-[6px] transition-opacity hover:opacity-80"
+                style={{ background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.3)', color: 'var(--gold)' }}>
+                ⚙ Admin Panel
+              </Link>
+            )}
+          </>
+        ) : (
+          <>
+            {/* Logged-out: login box */}
+            <div className="rounded-xl p-3 mb-2"
+              style={{
+                background: 'linear-gradient(135deg, rgba(200,155,60,0.08) 0%, rgba(200,155,60,0.03) 100%)',
+                border: '1px solid rgba(200,155,60,0.25)',
+              }}>
+              <div className="text-[7px] font-bold mb-1" style={{ color: 'var(--gold)' }}>⚔ Welcome, Adventurer</div>
+              <div className="text-[6px] mb-3 leading-relaxed" style={{ color: 'var(--text-2)' }}>
+                Log in to earn XP, post in channels, and track your progress.
+              </div>
+              <div className="flex gap-1.5">
+                <Link href="/login" className="osrs-btn flex-1 text-[6.5px] py-1.5 text-center block">Login</Link>
+                <Link href="/register" className="flex-1 flex items-center justify-center py-1.5 rounded-lg text-[6.5px] transition-opacity hover:opacity-80"
+                  style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-2)' }}>
+                  Join
+                </Link>
+              </div>
+            </div>
+
+            <Link href="/"
+              className="flex items-center justify-center gap-1 w-full py-1.5 rounded-lg text-[6.5px] font-bold transition-opacity hover:opacity-85"
+              style={{
+                background: 'linear-gradient(135deg, rgba(200,155,60,0.2) 0%, rgba(200,155,60,0.08) 100%)',
+                border: '1px solid rgba(200,155,60,0.45)',
+                color: 'var(--gold)',
+              }}>
+              <span>🏠</span><span>Home</span>
             </Link>
-          )}
-        </div>
-
-        {/* Admin link */}
-        {isAdmin && (
-          <Link href="/admin"
-            className="flex items-center justify-center gap-1 w-full py-1.5 rounded-lg text-[6px] mb-2 transition-opacity hover:opacity-80"
-            style={{ background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.3)', color: 'var(--gold)' }}>
-            ⚙ Admin Panel
-          </Link>
-        )}
-
-        {/* Login / Join — only when not logged in */}
-        {!session?.user && (
-          <div className="flex gap-1.5">
-            <Link href="/register" className="osrs-btn flex-1 text-[6.5px] py-1.5 text-center block">Join</Link>
-            <Link href="/login" className="osrs-btn flex-1 text-[6.5px] py-1.5 text-center block">Login</Link>
-          </div>
+          </>
         )}
       </div>
 
