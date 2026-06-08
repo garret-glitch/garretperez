@@ -3,6 +3,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { XP_PER_POST } from '@/lib/xp'
 import { checkBadges } from '@/lib/badges'
+import { mirrorXpToAdmin } from '@/lib/admin-xp'
 
 export async function POST(req: Request) {
   const session = await auth()
@@ -36,6 +37,7 @@ export async function POST(req: Request) {
     ])
 
     await checkBadges(session.user.id, 'recipe')
+    await mirrorXpToAdmin('FOOD', XP_PER_POST, session.user.id)
 
     return NextResponse.json({ success: true, xpAwarded: XP_PER_POST })
   } catch (error) {

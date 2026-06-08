@@ -3,6 +3,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { XP_PER_LOGIN } from '@/lib/xp'
 import { checkBadges } from '@/lib/badges'
+import { mirrorXpToAdmin } from '@/lib/admin-xp'
 import { SkillType } from '@prisma/client'
 
 const ALL_SKILLS = Object.values(SkillType)
@@ -42,6 +43,7 @@ export async function POST() {
     ])
 
     await checkBadges(session.user.id, 'login')
+    await mirrorXpToAdmin(randomSkill, XP_PER_LOGIN, session.user.id)
 
     return NextResponse.json({ success: true, skill: randomSkill, xpAwarded: XP_PER_LOGIN })
   } catch (error) {

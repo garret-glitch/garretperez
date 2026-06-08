@@ -3,6 +3,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { XP_PER_WIN } from '@/lib/xp'
 import { checkBadges } from '@/lib/badges'
+import { mirrorXpToAdmin } from '@/lib/admin-xp'
 
 export async function POST() {
   const session = await auth()
@@ -16,6 +17,7 @@ export async function POST() {
       data: { xp: { increment: XP_PER_WIN } },
     })
     await checkBadges(session.user.id, 'game')
+    await mirrorXpToAdmin('FUN', XP_PER_WIN, session.user.id)
     return NextResponse.json({ success: true, xpAwarded: XP_PER_WIN })
   } catch (error) {
     console.error('Minigame win error:', error)

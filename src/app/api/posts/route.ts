@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { SKILL_ENUMS } from '@/lib/skills'
 import { XP_PER_POST } from '@/lib/xp'
 import { checkBadges } from '@/lib/badges'
+import { mirrorXpToAdmin } from '@/lib/admin-xp'
 import { SkillType } from '@prisma/client'
 
 export async function POST(req: Request) {
@@ -38,6 +39,7 @@ export async function POST(req: Request) {
     ])
 
     await checkBadges(session.user.id, 'post')
+    await mirrorXpToAdmin(skill as SkillType, XP_PER_POST, session.user.id)
 
     return NextResponse.json({ success: true, xpAwarded: XP_PER_POST })
   } catch (error) {
