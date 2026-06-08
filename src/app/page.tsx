@@ -138,8 +138,7 @@ export default async function Home() {
               <span>linkedin.com/in/garretperez</span>
             </a>
 
-            <a href="/resume.pdf" target="_blank" rel="noopener noreferrer"
-              className="osrs-btn text-[7px] text-center mt-1 w-full">📄 Download Resume</a>
+            <a href="/resume" className="osrs-btn text-[7px] text-center mt-1 w-full">📄 View Resume</a>
 
             <div className="flex gap-2 mt-1">
               <div className="text-center flex-1 rounded-lg py-1.5" style={{ background: 'var(--bg-page)', border: '1px solid var(--border-dim)' }}>

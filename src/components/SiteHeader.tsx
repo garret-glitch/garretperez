@@ -16,6 +16,9 @@ export default async function SiteHeader() {
         <Link href="/quest-board" className="text-[7px] hover:opacity-80 transition-opacity" style={{ color: 'var(--text-2)' }}>
           Quests
         </Link>
+        <Link href="/resume" className="text-[7px] hover:opacity-80 transition-opacity" style={{ color: 'var(--text-2)' }}>
+          Resume
+        </Link>
         {isAdmin && (
           <Link href="/admin" className="text-[7px] hover:opacity-80 transition-opacity" style={{ color: 'var(--gold)' }}>
             Admin
