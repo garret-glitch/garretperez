@@ -6,14 +6,21 @@ import Link from 'next/link'
 import SidebarFunGame from './SidebarFunGame'
 
 const GUILD_CHANNELS = [
-  { icon: '❤️', label: 'Health',     dbEnum: 'HEALTH',    level: 72, href: '/skills/health',    sub: 'Wellness & Fitness' },
-  { icon: '⚒️', label: 'Projects',   dbEnum: 'PROJECTS',  level: 18, href: '/skills/projects',  sub: 'Building & Creating' },
-  { icon: '💼', label: 'Business',   dbEnum: 'BUSINESS',  level: 31, href: '/skills/business',  sub: 'Wine Sales & Strategy' },
-  { icon: '👥', label: 'Community',  dbEnum: 'COMMUNITY', level: 80, href: '/skills/community', sub: 'Group Discussions' },
-  { icon: '🎣', label: 'Fishing',    dbEnum: 'FISHING',   level: 55, href: '/skills/fishing',   sub: 'Outdoor Adventures' },
-  { icon: '🍳', label: 'Cooking',    dbEnum: 'FOOD',      level: 65, href: '/skills/food',      sub: 'Recipes & Pairings' },
-  { icon: '🌱', label: 'Farming',    dbEnum: 'GARDENING', level: 45, href: '/skills/gardening', sub: 'Garden & Nature' },
-  { icon: '🗺️', label: 'Adventure',  dbEnum: 'TRAVEL',    level: 65, href: '/skills/travel',    sub: 'Adventures & Places' },
+  { icon: '❤️', label: 'Health',    dbEnum: 'HEALTH',    level: 72, href: '/skills/health',    sub: 'Wellness & Fitness' },
+  { icon: '⚒️', label: 'Projects',  dbEnum: 'PROJECTS',  level: 18, href: '/skills/projects',  sub: 'Building & Creating' },
+  { icon: '💼', label: 'Business',  dbEnum: 'BUSINESS',  level: 31, href: '/skills/business',  sub: 'Wine Sales & Strategy' },
+  { icon: '👥', label: 'Community', dbEnum: 'COMMUNITY', level: 80, href: '/skills/community', sub: 'Group Discussions' },
+  { icon: '🎣', label: 'Fishing',   dbEnum: 'FISHING',   level: 55, href: '/skills/fishing',   sub: 'Outdoor Adventures' },
+  { icon: '🍳', label: 'Cooking',   dbEnum: 'FOOD',      level: 65, href: '/skills/food',      sub: 'Recipes & Pairings' },
+  { icon: '🌱', label: 'Farming',   dbEnum: 'GARDENING', level: 45, href: '/skills/gardening', sub: 'Garden & Nature' },
+  { icon: '🗺️', label: 'Adventure', dbEnum: 'TRAVEL',    level: 65, href: '/skills/travel',    sub: 'Adventures & Places' },
+]
+
+const SIDEBAR_QUESTS = [
+  { icon: '🎃', title: 'Haunted House: 100 Visitors', progress: 65 },
+  { icon: '💼', title: 'Wine Sales — Q4 Target',      progress: 75 },
+  { icon: '👥', title: 'Grow the Community',          progress: 20 },
+  { icon: '🌱', title: 'Full Garden Harvest',         progress: 30 },
 ]
 
 const FUN_LEVEL = 88
@@ -61,6 +68,28 @@ export default async function SkillsPanel() {
         <Link href="/" className="guild-channel rounded-md text-[7px] px-2 py-1.5 flex items-center gap-2" style={{ borderLeft: 'none', background: 'var(--bg-elevated)', color: 'var(--text-2)' }}>
           <span>🏠</span><span>Home</span>
         </Link>
+      </div>
+
+      {/* Active Quests */}
+      <div className="px-3 py-2 border-b shrink-0" style={{ borderColor: 'var(--border-dim)' }}>
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[6px] uppercase tracking-widest" style={{ color: 'var(--text-3)' }}>⚔ Active Quests</span>
+          <Link href="/quest-board" className="text-[5.5px] hover:opacity-70" style={{ color: 'var(--text-3)' }}>see all →</Link>
+        </div>
+        <div className="space-y-1.5">
+          {SIDEBAR_QUESTS.map(q => (
+            <div key={q.title} className="flex items-center gap-1.5">
+              <span className="text-xs shrink-0">{q.icon}</span>
+              <div className="flex-1 min-w-0">
+                <div className="text-[5.5px] truncate mb-0.5" style={{ color: 'var(--text-2)' }}>{q.title}</div>
+                <div className="h-1 rounded-full overflow-hidden" style={{ background: 'var(--bg-elevated)' }}>
+                  <div className="h-full rounded-full" style={{ width: `${q.progress}%`, background: 'var(--gold)', opacity: 0.7 }} />
+                </div>
+              </div>
+              <span className="text-[5px] shrink-0" style={{ color: 'var(--text-3)' }}>{q.progress}%</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Middle: channels + fun zone */}
@@ -118,11 +147,6 @@ export default async function SkillsPanel() {
             </div>
           </div>
         )}
-
-        {/* Quests link */}
-        <Link href="/quest-board" className="guild-channel mt-2 rounded-md text-[7px] px-2 py-1.5 flex items-center gap-2" style={{ borderLeft: 'none', background: 'var(--bg-elevated)', color: 'var(--text-2)' }}>
-          <span>📋</span><span>Quest Board</span>
-        </Link>
       </div>
     </aside>
   )

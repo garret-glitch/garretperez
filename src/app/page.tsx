@@ -20,13 +20,6 @@ const PROJECTS = [
   { icon: '⚒️', title: 'Personal Projects', desc: 'Building, fixing, and creating things — home improvements and DIY builds.',       progress: 20, href: '/skills/projects',  updated: 'Oct 2024' },
 ]
 
-const QUESTS = [
-  { icon: '🎃', title: 'Haunted House: 100 Visitors', desc: 'Get 100 visitors to the annual haunted house', progress: 65, xp: 500 },
-  { icon: '💼', title: 'Wine Sales — Q4 Target',       desc: 'Reach quarterly distribution goal with H-E-B', progress: 75, xp: 300 },
-  { icon: '👥', title: 'Grow the Community',           desc: 'Reach 50 active members across all channels',  progress: 20, xp: 200 },
-  { icon: '🌱', title: 'Full Garden Harvest',          desc: 'Complete a full seasonal garden cycle',         progress: 30, xp: 150 },
-]
-
 export default async function Home() {
   const session = await auth()
 
@@ -127,7 +120,7 @@ export default async function Home() {
             </div>
           </div>
 
-          {/* Contact info + Houston art */}
+          {/* Contact info */}
           <div className="shrink-0 flex flex-col gap-2" style={{ minWidth: 175, maxWidth: 210 }}>
             <div className="text-[6px] uppercase tracking-widest" style={{ color: 'var(--text-3)' }}>Contact</div>
 
@@ -212,94 +205,10 @@ export default async function Home() {
         </div>
       </div>
 
-      {/* ─── ROW 2: Quest Log + Achievements ─────────────── */}
-      <div className="grid grid-cols-2 gap-4">
+      {/* ─── ROW 2: Community Feed + Achievements ─────────── */}
+      <div className="grid gap-4" style={{ gridTemplateColumns: '2fr 1fr' }}>
 
-        {/* Quest Log */}
-        <div className="rp-card">
-          <h2 className="text-[9px] mb-4 flex items-center gap-2" style={{ color: 'var(--text-1)' }}>
-            <span style={{ color: 'var(--gold)' }}>📜</span> Active Quests
-            <Link href="/quest-board" className="ml-auto text-[6px] hover:opacity-70" style={{ color: 'var(--text-2)' }}>See all →</Link>
-          </h2>
-          <div className="space-y-3">
-            {QUESTS.map(q => (
-              <div key={q.title} className="quest-card">
-                <div className="flex items-start gap-3">
-                  <span className="text-xl shrink-0">{q.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="text-[7px] font-bold" style={{ color: 'var(--text-1)' }}>{q.title}</span>
-                      <span className="text-[6px] shrink-0" style={{ color: 'var(--gold)' }}>+{q.xp} XP</span>
-                    </div>
-                    <div className="body-text text-[11px] mb-2" style={{ color: 'var(--text-2)' }}>{q.desc}</div>
-                    <div className="prog-bar">
-                      <div className="prog-bar-fill" style={{ width: `${q.progress}%` }} />
-                    </div>
-                    <div className="text-[5.5px] mt-1" style={{ color: 'var(--text-3)' }}>{q.progress}% complete</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Achievements */}
-        <div className="rp-card">
-          <h2 className="text-[9px] mb-4 flex items-center gap-2" style={{ color: 'var(--text-1)' }}>
-            <span style={{ color: 'var(--gold)' }}>🏆</span> Achievements
-          </h2>
-          <div className="grid grid-cols-3 gap-2">
-            {Object.entries(BADGE_META).map(([key, meta]) => (
-              <div key={key} className="badge-tile">
-                <span className="text-2xl">{meta.icon}</span>
-                <span className="text-[5.5px] text-center leading-tight" style={{ color: 'var(--text-2)' }}>{meta.label}</span>
-                <span className="text-[5px] text-center leading-tight" style={{ color: 'var(--text-3)' }}>{meta.desc}</span>
-              </div>
-            ))}
-          </div>
-          {!session?.user && (
-            <p className="mt-3 text-[6px] text-center" style={{ color: 'var(--text-3)' }}>
-              Login to earn badges and unlock achievements
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* ─── ROW 3: Recent Activity + Community Feed ─────── */}
-      <div className="grid gap-4" style={{ gridTemplateColumns: '1fr 2fr' }}>
-
-        {/* Recent Activity — compact */}
-        <div className="rp-card">
-          <h2 className="text-[9px] mb-3 flex items-center gap-2" style={{ color: 'var(--text-1)' }}>
-            <span style={{ color: 'var(--gold)' }}>⚡</span> Activity
-            <span className="blink ml-1" style={{ color: 'var(--gold)' }}>▮</span>
-          </h2>
-          {recentPosts.length === 0 ? (
-            <div className="text-center py-6">
-              <div className="text-2xl mb-2">🗿</div>
-              <p className="text-[7px]" style={{ color: 'var(--text-3)' }}>No posts yet. Click a community to start!</p>
-            </div>
-          ) : (
-            <div className="space-y-1.5">
-              {recentPosts.slice(0, 6).map(post => {
-                const skill = getSkillByEnum(post.skill)
-                return (
-                  <Link key={post.id} href={skill?.href ?? '/'} className="flex items-center gap-2 px-2 py-2 rounded-lg transition-colors hover:opacity-80" style={{ background: 'var(--bg-elevated)' }}>
-                    <span className="text-sm shrink-0">{skill?.icon ?? '📝'}</span>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[7px] truncate" style={{ color: 'var(--text-1)' }}>{post.title}</div>
-                      <div className="text-[5.5px]" style={{ color: 'var(--text-3)' }}>
-                        {post.user.username} · {timeAgo(post.createdAt)}
-                      </div>
-                    </div>
-                  </Link>
-                )
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Community Feed — full cards */}
+        {/* Community Feed */}
         <div className="rp-card">
           <h2 className="text-[9px] mb-4 flex items-center gap-2" style={{ color: 'var(--text-1)' }}>
             <span style={{ color: 'var(--gold)' }}>💬</span> Community Feed
@@ -328,14 +237,12 @@ export default async function Home() {
                 return (
                   <Link key={post.id} href={skill?.href ?? '/'} className="block post-card">
                     <div className="flex items-start gap-3">
-                      {/* User avatar */}
                       <div className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center text-[8px] font-bold"
                         style={{ background: 'var(--bg-page)', border: '1px solid var(--border)', color: 'var(--gold)' }}>
                         {post.user.username.slice(0, 2).toUpperCase()}
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        {/* Meta row */}
                         <div className="flex items-center gap-2 flex-wrap mb-1">
                           <span className="text-[7px] font-bold" style={{ color: 'var(--text-1)' }}>{post.user.username}</span>
                           <span className="text-[6px] px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-page)', color: 'var(--text-2)', border: '1px solid var(--border-dim)' }}>
@@ -344,15 +251,12 @@ export default async function Home() {
                           <span className="text-[5.5px] ml-auto" style={{ color: 'var(--text-3)' }}>{timeAgo(post.createdAt)}</span>
                         </div>
 
-                        {/* Title */}
                         <div className="text-[8px] font-bold mb-1 truncate" style={{ color: 'var(--text-1)' }}>{post.title}</div>
 
-                        {/* Body preview */}
                         <p className="body-text text-[12px] mb-2 line-clamp-2" style={{ color: '#7878a0' }}>
                           {post.body}
                         </p>
 
-                        {/* Engagement */}
                         <div className="flex items-center gap-3">
                           {upvotes > 0 && (
                             <span className="text-[6px] flex items-center gap-1" style={{ color: 'var(--gold)' }}>
@@ -371,6 +275,27 @@ export default async function Home() {
                 )
               })}
             </div>
+          )}
+        </div>
+
+        {/* Achievements */}
+        <div className="rp-card">
+          <h2 className="text-[9px] mb-4 flex items-center gap-2" style={{ color: 'var(--text-1)' }}>
+            <span style={{ color: 'var(--gold)' }}>🏆</span> Achievements
+          </h2>
+          <div className="grid grid-cols-2 gap-2">
+            {Object.entries(BADGE_META).map(([key, meta]) => (
+              <div key={key} className="badge-tile">
+                <span className="text-2xl">{meta.icon}</span>
+                <span className="text-[5.5px] text-center leading-tight" style={{ color: 'var(--text-2)' }}>{meta.label}</span>
+                <span className="text-[5px] text-center leading-tight" style={{ color: 'var(--text-3)' }}>{meta.desc}</span>
+              </div>
+            ))}
+          </div>
+          {!session?.user && (
+            <p className="mt-3 text-[6px] text-center" style={{ color: 'var(--text-3)' }}>
+              Login to earn badges
+            </p>
           )}
         </div>
       </div>
