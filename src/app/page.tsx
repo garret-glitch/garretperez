@@ -120,6 +120,30 @@ export default async function Home() {
         </div>
       </div>
 
+      {/* Featured Quests */}
+      <div className="osrs-panel-dark rounded-xl">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-[9px] text-[#c0c0c0] font-bold">📋 Featured Quests</h2>
+          <Link href="/quest-board" className="text-[6px] text-[#a0bcd0] hover:underline">See all →</Link>
+        </div>
+        <div className="space-y-2">
+          {[
+            { icon: '🍷', title: 'Wine Expert', desc: 'Score 7+ on Wine Trivia', xp: 20, href: '/skills/fun/wine-trivia' },
+            { icon: '💬', title: 'Help Someone Out', desc: 'Reply to a post in any skill', xp: 5, href: '/skills/community' },
+            { icon: '📝', title: 'Share a Project', desc: 'Post an update in Projects', xp: 10, href: '/skills/projects' },
+          ].map(q => (
+            <Link key={q.title} href={q.href} className="flex items-center gap-2 bg-[#282828] hover:bg-[#323232] rounded-lg px-3 py-2 transition-colors">
+              <span className="text-base shrink-0">{q.icon}</span>
+              <div className="flex-1 min-w-0">
+                <div className="text-[8px] text-[#d0d0d0] font-bold">{q.title}</div>
+                <div className="text-[6px] text-[#707070]">{q.desc}</div>
+              </div>
+              <span className="text-[7px] text-[#ffe066] font-bold shrink-0">+{q.xp} XP</span>
+            </Link>
+          ))}
+        </div>
+      </div>
+
       {/* Recent activity */}
       {recentPosts.length > 0 ? (
         <div className="osrs-panel-dark rounded-xl">

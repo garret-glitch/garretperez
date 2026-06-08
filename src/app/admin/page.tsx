@@ -37,7 +37,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (status === 'loading') return
-    if (!session?.user || session.user.name !== 'garret') {
+    if (!session?.user || session.user.role !== 'ADMIN') {
       router.replace('/')
       return
     }

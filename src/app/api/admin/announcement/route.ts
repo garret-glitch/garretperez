@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 
 export async function POST(req: Request) {
   const session = await auth()
-  if (!session?.user || session.user.name !== 'garret') {
+  if (!session?.user || session.user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
   const { title, body } = await req.json()
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   const session = await auth()
-  if (!session?.user || session.user.name !== 'garret') {
+  if (!session?.user || session.user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
   const { id } = await req.json()

@@ -5,7 +5,7 @@ import { SkillType } from '@prisma/client'
 
 export async function POST(req: Request) {
   const session = await auth()
-  if (!session?.user || session.user.name !== 'garret') {
+  if (!session?.user || session.user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
   const { userId, skill, amount } = await req.json()
