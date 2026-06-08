@@ -67,10 +67,24 @@ export default async function Home() {
       <div className="hero-panel">
         <div className="flex gap-6 flex-wrap">
 
-          {/* Avatar */}
-          <div className="shrink-0 w-20 h-20 rounded-xl flex items-center justify-center text-xl font-bold"
-            style={{ background: 'var(--bg-page)', border: '2px solid var(--border-lit)', color: 'var(--gold)' }}>
-            GP
+          {/* Profile Photo */}
+          <div className="shrink-0">
+            <div className="w-28 h-28 rounded-xl overflow-hidden"
+              style={{ border: '2px solid var(--border-lit)' }}>
+              {/* Replace /headshot.jpg with your photo — drop the file into the /public folder */}
+              <img
+                src="/headshot.jpg"
+                alt="Garret Perez"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  const t = e.currentTarget
+                  t.style.display = 'none'
+                  if (t.parentElement) {
+                    t.parentElement.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--bg-page);color:var(--gold);font-size:22px;font-weight:bold;">GP</div>'
+                  }
+                }}
+              />
+            </div>
           </div>
 
           {/* Main info */}
@@ -83,13 +97,12 @@ export default async function Home() {
                 ⚔ Level {GARRET_TOTAL}
               </span>
             </div>
-            <div className="body-text text-[12px] mb-1" style={{ color: 'var(--text-2)' }}>
-              Sales Professional &amp; Community Builder · 📍 Houston, TX
+            <div className="body-text text-[13px] font-semibold mb-1" style={{ color: 'var(--text-1)' }}>
+              Sales Supervisor · Builder · Family Man
             </div>
-            <p className="body-text mb-3" style={{ color: '#9898b8' }}>
-              Wine industry sales pro, builder, creator, father, and lifelong learner.
-              This is my personal hub — part portfolio, part RPG character sheet, part community.
-            </p>
+            <div className="body-text text-[12px] mb-3" style={{ color: 'var(--text-2)' }}>
+              📍 Houston, TX
+            </div>
 
             {/* XP bar */}
             <div className="mb-1 flex items-center gap-3">
@@ -106,18 +119,34 @@ export default async function Home() {
             </div>
           </div>
 
-          {/* Contact */}
-          <div className="shrink-0 flex flex-col gap-2 min-w-[140px]">
-            <a href="tel:346-604-1635" className="flex items-center gap-2 text-[7px] hover:opacity-80 transition-opacity" style={{ color: 'var(--text-2)' }}>
-              <span style={{ color: 'var(--gold)' }}>📞</span> 346-604-1635
+          {/* Contact info — all details */}
+          <div className="shrink-0 flex flex-col gap-2.5" style={{ minWidth: 180 }}>
+            <div className="text-[6px] uppercase tracking-widest mb-1" style={{ color: 'var(--text-3)' }}>Contact</div>
+
+            <a href="tel:346-604-1635"
+              className="flex items-center gap-2.5 body-text text-[12px] hover:opacity-80 transition-opacity"
+              style={{ color: 'var(--text-1)' }}>
+              <span className="text-base">📞</span>
+              <span>(346) 604-1635</span>
             </a>
-            <a href="mailto:gis.owner@gmail.com" className="flex items-center gap-2 text-[7px] hover:opacity-80 transition-opacity" style={{ color: 'var(--text-2)' }}>
-              <span style={{ color: 'var(--gold)' }}>✉</span> gis.owner@gmail.com
+
+            <a href="mailto:gis.owner@gmail.com"
+              className="flex items-center gap-2.5 body-text text-[12px] hover:opacity-80 transition-opacity"
+              style={{ color: 'var(--text-1)' }}>
+              <span className="text-base">✉️</span>
+              <span>gis.owner@gmail.com</span>
             </a>
+
             <a href="https://www.linkedin.com/in/garretperez" target="_blank" rel="noopener noreferrer"
-              className="osrs-btn text-[7px] text-center mt-1">🔗 LinkedIn</a>
+              className="flex items-center gap-2.5 body-text text-[12px] hover:opacity-80 transition-opacity"
+              style={{ color: '#5b9bd5' }}>
+              <span className="text-base">🔗</span>
+              <span>linkedin.com/in/garretperez</span>
+            </a>
+
             <a href="/resume.pdf" target="_blank" rel="noopener noreferrer"
-              className="osrs-btn text-[7px] text-center">📄 Resume</a>
+              className="osrs-btn text-[7px] text-center mt-1 w-full">📄 Download Resume</a>
+
             <div className="flex gap-2 mt-1">
               <div className="text-center flex-1 rounded-lg py-1.5" style={{ background: 'var(--bg-page)', border: '1px solid var(--border-dim)' }}>
                 <div className="text-[10px] font-bold" style={{ color: 'var(--gold)' }}>{totalUsers}</div>
