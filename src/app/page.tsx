@@ -2,15 +2,10 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { getSkillByEnum } from '@/lib/skills'
 import { BADGE_META } from '@/lib/badges'
+import { xpToLevel, xpProgress } from '@/lib/xp'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
-
-const GARRET_SKILLS = [
-  { level: 72 }, { level: 18 }, { level: 55 }, { level: 31 }, { level: 65 },
-  { level: 80 }, { level: 45 }, { level: 88 }, { level: 65 },
-]
-const GARRET_TOTAL = GARRET_SKILLS.reduce((s, sk) => s + sk.level, 0)
 
 const PROJECTS = [
   { icon: '🎃', title: 'Haunted House',     desc: 'Building the ultimate neighborhood haunted house experience for the community.',  progress: 65, href: '/skills/community', updated: 'Nov 2024' },
@@ -33,10 +28,23 @@ export default async function Home() {
   let totalUsers = 0
   let headshot = ''
   let userBadges: string[] = []
+  let garretTotalLevel = 9
+  let garretXpBar = { currentXp: 0, neededXp: 100, percent: 0 }
+  let garretTotalXpRaw = 0
 
   try {
     const headshotSetting = await (prisma as any).siteSetting.findUnique({ where: { key: 'headshot' } })
     headshot = headshotSetting?.value ?? ''
+
+    const adminUser = await prisma.user.findFirst({
+      where: { role: 'ADMIN' },
+      select: { skills: { select: { xp: true } } },
+    })
+    if (adminUser?.skills?.length) {
+      garretTotalLevel = adminUser.skills.reduce((s: number, sk: { xp: number }) => s + xpToLevel(sk.xp), 0)
+      garretTotalXpRaw = adminUser.skills.reduce((s: number, sk: { xp: number }) => s + sk.xp, 0)
+      garretXpBar = xpProgress(garretTotalXpRaw)
+    }
 
     recentPosts = await (prisma as any).post.findMany({
       orderBy: { createdAt: 'desc' },
@@ -90,7 +98,7 @@ export default async function Home() {
                 Garret Perez
               </h1>
               <span className="text-[7px] px-2 py-0.5 rounded" style={{ background: 'rgba(200,155,60,0.15)', color: 'var(--gold)', border: '1px solid rgba(200,155,60,0.3)' }}>
-                ⚔ Level {GARRET_TOTAL}
+                ⚔ Level {garretTotalLevel}
               </span>
             </div>
             <div className="body-text text-[13px] font-semibold mb-0.5" style={{ color: 'var(--text-1)' }}>
@@ -117,9 +125,9 @@ export default async function Home() {
             {/* XP bar */}
             <div className="mb-1 flex items-center gap-3">
               <div className="xp-bar flex-1" style={{ maxWidth: 280 }}>
-                <div className="xp-bar-fill" style={{ width: '62%' }} />
+                <div className="xp-bar-fill" style={{ width: `${garretXpBar.percent}%` }} />
               </div>
-              <span className="text-[6px]" style={{ color: 'var(--text-3)' }}>6,200 / 10,000 XP</span>
+              <span className="text-[6px]" style={{ color: 'var(--text-3)' }}>{garretXpBar.currentXp} / {garretXpBar.neededXp} XP</span>
             </div>
 
           </div>
