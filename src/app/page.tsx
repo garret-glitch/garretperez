@@ -29,8 +29,8 @@ export default function Home() {
           Hi, I&apos;m Garret
         </h1>
         <p className="mt-4 text-xl text-gray-600 max-w-2xl">
-          I&apos;m a [your title] who [what you do]. I build things, write about what I learn,
-          and share my work here.
+          I&apos;m a sales supervisor passionate about leading teams, hitting targets,
+          and always finding ways to grow. This is where I share my work and thoughts.
         </p>
         <div className="mt-6 flex gap-4">
           <Link

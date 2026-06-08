@@ -14,7 +14,7 @@ export default function Contact() {
       </p>
       <div className="mt-8 space-y-4">
         <a
-          href="mailto:your@email.com"
+          href="mailto:gis.owner@gmail.com"
           className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:border-indigo-300 transition-colors group"
         >
           <span className="text-2xl">✉️</span>
@@ -22,11 +22,11 @@ export default function Contact() {
             <div className="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">
               Email
             </div>
-            <div className="text-sm text-gray-500">your@email.com</div>
+            <div className="text-sm text-gray-500">gis.owner@gmail.com</div>
           </div>
         </a>
         <a
-          href="https://github.com/yourusername"
+          href="https://github.com/garret-glitch"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:border-indigo-300 transition-colors group"
@@ -36,21 +36,7 @@ export default function Contact() {
             <div className="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">
               GitHub
             </div>
-            <div className="text-sm text-gray-500">@yourusername</div>
-          </div>
-        </a>
-        <a
-          href="https://linkedin.com/in/yourusername"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:border-indigo-300 transition-colors group"
-        >
-          <span className="text-2xl">💼</span>
-          <div>
-            <div className="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">
-              LinkedIn
-            </div>
-            <div className="text-sm text-gray-500">yourusername</div>
+            <div className="text-sm text-gray-500">@garret-glitch</div>
           </div>
         </a>
       </div>
