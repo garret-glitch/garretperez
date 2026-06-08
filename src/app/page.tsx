@@ -12,12 +12,6 @@ const GARRET_SKILLS = [
 ]
 const GARRET_TOTAL = GARRET_SKILLS.reduce((s, sk) => s + sk.level, 0)
 
-const QUESTS = [
-  { icon: '🎃', title: 'Build the Ultimate Haunted House', desc: 'Create the best neighborhood haunted house experience.', progress: 65 },
-  { icon: '🎣', title: 'Complete the Fishing Log', desc: 'Document 20 fishing trips with catches and locations.', progress: 40 },
-  { icon: '🌱', title: 'Four-Season Garden', desc: 'Keep the garden productive through all four seasons.', progress: 30 },
-]
-
 const PROJECTS = [
   { icon: '🎃', title: 'Haunted House',     desc: 'Building the ultimate neighborhood haunted house experience for the community.',  progress: 65, href: '/skills/community', updated: 'Nov 2024' },
   { icon: '🎣', title: 'Fishing Log',       desc: 'Documenting fishing adventures, best spots, and catches across Texas.',           progress: 40, href: '/skills/fishing',   updated: 'Oct 2024' },
@@ -290,30 +284,6 @@ export default async function Home() {
 
         {/* Right column: XP Guide + Achievements stacked */}
         <div className="flex flex-col gap-4">
-
-          {/* Quest Log */}
-          <div className="rp-card">
-            <h2 className="text-[9px] mb-3 flex items-center gap-2" style={{ color: 'var(--text-1)' }}>
-              <span style={{ color: 'var(--gold)' }}>⚔</span> Quest Log
-            </h2>
-            <div className="space-y-2">
-              {QUESTS.map(q => (
-                <div key={q.title}
-                  className="px-3 py-2 rounded-lg"
-                  style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-dim)' }}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm shrink-0">{q.icon}</span>
-                    <span className="flex-1 text-[6.5px] font-bold truncate" style={{ color: 'var(--text-1)' }}>{q.title}</span>
-                    <span className="text-[6px] shrink-0" style={{ color: 'var(--gold)' }}>{q.progress}%</span>
-                  </div>
-                  <div className="prog-bar mb-1">
-                    <div className="prog-bar-fill" style={{ width: `${q.progress}%` }} />
-                  </div>
-                  <p className="body-text text-[11px]" style={{ color: 'var(--text-3)' }}>{q.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
 
           {/* XP Guide */}
           <div className="rp-card">
