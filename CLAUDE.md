@@ -8,8 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **Live site:** garretperez.com
 - **Repo:** github.com/garret-glitch/garretperez
-- **Hosting:** Vercel (free Hobby plan, auto-deploys on push to `main`)
-- **Git email:** garret.p92@gmail.com (must match Vercel account or deploys are blocked)
+- **Hosting:** Netlify (auto-deploys on push to `main` via GitHub integration)
+- **Git email:** garret.p92@gmail.com
 
 ## Stack
 
@@ -27,12 +27,19 @@ Create `.env.local` in the project root:
 ```
 DATABASE_URL="postgresql://..."        # from neon.tech
 NEXTAUTH_SECRET="..."                  # 32-char hex random string
+AUTH_SECRET="..."                      # same value as NEXTAUTH_SECRET (NextAuth v5 uses this name)
 NEXTAUTH_URL="http://localhost:3000"
 SETUP_ADMIN_USERNAME="..."             # admin account username (spaces allowed)
 SETUP_ADMIN_PASSWORD="..."             # admin account password
 ```
 
-In Vercel project settings add all five, with `NEXTAUTH_URL=https://garretperez.com`.
+In **Netlify site settings → Environment variables** add these for production:
+- `DATABASE_URL` — same Neon connection string
+- `AUTH_SECRET` — same secret value
+- `NEXTAUTH_URL` — `https://garretperez.com`
+- `SETUP_ADMIN_USERNAME` / `SETUP_ADMIN_PASSWORD` — for one-time admin creation
+
+Netlify auto-deploys from `main`. Config is in `netlify.toml` (uses `@netlify/plugin-nextjs`).
 
 **Admin setup:** Visit `/api/setup` once after deploy to create the admin account from env vars. Returns 409 if already exists. Credentials must NEVER be hardcoded in source.
 
@@ -208,7 +215,7 @@ Your content here.
 
 **Update profile photo:** Log in as admin → `/admin` → Settings tab → upload photo (max 2 MB, stored as base64 in `SiteSetting` DB table).
 
-**Deploy:** `git push` — Vercel auto-deploys from `main`. Build script: `prisma generate && next build`.
+**Deploy:** `git push` — Netlify auto-deploys from `main`. Build script: `prisma generate && next build`. Config in `netlify.toml`.
 
 **Build check before pushing:**
 ```
@@ -217,6 +224,6 @@ npm run build
 
 ## Known gotchas
 
-- **Windows EPERM on `prisma generate`**: Dev server locks `query_engine-windows.dll.node`. Stop the dev server before running `npm run build` locally. Vercel builds are unaffected.
+- **Windows EPERM on `prisma generate`**: Dev server locks `query_engine-windows.dll.node`. Stop the dev server before running `npm run build` locally. Netlify builds are unaffected.
 - **`(prisma as any)` casts**: Required for models added after the initial Prisma client snapshot (PostUpvote, UserBadge, SkillVisit, Announcement, SiteSetting). Run `npx prisma generate` after any schema change.
 - **Admin credentials**: NEVER hardcode in source. Use `SETUP_ADMIN_USERNAME` / `SETUP_ADMIN_PASSWORD` env vars and visit `/api/setup` once to create the account.
