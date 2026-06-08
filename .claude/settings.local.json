@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(head *)",
+      "PowerShell($items = Get-ChildItem -Path \"C:\\\\Users\\\\gisow\\\\Downloads\" -Force; $items | Where-Object {$_.PSIsContainer -eq $true} | Select-Object Name)"
+    ]
+  }
+}
