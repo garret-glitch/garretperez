@@ -39,8 +39,8 @@ export default async function Home() {
               ⚔
             </div>
             <div className="flex-1">
-              <h1 className="text-[13px] text-[#e0e0e0] font-bold leading-snug">
-                Garret&apos;s World
+              <h1 className="text-[11px] text-[#e0e0e0] font-bold leading-snug">
+                Welcome to Garret Perez RPG Hub
                 <span className="blink text-[#ffe066] ml-1">_</span>
               </h1>
               <p className="text-[7px] text-[#909090] mt-1.5 leading-relaxed">

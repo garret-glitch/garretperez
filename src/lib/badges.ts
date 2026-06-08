@@ -1,13 +1,16 @@
 import { prisma } from './prisma'
-import { xpToLevel } from './xp'
 
-export const BADGE_META: Record<string, { icon: string; label: string }> = {
-  FIRST_POST:       { icon: '📝', label: 'First Post' },
-  LEVEL_10:         { icon: '⭐', label: 'Level 10' },
-  LEVEL_50:         { icon: '🌟', label: 'Level 50' },
-  GAME_WINNER:      { icon: '🏆', label: 'Game Winner' },
-  DAILY_ADVENTURER: { icon: '🌅', label: 'Daily Adventurer' },
-  CHEF:             { icon: '👨‍🍳', label: 'Chef' },
+export const BADGE_META: Record<string, { icon: string; label: string; desc: string }> = {
+  FOUNDER:          { icon: '👑', label: 'Founder',         desc: 'One of the first members' },
+  TOP_POSTER:       { icon: '📣', label: 'Top Poster',      desc: 'Posted 10+ times' },
+  PROJECT_HELPER:   { icon: '🔧', label: 'Project Helper',  desc: 'Posted in Projects' },
+  HALLOWEEN_CREW:   { icon: '🎃', label: 'Halloween Crew',  desc: 'Part of the haunted house community' },
+  GARDENER:         { icon: '🌱', label: 'Gardener',        desc: 'Posted in Farming' },
+  CRAFTSMAN:        { icon: '⚒️', label: 'Craftsman',       desc: 'Posted in Projects 3+ times' },
+  GAME_WINNER:      { icon: '🏆', label: 'Game Winner',     desc: 'Won a mini-game' },
+  DAILY_ADVENTURER: { icon: '🌅', label: 'Daily Adventurer',desc: 'Used the daily login bonus' },
+  CHEF:             { icon: '👨‍🍳', label: 'Chef',            desc: 'Added a recipe' },
+  FIRST_POST:       { icon: '📝', label: 'First Post',      desc: 'Made your first post' },
 }
 
 async function award(userId: string, badge: string) {
@@ -24,32 +27,35 @@ async function award(userId: string, badge: string) {
 
 export async function checkBadges(
   userId: string,
-  trigger: 'post' | 'reply' | 'game' | 'recipe' | 'login'
+  trigger: 'post' | 'reply' | 'game' | 'recipe' | 'login' | 'visit'
 ) {
   try {
     if (trigger === 'post') {
       const count = await prisma.post.count({ where: { userId } })
       if (count >= 1) await award(userId, 'FIRST_POST')
+      if (count >= 10) await award(userId, 'TOP_POSTER')
+
+      const projectPost = await prisma.post.findFirst({ where: { userId, skill: 'PROJECTS' } })
+      if (projectPost) await award(userId, 'PROJECT_HELPER')
+
+      const projectCount = await prisma.post.count({ where: { userId, skill: 'PROJECTS' } })
+      if (projectCount >= 3) await award(userId, 'CRAFTSMAN')
+
+      const gardenPost = await prisma.post.findFirst({ where: { userId, skill: 'GARDENING' } })
+      if (gardenPost) await award(userId, 'GARDENER')
+
+      const communityPost = await prisma.post.findFirst({ where: { userId, skill: 'COMMUNITY' } })
+      if (communityPost) await award(userId, 'HALLOWEEN_CREW')
     }
 
-    if (trigger === 'game') {
-      await award(userId, 'GAME_WINNER')
-    }
+    if (trigger === 'game') await award(userId, 'GAME_WINNER')
+    if (trigger === 'recipe') await award(userId, 'CHEF')
+    if (trigger === 'login') await award(userId, 'DAILY_ADVENTURER')
 
-    if (trigger === 'recipe') {
-      await award(userId, 'CHEF')
-    }
-
-    if (trigger === 'login') {
-      await award(userId, 'DAILY_ADVENTURER')
-    }
-
-    // Check level milestones after any XP award
-    const skills = await prisma.userSkill.findMany({ where: { userId } })
-    const maxLevel = skills.reduce((max, s) => Math.max(max, xpToLevel(s.xp)), 0)
-    if (maxLevel >= 10) await award(userId, 'LEVEL_10')
-    if (maxLevel >= 50) await award(userId, 'LEVEL_50')
+    // Founder badge for early users (first 10)
+    const userCount = await prisma.user.count()
+    if (userCount <= 10) await award(userId, 'FOUNDER')
   } catch {
-    // Non-critical — badges failing should never break the main action
+    // Non-critical
   }
 }

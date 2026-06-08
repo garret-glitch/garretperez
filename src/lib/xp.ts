@@ -1,7 +1,9 @@
 export const XP_PER_POST = 10
 export const XP_PER_REPLY = 5
 export const XP_PER_WIN = 20
-export const XP_PER_LOGIN = 5
+export const XP_PER_LOGIN = 3
+export const XP_PER_VISIT = 2
+export const XP_PER_UPVOTE_RECEIVED = 15
 export const MAX_LEVEL = 9999
 
 export function xpToLevel(xp: number): number {

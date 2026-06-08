@@ -13,9 +13,17 @@ export default async function SiteHeader() {
         <Link href="/blog" className="text-[8px] text-[#b0b0b0] hover:text-[#e0e0e0]">
           Blog
         </Link>
+        <Link href="/quest-board" className="text-[8px] text-[#b0b0b0] hover:text-[#e0e0e0]">
+          Quests
+        </Link>
         <Link href="/contact" className="text-[8px] text-[#b0b0b0] hover:text-[#e0e0e0]">
           Contact
         </Link>
+        {session?.user?.name === 'garret' && (
+          <Link href="/admin" className="text-[8px] text-[#ffe066] hover:text-[#fff]">
+            Admin
+          </Link>
+        )}
       </div>
       <AuthButton session={session} />
     </header>
