@@ -1,215 +1,360 @@
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { getSkillByEnum } from '@/lib/skills'
+import { BADGE_META } from '@/lib/badges'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
+
+const GARRET_SKILLS = [
+  { level: 72 }, { level: 18 }, { level: 55 }, { level: 31 }, { level: 65 },
+  { level: 80 }, { level: 45 }, { level: 88 }, { level: 65 },
+]
+const GARRET_TOTAL = GARRET_SKILLS.reduce((s, sk) => s + sk.level, 0)
+
+const PROJECTS = [
+  { icon: '🎃', title: 'Haunted House',     desc: 'Building the ultimate neighborhood haunted house experience for the community.',  progress: 65, href: '/skills/community', updated: 'Nov 2024' },
+  { icon: '🎣', title: 'Fishing Log',       desc: 'Documenting fishing adventures, best spots, and catches across Texas.',           progress: 40, href: '/skills/fishing',   updated: 'Oct 2024' },
+  { icon: '🌱', title: 'Garden Project',    desc: 'Growing and maintaining a productive home garden through all seasons.',           progress: 30, href: '/skills/gardening', updated: 'Sep 2024' },
+  { icon: '💼', title: 'Wine Sales Goals',  desc: 'Hitting quarterly H-E-B distribution targets and growing client relationships.',  progress: 75, href: '/skills/business',  updated: 'Nov 2024' },
+  { icon: '⚒️', title: 'Personal Projects', desc: 'Building, fixing, and creating things — home improvements and DIY builds.',       progress: 20, href: '/skills/projects',  updated: 'Oct 2024' },
+]
+
+const QUESTS = [
+  { icon: '🎃', title: 'Haunted House: 100 Visitors', desc: 'Get 100 visitors to the annual haunted house', progress: 65, xp: 500 },
+  { icon: '💼', title: 'Wine Sales — Q4 Target',       desc: 'Reach quarterly distribution goal with H-E-B', progress: 75, xp: 300 },
+  { icon: '👥', title: 'Grow the Community',           desc: 'Reach 50 active members across all channels',  progress: 20, xp: 200 },
+  { icon: '🌱', title: 'Full Garden Harvest',          desc: 'Complete a full seasonal garden cycle',         progress: 30, xp: 150 },
+]
 
 export default async function Home() {
   const session = await auth()
 
   let recentPosts: Array<{
-    id: string; title: string; skill: string; createdAt: Date
+    id: string; title: string; body: string; skill: string; createdAt: Date
     user: { username: string }
+    upvotes: Array<{ userId: string }>
+    replies: Array<{ id: string }>
   }> = []
-
   let totalPosts = 0
   let totalUsers = 0
 
   try {
-    recentPosts = await prisma.post.findMany({
+    recentPosts = await (prisma as any).post.findMany({
       orderBy: { createdAt: 'desc' },
-      take: 5,
-      include: { user: { select: { username: true } } },
+      take: 8,
+      include: {
+        user: { select: { username: true } },
+        upvotes: { select: { userId: true } },
+        replies: { select: { id: true } },
+      },
     })
     totalPosts = await prisma.post.count()
     totalUsers = await prisma.user.count()
-  } catch {
-    // DB not configured yet
+  } catch { /* DB not configured */ }
+
+  const timeAgo = (date: Date) => {
+    const mins = Math.floor((Date.now() - new Date(date).getTime()) / 60000)
+    if (mins < 60) return `${mins}m ago`
+    if (mins < 1440) return `${Math.floor(mins / 60)}h ago`
+    return `${Math.floor(mins / 1440)}d ago`
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5 fade-in">
 
-      {/* Hero */}
-      <div className="osrs-panel-dark rounded-xl">
-        <div className="px-5 py-5">
-          <div className="flex items-start gap-4">
-            <div className="shrink-0 w-14 h-14 rounded-lg border-2 border-[#5a5a5a] bg-[#282828] flex items-center justify-center text-2xl">
-              ⚔
-            </div>
-            <div className="flex-1">
-              <h1 className="text-[11px] text-[#e0e0e0] font-bold leading-snug">
-                Welcome to Garret Perez RPG Hub
-                <span className="blink text-[#ffe066] ml-1">_</span>
+      {/* ─── HERO ─────────────────────────────────────────── */}
+      <div className="hero-panel">
+        <div className="flex gap-6 flex-wrap">
+
+          {/* Avatar */}
+          <div className="shrink-0 w-20 h-20 rounded-xl flex items-center justify-center text-xl font-bold"
+            style={{ background: 'var(--bg-page)', border: '2px solid var(--border-lit)', color: 'var(--gold)' }}>
+            GP
+          </div>
+
+          {/* Main info */}
+          <div className="flex-1 min-w-[200px]">
+            <div className="flex items-center gap-3 flex-wrap mb-1">
+              <h1 className="text-[14px] leading-tight" style={{ color: 'var(--text-1)' }}>
+                Garret Perez
               </h1>
-              <p className="text-[7px] text-[#909090] mt-1.5 leading-relaxed">
-                I&apos;m Garret Perez — a sales professional in the wine industry, a builder,
-                creator, father, and lifelong learner. This site is part contact card, part
-                community, and part RPG profile. Explore my skills, join conversations, gain XP,
-                and level up with the community.
-              </p>
+              <span className="text-[7px] px-2 py-0.5 rounded" style={{ background: 'rgba(200,155,60,0.15)', color: 'var(--gold)', border: '1px solid rgba(200,155,60,0.3)' }}>
+                ⚔ Level {GARRET_TOTAL}
+              </span>
+            </div>
+            <div className="body-text text-[12px] mb-1" style={{ color: 'var(--text-2)' }}>
+              Sales Professional &amp; Community Builder · 📍 Houston, TX
+            </div>
+            <p className="body-text mb-3" style={{ color: '#9898b8' }}>
+              Wine industry sales pro, builder, creator, father, and lifelong learner.
+              This is my personal hub — part portfolio, part RPG character sheet, part community.
+            </p>
+
+            {/* XP bar */}
+            <div className="mb-1 flex items-center gap-3">
+              <div className="xp-bar flex-1" style={{ maxWidth: 280 }}>
+                <div className="xp-bar-fill" style={{ width: '62%' }} />
+              </div>
+              <span className="text-[6px]" style={{ color: 'var(--text-3)' }}>6,200 / 10,000 XP</span>
+            </div>
+
+            {/* Current quest */}
+            <div className="inline-flex items-center gap-2 mt-2 px-3 py-1.5 rounded-lg text-[7px]"
+              style={{ background: 'rgba(200,155,60,0.08)', border: '1px solid rgba(200,155,60,0.25)', color: 'var(--gold)' }}>
+              ⚔ Current Quest: Build the Ultimate Haunted House Experience
             </div>
           </div>
 
-          {/* Site stats */}
-          <div className="mt-4 grid grid-cols-3 gap-2">
-            {[
-              { label: 'Members', value: totalUsers, icon: '👥' },
-              { label: 'Posts',   value: totalPosts, icon: '📝' },
-              { label: 'Skills',  value: 9,          icon: '⚒️' },
-            ].map(stat => (
-              <div key={stat.label} className="bg-[#282828] rounded-lg px-2 py-2 text-center border border-[#3d3d3d]">
-                <div className="text-base leading-none mb-1">{stat.icon}</div>
-                <div className="text-[14px] text-[#ffe066] font-bold leading-none">{stat.value}</div>
-                <div className="text-[6px] text-[#707070] mt-0.5">{stat.label}</div>
+          {/* Contact */}
+          <div className="shrink-0 flex flex-col gap-2 min-w-[140px]">
+            <a href="tel:346-604-1635" className="flex items-center gap-2 text-[7px] hover:opacity-80 transition-opacity" style={{ color: 'var(--text-2)' }}>
+              <span style={{ color: 'var(--gold)' }}>📞</span> 346-604-1635
+            </a>
+            <a href="mailto:gis.owner@gmail.com" className="flex items-center gap-2 text-[7px] hover:opacity-80 transition-opacity" style={{ color: 'var(--text-2)' }}>
+              <span style={{ color: 'var(--gold)' }}>✉</span> gis.owner@gmail.com
+            </a>
+            <a href="https://www.linkedin.com/in/garretperez" target="_blank" rel="noopener noreferrer"
+              className="osrs-btn text-[7px] text-center mt-1">🔗 LinkedIn</a>
+            <a href="/resume.pdf" target="_blank" rel="noopener noreferrer"
+              className="osrs-btn text-[7px] text-center">📄 Resume</a>
+            <div className="flex gap-2 mt-1">
+              <div className="text-center flex-1 rounded-lg py-1.5" style={{ background: 'var(--bg-page)', border: '1px solid var(--border-dim)' }}>
+                <div className="text-[10px] font-bold" style={{ color: 'var(--gold)' }}>{totalUsers}</div>
+                <div className="text-[5px]" style={{ color: 'var(--text-3)' }}>Members</div>
+              </div>
+              <div className="text-center flex-1 rounded-lg py-1.5" style={{ background: 'var(--bg-page)', border: '1px solid var(--border-dim)' }}>
+                <div className="text-[10px] font-bold" style={{ color: 'var(--gold)' }}>{totalPosts}</div>
+                <div className="text-[5px]" style={{ color: 'var(--text-3)' }}>Posts</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── ROW 1: About Me + Projects ───────────────────── */}
+      <div className="grid grid-cols-2 gap-4">
+
+        {/* About Me */}
+        <div className="rp-card">
+          <h2 className="text-[9px] mb-4 flex items-center gap-2" style={{ color: 'var(--text-1)' }}>
+            <span style={{ color: 'var(--gold)' }}>👤</span> About Me
+          </h2>
+          <div className="space-y-3 body-text" style={{ color: '#9898b8' }}>
+            <p>
+              I&apos;m a wine sales professional based in Houston, TX working in H-E-B distribution
+              and team management. Outside of work I&apos;m building, creating, and running community
+              projects.
+            </p>
+            <p>
+              Every year I run a full neighborhood haunted house, maintain a garden, go fishing,
+              and take on home projects. This site is where I document all of it — and where you
+              can join the conversation.
+            </p>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {['Wine Sales', 'Team Leadership', 'DIY Builds', 'Community Events', 'Fishing', 'Gardening'].map(tag => (
+              <span key={tag} className="text-[6px] px-2 py-1 rounded"
+                style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-2)' }}>
+                {tag}
+              </span>
+            ))}
+          </div>
+          {!session?.user && (
+            <div className="mt-4 flex gap-2">
+              <Link href="/register" className="osrs-btn flex-1 text-center text-[7px]">✨ Join Community</Link>
+              <Link href="/login" className="osrs-btn text-center text-[7px]">Login</Link>
+            </div>
+          )}
+        </div>
+
+        {/* My Projects */}
+        <div className="rp-card">
+          <h2 className="text-[9px] mb-4 flex items-center gap-2" style={{ color: 'var(--text-1)' }}>
+            <span style={{ color: 'var(--gold)' }}>⚒️</span> My Projects
+          </h2>
+          <div className="space-y-2.5">
+            {PROJECTS.map(p => (
+              <Link key={p.title} href={p.href} className="block quest-card">
+                <div className="flex items-center gap-3">
+                  <span className="text-lg shrink-0">{p.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="text-[7px] font-bold truncate" style={{ color: 'var(--text-1)' }}>{p.title}</span>
+                      <span className="text-[6px] shrink-0" style={{ color: 'var(--text-3)' }}>{p.updated}</span>
+                    </div>
+                    <div className="prog-bar mb-1">
+                      <div className="prog-bar-fill" style={{ width: `${p.progress}%` }} />
+                    </div>
+                    <div className="text-[5.5px]" style={{ color: 'var(--text-3)' }}>{p.progress}% complete</div>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ─── ROW 2: Quest Log + Achievements ─────────────── */}
+      <div className="grid grid-cols-2 gap-4">
+
+        {/* Quest Log */}
+        <div className="rp-card">
+          <h2 className="text-[9px] mb-4 flex items-center gap-2" style={{ color: 'var(--text-1)' }}>
+            <span style={{ color: 'var(--gold)' }}>📜</span> Active Quests
+            <Link href="/quest-board" className="ml-auto text-[6px] hover:opacity-70" style={{ color: 'var(--text-2)' }}>See all →</Link>
+          </h2>
+          <div className="space-y-3">
+            {QUESTS.map(q => (
+              <div key={q.title} className="quest-card">
+                <div className="flex items-start gap-3">
+                  <span className="text-xl shrink-0">{q.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="text-[7px] font-bold" style={{ color: 'var(--text-1)' }}>{q.title}</span>
+                      <span className="text-[6px] shrink-0" style={{ color: 'var(--gold)' }}>+{q.xp} XP</span>
+                    </div>
+                    <div className="body-text text-[11px] mb-2" style={{ color: 'var(--text-2)' }}>{q.desc}</div>
+                    <div className="prog-bar">
+                      <div className="prog-bar-fill" style={{ width: `${q.progress}%` }} />
+                    </div>
+                    <div className="text-[5.5px] mt-1" style={{ color: 'var(--text-3)' }}>{q.progress}% complete</div>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
+        </div>
 
-          {/* Auth CTA */}
-          {session?.user ? (
-            <div className="mt-4 bg-[#282828] rounded-lg px-3 py-2 border border-[#3d3d3d] flex items-center gap-2">
-              <span className="text-sm">🧙</span>
-              <div>
-                <span className="text-[8px] text-[#c0c0c0]">Welcome back, </span>
-                <span className="text-[8px] text-[#ffe066] font-bold">{session.user.name}</span>
-                <span className="text-[8px] text-[#c0c0c0]">! Click a skill to post and earn XP.</span>
+        {/* Achievements */}
+        <div className="rp-card">
+          <h2 className="text-[9px] mb-4 flex items-center gap-2" style={{ color: 'var(--text-1)' }}>
+            <span style={{ color: 'var(--gold)' }}>🏆</span> Achievements
+          </h2>
+          <div className="grid grid-cols-3 gap-2">
+            {Object.entries(BADGE_META).map(([key, meta]) => (
+              <div key={key} className="badge-tile">
+                <span className="text-2xl">{meta.icon}</span>
+                <span className="text-[5.5px] text-center leading-tight" style={{ color: 'var(--text-2)' }}>{meta.label}</span>
+                <span className="text-[5px] text-center leading-tight" style={{ color: 'var(--text-3)' }}>{meta.desc}</span>
               </div>
-            </div>
-          ) : (
-            <div className="mt-4 flex gap-2">
-              <Link href="/register" className="osrs-btn flex-1 text-center text-[8px] py-2">
-                ✨ Join Free
-              </Link>
-              <Link href="/login" className="osrs-btn flex-1 text-center text-[8px] py-2">
-                🔑 Login
-              </Link>
-            </div>
+            ))}
+          </div>
+          {!session?.user && (
+            <p className="mt-3 text-[6px] text-center" style={{ color: 'var(--text-3)' }}>
+              Login to earn badges and unlock achievements
+            </p>
           )}
         </div>
       </div>
 
-      {/* XP Quest Log */}
-      <div className="osrs-panel rounded-xl">
-        <h2 className="text-[9px] text-[#1a1a1a] font-bold mb-3 flex items-center gap-1.5">
-          📜 Quest Log
-          <span className="text-[6px] text-[#3d3d3d] font-normal">— how to earn XP</span>
-        </h2>
-        <ul className="space-y-2">
-          {[
-            { icon: '📝', action: 'Post in any skill section',  xp: '+10 XP' },
-            { icon: '💬', action: 'Reply to a post',            xp: '+5 XP' },
-            { icon: '🍳', action: 'Add a recipe to Cooking',    xp: '+10 XP' },
-            { icon: '🍷', action: 'Win Wine Trivia (7+ / 10)',  xp: '+20 XP' },
-            { icon: '🃏', action: 'Complete Matching Game',     xp: '+20 XP' },
-            { icon: '🌅', action: 'Daily login bonus',          xp: '+5 XP' },
-          ].map(task => (
-            <li key={task.action} className="flex items-center gap-2">
-              <span className="text-xs w-4 h-4 border border-[#5a5a5a] bg-[#2a2a2a] shrink-0 flex items-center justify-center text-[7px] text-[#5a5a5a] rounded-sm">□</span>
-              <span className="text-base shrink-0">{task.icon}</span>
-              <span className="text-[7px] text-[#2a2a2a] flex-1 leading-tight">{task.action}</span>
-              <span className="text-[7px] text-[#2a6a2a] font-bold whitespace-nowrap">{task.xp}</span>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-3 pt-2 border-t border-[#6a6a6a]">
-          <p className="text-[6px] text-[#3d3d3d]">
-            🏆 Earn badges: First Post · Level 10 · Game Winner · Chef · Daily Adventurer
-          </p>
-        </div>
-      </div>
+      {/* ─── ROW 3: Recent Activity + Community Feed ─────── */}
+      <div className="grid gap-4" style={{ gridTemplateColumns: '1fr 2fr' }}>
 
-      {/* Featured Quests */}
-      <div className="osrs-panel-dark rounded-xl">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-[9px] text-[#c0c0c0] font-bold">📋 Featured Quests</h2>
-          <Link href="/quest-board" className="text-[6px] text-[#a0bcd0] hover:underline">See all →</Link>
-        </div>
-        <div className="space-y-2">
-          {[
-            { icon: '🍷', title: 'Wine Expert', desc: 'Score 7+ on Wine Trivia', xp: 20, href: '/skills/fun/wine-trivia' },
-            { icon: '💬', title: 'Help Someone Out', desc: 'Reply to a post in any skill', xp: 5, href: '/skills/community' },
-            { icon: '📝', title: 'Share a Project', desc: 'Post an update in Projects', xp: 10, href: '/skills/projects' },
-          ].map(q => (
-            <Link key={q.title} href={q.href} className="flex items-center gap-2 bg-[#282828] hover:bg-[#323232] rounded-lg px-3 py-2 transition-colors">
-              <span className="text-base shrink-0">{q.icon}</span>
-              <div className="flex-1 min-w-0">
-                <div className="text-[8px] text-[#d0d0d0] font-bold">{q.title}</div>
-                <div className="text-[6px] text-[#707070]">{q.desc}</div>
-              </div>
-              <span className="text-[7px] text-[#ffe066] font-bold shrink-0">+{q.xp} XP</span>
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      {/* Recent activity */}
-      {recentPosts.length > 0 ? (
-        <div className="osrs-panel-dark rounded-xl">
-          <h2 className="text-[9px] text-[#c0c0c0] font-bold mb-3 flex items-center gap-1.5">
-            💬 Recent Activity
-            <span className="blink text-[#ffe066]">▮</span>
+        {/* Recent Activity — compact */}
+        <div className="rp-card">
+          <h2 className="text-[9px] mb-3 flex items-center gap-2" style={{ color: 'var(--text-1)' }}>
+            <span style={{ color: 'var(--gold)' }}>⚡</span> Activity
+            <span className="blink ml-1" style={{ color: 'var(--gold)' }}>▮</span>
           </h2>
-          <div className="space-y-1.5">
-            {recentPosts.map(post => {
-              const skill = getSkillByEnum(post.skill)
-              const ms = Date.now() - new Date(post.createdAt).getTime()
-              const mins = Math.floor(ms / 60000)
-              const timeAgo = mins < 60 ? `${mins}m ago`
-                : mins < 1440 ? `${Math.floor(mins / 60)}h ago`
-                : `${Math.floor(mins / 1440)}d ago`
-              return (
-                <Link
-                  key={post.id}
-                  href={skill?.href ?? '/'}
-                  className="block bg-[#282828] hover:bg-[#323232] transition-colors rounded-lg px-3 py-2 border border-[#3d3d3d]"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-base shrink-0">{skill?.icon ?? '📝'}</span>
+          {recentPosts.length === 0 ? (
+            <div className="text-center py-6">
+              <div className="text-2xl mb-2">🗿</div>
+              <p className="text-[7px]" style={{ color: 'var(--text-3)' }}>No posts yet. Click a community to start!</p>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {recentPosts.slice(0, 6).map(post => {
+                const skill = getSkillByEnum(post.skill)
+                return (
+                  <Link key={post.id} href={skill?.href ?? '/'} className="flex items-center gap-2 px-2 py-2 rounded-lg transition-colors hover:opacity-80" style={{ background: 'var(--bg-elevated)' }}>
+                    <span className="text-sm shrink-0">{skill?.icon ?? '📝'}</span>
                     <div className="min-w-0 flex-1">
-                      <div className="text-[8px] text-[#d0d0d0] truncate">{post.title}</div>
-                      <div className="text-[6px] text-[#707070] mt-0.5">
-                        <span className="text-[#a0a0a0]">{post.user.username}</span>
-                        {' · '}{skill?.label}
+                      <div className="text-[7px] truncate" style={{ color: 'var(--text-1)' }}>{post.title}</div>
+                      <div className="text-[5.5px]" style={{ color: 'var(--text-3)' }}>
+                        {post.user.username} · {timeAgo(post.createdAt)}
                       </div>
                     </div>
-                    <span className="text-[6px] text-[#606060] shrink-0 ml-1">{timeAgo}</span>
-                  </div>
-                </Link>
-              )
-            })}
-          </div>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="osrs-panel-dark rounded-xl text-center py-6">
-          <div className="text-2xl mb-2">🗿</div>
-          <p className="text-[8px] text-[#707070]">
-            No posts yet — click a skill on the left to get started!
-          </p>
-        </div>
-      )}
 
-      {/* Skills quick-nav */}
-      <div className="osrs-panel-dark rounded-xl">
-        <h2 className="text-[9px] text-[#c0c0c0] font-bold mb-3">🗺️ Explore Skills</h2>
-        <div className="grid grid-cols-3 gap-1.5">
-          {[
-            { icon: '❤️', label: 'Health',    href: '/skills/health',    desc: 'Wellness & fitness' },
-            { icon: '⚒️', label: 'Projects',  href: '/skills/projects',  desc: 'Builds & tech' },
-            { icon: '🎣', label: 'Fishing',   href: '/skills/fishing',   desc: 'Outdoor adventures' },
-            { icon: '💼', label: 'Business',  href: '/skills/business',  desc: 'Wine sales & leadership' },
-            { icon: '🍳', label: 'Cooking',   href: '/skills/food',      desc: 'Recipes & pairings' },
-            { icon: '👥', label: 'Community', href: '/skills/community', desc: 'Group discussions' },
-            { icon: '🌱', label: 'Farming',   href: '/skills/gardening', desc: 'Garden & outdoors' },
-            { icon: '🎮', label: 'Fun',       href: '/skills/fun',       desc: 'Mini-games' },
-            { icon: '🗺️', label: 'Travel',    href: '/skills/travel',    desc: 'Adventures & places' },
-          ].map(s => (
-            <Link key={s.href} href={s.href} className="skill-cell rounded-lg" title={s.desc}>
-              <span className="text-base leading-none">{s.icon}</span>
-              <span className="text-[6px] text-[#c0c0c0] mt-0.5 text-center block">{s.label}</span>
-            </Link>
-          ))}
+        {/* Community Feed — full cards */}
+        <div className="rp-card">
+          <h2 className="text-[9px] mb-4 flex items-center gap-2" style={{ color: 'var(--text-1)' }}>
+            <span style={{ color: 'var(--gold)' }}>💬</span> Community Feed
+            <span className="ml-auto text-[6px]" style={{ color: 'var(--text-3)' }}>All Communities</span>
+          </h2>
+
+          {recentPosts.length === 0 ? (
+            <div className="text-center py-10">
+              <div className="text-3xl mb-3">💬</div>
+              <p className="text-[8px] mb-4" style={{ color: 'var(--text-2)' }}>The community feed is empty.</p>
+              {!session?.user ? (
+                <div className="flex justify-center gap-2">
+                  <Link href="/register" className="osrs-btn text-[7px]">Join &amp; Post</Link>
+                  <Link href="/login" className="osrs-btn text-[7px]">Login</Link>
+                </div>
+              ) : (
+                <p className="text-[7px]" style={{ color: 'var(--text-3)' }}>Click any community in the sidebar to post!</p>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {recentPosts.map(post => {
+                const skill = getSkillByEnum(post.skill)
+                const upvotes = post.upvotes.length
+                const replies = post.replies.length
+                return (
+                  <Link key={post.id} href={skill?.href ?? '/'} className="block post-card">
+                    <div className="flex items-start gap-3">
+                      {/* User avatar */}
+                      <div className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center text-[8px] font-bold"
+                        style={{ background: 'var(--bg-page)', border: '1px solid var(--border)', color: 'var(--gold)' }}>
+                        {post.user.username.slice(0, 2).toUpperCase()}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        {/* Meta row */}
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <span className="text-[7px] font-bold" style={{ color: 'var(--text-1)' }}>{post.user.username}</span>
+                          <span className="text-[6px] px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-page)', color: 'var(--text-2)', border: '1px solid var(--border-dim)' }}>
+                            {skill?.icon} {skill?.label}
+                          </span>
+                          <span className="text-[5.5px] ml-auto" style={{ color: 'var(--text-3)' }}>{timeAgo(post.createdAt)}</span>
+                        </div>
+
+                        {/* Title */}
+                        <div className="text-[8px] font-bold mb-1 truncate" style={{ color: 'var(--text-1)' }}>{post.title}</div>
+
+                        {/* Body preview */}
+                        <p className="body-text text-[12px] mb-2 line-clamp-2" style={{ color: '#7878a0' }}>
+                          {post.body}
+                        </p>
+
+                        {/* Engagement */}
+                        <div className="flex items-center gap-3">
+                          {upvotes > 0 && (
+                            <span className="text-[6px] flex items-center gap-1" style={{ color: 'var(--gold)' }}>
+                              ▲ {upvotes}
+                            </span>
+                          )}
+                          {replies > 0 && (
+                            <span className="text-[6px] flex items-center gap-1" style={{ color: 'var(--text-3)' }}>
+                              💬 {replies}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
         </div>
       </div>
 
