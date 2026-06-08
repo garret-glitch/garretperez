@@ -22,7 +22,7 @@ export default function AdminPage() {
   const [posts, setPosts] = useState<Post[]>([])
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'users' | 'posts' | 'announce'>('users')
+  const [tab, setTab] = useState<'users' | 'posts' | 'announce' | 'settings'>('settings')
 
   // XP form
   const [xpUser, setXpUser] = useState('')
@@ -32,6 +32,10 @@ export default function AdminPage() {
   // Announcement form
   const [aTitle, setATitle] = useState('')
   const [aBody, setABody] = useState('')
+
+  // Photo upload
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [photoSaving, setPhotoSaving] = useState(false)
 
   const [msg, setMsg] = useState('')
 
@@ -47,18 +51,54 @@ export default function AdminPage() {
   async function loadData() {
     setLoading(true)
     try {
-      const [u, p, a] = await Promise.all([
+      const [u, p, a, s] = await Promise.all([
         fetch('/api/admin/users').then(r => r.json()),
         fetch('/api/admin/posts').then(r => r.json()),
         fetch('/api/admin/announcements').then(r => r.json()),
+        fetch('/api/admin/settings').then(r => r.json()),
       ])
       setUsers(u.users ?? [])
       setPosts(p.posts ?? [])
       setAnnouncements(a.announcements ?? [])
+      if (s.settings?.headshot) setPhotoPreview(s.settings.headshot)
     } catch {
       setMsg('Failed to load data')
     }
     setLoading(false)
+  }
+
+  function handlePhotoFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 2 * 1024 * 1024) {
+      setMsg('Photo must be under 2 MB.')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => setPhotoPreview(reader.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  async function savePhoto() {
+    if (!photoPreview) return
+    setPhotoSaving(true)
+    await fetch('/api/admin/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'headshot', value: photoPreview }),
+    })
+    setMsg('Profile photo saved! Reload the homepage to see it.')
+    setPhotoSaving(false)
+  }
+
+  async function removePhoto() {
+    await fetch('/api/admin/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'headshot', value: '' }),
+    })
+    setPhotoPreview(null)
+    setMsg('Photo removed.')
   }
 
   async function banUser(userId: string, ban: boolean) {
@@ -138,16 +178,61 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div className="flex gap-1">
-        {(['users', 'posts', 'announce'] as const).map(t => (
+        {(['settings', 'users', 'posts', 'announce'] as const).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`osrs-btn text-[7px] capitalize ${tab === t ? 'brightness-125' : 'opacity-70'}`}
           >
-            {t === 'announce' ? 'Announcements' : t}
+            {t === 'announce' ? 'Announcements' : t === 'settings' ? '⚙ Settings' : t}
           </button>
         ))}
       </div>
+
+      {/* Settings tab */}
+      {tab === 'settings' && (
+        <div className="osrs-panel-dark rounded-xl space-y-4">
+          <h2 className="text-[9px] font-bold" style={{ color: 'var(--text-1)' }}>Profile Photo</h2>
+
+          {/* Preview */}
+          <div className="flex items-start gap-4">
+            <div className="w-24 h-24 rounded-xl overflow-hidden shrink-0 flex items-center justify-center text-xl font-bold"
+              style={{ border: '2px solid var(--border-lit)', background: 'var(--bg-page)', color: 'var(--gold)' }}>
+              {photoPreview
+                ? <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                : 'GP'}
+            </div>
+            <div className="flex-1 space-y-2">
+              <p className="text-[7px]" style={{ color: 'var(--text-2)' }}>
+                Upload a photo under 2 MB (JPG or PNG). It will show on your homepage hero.
+              </p>
+              <label className="osrs-btn text-[7px] cursor-pointer inline-block">
+                📁 Choose Photo
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handlePhotoFile}
+                />
+              </label>
+              <div className="flex gap-2 mt-1">
+                <button
+                  onClick={savePhoto}
+                  disabled={!photoPreview || photoSaving}
+                  className="osrs-btn text-[7px]"
+                >
+                  {photoSaving ? 'Saving…' : '✓ Save Photo'}
+                </button>
+                {photoPreview && (
+                  <button onClick={removePhoto} className="osrs-btn text-[7px] opacity-60">
+                    ✕ Remove
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Users tab */}
       {tab === 'users' && (

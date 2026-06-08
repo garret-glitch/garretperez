@@ -38,8 +38,12 @@ export default async function Home() {
   }> = []
   let totalPosts = 0
   let totalUsers = 0
+  let headshot = ''
 
   try {
+    const headshotSetting = await (prisma as any).siteSetting.findUnique({ where: { key: 'headshot' } })
+    headshot = headshotSetting?.value ?? ''
+
     recentPosts = await (prisma as any).post.findMany({
       orderBy: { createdAt: 'desc' },
       take: 8,
@@ -69,21 +73,11 @@ export default async function Home() {
 
           {/* Profile Photo */}
           <div className="shrink-0">
-            <div className="w-28 h-28 rounded-xl overflow-hidden"
-              style={{ border: '2px solid var(--border-lit)' }}>
-              {/* Replace /headshot.jpg with your photo — drop the file into the /public folder */}
-              <img
-                src="/headshot.jpg"
-                alt="Garret Perez"
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  const t = e.currentTarget
-                  t.style.display = 'none'
-                  if (t.parentElement) {
-                    t.parentElement.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--bg-page);color:var(--gold);font-size:22px;font-weight:bold;">GP</div>'
-                  }
-                }}
-              />
+            <div className="w-28 h-28 rounded-xl overflow-hidden flex items-center justify-center text-2xl font-bold"
+              style={{ border: '2px solid var(--border-lit)', background: 'var(--bg-page)', color: 'var(--gold)', flexShrink: 0 }}>
+              {headshot
+                ? <img src={headshot} alt="Garret Perez" className="w-full h-full object-cover" />
+                : 'GP'}
             </div>
           </div>
 

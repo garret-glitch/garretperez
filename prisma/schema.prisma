@@ -167,6 +167,12 @@ model Announcement {
   author    User     @relation(fields: [authorId], references: [id])
 }
 
+// Key-value store for site-wide settings (e.g. headshot image)
+model SiteSetting {
+  key   String @id
+  value String @db.Text
+}
+
 model Recipe {
   id           String   @id @default(cuid())
   userId       String
