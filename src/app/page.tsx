@@ -278,25 +278,53 @@ export default async function Home() {
           )}
         </div>
 
-        {/* Achievements */}
-        <div className="rp-card">
-          <h2 className="text-[9px] mb-4 flex items-center gap-2" style={{ color: 'var(--text-1)' }}>
-            <span style={{ color: 'var(--gold)' }}>🏆</span> Achievements
-          </h2>
-          <div className="grid grid-cols-2 gap-2">
-            {Object.entries(BADGE_META).map(([key, meta]) => (
-              <div key={key} className="badge-tile">
-                <span className="text-2xl">{meta.icon}</span>
-                <span className="text-[5.5px] text-center leading-tight" style={{ color: 'var(--text-2)' }}>{meta.label}</span>
-                <span className="text-[5px] text-center leading-tight" style={{ color: 'var(--text-3)' }}>{meta.desc}</span>
-              </div>
-            ))}
+        {/* Right column: Achievements + XP Guide stacked */}
+        <div className="flex flex-col gap-4">
+
+          {/* Achievements */}
+          <div className="rp-card">
+            <h2 className="text-[9px] mb-4 flex items-center gap-2" style={{ color: 'var(--text-1)' }}>
+              <span style={{ color: 'var(--gold)' }}>🏆</span> Achievements
+            </h2>
+            <div className="grid grid-cols-2 gap-2">
+              {Object.entries(BADGE_META).map(([key, meta]) => (
+                <div key={key} className="badge-tile">
+                  <span className="text-2xl">{meta.icon}</span>
+                  <span className="text-[5.5px] text-center leading-tight" style={{ color: 'var(--text-2)' }}>{meta.label}</span>
+                  <span className="text-[5px] text-center leading-tight" style={{ color: 'var(--text-3)' }}>{meta.desc}</span>
+                </div>
+              ))}
+            </div>
+            {!session?.user && (
+              <p className="mt-3 text-[6px] text-center" style={{ color: 'var(--text-3)' }}>
+                Login to earn badges
+              </p>
+            )}
           </div>
-          {!session?.user && (
-            <p className="mt-3 text-[6px] text-center" style={{ color: 'var(--text-3)' }}>
-              Login to earn badges
-            </p>
-          )}
+
+          {/* XP Guide */}
+          <div className="rp-card">
+            <h2 className="text-[9px] mb-3 flex items-center gap-2" style={{ color: 'var(--text-1)' }}>
+              <span style={{ color: 'var(--gold)' }}>⚡</span> How to Earn XP
+            </h2>
+            <div className="space-y-1.5">
+              {[
+                { icon: '📝', action: 'Post to a skill',  xp: '+50 XP' },
+                { icon: '🍳', action: 'Add a recipe',     xp: '+50 XP' },
+                { icon: '🎮', action: 'Win a mini-game',  xp: '+25 XP' },
+                { icon: '📅', action: 'Daily login',      xp: '+10 XP' },
+              ].map(row => (
+                <div key={row.action}
+                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg"
+                  style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-dim)' }}>
+                  <span className="text-sm shrink-0">{row.icon}</span>
+                  <span className="flex-1 text-[6px]" style={{ color: 'var(--text-2)' }}>{row.action}</span>
+                  <span className="text-[6px] font-bold shrink-0" style={{ color: 'var(--gold)' }}>{row.xp}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
         </div>
       </div>
 

@@ -16,13 +16,6 @@ const GUILD_CHANNELS = [
   { icon: '🗺️', label: 'Adventure', dbEnum: 'TRAVEL',    level: 65, href: '/skills/travel',    sub: 'Adventures & Places' },
 ]
 
-const SIDEBAR_QUESTS = [
-  { icon: '🎃', title: 'Haunted House: 100 Visitors', progress: 65 },
-  { icon: '💼', title: 'Wine Sales — Q4 Target',      progress: 75 },
-  { icon: '👥', title: 'Grow the Community',          progress: 20 },
-  { icon: '🌱', title: 'Full Garden Harvest',         progress: 30 },
-]
-
 const FUN_LEVEL = 88
 const GARRET_TOTAL = GUILD_CHANNELS.reduce((s, c) => s + c.level, 0) + FUN_LEVEL
 
@@ -49,9 +42,11 @@ export default async function SkillsPanel() {
   } catch { /* DB not ready */ }
 
   const userLevel = xpToLevel(totalXp)
+  const initials = session?.user?.name?.slice(0, 2).toUpperCase() ?? '??'
 
   return (
-    <aside className="w-[240px] shrink-0 flex flex-col border-r" style={{ borderColor: 'var(--border-dim)', background: '#0f0f18', minHeight: 'calc(100vh - 41px)' }}>
+    <aside className="w-[240px] shrink-0 flex flex-col border-r"
+      style={{ borderColor: 'var(--border-dim)', background: '#0f0f18', minHeight: 'calc(100vh - 41px)' }}>
 
       {/* Garret profile block */}
       <div className="px-4 py-4 border-b shrink-0" style={{ borderColor: 'var(--border-dim)' }}>
@@ -65,31 +60,16 @@ export default async function SkillsPanel() {
             <div className="text-[6px] mt-0.5" style={{ color: 'var(--gold)' }}>Total Level {GARRET_TOTAL}</div>
           </div>
         </div>
-        <Link href="/" className="guild-channel rounded-md text-[7px] px-2 py-1.5 flex items-center gap-2" style={{ borderLeft: 'none', background: 'var(--bg-elevated)', color: 'var(--text-2)' }}>
+        {/* Prominent Home button */}
+        <Link href="/"
+          className="flex items-center justify-center gap-1.5 w-full py-2 rounded-lg text-[7px] font-bold transition-opacity hover:opacity-85"
+          style={{
+            background: 'linear-gradient(135deg, rgba(200,155,60,0.18) 0%, rgba(200,155,60,0.08) 100%)',
+            border: '1px solid rgba(200,155,60,0.4)',
+            color: 'var(--gold)',
+          }}>
           <span>🏠</span><span>Home</span>
         </Link>
-      </div>
-
-      {/* Active Quests */}
-      <div className="px-3 py-2 border-b shrink-0" style={{ borderColor: 'var(--border-dim)' }}>
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[6px] uppercase tracking-widest" style={{ color: 'var(--text-3)' }}>⚔ Active Quests</span>
-          <Link href="/quest-board" className="text-[5.5px] hover:opacity-70" style={{ color: 'var(--text-3)' }}>see all →</Link>
-        </div>
-        <div className="space-y-1.5">
-          {SIDEBAR_QUESTS.map(q => (
-            <div key={q.title} className="flex items-center gap-1.5">
-              <span className="text-xs shrink-0">{q.icon}</span>
-              <div className="flex-1 min-w-0">
-                <div className="text-[5.5px] truncate mb-0.5" style={{ color: 'var(--text-2)' }}>{q.title}</div>
-                <div className="h-1 rounded-full overflow-hidden" style={{ background: 'var(--bg-elevated)' }}>
-                  <div className="h-full rounded-full" style={{ width: `${q.progress}%`, background: 'var(--gold)', opacity: 0.7 }} />
-                </div>
-              </div>
-              <span className="text-[5px] shrink-0" style={{ color: 'var(--text-3)' }}>{q.progress}%</span>
-            </div>
-          ))}
-        </div>
       </div>
 
       {/* Middle: channels + fun zone */}
@@ -117,20 +97,40 @@ export default async function SkillsPanel() {
           ))}
         </div>
 
-        {/* Fun zone — takes remaining sidebar space */}
+        {/* Fun zone */}
         <SidebarFunGame />
 
       </div>
 
-      {/* User level block */}
-      <div className="px-4 py-3 border-t shrink-0" style={{ borderColor: 'var(--border-dim)' }}>
+      {/* User block — prominent when logged in */}
+      <div className="px-3 py-3 border-t shrink-0" style={{ borderColor: 'var(--border-dim)' }}>
         {session?.user ? (
-          <div className="text-center">
-            <div className="text-[6px] mb-1" style={{ color: 'var(--text-3)' }}>{session.user.name}</div>
-            <div className="text-[20px] font-bold leading-none" style={{ color: 'var(--gold)' }}>{userLevel}</div>
-            <div className="text-[5px] mt-0.5 mb-2" style={{ color: 'var(--text-3)' }}>{totalXp.toLocaleString()} XP</div>
+          <div className="rounded-xl p-3"
+            style={{
+              background: 'linear-gradient(135deg, rgba(200,155,60,0.1) 0%, rgba(200,155,60,0.04) 100%)',
+              border: '1px solid rgba(200,155,60,0.28)',
+            }}>
+            <div className="flex items-center gap-2.5 mb-2">
+              {/* Avatar */}
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[9px] font-bold shrink-0"
+                style={{
+                  background: 'rgba(200,155,60,0.2)',
+                  border: '1px solid rgba(200,155,60,0.5)',
+                  color: 'var(--gold)',
+                }}>
+                {initials}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[8px] font-bold truncate" style={{ color: 'var(--text-1)' }}>
+                  {session.user.name}
+                </div>
+                <div className="text-[6px] mt-0.5" style={{ color: 'var(--gold)' }}>
+                  Lv {userLevel} · {totalXp.toLocaleString()} XP
+                </div>
+              </div>
+            </div>
             {userBadges.length > 0 && (
-              <div className="flex flex-wrap gap-1 justify-center">
+              <div className="flex flex-wrap gap-1">
                 {userBadges.map(b => {
                   const m = BADGE_META[b]
                   return m ? <span key={b} title={m.label} className="text-sm cursor-default">{m.icon}</span> : null
@@ -140,10 +140,10 @@ export default async function SkillsPanel() {
           </div>
         ) : (
           <div className="text-center">
-            <div className="text-[6px] leading-relaxed mb-2" style={{ color: 'var(--text-3)' }}>Join to earn XP</div>
-            <div className="flex gap-1">
-              <Link href="/register" className="osrs-btn flex-1 text-[6px] py-1">Join</Link>
-              <Link href="/login" className="osrs-btn flex-1 text-[6px] py-1">Login</Link>
+            <div className="text-[6px] leading-relaxed mb-2" style={{ color: 'var(--text-3)' }}>Join to earn XP &amp; levels</div>
+            <div className="flex gap-1.5">
+              <Link href="/register" className="osrs-btn flex-1 text-[6px] py-1.5 text-center">Join</Link>
+              <Link href="/login" className="osrs-btn flex-1 text-[6px] py-1.5 text-center">Login</Link>
             </div>
           </div>
         )}
