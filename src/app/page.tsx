@@ -2,7 +2,6 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { getSkillByEnum } from '@/lib/skills'
 import { BADGE_META } from '@/lib/badges'
-import HoustonPixelArt from '@/components/HoustonPixelArt'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -130,12 +129,7 @@ export default async function Home() {
 
           {/* Contact info + Houston art */}
           <div className="shrink-0 flex flex-col gap-2" style={{ minWidth: 175, maxWidth: 210 }}>
-            {/* Houston pixel art */}
-            <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--border-dim)' }}>
-              <HoustonPixelArt />
-            </div>
-
-            <div className="text-[6px] uppercase tracking-widest mt-0.5" style={{ color: 'var(--text-3)' }}>Contact</div>
+            <div className="text-[6px] uppercase tracking-widest" style={{ color: 'var(--text-3)' }}>Contact</div>
 
             <a href="tel:346-604-1635"
               className="flex items-center gap-2 body-text text-[12px] hover:opacity-80 transition-opacity"
