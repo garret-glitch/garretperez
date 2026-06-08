@@ -17,8 +17,6 @@ const GUILD_CHANNELS = [
   { icon: '🗺️', label: 'Adventure', dbEnum: 'TRAVEL',    level: 65, href: '/skills/travel',    sub: 'Adventures & Places' },
 ]
 
-const FUN_LEVEL = 88
-const GARRET_TOTAL = GUILD_CHANNELS.reduce((s, c) => s + c.level, 0) + FUN_LEVEL
 
 export default async function SkillsPanel() {
   const session = await auth()
