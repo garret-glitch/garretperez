@@ -32,6 +32,7 @@ export default async function Home() {
   let totalPosts = 0
   let totalUsers = 0
   let headshot = ''
+  let userBadges: string[] = []
 
   try {
     const headshotSetting = await (prisma as any).siteSetting.findUnique({ where: { key: 'headshot' } })
@@ -48,6 +49,14 @@ export default async function Home() {
     })
     totalPosts = await prisma.post.count()
     totalUsers = await prisma.user.count()
+
+    if (session?.user?.id) {
+      const badges = await (prisma as any).userBadge.findMany({
+        where: { userId: session.user.id },
+        select: { badge: true },
+      })
+      userBadges = badges.map((b: { badge: string }) => b.badge)
+    }
   } catch { /* DB not configured */ }
 
   const timeAgo = (date: Date) => {
@@ -309,19 +318,29 @@ export default async function Home() {
             <h2 className="text-[9px] mb-4 flex items-center gap-2" style={{ color: 'var(--text-1)' }}>
               <span style={{ color: 'var(--gold)' }}>🏆</span> Achievements
             </h2>
-            <div className="grid grid-cols-2 gap-2">
-              {Object.entries(BADGE_META).map(([key, meta]) => (
-                <div key={key} className="badge-tile">
-                  <span className="text-2xl">{meta.icon}</span>
-                  <span className="text-[5.5px] text-center leading-tight" style={{ color: 'var(--text-2)' }}>{meta.label}</span>
-                  <span className="text-[5px] text-center leading-tight" style={{ color: 'var(--text-3)' }}>{meta.desc}</span>
+            {userBadges.length > 0 ? (
+              <div className="grid grid-cols-2 gap-2">
+                {userBadges.map(key => {
+                  const meta = BADGE_META[key]
+                  return meta ? (
+                    <div key={key} className="badge-tile">
+                      <span className="text-2xl">{meta.icon}</span>
+                      <span className="text-[5.5px] text-center leading-tight" style={{ color: 'var(--text-2)' }}>{meta.label}</span>
+                      <span className="text-[5px] text-center leading-tight" style={{ color: 'var(--text-3)' }}>{meta.desc}</span>
+                    </div>
+                  ) : null
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <div className="text-3xl mb-3">🏆</div>
+                <p className="text-[7px] mb-1" style={{ color: 'var(--text-2)' }}>No achievements yet.</p>
+                <p className="text-[6px] mb-4" style={{ color: 'var(--text-3)' }}>Create an account to earn your first badge!</p>
+                <div className="flex justify-center gap-2">
+                  <Link href="/register" className="osrs-btn text-[6.5px] px-3 py-1.5">Join</Link>
+                  <Link href="/login" className="osrs-btn text-[6.5px] px-3 py-1.5">Login</Link>
                 </div>
-              ))}
-            </div>
-            {!session?.user && (
-              <p className="mt-3 text-[6px] text-center" style={{ color: 'var(--text-3)' }}>
-                Login to earn badges
-              </p>
+              </div>
             )}
           </div>
 
