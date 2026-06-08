@@ -42,12 +42,12 @@ export default async function FoodPage() {
 
   return (
     <div className="space-y-4">
-      <div className="osrs-panel">
+      <div className="osrs-panel rounded-xl">
         <div className="flex items-center gap-2 mb-2">
           <span className="text-2xl">🍳</span>
-          <h1 className="text-[14px] text-[#3c2a1e] font-bold">Cooking</h1>
+          <h1 className="text-[14px] text-[#1a1a1a] font-bold">Cooking</h1>
         </div>
-        <p className="text-[8px] text-[#5c3d1e]">
+        <p className="text-[8px] text-[#3d3d3d]">
           Share recipes and earn XP. Add a recipe → +50 Cooking XP!
         </p>
         {session?.user && (
@@ -60,15 +60,15 @@ export default async function FoodPage() {
       {session?.user ? (
         <RecipeForm />
       ) : (
-        <div className="osrs-panel-dark text-[8px] text-[#ffe066] text-center py-3">
-          <Link href="/login" className="text-[#ff981f] hover:underline">Login</Link>
+        <div className="osrs-panel-dark rounded-xl text-[8px] text-[#d8d8d8] text-center py-3">
+          <Link href="/login" className="text-[#a0bcd0] hover:underline">Login</Link>
           {' '}to add recipes and earn XP!
         </div>
       )}
 
       {recipes.length > 0 && (
         <div>
-          <h2 className="text-[10px] text-[#ffcc44] mb-2">📜 Recipes</h2>
+          <h2 className="text-[10px] text-[#c0c0c0] mb-2">📜 Recipes</h2>
           <div className="space-y-3">
             {recipes.map(recipe => {
               let ingredients: string[] = []
@@ -78,23 +78,23 @@ export default async function FoodPage() {
                 ingredients = recipe.ingredients.split('\n').filter(Boolean)
               }
               return (
-                <div key={recipe.id} className="osrs-panel-dark">
-                  <h3 className="text-[10px] text-[#ff981f] font-bold">{recipe.title}</h3>
-                  <p className="text-[7px] text-[#c5a882]">
+                <div key={recipe.id} className="osrs-panel-dark rounded-xl">
+                  <h3 className="text-[10px] text-[#c8c8c8] font-bold">{recipe.title}</h3>
+                  <p className="text-[7px] text-[#909090]">
                     by {recipe.user.username} · {new Date(recipe.createdAt).toLocaleDateString()}
                   </p>
                   {recipe.description && (
-                    <p className="text-[8px] text-[#ffe066] mt-1">{recipe.description}</p>
+                    <p className="text-[8px] text-[#d8d8d8] mt-1">{recipe.description}</p>
                   )}
                   <div className="mt-2">
-                    <p className="text-[7px] text-[#ffcc44] font-bold">Ingredients:</p>
-                    <ul className="text-[7px] text-[#ffe066] list-disc list-inside mt-1 space-y-0.5">
+                    <p className="text-[7px] text-[#b8b8b8] font-bold">Ingredients:</p>
+                    <ul className="text-[7px] text-[#d8d8d8] list-disc list-inside mt-1 space-y-0.5">
                       {ingredients.map((ing, i) => <li key={i}>{ing}</li>)}
                     </ul>
                   </div>
                   <div className="mt-2">
-                    <p className="text-[7px] text-[#ffcc44] font-bold">Instructions:</p>
-                    <p className="text-[7px] text-[#ffe066] mt-1 whitespace-pre-wrap leading-relaxed">
+                    <p className="text-[7px] text-[#b8b8b8] font-bold">Instructions:</p>
+                    <p className="text-[7px] text-[#d8d8d8] mt-1 whitespace-pre-wrap leading-relaxed">
                       {recipe.instructions}
                     </p>
                   </div>
@@ -106,22 +106,22 @@ export default async function FoodPage() {
       )}
 
       <div>
-        <h2 className="text-[10px] text-[#ffcc44] mb-2">💬 Food Discussions</h2>
+        <h2 className="text-[10px] text-[#c0c0c0] mb-2">💬 Food Discussions</h2>
         {session?.user && <PostForm skillEnum="FOOD" />}
         {!session?.user && posts.length === 0 && (
-          <div className="osrs-panel text-[8px] text-[#5c3d1e] text-center py-4">
+          <div className="osrs-panel rounded-xl text-[8px] text-[#3d3d3d] text-center py-4">
             No food discussions yet.
           </div>
         )}
         {posts.length > 0 && (
           <div className="space-y-3 mt-3">
             {posts.map(post => (
-              <div key={post.id} className="osrs-panel-dark">
-                <h3 className="text-[10px] text-[#ff981f] font-bold">{post.title}</h3>
-                <p className="text-[7px] text-[#c5a882]">
+              <div key={post.id} className="osrs-panel-dark rounded-xl">
+                <h3 className="text-[10px] text-[#c8c8c8] font-bold">{post.title}</h3>
+                <p className="text-[7px] text-[#909090]">
                   by {post.user.username} · {new Date(post.createdAt).toLocaleDateString()}
                 </p>
-                <p className="text-[9px] text-[#ffe066] mt-2 whitespace-pre-wrap leading-relaxed">
+                <p className="text-[9px] text-[#d8d8d8] mt-2 whitespace-pre-wrap leading-relaxed">
                   {post.body}
                 </p>
               </div>

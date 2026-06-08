@@ -24,7 +24,7 @@ export default function PostForm({ skillEnum }: { skillEnum: string }) {
       setTitle('')
       setBody('')
       setStatus('success')
-      setMsg('+50 XP earned! Check your skills panel.')
+      setMsg('+10 XP earned! Check your skills panel.')
       router.refresh()
       setTimeout(() => { setStatus('idle'); setMsg('') }, 4000)
     } else if (res.status === 401) {
@@ -37,8 +37,8 @@ export default function PostForm({ skillEnum }: { skillEnum: string }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="osrs-panel space-y-3">
-      <h3 className="text-[9px] text-[#3c2a1e] font-bold">✍ Create Post (+50 XP)</h3>
+    <form onSubmit={handleSubmit} className="osrs-panel rounded-xl space-y-3">
+      <h3 className="text-[9px] text-[#1a1a1a] font-bold">✍ Create Post (+10 XP)</h3>
       <input
         className="osrs-input"
         placeholder="Title"
@@ -62,7 +62,7 @@ export default function PostForm({ skillEnum }: { skillEnum: string }) {
         {status === 'submitting' ? 'Posting...' : 'Post'}
       </button>
       {msg && (
-        <p className={`text-[8px] ${status === 'error' ? 'text-red-700' : 'text-[#007700]'}`}>
+        <p className={`text-[8px] ${status === 'error' ? 'text-red-500' : 'text-[#00b800]'}`}>
           {msg}
         </p>
       )}

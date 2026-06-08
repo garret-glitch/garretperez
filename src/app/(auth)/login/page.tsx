@@ -35,8 +35,8 @@ export default function LoginPage() {
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
       <div className="w-full max-w-[280px]">
-        <form onSubmit={handleSubmit} className="osrs-panel space-y-4">
-          <h1 className="text-[11px] text-[#3c2a1e] font-bold text-center">⚔ Welcome Back</h1>
+        <form onSubmit={handleSubmit} className="osrs-panel rounded-xl space-y-4">
+          <h1 className="text-[11px] text-[#1a1a1a] font-bold text-center">⚔ Welcome Back</h1>
           <input
             className="osrs-input"
             placeholder="Username"
@@ -54,13 +54,13 @@ export default function LoginPage() {
             disabled={loading}
             autoComplete="current-password"
           />
-          {error && <p className="text-[8px] text-red-700">{error}</p>}
+          {error && <p className="text-[8px] text-red-500">{error}</p>}
           <button type="submit" className="osrs-btn w-full" disabled={loading}>
             {loading ? 'Logging in...' : 'Login'}
           </button>
-          <p className="text-[7px] text-[#5c3d1e] text-center">
+          <p className="text-[7px] text-[#3d3d3d] text-center">
             New adventurer?{' '}
-            <Link href="/register" className="text-[#ff981f] hover:underline">
+            <Link href="/register" className="text-[#a0bcd0] hover:underline">
               Register here
             </Link>
           </p>

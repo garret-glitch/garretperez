@@ -26,11 +26,11 @@ export default async function RootLayout({
           <div className="min-h-screen flex flex-col">
             <ContactHeader />
             <SiteHeader />
-            <div className="flex flex-1 w-full max-w-[1100px] mx-auto gap-2 px-2 py-3">
+            <div className="flex flex-1 w-full max-w-[1200px] mx-auto gap-3 px-3 py-4">
+              <SkillsPanel />
               <main className="flex-1 min-w-0">
                 {children}
               </main>
-              <SkillsPanel />
             </div>
             <Footer />
           </div>

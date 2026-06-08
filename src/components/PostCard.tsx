@@ -9,11 +9,11 @@ export default function PostCard({ post }: { post: PostMeta }) {
     : ''
   return (
     <Link href={`/blog/${post.slug}`} className="block">
-      <div className="osrs-panel-dark hover:bg-[#3d2a18] transition-colors">
-        {formatted && <time className="text-[7px] text-[#c5a882]">{formatted}</time>}
-        <h2 className="text-[10px] text-[#ff981f] font-bold mt-0.5">{post.title}</h2>
+      <div className="osrs-panel-dark rounded-xl hover:bg-[#282828] transition-colors">
+        {formatted && <time className="text-[7px] text-[#909090]">{formatted}</time>}
+        <h2 className="text-[10px] text-[#c8c8c8] font-bold mt-0.5">{post.title}</h2>
         {post.description && (
-          <p className="text-[8px] text-[#ffe066] mt-1 line-clamp-2">{post.description}</p>
+          <p className="text-[8px] text-[#d8d8d8] mt-1 line-clamp-2">{post.description}</p>
         )}
       </div>
     </Link>

@@ -1,11 +1,12 @@
-export const XP_PER_POST = 50
-export const XP_PER_WIN = 25
-export const XP_PER_LOGIN = 10
-export const MAX_LEVEL = 99
+export const XP_PER_POST = 10
+export const XP_PER_REPLY = 5
+export const XP_PER_WIN = 20
+export const XP_PER_LOGIN = 5
+export const MAX_LEVEL = 9999
 
 export function xpToLevel(xp: number): number {
   if (xp <= 0) return 1
-  return Math.min(MAX_LEVEL, Math.floor(Math.pow(xp / 100, 1 / 1.5)) + 1)
+  return Math.floor(Math.pow(xp / 100, 1 / 1.5)) + 1
 }
 
 export function levelToXp(level: number): number {
@@ -19,9 +20,6 @@ export function xpProgress(xp: number): {
   percent: number
 } {
   const level = xpToLevel(xp)
-  if (level >= MAX_LEVEL) {
-    return { level, currentXp: xp, neededXp: 0, percent: 100 }
-  }
   const thisLevelXp = levelToXp(level)
   const nextLevelXp = levelToXp(level + 1)
   const currentXp = xp - thisLevelXp

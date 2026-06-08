@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { XP_PER_LOGIN } from '@/lib/xp'
+import { checkBadges } from '@/lib/badges'
 import { SkillType } from '@prisma/client'
 
 const ALL_SKILLS = Object.values(SkillType)
@@ -39,6 +40,8 @@ export async function POST() {
         data: { xp: { increment: XP_PER_LOGIN } },
       }),
     ])
+
+    await checkBadges(session.user.id, 'login')
 
     return NextResponse.json({ success: true, skill: randomSkill, xpAwarded: XP_PER_LOGIN })
   } catch (error) {

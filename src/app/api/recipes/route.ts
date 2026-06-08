@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { XP_PER_POST } from '@/lib/xp'
+import { checkBadges } from '@/lib/badges'
 
 export async function POST(req: Request) {
   const session = await auth()
@@ -34,7 +35,9 @@ export async function POST(req: Request) {
       }),
     ])
 
-    return NextResponse.json({ success: true })
+    await checkBadges(session.user.id, 'recipe')
+
+    return NextResponse.json({ success: true, xpAwarded: XP_PER_POST })
   } catch (error) {
     console.error('Recipe error:', error)
     return NextResponse.json({ error: 'Failed to create recipe.' }, { status: 500 })

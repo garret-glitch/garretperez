@@ -38,18 +38,18 @@ export default async function BlogPost({ params }: Props) {
 
   return (
     <article className="space-y-4">
-      <div className="osrs-panel">
+      <div className="osrs-panel rounded-xl">
         <header>
-          {formatted && <time className="text-[7px] text-[#5c3d1e]">{formatted}</time>}
-          <h1 className="text-[14px] text-[#3c2a1e] font-bold mt-1 leading-relaxed">
+          {formatted && <time className="text-[7px] text-[#3d3d3d]">{formatted}</time>}
+          <h1 className="text-[14px] text-[#1a1a1a] font-bold mt-1 leading-relaxed">
             {post.title}
           </h1>
           {post.description && (
-            <p className="text-[9px] text-[#5c3d1e] mt-1">{post.description}</p>
+            <p className="text-[9px] text-[#3d3d3d] mt-1">{post.description}</p>
           )}
         </header>
       </div>
-      <div className="osrs-panel-dark prose max-w-none">
+      <div className="osrs-panel-dark rounded-xl prose max-w-none">
         {content}
       </div>
     </article>

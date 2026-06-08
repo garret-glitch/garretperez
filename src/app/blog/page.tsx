@@ -11,12 +11,12 @@ export default function Blog() {
   const posts = getAllPosts()
   return (
     <div className="space-y-4">
-      <div className="osrs-panel">
-        <h1 className="text-[14px] text-[#3c2a1e] font-bold">📖 Blog</h1>
-        <p className="text-[8px] text-[#5c3d1e] mt-1">Personal posts and thoughts.</p>
+      <div className="osrs-panel rounded-xl">
+        <h1 className="text-[14px] text-[#1a1a1a] font-bold">📖 Blog</h1>
+        <p className="text-[8px] text-[#3d3d3d] mt-1">Personal posts and thoughts.</p>
       </div>
       {posts.length === 0 ? (
-        <div className="osrs-panel text-center py-6 text-[8px] text-[#5c3d1e]">
+        <div className="osrs-panel rounded-xl text-center py-6 text-[8px] text-[#3d3d3d]">
           No posts yet — add .mdx files to content/posts/ to get started.
         </div>
       ) : (

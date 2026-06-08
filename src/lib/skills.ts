@@ -30,15 +30,15 @@ export interface SkillMeta {
 }
 
 export const SKILLS: SkillMeta[] = [
-  { slug: 'health',     dbEnum: 'HEALTH',     label: 'Health',    icon: '❤️',  description: 'Health & wellness tips',     href: '/skills/health' },
-  { slug: 'projects',   dbEnum: 'PROJECTS',   label: 'Projects',  icon: '⚒️',  description: 'Portfolio & tech skills',    href: '/skills/projects' },
-  { slug: 'fishing',    dbEnum: 'FISHING',    label: 'Fishing',   icon: '🎣',  description: 'Fishing tips & reports',     href: '/skills/fishing' },
-  { slug: 'business',   dbEnum: 'BUSINESS',   label: 'Business',  icon: '💼',  description: 'Business & networking',      href: '/skills/business' },
-  { slug: 'food',       dbEnum: 'FOOD',       label: 'Cooking',   icon: '🍳',  description: 'Recipes & food tips',        href: '/skills/food' },
-  { slug: 'community',  dbEnum: 'COMMUNITY',  label: 'Community', icon: '👥',  description: 'General discussion',         href: '/skills/community' },
-  { slug: 'gardening',  dbEnum: 'GARDENING',  label: 'Farming',   icon: '🌱',  description: 'Garden tips & updates',      href: '/skills/gardening' },
-  { slug: 'fun',        dbEnum: 'FUN',        label: 'Fun',       icon: '🎮',  description: 'Mini-games',                 href: '/skills/fun' },
-  { slug: 'travel',     dbEnum: 'TRAVEL',     label: 'Travel',    icon: '🗺️',  description: 'Travel diary & adventures',  href: '/skills/travel' },
+  { slug: 'health',     dbEnum: 'HEALTH',     label: 'Health',    icon: '❤️',  description: 'Staying active, fitness tips & wellness as a father and creator.',  href: '/skills/health' },
+  { slug: 'projects',   dbEnum: 'PROJECTS',   label: 'Projects',  icon: '⚒️',  description: 'Building things — yearly haunted house, DIY projects & tech builds.', href: '/skills/projects' },
+  { slug: 'fishing',    dbEnum: 'FISHING',    label: 'Fishing',   icon: '🎣',  description: 'Fishing trips, outdoor adventures & tips from the water.',           href: '/skills/fishing' },
+  { slug: 'business',   dbEnum: 'BUSINESS',   label: 'Business',  icon: '💼',  description: 'Wine sales, H-E-B distribution, team coaching & route planning.',    href: '/skills/business' },
+  { slug: 'food',       dbEnum: 'FOOD',       label: 'Cooking',   icon: '🍳',  description: 'Recipes, wine pairings & food tips from the kitchen.',               href: '/skills/food' },
+  { slug: 'community',  dbEnum: 'COMMUNITY',  label: 'Community', icon: '👥',  description: 'Neighborhood events, social connections & group discussions.',       href: '/skills/community' },
+  { slug: 'gardening',  dbEnum: 'GARDENING',  label: 'Farming',   icon: '🌱',  description: 'Garden tips, outdoor upkeep & growing things.',                      href: '/skills/gardening' },
+  { slug: 'fun',        dbEnum: 'FUN',        label: 'Fun',       icon: '🎮',  description: 'Mini-games, hobbies & entertainment for the whole community.',       href: '/skills/fun' },
+  { slug: 'travel',     dbEnum: 'TRAVEL',     label: 'Travel',    icon: '🗺️',  description: 'Travel diary, adventures & places worth visiting.',                  href: '/skills/travel' },
 ]
 
 export function getSkillBySlug(slug: string): SkillMeta | undefined {

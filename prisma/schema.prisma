@@ -8,20 +8,22 @@ datasource db {
 }
 
 model User {
-  id            String      @id @default(cuid())
+  id            String       @id @default(cuid())
   name          String?
-  email         String?     @unique
+  email         String?      @unique
   emailVerified DateTime?
   image         String?
-  username      String      @unique
+  username      String       @unique
   passwordHash  String
   lastLoginAt   DateTime?
-  createdAt     DateTime    @default(now())
+  createdAt     DateTime     @default(now())
   accounts      Account[]
   sessions      Session[]
   skills        UserSkill[]
   posts         Post[]
   recipes       Recipe[]
+  replies       PostReply[]
+  badges        UserBadge[]
 }
 
 model Account {
@@ -70,6 +72,15 @@ enum SkillType {
   TRAVEL
 }
 
+enum BadgeType {
+  FIRST_POST
+  LEVEL_10
+  LEVEL_50
+  GAME_WINNER
+  DAILY_ADVENTURER
+  CHEF
+}
+
 model UserSkill {
   id     String    @id @default(cuid())
   userId String
@@ -81,13 +92,34 @@ model UserSkill {
 }
 
 model Post {
-  id        String    @id @default(cuid())
+  id        String      @id @default(cuid())
   userId    String
   skill     SkillType
   title     String
-  body      String    @db.Text
-  createdAt DateTime  @default(now())
+  body      String      @db.Text
+  createdAt DateTime    @default(now())
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replies   PostReply[]
+}
+
+model PostReply {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserBadge {
+  id        String    @id @default(cuid())
+  userId    String
+  badge     BadgeType
+  awardedAt DateTime  @default(now())
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badge])
 }
 
 model Recipe {

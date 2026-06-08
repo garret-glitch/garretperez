@@ -7,7 +7,7 @@ export default function AuthButton({ session }: { session: Session | null }) {
   if (session?.user) {
     return (
       <div className="flex items-center gap-3">
-        <span className="text-[8px] text-[#ffcc44]">⚔ {session.user.name}</span>
+        <span className="text-[8px] text-[#d0d0d0]">⚔ {session.user.name}</span>
         <button onClick={() => signOut({ callbackUrl: '/' })} className="osrs-btn">
           Logout
         </button>

@@ -33,7 +33,7 @@ export default function RecipeForm() {
       setIngredients('')
       setInstructions('')
       setStatus('success')
-      setMsg('+50 Cooking XP earned!')
+      setMsg('+10 Cooking XP earned!')
       router.refresh()
       setTimeout(() => { setStatus('idle'); setMsg('') }, 4000)
     } else if (res.status === 401) {
@@ -46,8 +46,8 @@ export default function RecipeForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="osrs-panel space-y-3">
-      <h3 className="text-[9px] text-[#3c2a1e] font-bold">🍳 Add Recipe (+50 Cooking XP)</h3>
+    <form onSubmit={handleSubmit} className="osrs-panel rounded-xl space-y-3">
+      <h3 className="text-[9px] text-[#1a1a1a] font-bold">🍳 Add Recipe (+10 Cooking XP)</h3>
       <input
         className="osrs-input"
         placeholder="Recipe name"
@@ -65,7 +65,7 @@ export default function RecipeForm() {
         maxLength={200}
       />
       <div>
-        <label className="text-[7px] text-[#3c2a1e] mb-1 block">Ingredients (one per line)</label>
+        <label className="text-[7px] text-[#1a1a1a] mb-1 block">Ingredients (one per line)</label>
         <textarea
           className="osrs-input h-20 resize-none"
           placeholder={'2 cups flour\n1 tsp salt\n...'}
@@ -75,7 +75,7 @@ export default function RecipeForm() {
         />
       </div>
       <div>
-        <label className="text-[7px] text-[#3c2a1e] mb-1 block">Instructions</label>
+        <label className="text-[7px] text-[#1a1a1a] mb-1 block">Instructions</label>
         <textarea
           className="osrs-input h-24 resize-none"
           placeholder="Step-by-step instructions..."
@@ -92,7 +92,7 @@ export default function RecipeForm() {
         {status === 'submitting' ? 'Adding...' : 'Add Recipe'}
       </button>
       {msg && (
-        <p className={`text-[8px] ${status === 'error' ? 'text-red-700' : 'text-[#007700]'}`}>
+        <p className={`text-[8px] ${status === 'error' ? 'text-red-500' : 'text-[#00b800]'}`}>
           {msg}
         </p>
       )}

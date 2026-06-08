@@ -3,6 +3,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { SKILL_ENUMS } from '@/lib/skills'
 import { XP_PER_POST } from '@/lib/xp'
+import { checkBadges } from '@/lib/badges'
 import { SkillType } from '@prisma/client'
 
 export async function POST(req: Request) {
@@ -36,7 +37,9 @@ export async function POST(req: Request) {
       }),
     ])
 
-    return NextResponse.json({ success: true })
+    await checkBadges(session.user.id, 'post')
+
+    return NextResponse.json({ success: true, xpAwarded: XP_PER_POST })
   } catch (error) {
     console.error('Post error:', error)
     return NextResponse.json({ error: 'Failed to create post.' }, { status: 500 })

@@ -5,15 +5,15 @@ import Link from 'next/link'
 export default async function SiteHeader() {
   const session = await auth()
   return (
-    <header className="osrs-panel-dark px-4 py-2 flex items-center justify-between border-b border-[#5c3d1e]">
+    <header className="osrs-panel-dark px-4 py-2 flex items-center justify-between border-b-2 border-[#424242]">
       <div className="flex items-center gap-4">
-        <Link href="/" className="text-[#ff981f] text-[12px] font-bold hover:text-[#ffcc44]">
+        <Link href="/" className="text-[#d0d0d0] text-[12px] font-bold hover:text-white">
           ⚔ Garret&apos;s World
         </Link>
-        <Link href="/blog" className="text-[8px] text-[#ffe066] hover:text-[#ffcc44]">
+        <Link href="/blog" className="text-[8px] text-[#b0b0b0] hover:text-[#e0e0e0]">
           Blog
         </Link>
-        <Link href="/contact" className="text-[8px] text-[#ffe066] hover:text-[#ffcc44]">
+        <Link href="/contact" className="text-[8px] text-[#b0b0b0] hover:text-[#e0e0e0]">
           Contact
         </Link>
       </div>
