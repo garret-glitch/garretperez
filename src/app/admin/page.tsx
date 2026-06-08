@@ -156,6 +156,13 @@ export default function AdminPage() {
     loadData()
   }
 
+  async function resetMyXp() {
+    if (!confirm('Reset ALL your skill XP to 0 (level 1)? This cannot be undone.')) return
+    const res = await fetch('/api/admin/reset-xp', { method: 'POST' })
+    const data = await res.json()
+    setMsg(data.message ?? data.error ?? 'Done.')
+  }
+
   if (status === 'loading' || loading) {
     return <div className="osrs-panel-dark rounded-xl text-[8px] text-[#909090] text-center py-10">Loading...</div>
   }
@@ -230,6 +237,15 @@ export default function AdminPage() {
                 )}
               </div>
             </div>
+          </div>
+          <div className="border-t pt-4" style={{ borderColor: 'var(--border)' }}>
+            <h2 className="text-[9px] font-bold mb-1" style={{ color: 'var(--text-1)' }}>Reset My XP</h2>
+            <p className="text-[7px] mb-2" style={{ color: 'var(--text-2)' }}>
+              Sets all your skill XP to 0 (level 1). Cannot be undone.
+            </p>
+            <button onClick={resetMyXp} className="osrs-btn text-[7px] opacity-80 hover:opacity-100">
+              ⚠ Reset All My XP to Level 1
+            </button>
           </div>
         </div>
       )}
