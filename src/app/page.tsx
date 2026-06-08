@@ -278,29 +278,8 @@ export default async function Home() {
           )}
         </div>
 
-        {/* Right column: Achievements + XP Guide stacked */}
+        {/* Right column: XP Guide + Achievements stacked */}
         <div className="flex flex-col gap-4">
-
-          {/* Achievements */}
-          <div className="rp-card">
-            <h2 className="text-[9px] mb-4 flex items-center gap-2" style={{ color: 'var(--text-1)' }}>
-              <span style={{ color: 'var(--gold)' }}>🏆</span> Achievements
-            </h2>
-            <div className="grid grid-cols-2 gap-2">
-              {Object.entries(BADGE_META).map(([key, meta]) => (
-                <div key={key} className="badge-tile">
-                  <span className="text-2xl">{meta.icon}</span>
-                  <span className="text-[5.5px] text-center leading-tight" style={{ color: 'var(--text-2)' }}>{meta.label}</span>
-                  <span className="text-[5px] text-center leading-tight" style={{ color: 'var(--text-3)' }}>{meta.desc}</span>
-                </div>
-              ))}
-            </div>
-            {!session?.user && (
-              <p className="mt-3 text-[6px] text-center" style={{ color: 'var(--text-3)' }}>
-                Login to earn badges
-              </p>
-            )}
-          </div>
 
           {/* XP Guide */}
           <div className="rp-card">
@@ -323,6 +302,27 @@ export default async function Home() {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Achievements */}
+          <div className="rp-card">
+            <h2 className="text-[9px] mb-4 flex items-center gap-2" style={{ color: 'var(--text-1)' }}>
+              <span style={{ color: 'var(--gold)' }}>🏆</span> Achievements
+            </h2>
+            <div className="grid grid-cols-2 gap-2">
+              {Object.entries(BADGE_META).map(([key, meta]) => (
+                <div key={key} className="badge-tile">
+                  <span className="text-2xl">{meta.icon}</span>
+                  <span className="text-[5.5px] text-center leading-tight" style={{ color: 'var(--text-2)' }}>{meta.label}</span>
+                  <span className="text-[5px] text-center leading-tight" style={{ color: 'var(--text-3)' }}>{meta.desc}</span>
+                </div>
+              ))}
+            </div>
+            {!session?.user && (
+              <p className="mt-3 text-[6px] text-center" style={{ color: 'var(--text-3)' }}>
+                Login to earn badges
+              </p>
+            )}
           </div>
 
         </div>
