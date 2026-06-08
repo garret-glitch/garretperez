@@ -1,6 +1,5 @@
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { SKILLS } from '@/lib/skills'
 import { xpToLevel } from '@/lib/xp'
 import { BADGE_META } from '@/lib/badges'
 import Link from 'next/link'

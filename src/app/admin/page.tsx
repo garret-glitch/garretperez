@@ -42,7 +42,7 @@ export default function AdminPage() {
       return
     }
     loadData()
-  }, [session, status])
+  }, [session, status, router])
 
   async function loadData() {
     setLoading(true)
