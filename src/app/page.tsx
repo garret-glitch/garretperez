@@ -208,10 +208,10 @@ export default async function Home() {
       {/* ─── ROW 1: About Me + Projects ───────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
-        {/* About Me — scroll */}
-        <div style={{ overflow: 'visible' }}>
+        {/* About Me — scroll, stretches to match right column height */}
+        <div style={{ overflow: 'visible', display: 'flex', flexDirection: 'column' }}>
           <div className="scroll-roll" />
-          <div className="scroll-parchment">
+          <div className="scroll-parchment" style={{ flex: 1 }}>
             <h2 className="text-[9px] mb-4 flex items-center gap-2" style={{ color: '#3a1e06' }}>
               <span>📜</span> About Me
             </h2>
@@ -285,10 +285,10 @@ export default async function Home() {
             <div className="scroll-roll" />
           </div>
 
-          {/* Achievements — scroll */}
-          <div style={{ overflow: 'visible' }}>
+          {/* Achievements — scroll, fills remaining right-column space */}
+          <div style={{ overflow: 'visible', flex: 1, display: 'flex', flexDirection: 'column' }}>
             <div className="scroll-roll" />
-            <div className="scroll-parchment">
+            <div className="scroll-parchment" style={{ flex: 1 }}>
               <h2 className="text-[9px] mb-4 flex items-center gap-2" style={{ color: '#3a1e06' }}>
                 <span>🏆</span> Achievements
               </h2>
