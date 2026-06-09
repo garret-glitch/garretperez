@@ -81,6 +81,8 @@ enum SkillType {
   GARDENING
   FUN
   TRAVEL
+  COOL_ITEMS
+  COOL_PEOPLE
 }
 
 enum BadgeType {
