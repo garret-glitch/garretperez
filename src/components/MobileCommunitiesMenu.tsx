@@ -4,11 +4,11 @@ import Link from 'next/link'
 
 const NAV = [
   { icon: '🏠', label: 'Home',      href: '/' },
-  { icon: '📋', label: 'Quests',    href: '/quest-board' },
   { icon: '📄', label: 'Resume',    href: '/resume' },
 ]
 
 const COMMUNITIES = [
+  { icon: '📋', label: 'Quests',    href: '/quest-board' },
   { icon: '❤️', label: 'Health',    href: '/skills/health' },
   { icon: '⚒️', label: 'Projects',  href: '/skills/projects' },
   { icon: '💼', label: 'Business',  href: '/skills/business' },
