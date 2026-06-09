@@ -239,47 +239,87 @@ export default async function Home() {
           <div className="scroll-roll" />
         </div>
 
-        {/* My Projects — scroll */}
-        <div style={{ overflow: 'visible' }}>
-          <div className="scroll-roll" />
-          <div className="scroll-parchment">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[9px] flex items-center gap-2" style={{ color: '#3a1e06' }}>
-                <span>⚒️</span> My Projects
-              </h2>
-              <Link href="/skills/projects" className="text-[6px] hover:opacity-70 transition-opacity" style={{ color: '#6a3808' }}>
-                View All →
-              </Link>
-            </div>
+        {/* My Projects + Achievements — stacked in right column */}
+        <div className="flex flex-col gap-4">
 
-            {dbProjects.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 gap-3">
-                <span className="text-4xl opacity-30">⚒️</span>
-                <p className="text-[7px]" style={{ color: '#8a6030' }}>No projects logged yet.</p>
-                <Link href="/skills/projects" className="osrs-btn text-[6.5px] px-3 py-1.5">Start a Project</Link>
+          {/* My Projects — scroll */}
+          <div style={{ overflow: 'visible' }}>
+            <div className="scroll-roll" />
+            <div className="scroll-parchment">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-[9px] flex items-center gap-2" style={{ color: '#3a1e06' }}>
+                  <span>⚒️</span> My Projects
+                </h2>
+                <Link href="/skills/projects" className="text-[6px] hover:opacity-70 transition-opacity" style={{ color: '#6a3808' }}>
+                  View All →
+                </Link>
               </div>
-            ) : (
-              <div className="space-y-2">
-                {dbProjects.map(p => (
-                  <Link key={p.title} href={p.href} className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-colors hover:opacity-80"
-                    style={{ background: 'rgba(180,120,40,0.18)', border: '1px solid #a07840' }}>
-                    <span className="text-xl shrink-0">{p.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2 mb-1.5">
-                        <span className="text-[7px] font-bold truncate" style={{ color: '#2a1006' }}>{p.title}</span>
-                        <span className="text-[6px] font-bold shrink-0" style={{ color: '#6a3808' }}>{p.progress}%</span>
+
+              {dbProjects.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 gap-3">
+                  <span className="text-4xl opacity-30">⚒️</span>
+                  <p className="text-[7px]" style={{ color: '#8a6030' }}>No projects logged yet.</p>
+                  <Link href="/skills/projects" className="osrs-btn text-[6.5px] px-3 py-1.5">Start a Project</Link>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {dbProjects.map(p => (
+                    <Link key={p.title} href={p.href} className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-colors hover:opacity-80"
+                      style={{ background: 'rgba(180,120,40,0.18)', border: '1px solid #a07840' }}>
+                      <span className="text-xl shrink-0">{p.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-1.5">
+                          <span className="text-[7px] font-bold truncate" style={{ color: '#2a1006' }}>{p.title}</span>
+                          <span className="text-[6px] font-bold shrink-0" style={{ color: '#6a3808' }}>{p.progress}%</span>
+                        </div>
+                        <div className="prog-bar">
+                          <div className="prog-bar-fill" style={{ width: `${p.progress}%` }} />
+                        </div>
+                        <div className="text-[5.5px] mt-1" style={{ color: '#8a6030' }}>Updated {p.updated}</div>
                       </div>
-                      <div className="prog-bar">
-                        <div className="prog-bar-fill" style={{ width: `${p.progress}%` }} />
-                      </div>
-                      <div className="text-[5.5px] mt-1" style={{ color: '#8a6030' }}>Updated {p.updated}</div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="scroll-roll" />
           </div>
-          <div className="scroll-roll" />
+
+          {/* Achievements — scroll */}
+          <div style={{ overflow: 'visible' }}>
+            <div className="scroll-roll" />
+            <div className="scroll-parchment">
+              <h2 className="text-[9px] mb-4 flex items-center gap-2" style={{ color: '#3a1e06' }}>
+                <span>🏆</span> Achievements
+              </h2>
+              {userBadges.length > 0 ? (
+                <div className="grid grid-cols-2 gap-2">
+                  {userBadges.map(key => {
+                    const meta = BADGE_META[key]
+                    return meta ? (
+                      <div key={key} className="badge-tile">
+                        <span className="text-2xl">{meta.icon}</span>
+                        <span className="text-[5.5px] text-center leading-tight" style={{ color: '#5a3818' }}>{meta.label}</span>
+                        <span className="text-[5px] text-center leading-tight" style={{ color: '#8a6030' }}>{meta.desc}</span>
+                      </div>
+                    ) : null
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <div className="text-3xl mb-3">🏆</div>
+                  <p className="text-[7px] mb-1" style={{ color: '#3a2810' }}>No achievements yet.</p>
+                  <p className="text-[6px] mb-4" style={{ color: '#8a6030' }}>Create an account to earn your first badge!</p>
+                  <div className="flex justify-center gap-2">
+                    <Link href="/register" className="osrs-btn text-[6.5px] px-3 py-1.5">Join</Link>
+                    <Link href="/login" className="osrs-btn text-[6.5px] px-3 py-1.5">Login</Link>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="scroll-roll" />
+          </div>
+
         </div>
       </div>
 
@@ -360,71 +400,31 @@ export default async function Home() {
           <div className="scroll-roll" />
         </div>
 
-        {/* Right column: XP Guide + Achievements stacked */}
-        <div className="flex flex-col gap-4">
-
-          {/* XP Guide — scroll */}
-          <div style={{ overflow: 'visible' }}>
-            <div className="scroll-roll" />
-            <div className="scroll-parchment">
-              <h2 className="text-[9px] mb-3 flex items-center gap-2" style={{ color: '#3a1e06' }}>
-                <span>⚡</span> How to Earn XP
-              </h2>
-              <div className="space-y-1.5">
-                {[
-                  { icon: '📝', action: 'Post to a skill',  xp: '+50 XP' },
-                  { icon: '🍳', action: 'Add a recipe',     xp: '+50 XP' },
-                  { icon: '🎮', action: 'Win a mini-game',  xp: '+25 XP' },
-                  { icon: '📅', action: 'Daily login',      xp: '+10 XP' },
-                ].map(row => (
-                  <div key={row.action}
-                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg"
-                    style={{ background: 'rgba(180,120,40,0.18)', border: '1px solid #a07840' }}>
-                    <span className="text-sm shrink-0">{row.icon}</span>
-                    <span className="flex-1 text-[6px]" style={{ color: '#3a2810' }}>{row.action}</span>
-                    <span className="text-[6px] font-bold shrink-0" style={{ color: '#6a3808' }}>{row.xp}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="scroll-roll" />
-          </div>
-
-          {/* Achievements — scroll */}
-          <div style={{ overflow: 'visible' }}>
-            <div className="scroll-roll" />
-            <div className="scroll-parchment">
-              <h2 className="text-[9px] mb-4 flex items-center gap-2" style={{ color: '#3a1e06' }}>
-                <span>🏆</span> Achievements
-              </h2>
-              {userBadges.length > 0 ? (
-                <div className="grid grid-cols-2 gap-2">
-                  {userBadges.map(key => {
-                    const meta = BADGE_META[key]
-                    return meta ? (
-                      <div key={key} className="badge-tile">
-                        <span className="text-2xl">{meta.icon}</span>
-                        <span className="text-[5.5px] text-center leading-tight" style={{ color: '#5a3818' }}>{meta.label}</span>
-                        <span className="text-[5px] text-center leading-tight" style={{ color: '#8a6030' }}>{meta.desc}</span>
-                      </div>
-                    ) : null
-                  })}
+        {/* XP Guide — scroll */}
+        <div style={{ overflow: 'visible' }}>
+          <div className="scroll-roll" />
+          <div className="scroll-parchment">
+            <h2 className="text-[9px] mb-3 flex items-center gap-2" style={{ color: '#3a1e06' }}>
+              <span>⚡</span> How to Earn XP
+            </h2>
+            <div className="space-y-1.5">
+              {[
+                { icon: '📝', action: 'Post to a skill',  xp: '+50 XP' },
+                { icon: '🍳', action: 'Add a recipe',     xp: '+50 XP' },
+                { icon: '🎮', action: 'Win a mini-game',  xp: '+25 XP' },
+                { icon: '📅', action: 'Daily login',      xp: '+10 XP' },
+              ].map(row => (
+                <div key={row.action}
+                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg"
+                  style={{ background: 'rgba(180,120,40,0.18)', border: '1px solid #a07840' }}>
+                  <span className="text-sm shrink-0">{row.icon}</span>
+                  <span className="flex-1 text-[6px]" style={{ color: '#3a2810' }}>{row.action}</span>
+                  <span className="text-[6px] font-bold shrink-0" style={{ color: '#6a3808' }}>{row.xp}</span>
                 </div>
-              ) : (
-                <div className="text-center py-6">
-                  <div className="text-3xl mb-3">🏆</div>
-                  <p className="text-[7px] mb-1" style={{ color: '#3a2810' }}>No achievements yet.</p>
-                  <p className="text-[6px] mb-4" style={{ color: '#8a6030' }}>Create an account to earn your first badge!</p>
-                  <div className="flex justify-center gap-2">
-                    <Link href="/register" className="osrs-btn text-[6.5px] px-3 py-1.5">Join</Link>
-                    <Link href="/login" className="osrs-btn text-[6.5px] px-3 py-1.5">Login</Link>
-                  </div>
-                </div>
-              )}
+              ))}
             </div>
-            <div className="scroll-roll" />
           </div>
-
+          <div className="scroll-roll" />
         </div>
       </div>
 
