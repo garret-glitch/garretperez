@@ -148,8 +148,9 @@ export default function HomepageSections({
   }, [])
 
   const sec = (id: string): SectionConfig => {
-    const s = layout.find(s => s.id === id) ?? DEFAULT_SECTIONS.find(s => s.id === id)!
-    return { minHeight: 0, ...s }
+    const base = DEFAULT_SECTIONS.find(s => s.id === id)!
+    const saved = layout.find(s => s.id === id)
+    return saved ? ({ ...base, ...saved } as SectionConfig) : base
   }
   const pSty = (id: string): React.CSSProperties => {
     const s = sec(id)
