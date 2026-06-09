@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { xpToLevel, xpProgress } from '@/lib/xp'
+import { xpToLevel } from '@/lib/xp'
 import { SKILLS } from '@/lib/skills'
 import { BADGE_META } from '@/lib/badges'
 import Link from 'next/link'
