@@ -288,6 +288,50 @@ a { color: inherit; text-decoration: none; }
   padding: 14px;
 }
 
+/* ─── Scroll (About Me parchment) ───────────────────────── */
+.scroll-roll {
+  height: 22px;
+  background: linear-gradient(
+    180deg,
+    #120a02 0%,
+    #4a2808 14%,
+    #a06018 38%,
+    #d09038 50%,
+    #a06018 62%,
+    #4a2808 86%,
+    #120a02 100%
+  );
+  border-radius: 4px;
+  border: 1px solid #7a4e1a;
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,200,100,0.16);
+}
+.scroll-roll::before,
+.scroll-roll::after {
+  content: '';
+  position: absolute;
+  top: -3px; bottom: -3px;
+  width: 16px;
+  background: linear-gradient(180deg, #100802 0%, #5a3010 40%, #100802 100%);
+  border-radius: 4px;
+  border: 1px solid #5a3010;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.7);
+  z-index: 3;
+}
+.scroll-roll::before { left: 6px; }
+.scroll-roll::after  { right: 6px; }
+
+.scroll-parchment {
+  background:
+    linear-gradient(180deg, rgba(0,0,0,0.28) 0%, transparent 18%, transparent 82%, rgba(0,0,0,0.28) 100%),
+    linear-gradient(135deg, #1c1206 0%, #261a08 30%, #2a1e0a 55%, #251908 80%, #1c1206 100%);
+  border-left: 2px solid #5c3c12;
+  border-right: 2px solid #5c3c12;
+  padding: 18px 22px 20px;
+  position: relative;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar        { width: 6px; }
 ::-webkit-scrollbar-track  { background: #0a0a12; }

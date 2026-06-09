@@ -165,31 +165,35 @@ export default async function Home() {
       {/* ─── ROW 1: About Me + Projects ───────────────────── */}
       <div className="grid grid-cols-2 gap-4">
 
-        {/* About Me */}
-        <div className="rp-card">
-          <h2 className="text-[9px] mb-4 flex items-center gap-2" style={{ color: 'var(--text-1)' }}>
-            <span style={{ color: 'var(--gold)' }}>👤</span> About Me
-          </h2>
-          <div className="space-y-3 body-text" style={{ color: '#9898b8' }}>
-            <p>
-              I&apos;m a sales professional based in Houston, TX with a focus on distribution,
-              team management, and building strong customer relationships.
-            </p>
-            <p>
-              Outside of work, I&apos;m always building something. From home projects and DIY builds
-              to maintaining a garden, fishing local waters, and taking on new challenges, I enjoy
-              learning through hands-on experience.
-            </p>
-            <p>
-              I&apos;m passionate about community and creating spaces where people can connect,
-              share ideas, and help each other grow.
-            </p>
-            <p>
-              This site is where I document my projects, share what I&apos;m learning, and invite
-              others to be part of the conversation. Explore the projects, join the discussions,
-              and let&apos;s build something great together.
-            </p>
+        {/* About Me — scroll */}
+        <div style={{ overflow: 'visible' }}>
+          <div className="scroll-roll" />
+          <div className="scroll-parchment">
+            <h2 className="text-[9px] mb-4 flex items-center gap-2" style={{ color: '#e0b86a' }}>
+              <span>📜</span> About Me
+            </h2>
+            <div className="space-y-3 body-text" style={{ color: '#c8a870' }}>
+              <p>
+                I&apos;m a sales professional based in Houston, TX with a focus on distribution,
+                team management, and building strong customer relationships.
+              </p>
+              <p>
+                Outside of work, I&apos;m always building something. From home projects and DIY builds
+                to maintaining a garden, fishing local waters, and taking on new challenges, I enjoy
+                learning through hands-on experience.
+              </p>
+              <p>
+                I&apos;m passionate about community and creating spaces where people can connect,
+                share ideas, and help each other grow.
+              </p>
+              <p>
+                This site is where I document my projects, share what I&apos;m learning, and invite
+                others to be part of the conversation. Explore the projects, join the discussions,
+                and let&apos;s build something great together.
+              </p>
+            </div>
           </div>
+          <div className="scroll-roll" />
         </div>
 
         {/* My Projects */}
