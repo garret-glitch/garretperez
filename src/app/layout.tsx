@@ -33,7 +33,7 @@ export default async function RootLayout({
                 <SkillsPanel />
               </div>
 
-              <main className="flex-1 min-w-0 px-4 py-4 sm:px-5 sm:py-5" style={{ maxWidth: '1200px' }}>
+              <main className="flex-1 min-w-0 px-4 py-4 sm:px-5 sm:py-5">
                 {children}
               </main>
             </div>
