@@ -218,11 +218,20 @@ export default async function Home() {
             <div className="space-y-2 body-text" style={{ color: '#3a2810' }}>
               <p>
                 Sales professional based in Houston, TX — focused on distribution,
-                team management, and building strong customer relationships.
+                team management, and building strong customer relationships. I bring
+                energy and structure to every team I lead, and I take pride in
+                developing people as much as hitting numbers.
               </p>
               <p>
-                Builder, gardener, fisherman, and father. This site is where I
-                document projects, share ideas, and grow community.
+                Outside of work I'm a builder, gardener, fisherman, and father.
+                Whether I'm fixing something around the house, growing vegetables in
+                the backyard, or teaching my kids to cast a line, I'm always working
+                with my hands on something that matters.
+              </p>
+              <p>
+                This site is my personal hub — a place to log projects, share
+                recipes, track progress, and connect with community. Built with
+                Next.js and a heavy dose of OSRS nostalgia.
               </p>
             </div>
           </div>
