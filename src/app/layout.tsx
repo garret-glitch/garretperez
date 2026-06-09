@@ -8,6 +8,7 @@ export const viewport: Viewport = {
 }
 import { auth } from '@/auth'
 import SkillsPanel from '@/components/SkillsPanel'
+import SiteHeader from '@/components/SiteHeader'
 import SessionProvider from '@/components/SessionProvider'
 
 export const metadata: Metadata = {
@@ -27,6 +28,7 @@ export default async function RootLayout({
       <body>
         <SessionProvider session={session}>
           <div className="flex flex-col min-h-screen" style={{ background: 'var(--bg-page)' }}>
+            <SiteHeader />
             <div className="flex flex-1 min-h-0">
               {/* Sidebar — hidden on mobile, shown on md+ */}
               <div className="hidden md:block md:shrink-0">
