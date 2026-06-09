@@ -57,10 +57,13 @@ export default async function SkillsPanel() {
 
   return (
     <aside className="w-[240px] shrink-0 flex flex-col border-r"
-      style={{ borderColor: 'var(--border-dim)', background: '#0f0f18', minHeight: '100vh' }}>
+      style={{ borderColor: '#2a2418', background: '#0f0f18', minHeight: '100vh' }}>
+
+      {/* ── Battlements ───────────────────────────────── */}
+      <div className="castle-battlements" />
 
       {/* ── Profile block ─────────────────────────────── */}
-      <div className="px-4 py-4 border-b shrink-0" style={{ borderColor: 'var(--border-dim)' }}>
+      <div className="px-4 py-4 border-b shrink-0" style={{ borderColor: '#2a2418' }}>
 
         {session?.user ? (
           <>
@@ -135,7 +138,7 @@ export default async function SkillsPanel() {
       <div className="flex-1 flex flex-col min-h-0">
         <div className="py-2 shrink-0">
           <div className="px-4 pb-1.5 pt-1">
-            <span className="text-[6px] uppercase tracking-widest" style={{ color: 'var(--text-3)' }}>Communities</span>
+            <span className="text-[6px] uppercase tracking-widest" style={{ color: 'var(--text-3)' }}>⚔ Communities</span>
           </div>
 
           {/* Quests — special channel entry (no XP level) */}
@@ -174,7 +177,7 @@ export default async function SkillsPanel() {
 
       {/* ── Badges — only when logged in ──────────── */}
       {session?.user && userBadges.length > 0 && (
-        <div className="px-3 py-2 border-t shrink-0" style={{ borderColor: 'var(--border-dim)' }}>
+        <div className="px-3 py-2 border-t shrink-0" style={{ borderColor: '#2a2418' }}>
           <div className="flex flex-wrap gap-1">
             {userBadges.map(b => {
               const m = BADGE_META[b]
