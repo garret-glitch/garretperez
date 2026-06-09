@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import Link from 'next/link'
 import { getSkillByEnum } from '@/lib/skills'
 import { BADGE_META } from '@/lib/badges'
@@ -84,8 +84,8 @@ function SectionWrap({ id, heading, editMode, selected, onSelect, onResize, chil
       onClick={e => { e.stopPropagation(); onSelect(id) }}
       style={{
         position: 'relative', cursor: 'pointer', borderRadius: 6,
-        outline: active ? '2px solid var(--gold)' : '1px dashed rgba(200,155,60,0.4)',
-        outlineOffset: 3, transition: 'outline 0.12s',
+        outline: active ? '3px solid #c89b3c' : '2px dashed #c89b3c',
+        outlineOffset: 4,
       }}
     >
       {/* Section label tag */}
@@ -140,12 +140,7 @@ export default function HomepageSections({
   const [bio2, setBio2] = useState(initBio2)
   const [bio3, setBio3] = useState(initBio3)
 
-  useEffect(() => {
-    fetch('/api/admin/layout')
-      .then(r => r.json())
-      .then(d => { if (d.sections?.length) setLayout(d.sections) })
-      .catch(() => {})
-  }, [])
+  // initialLayout already comes from the server — no re-fetch needed on mount
 
   const sec = (id: string): SectionConfig => {
     const base = DEFAULT_SECTIONS.find(s => s.id === id)!
@@ -189,32 +184,46 @@ export default function HomepageSections({
   return (
     <div>
 
-      {/* ── Admin floating toolbar ─────────────────────────── */}
-      {isAdmin && (
-        <div style={{
-          position: 'fixed', bottom: 20,
-          right: editMode && selected ? 308 : 20,
-          zIndex: 100, display: 'flex', gap: 8,
-          transition: 'right 0.2s',
-        }}>
-          {editMode && (
-            <button onClick={save} disabled={saving} style={{
-              padding: '9px 16px', borderRadius: 8, cursor: saving ? 'wait' : 'pointer',
-              background: saved ? 'rgba(0,200,100,0.2)' : 'rgba(200,155,60,0.12)',
-              border: `1px solid ${saved ? 'rgba(0,200,100,0.5)' : 'rgba(200,155,60,0.5)'}`,
-              color: saved ? '#5ddf8f' : 'var(--gold)', fontSize: 7, fontWeight: 700,
-            }}>
-              {saving ? 'Saving…' : saved ? '✓ Saved!' : '💾 Save to Site'}
-            </button>
-          )}
-          <button onClick={() => { setEditMode(e => !e); setSelected(null) }} style={{
-            padding: '9px 16px', borderRadius: 8, cursor: 'pointer',
-            background: editMode ? 'rgba(200,155,60,0.18)' : 'var(--bg-elevated)',
-            border: `1px solid ${editMode ? 'var(--gold)' : 'var(--border)'}`,
-            color: editMode ? 'var(--gold)' : 'var(--text-2)', fontSize: 7, fontWeight: 700,
+      {/* ── Admin toolbar ─────────────────────────────────── */}
+      {isAdmin && !editMode && (
+        <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'flex-end' }}>
+          <button onClick={() => setEditMode(true)} style={{
+            padding: '10px 20px', borderRadius: 8, cursor: 'pointer',
+            background: 'rgba(200,155,60,0.12)', border: '1px solid var(--gold)',
+            color: 'var(--gold)', fontSize: 9, fontWeight: 700, letterSpacing: '0.05em',
           }}>
-            {editMode ? '✕ Exit Edit Mode' : '✏️ Edit Page'}
+            ✏️ Edit Panels
           </button>
+        </div>
+      )}
+
+      {/* ── Edit mode sticky banner ────────────────────────── */}
+      {editMode && (
+        <div style={{
+          position: 'sticky', top: 0, zIndex: 50,
+          background: '#c89b3c', padding: '10px 16px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          marginBottom: 16, borderRadius: 8,
+          boxShadow: '0 4px 20px rgba(200,155,60,0.4)',
+        }}>
+          <span style={{ fontSize: 8, fontWeight: 700, color: '#000' }}>
+            ✏️ EDIT MODE — Click any panel below to resize or edit it
+          </span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={save} disabled={saving} style={{
+              padding: '7px 14px', borderRadius: 6, cursor: saving ? 'wait' : 'pointer',
+              background: saved ? '#2a7a4a' : '#000',
+              color: saved ? '#fff' : '#c89b3c', fontSize: 7, fontWeight: 700, border: 'none',
+            }}>
+              {saving ? 'Saving…' : saved ? '✓ Saved!' : '💾 Save'}
+            </button>
+            <button onClick={() => { setEditMode(false); setSelected(null) }} style={{
+              padding: '7px 14px', borderRadius: 6, cursor: 'pointer',
+              background: 'rgba(0,0,0,0.3)', color: '#000', fontSize: 7, fontWeight: 700, border: 'none',
+            }}>
+              ✕ Done
+            </button>
+          </div>
         </div>
       )}
 
