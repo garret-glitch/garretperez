@@ -163,16 +163,16 @@ export default async function Home() {
       </div>
 
       {/* ─── ROW 1: About Me + Projects ───────────────────── */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
         {/* About Me — scroll */}
         <div style={{ overflow: 'visible' }}>
           <div className="scroll-roll" />
           <div className="scroll-parchment">
-            <h2 className="text-[9px] mb-4 flex items-center gap-2" style={{ color: '#e0b86a' }}>
+            <h2 className="text-[9px] mb-4 flex items-center gap-2" style={{ color: '#3a1e06' }}>
               <span>📜</span> About Me
             </h2>
-            <div className="space-y-3 body-text" style={{ color: '#c8a870' }}>
+            <div className="space-y-3 body-text" style={{ color: '#3a2810' }}>
               <p>
                 I&apos;m a sales professional based in Houston, TX with a focus on distribution,
                 team management, and building strong customer relationships.
@@ -237,7 +237,7 @@ export default async function Home() {
       </div>
 
       {/* ─── ROW 2: Community Feed + Achievements ─────────── */}
-      <div className="grid gap-4" style={{ gridTemplateColumns: '2fr 1fr' }}>
+      <div className="community-grid">
 
         {/* Community Feed */}
         <div className="rp-card">

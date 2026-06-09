@@ -22,6 +22,15 @@
 
 * { box-sizing: border-box; }
 
+/* Visible keyboard focus ring on every interactive element */
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+button { cursor: pointer; }
+
 body {
   background-color: var(--bg-page);
   color: var(--text-1);
@@ -35,8 +44,8 @@ a { color: inherit; text-decoration: none; }
 /* Body text — Inter for readable prose */
 .body-text {
   font-family: 'Inter', system-ui, sans-serif;
-  font-size: 13px;
-  line-height: 1.65;
+  font-size: 14px;
+  line-height: 1.7;
   color: #c0c0d8;
 }
 
@@ -61,7 +70,7 @@ a { color: inherit; text-decoration: none; }
     background: linear-gradient(135deg, #13131c 0%, #1a1a28 60%, #13131c 100%);
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 28px;
+    padding: 24px;
     position: relative;
     overflow: hidden;
   }
@@ -77,17 +86,21 @@ a { color: inherit; text-decoration: none; }
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 9px 14px;
+    padding: 10px 14px;
     border-left: 3px solid transparent;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
     text-decoration: none;
     color: var(--text-2);
+    min-height: 48px;
   }
   .guild-channel:hover {
-    background: rgba(200, 155, 60, 0.07);
-    border-left-color: rgba(200, 155, 60, 0.45);
+    background: rgba(200, 155, 60, 0.12);
+    border-left-color: var(--gold);
     color: var(--text-1);
+  }
+  .guild-channel:active {
+    background: rgba(200, 155, 60, 0.2);
   }
 
   /* ─── XP Bar ────────────────────────────────────────────── */
@@ -120,9 +133,17 @@ a { color: inherit; text-decoration: none; }
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 14px;
-    transition: border-color 0.15s;
+    transition: all 0.15s;
+    cursor: pointer;
   }
-  .quest-card:hover { border-color: var(--border-lit); }
+  .quest-card:hover {
+    border-color: var(--gold);
+    background: rgba(200,155,60,0.06);
+    box-shadow: 0 0 10px rgba(200,155,60,0.1);
+  }
+  .quest-card:active {
+    background: rgba(200,155,60,0.1);
+  }
 
   /* Progress bar (generic) */
   .prog-bar {
@@ -149,9 +170,14 @@ a { color: inherit; text-decoration: none; }
     border: 1px solid var(--border-dim);
     border-radius: 8px;
     text-align: center;
-    transition: border-color 0.15s;
+    transition: all 0.15s;
+    cursor: pointer;
   }
-  .badge-tile:hover  { border-color: var(--border-lit); }
+  .badge-tile:hover {
+    border-color: var(--gold);
+    background: rgba(200,155,60,0.08);
+    box-shadow: 0 0 8px rgba(200,155,60,0.12);
+  }
   .badge-tile.earned { border-color: var(--gold); background: rgba(200,155,60,0.07); }
 
   /* Community post card */
@@ -160,11 +186,19 @@ a { color: inherit; text-decoration: none; }
     border: 1px solid var(--border-dim);
     border-radius: 8px;
     padding: 14px;
-    transition: border-color 0.15s;
+    transition: all 0.15s;
+    cursor: pointer;
   }
-  .post-card:hover { border-color: var(--border-lit); }
+  .post-card:hover {
+    border-color: var(--border-lit);
+    background: #1e1e2e;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .post-card:active {
+    background: #222238;
+  }
 
-  /* ─── Legacy classes — updated to premium style ───────── */
+  /* ─── Panels ───────────────────────────────────────────── */
   .osrs-panel {
     background: var(--bg-elevated);
     color: var(--text-1);
@@ -181,11 +215,12 @@ a { color: inherit; text-decoration: none; }
     padding: 16px;
   }
 
+  /* ─── Button ─────────────────────────────────────────────── */
   .osrs-btn {
     display: inline-block;
     background: linear-gradient(180deg, #2a2a3e 0%, #1e1e2c 100%);
     color: var(--gold);
-    padding: 5px 12px;
+    padding: 8px 14px;
     font-size: 8px;
     font-family: 'Press Start 2P', monospace;
     cursor: pointer;
@@ -200,17 +235,20 @@ a { color: inherit; text-decoration: none; }
     background: linear-gradient(180deg, #3a3a55 0%, #2a2a3e 100%);
     border-color: var(--gold);
     color: var(--gold-bright);
+    box-shadow: 0 0 10px rgba(200,155,60,0.25);
   }
   .osrs-btn:active:not(:disabled) {
     transform: translateY(1px);
+    filter: brightness(0.88);
   }
   .osrs-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
+  /* ─── Input ──────────────────────────────────────────────── */
   .osrs-input {
     display: block;
     background: #0a0a12;
     color: var(--text-1);
-    padding: 8px 10px;
+    padding: 10px 12px;
     font-size: 9px;
     font-family: 'Press Start 2P', monospace;
     border: 1px solid var(--border);
@@ -218,12 +256,16 @@ a { color: inherit; text-decoration: none; }
     outline: none;
     width: 100%;
     line-height: 1.6;
-    transition: border-color 0.15s;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
-  .osrs-input:focus   { border-color: var(--gold); }
+  .osrs-input:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 2px rgba(200,155,60,0.18);
+  }
   .osrs-input::placeholder { color: var(--text-3); font-size: 8px; }
   .osrs-input:disabled { opacity: 0.45; }
 
+  /* ─── Skill cell ─────────────────────────────────────────── */
   .skill-cell {
     display: flex;
     flex-direction: column;
@@ -239,8 +281,22 @@ a { color: inherit; text-decoration: none; }
   }
   .skill-cell:hover {
     background: var(--bg-elevated);
-    border-color: rgba(200, 155, 60, 0.3);
+    border-color: rgba(200, 155, 60, 0.45);
+    box-shadow: 0 0 8px rgba(200,155,60,0.12);
   }
+  .skill-cell:active {
+    background: rgba(200,155,60,0.08);
+  }
+}
+
+/* ─── Community grid (responsive) ────────────────────────── */
+.community-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+@media (min-width: 640px) {
+  .community-grid { grid-template-columns: 2fr 1fr; }
 }
 
 /* ─── Animations ─────────────────────────────────────────── */
@@ -288,55 +344,79 @@ a { color: inherit; text-decoration: none; }
   padding: 14px;
 }
 
-/* ─── Scroll (About Me parchment) ───────────────────────── */
+/* ─── Parchment scroll (About Me) ────────────────────────── */
 .scroll-roll {
   height: 22px;
   background: linear-gradient(
     180deg,
-    #120a02 0%,
-    #4a2808 14%,
-    #a06018 38%,
-    #d09038 50%,
-    #a06018 62%,
-    #4a2808 86%,
-    #120a02 100%
+    #1a0c02 0%,
+    #5a3010 14%,
+    #b87820 38%,
+    #e8a030 50%,
+    #b87820 62%,
+    #5a3010 86%,
+    #1a0c02 100%
   );
   border-radius: 4px;
-  border: 1px solid #7a4e1a;
+  border: 2px solid #8a5e18;
   position: relative;
   z-index: 2;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,200,100,0.16);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,220,120,0.25);
 }
 .scroll-roll::before,
 .scroll-roll::after {
   content: '';
   position: absolute;
-  top: -3px; bottom: -3px;
-  width: 16px;
-  background: linear-gradient(180deg, #100802 0%, #5a3010 40%, #100802 100%);
+  top: -4px; bottom: -4px;
+  width: 18px;
+  background: linear-gradient(180deg, #0e0602 0%, #3a1e08 45%, #0e0602 100%);
   border-radius: 4px;
   border: 1px solid #5a3010;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.7);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.8);
   z-index: 3;
 }
-.scroll-roll::before { left: 6px; }
-.scroll-roll::after  { right: 6px; }
+.scroll-roll::before { left: 8px; }
+.scroll-roll::after  { right: 8px; }
 
+/* Genuine paper-parchment body */
 .scroll-parchment {
-  background:
-    linear-gradient(180deg, rgba(0,0,0,0.28) 0%, transparent 18%, transparent 82%, rgba(0,0,0,0.28) 100%),
-    linear-gradient(135deg, #1c1206 0%, #261a08 30%, #2a1e0a 55%, #251908 80%, #1c1206 100%);
-  border-left: 2px solid #5c3c12;
-  border-right: 2px solid #5c3c12;
-  padding: 18px 22px 20px;
+  background: linear-gradient(
+    180deg,
+    #e0ccaa 0%,
+    #eeddb8 8%,
+    #f5e8c8 30%,
+    #f8eecf 50%,
+    #f5e8c8 70%,
+    #eeddb8 92%,
+    #e0ccaa 100%
+  );
+  border-left: 3px solid #b8881e;
+  border-right: 3px solid #b8881e;
+  padding: 20px 26px 22px;
   position: relative;
+}
+/* subtle curl-shadow at edges */
+.scroll-parchment::before,
+.scroll-parchment::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; height: 20px;
+  pointer-events: none;
+  z-index: 1;
+}
+.scroll-parchment::before {
+  top: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0.14), transparent);
+}
+.scroll-parchment::after {
+  bottom: 0;
+  background: linear-gradient(0deg, rgba(0,0,0,0.14), transparent);
 }
 
 /* ─── Castle sidebar battlements ─────────────────────────── */
 .castle-battlements {
   height: 18px;
   flex-shrink: 0;
-  /* merlons = #1c1a14, crenels = page-bg #0d0d14; top-half only via background-size */
   background-color: #1c1a14;
   background-image: linear-gradient(
     90deg,
@@ -347,6 +427,21 @@ a { color: inherit; text-decoration: none; }
   background-position: 0 0;
   background-repeat: repeat-x;
   border-bottom: 1px solid rgba(200,155,60,0.14);
+}
+
+/* ─── Mobile ─────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .hero-panel { padding: 16px; }
+  .rp-card    { padding: 14px; }
+
+  /* Keep buttons tap-friendly */
+  .osrs-btn {
+    padding: 10px 16px;
+    min-height: 40px;
+  }
+
+  /* Larger touch target for channels */
+  .guild-channel { min-height: 52px; }
 }
 
 /* Scrollbar */

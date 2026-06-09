@@ -62,9 +62,9 @@ export default async function SkillPage({ params }: Props) {
       <div className="osrs-panel rounded-xl">
         <div className="flex items-center gap-2 mb-2">
           <span className="text-2xl">{skillMeta.icon}</span>
-          <h1 className="text-[14px] text-[#1a1a1a] font-bold">{skillMeta.label}</h1>
+          <h1 className="text-[14px] font-bold" style={{ color: 'var(--gold)' }}>{skillMeta.label}</h1>
         </div>
-        <p className="text-[8px] text-[#3d3d3d]">{skillMeta.description}</p>
+        <p className="text-[8px]" style={{ color: 'var(--text-2)' }}>{skillMeta.description}</p>
         {session?.user && (
           <div className="mt-3">
             <XpBar xp={userXp} skillName={skillMeta.label} />
@@ -84,7 +84,7 @@ export default async function SkillPage({ params }: Props) {
       )}
 
       {posts.length === 0 ? (
-        <div className="osrs-panel rounded-xl text-[8px] text-[#3d3d3d] text-center py-6">
+        <div className="osrs-panel rounded-xl text-[8px] text-center py-6" style={{ color: 'var(--text-2)' }}>
           No posts yet — be the first adventurer!
         </div>
       ) : (
