@@ -170,8 +170,8 @@ export default async function Home() {
               </div>
             </div>
 
-            {/* Contact panel — square */}
-            <div className="flex flex-col sm:shrink-0 overflow-hidden" style={{ background: 'rgba(0,0,0,0.22)', border: '1px solid rgba(200,155,60,0.22)', minWidth: 170 }}>
+            {/* Contact panel — desktop: vertical card; mobile: icon row */}
+            <div className="hidden sm:flex flex-col sm:shrink-0 overflow-hidden" style={{ background: 'rgba(0,0,0,0.22)', border: '1px solid rgba(200,155,60,0.22)', minWidth: 170 }}>
               <div className="px-3 py-2 border-b shrink-0" style={{ borderColor: 'rgba(200,155,60,0.15)' }}>
                 <span className="text-[6px] uppercase tracking-widest" style={{ color: '#a07848' }}>⚔ Contact</span>
               </div>
@@ -207,6 +207,24 @@ export default async function Home() {
                   <a href="/resume" className="osrs-btn text-center block" style={{ fontSize: 6 }}>📄 Resume</a>
                 </div>
               </div>
+            </div>
+
+            {/* Mobile contact row */}
+            <div className="sm:hidden flex items-center justify-around gap-2 pt-1">
+              {[
+                { href: `tel:${contactPhone.replace(/\D/g, '')}`, icon: '📞', label: 'Call' },
+                { href: `mailto:${contactEmail}`, icon: '✉️', label: 'Email' },
+                { href: `https://www.linkedin.com/in/${contactLinkedin}`, icon: '🔗', label: 'LinkedIn', external: true },
+                { href: '/resume', icon: '📄', label: 'Resume' },
+              ].map(item => (
+                <a key={item.label} href={item.href}
+                  {...(item.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                  className="flex flex-col items-center gap-1 flex-1 py-2 rounded transition-colors hover:bg-white/5"
+                  style={{ border: '1px solid rgba(200,155,60,0.2)', background: 'rgba(0,0,0,0.2)' }}>
+                  <span className="text-xl">{item.icon}</span>
+                  <span style={{ fontSize: 8, color: '#a07848' }}>{item.label}</span>
+                </a>
+              ))}
             </div>
           </div>
         </div>

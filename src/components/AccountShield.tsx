@@ -44,11 +44,11 @@ export default function AccountShield({ username, level, xp, xpPercent, isLogged
   }
 
   return (
-    <div className="sm:shrink-0 flex flex-col items-center" style={{ width: 200 }}>
+    <div className="sm:shrink-0 flex flex-col items-center w-full sm:w-[200px] mx-auto sm:mx-0">
 
       {/* ── Shield SVG ───────────────────────────────────── */}
-      <div style={{ position: 'relative', width: 200 }}>
-        <svg viewBox="0 0 200 242" width="200" style={{ display: 'block' }}>
+      <div className="relative w-full sm:w-[200px]">
+        <svg viewBox="0 0 200 242" className="w-full sm:w-[200px]" style={{ display: 'block' }}>
           {/* Body */}
           <path d={SHIELD} fill={color} />
           {/* Gold outer border */}
@@ -77,7 +77,7 @@ export default function AccountShield({ username, level, xp, xpPercent, isLogged
           position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
           display: 'flex', flexDirection: 'column', alignItems: 'center',
         }}>
-          <div style={{ marginTop: 22, fontSize: 6, letterSpacing: '0.15em', color: '#a07848', textTransform: 'uppercase' }}>
+          <div style={{ marginTop: '9%', fontSize: 6, letterSpacing: '0.15em', color: '#a07848', textTransform: 'uppercase' }}>
             Account
           </div>
 
@@ -85,38 +85,39 @@ export default function AccountShield({ username, level, xp, xpPercent, isLogged
             <>
               {/* Initials avatar */}
               <div style={{
-                marginTop: 12, width: 54, height: 54, borderRadius: 14,
+                marginTop: '4%', width: '27%', aspectRatio: '1',
+                borderRadius: 14,
                 background: 'rgba(200,155,60,0.15)', border: '2.5px solid #c89b3c',
-                color: '#ffd060', fontSize: 16, fontWeight: 'bold',
+                color: '#ffd060', fontSize: 'clamp(12px, 3vw, 16px)', fontWeight: 'bold',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 {username?.slice(0, 2).toUpperCase() ?? '??'}
               </div>
 
               {/* Name */}
-              <div style={{ marginTop: 9, fontSize: 7, color: '#f0d898', textAlign: 'center', maxWidth: 138, lineHeight: 1.4, wordBreak: 'break-word' }}>
+              <div style={{ marginTop: '3%', fontSize: 'clamp(7px, 1.8vw, 9px)', color: '#f0d898', textAlign: 'center', maxWidth: '70%', lineHeight: 1.4, wordBreak: 'break-word' }}>
                 {username}
               </div>
 
               {/* Level */}
-              <div style={{ marginTop: 4, fontSize: 7, color: '#c89b3c' }}>
+              <div style={{ marginTop: '1.5%', fontSize: 'clamp(7px, 1.8vw, 9px)', color: '#c89b3c' }}>
                 ⚔ Lv {level}
               </div>
 
               {/* XP bar */}
-              <div style={{ marginTop: 10, width: 106 }}>
+              <div style={{ marginTop: '3%', width: '54%' }}>
                 <div style={{ height: 7, background: 'rgba(200,155,60,0.15)', borderRadius: 3, overflow: 'hidden', border: '1px solid rgba(200,155,60,0.3)' }}>
                   <div style={{ height: '100%', width: `${xpPercent}%`, background: 'linear-gradient(90deg, #6a4010, #c89b3c)', borderRadius: 3 }} />
                 </div>
-                <div style={{ marginTop: 3, fontSize: 5, color: '#8a6030', textAlign: 'center' }}>
+                <div style={{ marginTop: 3, fontSize: 'clamp(5px, 1.2vw, 6px)', color: '#8a6030', textAlign: 'center' }}>
                   {xp.toLocaleString()} XP
                 </div>
               </div>
             </>
           ) : (
             <>
-              <div style={{ marginTop: 35, fontSize: 28 }}>⚔️</div>
-              <div style={{ marginTop: 12, fontSize: 6, color: '#c8a870', textAlign: 'center', maxWidth: 130, lineHeight: 1.9 }}>
+              <div style={{ marginTop: '14%', fontSize: 28 }}>⚔️</div>
+              <div style={{ marginTop: '5%', fontSize: 'clamp(6px, 1.5vw, 7px)', color: '#c8a870', textAlign: 'center', maxWidth: '65%', lineHeight: 1.9 }}>
                 Join to earn<br />XP &amp; post
               </div>
             </>
@@ -145,8 +146,8 @@ export default function AccountShield({ username, level, xp, xpPercent, isLogged
 
       {/* ── Color palette ────────────────────────────────── */}
       {editing && (
-        <div style={{
-          width: 188, marginTop: 4, padding: '8px 10px',
+        <div className="w-full sm:w-[188px]" style={{
+          marginTop: 4, padding: '8px 10px',
           background: '#13131c', border: '1px solid rgba(200,155,60,0.4)', borderRadius: 8,
         }}>
           <div style={{ fontSize: 6, color: '#a07848', marginBottom: 7, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
@@ -176,7 +177,7 @@ export default function AccountShield({ username, level, xp, xpPercent, isLogged
       )}
 
       {/* ── Logout / Login ───────────────────────────────── */}
-      <div style={{ marginTop: 8, width: 188 }}>
+      <div className="w-full sm:w-[188px]" style={{ marginTop: 8 }}>
         {isLoggedIn ? (
           <button
             onClick={() => signOut({ callbackUrl: '/' })}
