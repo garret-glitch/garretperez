@@ -6,16 +6,14 @@ import Link from 'next/link'
 import SidebarFunGame from './SidebarFunGame'
 
 const GUILD_CHANNELS = [
-  { icon: '❤️', label: 'Health',      dbEnum: 'HEALTH',      href: '/skills/health' },
-  { icon: '⚒️', label: 'Projects',    dbEnum: 'PROJECTS',    href: '/skills/projects' },
-  { icon: '💼', label: 'Business',    dbEnum: 'BUSINESS',    href: '/skills/business' },
-  { icon: '👥', label: 'Community',   dbEnum: 'COMMUNITY',   href: '/skills/community' },
-  { icon: '🎣', label: 'Fishing',     dbEnum: 'FISHING',     href: '/skills/fishing' },
-  { icon: '🍳', label: 'Cooking',     dbEnum: 'FOOD',        href: '/skills/food' },
-  { icon: '🌱', label: 'Farming',     dbEnum: 'GARDENING',   href: '/skills/gardening' },
-  { icon: '🗺️', label: 'Adventure',   dbEnum: 'TRAVEL',      href: '/skills/travel' },
-  { icon: '💎', label: 'Cool Items',  dbEnum: 'COOL_ITEMS',  href: '/skills/cool-items' },
-  { icon: '🌟', label: 'Cool People', dbEnum: 'COOL_PEOPLE', href: '/skills/cool-people' },
+  { icon: '❤️', label: 'Health',    dbEnum: 'HEALTH',    href: '/skills/health' },
+  { icon: '⚒️', label: 'Projects',  dbEnum: 'PROJECTS',  href: '/skills/projects' },
+  { icon: '💼', label: 'Business',  dbEnum: 'BUSINESS',  href: '/skills/business' },
+  { icon: '👥', label: 'Community', dbEnum: 'COMMUNITY', href: '/skills/community' },
+  { icon: '🎣', label: 'Fishing',   dbEnum: 'FISHING',   href: '/skills/fishing' },
+  { icon: '🍳', label: 'Cooking',   dbEnum: 'FOOD',      href: '/skills/food' },
+  { icon: '🌱', label: 'Farming',   dbEnum: 'GARDENING', href: '/skills/gardening' },
+  { icon: '🗺️', label: 'Adventure', dbEnum: 'TRAVEL',    href: '/skills/travel' },
 ]
 
 export default async function SkillsPanel() {

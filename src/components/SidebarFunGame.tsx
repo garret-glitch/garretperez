@@ -241,7 +241,7 @@ export default function SidebarFunGame() {
         <span className="text-base shrink-0">🎮</span>
         <div className="flex-1 min-w-0">
           <div className="text-[7px] font-bold" style={{ color: 'var(--text-1)' }}>Games &amp; Entertainment</div>
-          <div className="text-[5.5px]" style={{ color: 'var(--text-3)' }}>Games &amp; Entertainment</div>
+          <div className="text-[5.5px]" style={{ color: 'var(--text-3)' }}>Mini-games &amp; more</div>
         </div>
         <div className="shrink-0 text-right">
           <div className="text-[6px] font-bold" style={{ color: 'var(--gold)' }}>88</div>
@@ -303,6 +303,22 @@ export default function SidebarFunGame() {
             </Link>
           )
         })}
+      </div>
+
+      {/* Cool Items + Cool People — under Games & Entertainment */}
+      <div className="shrink-0" style={{ borderTop: '1px solid rgba(200,155,60,0.15)' }}>
+        <Link href="/skills/cool-items"
+          className="flex items-center gap-2.5 px-3 py-2.5 hover:opacity-80 transition-opacity"
+          style={{ borderLeft: '3px solid transparent' }}>
+          <span className="text-base shrink-0 w-6 text-center">💎</span>
+          <div className="text-[7px] truncate" style={{ color: '#f0d898' }}>Cool Items</div>
+        </Link>
+        <Link href="/skills/cool-people"
+          className="flex items-center gap-2.5 px-3 py-2.5 hover:opacity-80 transition-opacity"
+          style={{ borderLeft: '3px solid transparent' }}>
+          <span className="text-base shrink-0 w-6 text-center">🌟</span>
+          <div className="text-[7px] truncate" style={{ color: '#f0d898' }}>Cool People</div>
+        </Link>
       </div>
 
       <div className="flex-1" />
