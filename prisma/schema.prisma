@@ -24,6 +24,7 @@ model User {
   createdAt     DateTime       @default(now())
   role          UserRole       @default(USER)
   banned        Boolean        @default(false)
+  shieldColor   String         @default("#1a0e06")
   accounts      Account[]
   sessions      Session[]
   skills        UserSkill[]
