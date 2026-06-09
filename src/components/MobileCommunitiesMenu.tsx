@@ -26,15 +26,21 @@ export default function MobileCommunitiesMenu({ isAdmin }: { isAdmin?: boolean }
     <div className="relative md:hidden">
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg text-[9px] shrink-0"
+        className="flex items-center gap-2 shrink-0 rounded-xl"
         style={{
-          background: open ? 'rgba(200,155,60,0.18)' : 'rgba(200,155,60,0.08)',
-          border: '1px solid rgba(200,155,60,0.35)',
+          background: open ? 'rgba(200,155,60,0.22)' : 'rgba(200,155,60,0.1)',
+          border: '1px solid rgba(200,155,60,0.4)',
           color: 'var(--gold)',
+          padding: '10px 16px',
+          minHeight: 44,
+          fontFamily: 'Inter, system-ui, sans-serif',
+          fontSize: 15,
+          fontWeight: 600,
+          letterSpacing: '0.01em',
         }}
         aria-expanded={open}
       >
-        <span>☰</span>
+        <span style={{ fontSize: 20, lineHeight: 1 }}>☰</span>
         <span>Menu</span>
       </button>
 
