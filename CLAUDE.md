@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Garret's World** — Premium dark RPG-themed personal site / interactive community. Garret Perez's professional profile + community blog where users earn XP for posting, cooking recipes, playing mini-games, and daily logins.
 
-- **Live site:** garretperez.com
+- **Live site:** garretperez.com (redirects to www.garretperez.com)
 - **Repo:** github.com/garret-glitch/garretperez
-- **Hosting:** Netlify (auto-deploys on push to `main` via GitHub integration)
+- **Hosting:** Vercel (auto-deploys on push to `main` via GitHub integration)
 - **Git email:** garret.p92@gmail.com
 
 ## Stack
@@ -33,13 +33,13 @@ SETUP_ADMIN_USERNAME="..."             # admin account username (spaces allowed)
 SETUP_ADMIN_PASSWORD="..."             # admin account password
 ```
 
-In **Netlify site settings → Environment variables** add these for production:
+In **Vercel dashboard → Project → Settings → Environment Variables** add these for production:
 - `DATABASE_URL` — same Neon connection string
 - `AUTH_SECRET` — same secret value
 - `NEXTAUTH_URL` — `https://garretperez.com`
 - `SETUP_ADMIN_USERNAME` / `SETUP_ADMIN_PASSWORD` — for one-time admin creation
 
-Netlify auto-deploys from `main`. Config is in `netlify.toml` (uses `@netlify/plugin-nextjs`).
+Vercel auto-deploys from `main` via GitHub integration. Project: `garretperez` under team `garretperez`.
 
 **Admin setup:** Visit `/api/setup` once after deploy to create the admin account from env vars. Returns 409 if already exists. Credentials must NEVER be hardcoded in source.
 
@@ -60,9 +60,10 @@ src/
     resume/page.tsx     # Resume page — experience, skills bars, download .docx
     admin/page.tsx      # Admin dashboard (ADMIN role only) — settings, users, posts, announcements tabs
     quest-board/page.tsx  # Quest board — all active quests
+    privacy/page.tsx    # Privacy policy — data collected, retention, age requirement (13+), deletion contact
     (auth)/
       login/page.tsx    # Login form (client component)
-      register/page.tsx # Registration form (client component)
+      register/page.tsx # Registration form (client component) — links to /privacy
     skills/
       [skill]/page.tsx  # Dynamic skill page — posts + PostForm (health, projects, fishing, etc.)
       food/page.tsx     # Cooking skill — recipes + RecipeForm + food posts
@@ -215,15 +216,25 @@ Your content here.
 
 **Update profile photo:** Log in as admin → `/admin` → Settings tab → upload photo (max 2 MB, stored as base64 in `SiteSetting` DB table).
 
-**Deploy:** `git push` — Netlify auto-deploys from `main`. Build script: `prisma generate && next build`. Config in `netlify.toml`.
+**Deploy:** `git push` — Vercel auto-deploys from `main` via GitHub. Build command: `prisma generate && next build` (set in Vercel project settings).
 
 **Build check before pushing:**
 ```
 npm run build
 ```
 
+## DNS setup (garretperez.com)
+
+Domain uses **Netlify DNS** (nameservers: dns1-4.p03.nsone.net) but the site is hosted on **Vercel**. DNS records in the Netlify dashboard:
+- `garretperez.com` → A → `76.76.21.21` (Vercel IP)
+- `www.garretperez.com` → A → `76.76.21.21` (Vercel IP)
+
+Vercel is configured with both `garretperez.com` and `www.garretperez.com` as aliases (www is primary — garretperez.com redirects there). To manage DNS, log into app.netlify.com → Domains → garretperez.com → DNS settings.
+
 ## Known gotchas
 
-- **Windows EPERM on `prisma generate`**: Dev server locks `query_engine-windows.dll.node`. Stop the dev server before running `npm run build` locally. Netlify builds are unaffected.
+- **Windows EPERM on `prisma generate`**: Dev server locks `query_engine-windows.dll.node`. Stop the dev server before running `npm run build` locally. Vercel builds are unaffected.
 - **`(prisma as any)` casts**: Required for models added after the initial Prisma client snapshot (PostUpvote, UserBadge, SkillVisit, Announcement, SiteSetting). Run `npx prisma generate` after any schema change.
 - **Admin credentials**: NEVER hardcode in source. Use `SETUP_ADMIN_USERNAME` / `SETUP_ADMIN_PASSWORD` env vars and visit `/api/setup` once to create the account.
+- **netlify.toml exists** in the repo but is unused — the site deploys to Vercel, not Netlify. Do not add Netlify-specific build config.
+- **Unescaped entities in JSX**: Apostrophes inside JSX text (e.g. `I'm`) must be escaped as `&apos;` or the ESLint `react/no-unescaped-entities` rule will fail the build. Always use `&apos;` for `'` and `&quot;` for `"` in JSX text nodes.
