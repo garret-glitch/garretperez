@@ -6,14 +6,14 @@ import Link from 'next/link'
 import SidebarFunGame from './SidebarFunGame'
 
 const GUILD_CHANNELS = [
-  { icon: '❤️', label: 'Health',    dbEnum: 'HEALTH',    href: '/skills/health' },
-  { icon: '⚒️', label: 'Projects',  dbEnum: 'PROJECTS',  href: '/skills/projects' },
-  { icon: '💼', label: 'Business',  dbEnum: 'BUSINESS',  href: '/skills/business' },
-  { icon: '👥', label: 'Community', dbEnum: 'COMMUNITY', href: '/skills/community' },
-  { icon: '🎣', label: 'Fishing',   dbEnum: 'FISHING',   href: '/skills/fishing' },
-  { icon: '🍳', label: 'Cooking',   dbEnum: 'FOOD',      href: '/skills/food' },
-  { icon: '🌱', label: 'Farming',   dbEnum: 'GARDENING', href: '/skills/gardening' },
-  { icon: '🗺️', label: 'Adventure', dbEnum: 'TRAVEL',    href: '/skills/travel' },
+  { icon: '❤️', label: 'Health',    dbEnum: 'HEALTH',    href: '/skills/health',    color: '#7a2020' },
+  { icon: '⚒️', label: 'Projects',  dbEnum: 'PROJECTS',  href: '/skills/projects',  color: '#3a3020' },
+  { icon: '💼', label: 'Business',  dbEnum: 'BUSINESS',  href: '/skills/business',  color: '#2a3a18' },
+  { icon: '👥', label: 'Community', dbEnum: 'COMMUNITY', href: '/skills/community', color: '#2a3060' },
+  { icon: '🎣', label: 'Fishing',   dbEnum: 'FISHING',   href: '/skills/fishing',   color: '#1a4a5a' },
+  { icon: '🍳', label: 'Cooking',   dbEnum: 'FOOD',      href: '/skills/food',      color: '#6a3010' },
+  { icon: '🌱', label: 'Gardening', dbEnum: 'GARDENING', href: '/skills/gardening', color: '#1e4a1e' },
+  { icon: '🗺️', label: 'Adventure', dbEnum: 'TRAVEL',    href: '/skills/travel',    color: '#5a4010' },
 ]
 
 export default async function SkillsPanel() {
@@ -71,7 +71,8 @@ export default async function SkillsPanel() {
 
           {/* Home button */}
           <Link href="/" className="guild-channel mb-1">
-            <span className="text-base shrink-0 w-6 text-center">🏠</span>
+            <span className="shrink-0 flex items-center justify-center text-base rounded-lg"
+              style={{ width: 28, height: 28, background: '#3a2010', borderRadius: 8 }}>🏠</span>
             <div className="flex-1 min-w-0">
               <div className="text-[7px] truncate" style={{ color: '#f0d898' }}>Home</div>
             </div>
@@ -83,7 +84,8 @@ export default async function SkillsPanel() {
 
           {/* Quests */}
           <Link href="/quest-board" className="guild-channel">
-            <span className="text-base shrink-0 w-6 text-center">📋</span>
+            <span className="shrink-0 flex items-center justify-center text-base rounded-lg"
+              style={{ width: 28, height: 28, background: '#2a2010', borderRadius: 8 }}>📋</span>
             <div className="flex-1 min-w-0">
               <div className="text-[7px] truncate" style={{ color: '#f0d898' }}>Quests</div>
             </div>
@@ -93,7 +95,8 @@ export default async function SkillsPanel() {
           {/* Skill channels */}
           {GUILD_CHANNELS.map(ch => (
             <Link key={ch.href} href={ch.href} className="guild-channel">
-              <span className="text-base shrink-0 w-6 text-center">{ch.icon}</span>
+              <span className="shrink-0 flex items-center justify-center text-base"
+                style={{ width: 28, height: 28, background: ch.color, borderRadius: 8 }}>{ch.icon}</span>
               <div className="flex-1 min-w-0">
                 <div className="text-[7px] truncate" style={{ color: '#f0d898' }}>{ch.label}</div>
               </div>

@@ -41,7 +41,7 @@ export const SKILLS: SkillMeta[] = [
   { slug: 'business',   dbEnum: 'BUSINESS',   label: 'Business',  icon: '💼',  description: 'Wine sales, H-E-B distribution, team coaching & route planning.',      href: '/skills/business',  color: '#2a3a18' },
   { slug: 'food',       dbEnum: 'FOOD',       label: 'Cooking',   icon: '🍳',  description: 'Recipes, wine pairings & food tips from the kitchen.',                 href: '/skills/food',      color: '#6a3010' },
   { slug: 'community',  dbEnum: 'COMMUNITY',  label: 'Community', icon: '👥',  description: 'Neighborhood events, social connections & group discussions.',         href: '/skills/community', color: '#2a3060' },
-  { slug: 'gardening',  dbEnum: 'GARDENING',  label: 'Farming',   icon: '🌱',  description: 'Garden tips, outdoor upkeep & growing things.',                        href: '/skills/gardening', color: '#1e4a1e' },
+  { slug: 'gardening',  dbEnum: 'GARDENING',  label: 'Gardening', icon: '🌱',  description: 'Garden tips, outdoor upkeep & growing things.',                        href: '/skills/gardening', color: '#1e4a1e' },
   { slug: 'fun',         dbEnum: 'FUN',         label: 'Fun',         icon: '🎮',  description: 'Mini-games, hobbies & entertainment for the whole community.',  href: '/skills/fun',         color: '#4a2060' },
   { slug: 'travel',      dbEnum: 'TRAVEL',      label: 'Travel',      icon: '🗺️',  description: 'Travel diary, adventures & places worth visiting.',              href: '/skills/travel',      color: '#5a4010' },
   { slug: 'cool-items',  dbEnum: 'COOL_ITEMS',  label: 'Cool Items',  icon: '💎',  description: 'Gear, gadgets, finds & things worth sharing.',                   href: '/skills/cool-items',  color: '#1a3a5a' },

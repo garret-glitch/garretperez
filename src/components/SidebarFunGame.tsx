@@ -238,9 +238,10 @@ export default function SidebarFunGame() {
       <Link href="/skills/fun"
         className="flex items-center gap-2.5 px-3 py-2.5 shrink-0 hover:opacity-80 transition-opacity"
         style={{ borderLeft: '3px solid var(--gold)', borderBottom: '1px solid rgba(200,155,60,0.15)' }}>
-        <span className="text-base shrink-0">🎮</span>
+        <span className="shrink-0 flex items-center justify-center text-base"
+          style={{ width: 28, height: 28, background: '#4a2060', borderRadius: 8 }}>🎮</span>
         <div className="flex-1 min-w-0">
-          <div className="text-[7px] font-bold" style={{ color: 'var(--text-1)' }}>Games &amp; Entertainment</div>
+          <div className="text-[7px] font-bold" style={{ color: '#f0d898' }}>Games &amp; Entertainment</div>
         </div>
         <div className="shrink-0 text-right">
           <div className="text-[6px] font-bold" style={{ color: 'var(--gold)' }}>88</div>
@@ -309,13 +310,15 @@ export default function SidebarFunGame() {
         <Link href="/skills/cool-items"
           className="flex items-center gap-2.5 px-3 py-2.5 hover:opacity-80 transition-opacity"
           style={{ borderLeft: '3px solid transparent' }}>
-          <span className="text-base shrink-0 w-6 text-center">💎</span>
+          <span className="shrink-0 flex items-center justify-center text-base"
+            style={{ width: 28, height: 28, background: '#1a3a5a', borderRadius: 8 }}>💎</span>
           <div className="text-[7px] truncate" style={{ color: '#f0d898' }}>Cool Items</div>
         </Link>
         <Link href="/skills/cool-people"
           className="flex items-center gap-2.5 px-3 py-2.5 hover:opacity-80 transition-opacity"
           style={{ borderLeft: '3px solid transparent' }}>
-          <span className="text-base shrink-0 w-6 text-center">🌟</span>
+          <span className="shrink-0 flex items-center justify-center text-base"
+            style={{ width: 28, height: 28, background: '#4a1a5a', borderRadius: 8 }}>🌟</span>
           <div className="text-[7px] truncate" style={{ color: '#f0d898' }}>Cool People</div>
         </Link>
       </div>
