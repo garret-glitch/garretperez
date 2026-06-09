@@ -7,9 +7,21 @@ export async function GET() {
   if (!session?.user || session.user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
-  const users = await prisma.user.findMany({
+  const rawUsers = await prisma.user.findMany({
     orderBy: { createdAt: 'desc' },
-    select: { id: true, username: true, createdAt: true, role: true, banned: true },
+    include: {
+      skills: { select: { xp: true } },
+      _count: { select: { posts: true } },
+    },
   })
+  const users = rawUsers.map(u => ({
+    id: u.id,
+    username: u.username,
+    createdAt: u.createdAt,
+    role: u.role,
+    banned: u.banned,
+    totalXp: u.skills.reduce((s: number, sk: { xp: number }) => s + sk.xp, 0),
+    postCount: u._count.posts,
+  }))
   return NextResponse.json({ users })
 }

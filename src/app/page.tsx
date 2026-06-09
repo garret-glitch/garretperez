@@ -31,10 +31,28 @@ export default async function Home() {
   let currentUserLevel = 1
   let currentUserXpBar = { currentXp: 0, neededXp: 100, percent: 0 }
   let shieldColor = '#1a0e06'
+  let heroTitle = 'Sales Supervisor · Builder · Family Man'
+  let heroLocation = 'Houston, TX'
+  let contactPhone = '(346) 604-1635'
+  let contactEmail = 'gis.owner@gmail.com'
+  let contactLinkedin = 'garretperez'
+  let bio1 = 'Sales professional based in Houston, TX — focused on distribution, team management, and building strong customer relationships. I bring energy and structure to every team I lead, and I take pride in developing people as much as hitting numbers.'
+  let bio2 = "Outside of work I'm a builder, gardener, fisherman, and father. Whether I'm fixing something around the house, growing vegetables in the backyard, or teaching my kids to cast a line, I'm always working with my hands on something that matters."
+  let bio3 = "This site is my personal hub — a place to log projects, share recipes, track progress, and connect with community. Built with Next.js and a heavy dose of OSRS nostalgia."
 
   try {
-    const headshotSetting = await (prisma as any).siteSetting.findUnique({ where: { key: 'headshot' } })
-    headshot = headshotSetting?.value ?? ''
+    const allSettings = await (prisma as any).siteSetting.findMany()
+    const settingsMap: Record<string, string> = {}
+    for (const s of allSettings) settingsMap[s.key] = s.value
+    headshot = settingsMap.headshot ?? ''
+    if (settingsMap.hero_title) heroTitle = settingsMap.hero_title
+    if (settingsMap.hero_location) heroLocation = settingsMap.hero_location
+    if (settingsMap.contact_phone) contactPhone = settingsMap.contact_phone
+    if (settingsMap.contact_email) contactEmail = settingsMap.contact_email
+    if (settingsMap.contact_linkedin) contactLinkedin = settingsMap.contact_linkedin
+    if (settingsMap.bio_1) bio1 = settingsMap.bio_1
+    if (settingsMap.bio_2) bio2 = settingsMap.bio_2
+    if (settingsMap.bio_3) bio3 = settingsMap.bio_3
 
     const adminUser = await prisma.user.findFirst({
       where: { role: 'ADMIN' },
@@ -121,10 +139,10 @@ export default async function Home() {
               </div>
 
               <div className="body-text text-[13px] font-semibold mb-0.5" style={{ color: 'var(--text-1)' }}>
-                Sales Supervisor · Builder · Family Man
+                {heroTitle}
               </div>
               <div className="body-text text-[12px] mb-3" style={{ color: 'var(--text-2)' }}>
-                📍 Houston, TX
+                📍 {heroLocation}
               </div>
 
               {/* Stat chips — square */}
@@ -158,31 +176,31 @@ export default async function Home() {
                 <span className="text-[6px] uppercase tracking-widest" style={{ color: '#a07848' }}>⚔ Contact</span>
               </div>
               <div className="flex flex-col">
-                <a href="tel:346-604-1635"
+                <a href={`tel:${contactPhone.replace(/\D/g, '')}`}
                   className="flex items-center gap-2.5 px-3 py-2.5 transition-colors hover:bg-white/5">
                   <span className="shrink-0 flex items-center justify-center text-sm"
                     style={{ width: 26, height: 26, background: '#2a1a0a', borderRadius: 2 }}>📞</span>
                   <div>
                     <div style={{ fontSize: 5, color: '#a07848', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Phone</div>
-                    <div style={{ fontSize: 7, color: '#f0d898' }}>(346) 604-1635</div>
+                    <div style={{ fontSize: 7, color: '#f0d898' }}>{contactPhone}</div>
                   </div>
                 </a>
-                <a href="mailto:gis.owner@gmail.com"
+                <a href={`mailto:${contactEmail}`}
                   className="flex items-center gap-2.5 px-3 py-2.5 transition-colors hover:bg-white/5">
                   <span className="shrink-0 flex items-center justify-center text-sm"
                     style={{ width: 26, height: 26, background: '#1a2a1a', borderRadius: 2 }}>✉️</span>
                   <div>
                     <div style={{ fontSize: 5, color: '#a07848', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Email</div>
-                    <div style={{ fontSize: 7, color: '#f0d898' }}>gis.owner@gmail.com</div>
+                    <div style={{ fontSize: 7, color: '#f0d898' }}>{contactEmail}</div>
                   </div>
                 </a>
-                <a href="https://www.linkedin.com/in/garretperez" target="_blank" rel="noopener noreferrer"
+                <a href={`https://www.linkedin.com/in/${contactLinkedin}`} target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-2.5 px-3 py-2.5 transition-colors hover:bg-white/5">
                   <span className="shrink-0 flex items-center justify-center text-sm"
                     style={{ width: 26, height: 26, background: '#1a1a3a', borderRadius: 2 }}>🔗</span>
                   <div>
                     <div style={{ fontSize: 5, color: '#a07848', textTransform: 'uppercase', letterSpacing: '0.08em' }}>LinkedIn</div>
-                    <div style={{ fontSize: 7, color: '#f0d898' }}>garretperez</div>
+                    <div style={{ fontSize: 7, color: '#f0d898' }}>{contactLinkedin}</div>
                   </div>
                 </a>
                 <div className="px-3 py-2.5">
@@ -216,23 +234,9 @@ export default async function Home() {
               <span>📜</span> About Me
             </h2>
             <div className="space-y-2 body-text" style={{ color: '#3a2810' }}>
-              <p>
-                Sales professional based in Houston, TX — focused on distribution,
-                team management, and building strong customer relationships. I bring
-                energy and structure to every team I lead, and I take pride in
-                developing people as much as hitting numbers.
-              </p>
-              <p>
-                Outside of work I&apos;m a builder, gardener, fisherman, and father.
-                Whether I&apos;m fixing something around the house, growing vegetables in
-                the backyard, or teaching my kids to cast a line, I&apos;m always working
-                with my hands on something that matters.
-              </p>
-              <p>
-                This site is my personal hub — a place to log projects, share
-                recipes, track progress, and connect with community. Built with
-                Next.js and a heavy dose of OSRS nostalgia.
-              </p>
+              {bio1 && <p>{bio1}</p>}
+              {bio2 && <p>{bio2}</p>}
+              {bio3 && <p>{bio3}</p>}
             </div>
           </div>
           <div className="scroll-roll" />

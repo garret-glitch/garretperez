@@ -17,7 +17,7 @@ const COMMUNITIES = [
   { icon: '🍳', label: 'Cooking',   href: '/skills/food' },
   { icon: '🌱', label: 'Farming',   href: '/skills/gardening' },
   { icon: '🗺️', label: 'Adventure', href: '/skills/travel' },
-  { icon: '🎮', label: 'Fun Zone',  href: '/skills/fun' },
+  { icon: '🎮', label: 'Games',     href: '/skills/fun' },
 ]
 
 const ROW: React.CSSProperties = {

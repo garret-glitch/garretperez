@@ -39,3 +39,22 @@ export async function DELETE(req: NextRequest) {
   await (prisma as any).project.delete({ where: { id } })
   return NextResponse.json({ ok: true })
 }
+
+export async function PUT(req: NextRequest) {
+  if (!await adminOnly()) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const { id, icon, title, desc, progress, href, updated, order } = await req.json()
+  if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
+  const project = await (prisma as any).project.update({
+    where: { id },
+    data: {
+      ...(icon !== undefined && { icon }),
+      ...(title !== undefined && { title }),
+      ...(desc !== undefined && { desc }),
+      ...(progress !== undefined && { progress: Math.min(100, Math.max(0, Number(progress))) }),
+      ...(href !== undefined && { href }),
+      ...(updated !== undefined && { updated }),
+      ...(order !== undefined && { order: Number(order) }),
+    },
+  })
+  return NextResponse.json({ project })
+}
