@@ -240,7 +240,7 @@ export default function SidebarFunGame() {
         style={{ borderLeft: '3px solid var(--gold)', borderBottom: '1px solid rgba(200,155,60,0.15)' }}>
         <span className="text-base shrink-0">🎮</span>
         <div className="flex-1 min-w-0">
-          <div className="text-[7px] font-bold" style={{ color: 'var(--text-1)' }}>Fun Zone</div>
+          <div className="text-[7px] font-bold" style={{ color: 'var(--text-1)' }}>Fun Zune</div>
           <div className="text-[5.5px]" style={{ color: 'var(--text-3)' }}>Games &amp; Entertainment</div>
         </div>
         <div className="shrink-0 text-right">

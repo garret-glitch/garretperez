@@ -68,6 +68,15 @@ export default async function SkillsPanel() {
       {/* ── Channels + fun zone ───────────────────────── */}
       <div className="flex-1 flex flex-col min-h-0">
         <div className="py-2 shrink-0">
+
+          {/* Home button */}
+          <Link href="/" className="guild-channel mb-1">
+            <span className="text-base shrink-0 w-6 text-center">🏠</span>
+            <div className="flex-1 min-w-0">
+              <div className="text-[7px] truncate" style={{ color: '#f0d898' }}>Home</div>
+            </div>
+          </Link>
+
           <div className="px-4 pb-1.5 pt-1">
             <span className="text-[6px] uppercase tracking-widest" style={{ color: '#a07848' }}>⚔ Communities</span>
           </div>
