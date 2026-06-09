@@ -40,6 +40,26 @@ export default async function Home() {
   let bio2 = "Outside of work I'm a builder, gardener, fisherman, and father. Whether I'm fixing something around the house, growing vegetables in the backyard, or teaching my kids to cast a line, I'm always working with my hands on something that matters."
   let bio3 = "This site is my personal hub — a place to log projects, share recipes, track progress, and connect with community. Built with Next.js and a heavy dose of OSRS nostalgia."
 
+  type SectionConfig = {
+    id: string; heading: string; icon: string
+    headingPx: number; bodyPx: number
+    padding: 'compact' | 'normal' | 'spacious' | 'tall'; visible: boolean
+  }
+  const DEFAULT_LAYOUT: SectionConfig[] = [
+    { id: 'about',    heading: 'About Me',       icon: '📜', headingPx: 9,  bodyPx: 12, padding: 'normal',  visible: true },
+    { id: 'projects', heading: 'My Projects',    icon: '⚒️', headingPx: 9,  bodyPx: 12, padding: 'normal',  visible: true },
+    { id: 'feed',     heading: 'Community Feed', icon: '💬', headingPx: 9,  bodyPx: 12, padding: 'normal',  visible: true },
+    { id: 'achieve',  heading: 'Achievements',   icon: '🏆', headingPx: 7,  bodyPx: 10, padding: 'compact', visible: true },
+    { id: 'xp',       heading: 'How to Earn XP', icon: '⚡', headingPx: 9,  bodyPx: 10, padding: 'normal',  visible: true },
+  ]
+  const PADDING_STYLE: Record<string, React.CSSProperties> = {
+    compact:  { padding: '10px 16px' },
+    normal:   { padding: '20px 24px' },
+    spacious: { padding: '32px 28px', minHeight: 230 },
+    tall:     { padding: '20px 24px', minHeight: 420 },
+  }
+  let layout = DEFAULT_LAYOUT
+
   try {
     const allSettings = await (prisma as any).siteSetting.findMany()
     const settingsMap: Record<string, string> = {}
@@ -53,6 +73,9 @@ export default async function Home() {
     if (settingsMap.bio_1) bio1 = settingsMap.bio_1
     if (settingsMap.bio_2) bio2 = settingsMap.bio_2
     if (settingsMap.bio_3) bio3 = settingsMap.bio_3
+    if (settingsMap.layout_sections) {
+      try { layout = JSON.parse(settingsMap.layout_sections) } catch { /* use default */ }
+    }
 
     const adminUser = await prisma.user.findFirst({
       where: { role: 'ADMIN' },
@@ -94,6 +117,9 @@ export default async function Home() {
       shieldColor = (userData as any)?.shieldColor ?? '#1a0e06'
     }
   } catch { /* DB not configured */ }
+
+  const sec = (id: string) => layout.find(s => s.id === id) ?? DEFAULT_LAYOUT.find(s => s.id === id)!
+  const parchStyle = (id: string): React.CSSProperties => PADDING_STYLE[sec(id).padding] ?? PADDING_STYLE.normal
 
   const timeAgo = (date: Date) => {
     const mins = Math.floor((Date.now() - new Date(date).getTime()) / 60000)
@@ -245,13 +271,14 @@ export default async function Home() {
       <div className="content-grid">
 
         {/* About Me — col 1 row 1 */}
+        {sec('about').visible && (
         <div className="cg-about" style={{ overflow: 'visible' }}>
           <div className="scroll-roll" />
-          <div className="scroll-parchment">
-            <h2 className="text-[9px] mb-3 flex items-center gap-2" style={{ color: '#3a1e06' }}>
-              <span>📜</span> About Me
+          <div className="scroll-parchment" style={parchStyle('about')}>
+            <h2 className="mb-3 flex items-center gap-2" style={{ fontSize: sec('about').headingPx, color: '#3a1e06' }}>
+              <span>{sec('about').icon}</span> {sec('about').heading}
             </h2>
-            <div className="space-y-2 body-text" style={{ color: '#3a2810' }}>
+            <div className="space-y-2 body-text" style={{ fontSize: sec('about').bodyPx, color: '#3a2810' }}>
               {bio1 && <p>{bio1}</p>}
               {bio2 && <p>{bio2}</p>}
               {bio3 && <p>{bio3}</p>}
@@ -259,14 +286,16 @@ export default async function Home() {
           </div>
           <div className="scroll-roll" />
         </div>
+        )}
 
         {/* My Projects — col 2 row 1 */}
+        {sec('projects').visible && (
         <div className="cg-projects" style={{ overflow: 'visible' }}>
           <div className="scroll-roll" />
-          <div className="scroll-parchment">
+          <div className="scroll-parchment" style={parchStyle('projects')}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[9px] flex items-center gap-2" style={{ color: '#3a1e06' }}>
-                <span>⚒️</span> My Projects
+              <h2 className="flex items-center gap-2" style={{ fontSize: sec('projects').headingPx, color: '#3a1e06' }}>
+                <span>{sec('projects').icon}</span> {sec('projects').heading}
               </h2>
               <Link href="/skills/projects" className="text-[6px] hover:opacity-70 transition-opacity" style={{ color: '#6a3808' }}>
                 View All →
@@ -302,13 +331,15 @@ export default async function Home() {
           </div>
           <div className="scroll-roll" />
         </div>
+        )}
 
         {/* Community Feed — col 3, spans both rows */}
+        {sec('feed').visible && (
         <div className="cg-feed" style={{ overflow: 'visible' }}>
           <div className="scroll-roll" />
           <div className="scroll-parchment" style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 260px)' }}>
-            <h2 className="text-[9px] mb-4 flex items-center gap-2" style={{ color: '#3a1e06' }}>
-              <span>💬</span> Community Feed
+            <h2 className="mb-4 flex items-center gap-2" style={{ fontSize: sec('feed').headingPx, color: '#3a1e06' }}>
+              <span>{sec('feed').icon}</span> {sec('feed').heading}
               <span className="ml-auto text-[6px]" style={{ color: '#8a6030' }}>All Communities</span>
             </h2>
 
@@ -376,14 +407,16 @@ export default async function Home() {
           </div>
           <div className="scroll-roll" />
         </div>
+        )}
 
         {/* Achievements — col 1 row 2 */}
+        {sec('achieve').visible && (
         <div className="cg-achieve" style={{ overflow: 'visible' }}>
           <div className="scroll-roll" />
-          <div className="scroll-parchment" style={{ padding: '12px 20px' }}>
+          <div className="scroll-parchment" style={parchStyle('achieve')}>
             <div className="flex items-center gap-2 mb-2">
-              <span style={{ fontSize: 10 }}>🏆</span>
-              <span className="text-[7px]" style={{ color: '#3a1e06' }}>Achievements</span>
+              <span style={{ fontSize: sec('achieve').headingPx }}>{sec('achieve').icon}</span>
+              <span style={{ fontSize: sec('achieve').headingPx, color: '#3a1e06' }}>{sec('achieve').heading}</span>
             </div>
             {userBadges.length > 0 ? (
               <div className="flex flex-wrap gap-2">
@@ -406,13 +439,15 @@ export default async function Home() {
           </div>
           <div className="scroll-roll" />
         </div>
+        )}
 
         {/* How to Earn XP — col 2 row 2 */}
+        {sec('xp').visible && (
         <div className="cg-xp" style={{ overflow: 'visible' }}>
           <div className="scroll-roll" />
-          <div className="scroll-parchment">
-            <h2 className="text-[9px] mb-3 flex items-center gap-2" style={{ color: '#3a1e06' }}>
-              <span>⚡</span> How to Earn XP
+          <div className="scroll-parchment" style={parchStyle('xp')}>
+            <h2 className="mb-3 flex items-center gap-2" style={{ fontSize: sec('xp').headingPx, color: '#3a1e06' }}>
+              <span>{sec('xp').icon}</span> {sec('xp').heading}
             </h2>
             <div className="space-y-1.5">
               {[
@@ -433,6 +468,7 @@ export default async function Home() {
           </div>
           <div className="scroll-roll" />
         </div>
+        )}
 
       </div>
 
