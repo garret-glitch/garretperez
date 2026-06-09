@@ -117,20 +117,16 @@ export default async function ProfilePage({ params }: Props) {
       {/* Skills */}
       <div className="osrs-panel-dark rounded-xl">
         <h2 className="text-[9px] text-[#c0c0c0] font-bold mb-2">Skills</h2>
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-3 gap-3">
           {SKILLS.map(s => {
             const sk = skills.find((sk: any) => sk.skill === s.dbEnum)
             const xp = sk?.xp ?? 0
             const level = xpToLevel(xp)
-            const { percent: pct } = xpProgress(xp)
             return (
-              <Link key={s.slug} href={s.href} className="skill-cell rounded-lg flex-col gap-0.5">
-                <span className="text-base leading-none">{s.icon}</span>
-                <span className="text-[6px] text-[#a0a0a0]">{s.label}</span>
-                <span className="text-[7px] text-[#ffe066] font-bold">Lv {level}</span>
-                <div className="w-full h-1 bg-[#1a1a1a] rounded-full overflow-hidden mt-0.5">
-                  <div className="h-full bg-[#4caf50] rounded-full" style={{ width: `${pct}%` }} />
-                </div>
+              <Link key={s.slug} href={s.href} className="skill-cell" style={{ background: s.color }}>
+                <span className="text-2xl leading-none">{s.icon}</span>
+                <span className="text-[7px] leading-tight text-center" style={{ color: '#e8d8b0' }}>{s.label}</span>
+                <span className="text-[8px] font-bold" style={{ color: '#ffd060' }}>Lv {level}</span>
               </Link>
             )
           })}

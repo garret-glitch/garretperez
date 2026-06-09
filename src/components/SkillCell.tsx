@@ -4,12 +4,12 @@ import type { SkillMeta } from '@/lib/skills'
 
 export default function SkillCell({ skill, level }: { skill: SkillMeta; level: number }) {
   return (
-    <Link href={skill.href} className="skill-cell" title={skill.description}>
-      <span className="text-base leading-none">{skill.icon}</span>
-      <span className="text-[6px] text-[#c0c0c0] mt-0.5 leading-tight text-center block">
+    <Link href={skill.href} className="skill-cell" title={skill.description} style={{ background: skill.color }}>
+      <span className="text-2xl leading-none">{skill.icon}</span>
+      <span className="text-[7px] leading-tight text-center block" style={{ color: '#e8d8b0' }}>
         {skill.label}
       </span>
-      <span className="text-[9px] text-[#ffe066] font-bold">{level}</span>
+      <span className="text-[8px] font-bold" style={{ color: '#ffd060' }}>Lv {level}</span>
     </Link>
   )
 }
