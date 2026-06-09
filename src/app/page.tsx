@@ -84,130 +84,138 @@ export default async function Home() {
   return (
     <div className="space-y-5 fade-in">
 
-      {/* ─── HERO ─────────────────────────────────────────── */}
-      <div className="hero-panel">
-        {/* Mobile: column stack. sm+: three-column row */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:gap-5">
+      {/* ─── HERO + ACCOUNT ROW ───────────────────────────── */}
+      <div className="flex flex-col sm:flex-row gap-4 items-stretch">
 
-          {/* Row on mobile: photo + name side-by-side */}
-          <div className="flex gap-4 items-center sm:block sm:shrink-0">
-            <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-xl overflow-hidden flex items-center justify-center text-2xl font-bold shrink-0"
-              style={{ border: '2px solid var(--border-lit)', background: 'var(--bg-page)', color: 'var(--gold)' }}>
-              {headshot
-                ? <img src={headshot} alt="Garret Perez" className="w-full h-full object-cover" />
-                : 'GP'}
+        {/* Hero panel */}
+        <div className="hero-panel flex-1 min-w-0">
+          <div className="flex flex-col gap-4 sm:flex-row sm:gap-5">
+
+            {/* Row on mobile: photo + name side-by-side */}
+            <div className="flex gap-4 items-center sm:block sm:shrink-0">
+              <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-xl overflow-hidden flex items-center justify-center text-2xl font-bold shrink-0"
+                style={{ border: '2px solid var(--border-lit)', background: 'var(--bg-page)', color: 'var(--gold)' }}>
+                {headshot
+                  ? <img src={headshot} alt="Garret Perez" className="w-full h-full object-cover" />
+                  : 'GP'}
+              </div>
+              {/* Name + level: shown next to photo on mobile only */}
+              <div className="sm:hidden min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <h1 className="text-[12px] leading-tight" style={{ color: 'var(--text-1)' }}>Garret Perez</h1>
+                  <span className="text-[7px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(200,155,60,0.15)', color: 'var(--gold)', border: '1px solid rgba(200,155,60,0.3)' }}>
+                    ⚔ Lv {garretTotalLevel}
+                  </span>
+                </div>
+                <div className="body-text text-[12px] font-semibold" style={{ color: 'var(--text-1)' }}>
+                  Sales · Builder · Family Man
+                </div>
+                <div className="body-text text-[12px]" style={{ color: 'var(--text-2)' }}>📍 Houston, TX</div>
+              </div>
             </div>
-            {/* Name + level: shown next to photo on mobile only */}
-            <div className="sm:hidden min-w-0">
-              <div className="flex items-center gap-2 flex-wrap mb-1">
-                <h1 className="text-[12px] leading-tight" style={{ color: 'var(--text-1)' }}>Garret Perez</h1>
-                <span className="text-[7px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(200,155,60,0.15)', color: 'var(--gold)', border: '1px solid rgba(200,155,60,0.3)' }}>
-                  ⚔ Lv {garretTotalLevel}
+
+            {/* Main info */}
+            <div className="flex-1 min-w-0">
+              <div className="hidden sm:flex items-center gap-3 flex-wrap mb-1">
+                <h1 className="text-[14px] leading-tight" style={{ color: 'var(--text-1)' }}>Garret Perez</h1>
+                <span className="text-[7px] px-2 py-0.5 rounded" style={{ background: 'rgba(200,155,60,0.15)', color: 'var(--gold)', border: '1px solid rgba(200,155,60,0.3)' }}>
+                  ⚔ Level {garretTotalLevel}
                 </span>
               </div>
-              <div className="body-text text-[12px] font-semibold" style={{ color: 'var(--text-1)' }}>
-                Sales · Builder · Family Man
+              <div className="hidden sm:block body-text text-[13px] font-semibold mb-0.5" style={{ color: 'var(--text-1)' }}>
+                Sales Supervisor · Builder · Family Man
               </div>
-              <div className="body-text text-[12px]" style={{ color: 'var(--text-2)' }}>📍 Houston, TX</div>
-            </div>
-          </div>
-
-          {/* Main info — full version, hidden on mobile (shown above) */}
-          <div className="flex-1 min-w-0">
-            <div className="hidden sm:flex items-center gap-3 flex-wrap mb-1">
-              <h1 className="text-[14px] leading-tight" style={{ color: 'var(--text-1)' }}>Garret Perez</h1>
-              <span className="text-[7px] px-2 py-0.5 rounded" style={{ background: 'rgba(200,155,60,0.15)', color: 'var(--gold)', border: '1px solid rgba(200,155,60,0.3)' }}>
-                ⚔ Level {garretTotalLevel}
-              </span>
-            </div>
-            <div className="hidden sm:block body-text text-[13px] font-semibold mb-0.5" style={{ color: 'var(--text-1)' }}>
-              Sales Supervisor · Builder · Family Man
-            </div>
-            <div className="hidden sm:block body-text text-[12px] mb-2" style={{ color: 'var(--text-2)' }}>
-              📍 Houston, TX
-            </div>
-
-            {/* Stat chips */}
-            <div className="flex gap-2 mb-2">
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg"
-                style={{ background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.22)' }}>
-                <span className="text-[11px] font-bold" style={{ color: 'var(--gold)' }}>{totalUsers}</span>
-                <span className="body-text text-[11px]" style={{ color: 'var(--text-2)' }}>Members</span>
+              <div className="hidden sm:block body-text text-[12px] mb-2" style={{ color: 'var(--text-2)' }}>
+                📍 Houston, TX
               </div>
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg"
-                style={{ background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.22)' }}>
-                <span className="text-[11px] font-bold" style={{ color: 'var(--gold)' }}>{totalPosts}</span>
-                <span className="body-text text-[11px]" style={{ color: 'var(--text-2)' }}>Posts</span>
-              </div>
-            </div>
 
-            {/* XP bar */}
-            <div className="flex items-center gap-3">
-              <div className="xp-bar flex-1">
-                <div className="xp-bar-fill" style={{ width: `${garretXpBar.percent}%` }} />
-              </div>
-              <span className="body-text text-[11px]" style={{ color: 'var(--text-2)' }}>
-                {garretXpBar.currentXp} / {garretXpBar.neededXp} XP
-              </span>
-            </div>
-          </div>
-
-          {/* Contact info */}
-          <div className="flex flex-col gap-2 sm:shrink-0" style={{ maxWidth: 220 }}>
-            <div className="text-[7px] uppercase tracking-widest" style={{ color: 'var(--text-3)' }}>Contact</div>
-
-            <a href="tel:346-604-1635"
-              className="flex items-center gap-2 body-text text-[13px] transition-opacity hover:opacity-80"
-              style={{ color: 'var(--text-1)' }}>
-              <span>📞</span><span>(346) 604-1635</span>
-            </a>
-
-            <a href="mailto:gis.owner@gmail.com"
-              className="flex items-center gap-2 body-text text-[13px] transition-opacity hover:opacity-80"
-              style={{ color: 'var(--text-1)' }}>
-              <span>✉️</span><span>gis.owner@gmail.com</span>
-            </a>
-
-            <a href="https://www.linkedin.com/in/garretperez" target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-2 body-text text-[13px] transition-opacity hover:opacity-80"
-              style={{ color: '#3a5e8a' }}>
-              <span>🔗</span><span>linkedin.com/in/garretperez</span>
-            </a>
-
-            <a href="/resume" className="osrs-btn text-[7px] text-center mt-0.5 block">📄 View Resume</a>
-          </div>
-
-          {/* User session — login/logout column */}
-          <div className="flex flex-col gap-2 sm:shrink-0 sm:border-l sm:pl-4"
-            style={{ minWidth: 150, borderColor: 'var(--border)' }}>
-            <div className="text-[7px] uppercase tracking-widest" style={{ color: 'var(--text-3)' }}>Account</div>
-
-            {session?.user ? (
-              <>
-                <div className="flex items-center gap-2">
-                  <div className="w-9 h-9 rounded-lg flex items-center justify-center text-[10px] font-bold shrink-0"
-                    style={{ background: 'var(--bg-page)', border: '2px solid var(--border)', color: 'var(--gold)' }}>
-                    {session.user.name?.slice(0, 2).toUpperCase() ?? '??'}
-                  </div>
-                  <div>
-                    <div className="text-[8px] font-bold leading-tight" style={{ color: 'var(--text-1)' }}>{session.user.name}</div>
-                    <div className="text-[7px] mt-0.5" style={{ color: 'var(--gold)' }}>⚔ Lv {currentUserLevel}</div>
-                  </div>
+              {/* Stat chips */}
+              <div className="flex gap-2 mb-2">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg"
+                  style={{ background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.22)' }}>
+                  <span className="text-[11px] font-bold" style={{ color: 'var(--gold)' }}>{totalUsers}</span>
+                  <span className="body-text text-[11px]" style={{ color: 'var(--text-2)' }}>Members</span>
                 </div>
-                <div className="xp-bar">
-                  <div className="xp-bar-fill" style={{ width: `${currentUserXpBar.percent}%` }} />
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg"
+                  style={{ background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.22)' }}>
+                  <span className="text-[11px] font-bold" style={{ color: 'var(--gold)' }}>{totalPosts}</span>
+                  <span className="body-text text-[11px]" style={{ color: 'var(--text-2)' }}>Posts</span>
                 </div>
-                <div className="text-[6px]" style={{ color: 'var(--text-2)' }}>{currentUserXp.toLocaleString()} XP total</div>
-                <SidebarLogoutButton />
-              </>
-            ) : (
-              <>
-                <Link href="/login" className="osrs-btn text-center block">Login</Link>
-                <Link href="/register" className="osrs-btn text-center block" style={{ opacity: 0.85 }}>Join Free</Link>
-              </>
-            )}
+              </div>
+
+              {/* XP bar */}
+              <div className="flex items-center gap-3">
+                <div className="xp-bar flex-1">
+                  <div className="xp-bar-fill" style={{ width: `${garretXpBar.percent}%` }} />
+                </div>
+                <span className="body-text text-[11px]" style={{ color: 'var(--text-2)' }}>
+                  {garretXpBar.currentXp} / {garretXpBar.neededXp} XP
+                </span>
+              </div>
+            </div>
+
+            {/* Contact info */}
+            <div className="flex flex-col gap-2 sm:shrink-0" style={{ maxWidth: 220 }}>
+              <div className="text-[7px] uppercase tracking-widest" style={{ color: 'var(--text-3)' }}>Contact</div>
+              <a href="tel:346-604-1635"
+                className="flex items-center gap-2 body-text text-[13px] transition-opacity hover:opacity-80"
+                style={{ color: 'var(--text-1)' }}>
+                <span>📞</span><span>(346) 604-1635</span>
+              </a>
+              <a href="mailto:gis.owner@gmail.com"
+                className="flex items-center gap-2 body-text text-[13px] transition-opacity hover:opacity-80"
+                style={{ color: 'var(--text-1)' }}>
+                <span>✉️</span><span>gis.owner@gmail.com</span>
+              </a>
+              <a href="https://www.linkedin.com/in/garretperez" target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-2 body-text text-[13px] transition-opacity hover:opacity-80"
+                style={{ color: '#3a5e8a' }}>
+                <span>🔗</span><span>linkedin.com/in/garretperez</span>
+              </a>
+              <a href="/resume" className="osrs-btn text-[7px] text-center mt-0.5 block">📄 View Resume</a>
+            </div>
           </div>
         </div>
+
+        {/* ─── Account card — standalone block ─────────── */}
+        <div className="rp-card sm:shrink-0 flex flex-col gap-3" style={{ width: 180 }}>
+          <div className="text-[7px] uppercase tracking-widest" style={{ color: 'var(--text-3)' }}>Account</div>
+
+          {session?.user ? (
+            <>
+              {/* Avatar */}
+              <div className="flex flex-col items-center gap-2 pt-1">
+                <div className="w-14 h-14 rounded-xl flex items-center justify-center text-lg font-bold"
+                  style={{ background: 'var(--bg-page)', border: '2px solid var(--border)', color: 'var(--gold)' }}>
+                  {session.user.name?.slice(0, 2).toUpperCase() ?? '??'}
+                </div>
+                <div className="text-center">
+                  <div className="text-[9px] font-bold leading-tight" style={{ color: 'var(--text-1)' }}>{session.user.name}</div>
+                  <div className="text-[7px] mt-0.5" style={{ color: 'var(--gold)' }}>⚔ Lv {currentUserLevel}</div>
+                </div>
+              </div>
+
+              {/* XP bar */}
+              <div>
+                <div className="xp-bar mb-1">
+                  <div className="xp-bar-fill" style={{ width: `${currentUserXpBar.percent}%` }} />
+                </div>
+                <div className="text-[6px] text-center" style={{ color: 'var(--text-2)' }}>{currentUserXp.toLocaleString()} XP</div>
+              </div>
+
+              <SidebarLogoutButton />
+            </>
+          ) : (
+            <div className="flex flex-col gap-2 pt-1">
+              <div className="text-[7px] text-center leading-relaxed" style={{ color: 'var(--text-2)' }}>
+                ⚔ Join to earn XP &amp; post
+              </div>
+              <Link href="/login" className="osrs-btn text-center block">Login</Link>
+              <Link href="/register" className="osrs-btn text-center block" style={{ opacity: 0.85 }}>Join Free</Link>
+            </div>
+          )}
+        </div>
+
       </div>
 
       {/* ─── ROW 1: About Me + Projects ───────────────────── */}
