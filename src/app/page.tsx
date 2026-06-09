@@ -205,11 +205,11 @@ export default async function Home() {
 
       </div>
 
-      {/* ─── ROW 1: About Me + Projects ───────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* ─── ALL SECTIONS: 3-col grid, no page scroll ────────── */}
+      <div className="content-grid">
 
-        {/* About Me — scroll */}
-        <div style={{ overflow: 'visible' }}>
+        {/* About Me — col 1 row 1 */}
+        <div className="cg-about" style={{ overflow: 'visible' }}>
           <div className="scroll-roll" />
           <div className="scroll-parchment">
             <h2 className="text-[9px] mb-3 flex items-center gap-2" style={{ color: '#3a1e06' }}>
@@ -238,92 +238,53 @@ export default async function Home() {
           <div className="scroll-roll" />
         </div>
 
-        {/* My Projects + Achievements — stacked in right column */}
-        <div className="flex flex-col gap-4">
-
-          {/* My Projects — scroll */}
-          <div style={{ overflow: 'visible' }}>
-            <div className="scroll-roll" />
-            <div className="scroll-parchment">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-[9px] flex items-center gap-2" style={{ color: '#3a1e06' }}>
-                  <span>⚒️</span> My Projects
-                </h2>
-                <Link href="/skills/projects" className="text-[6px] hover:opacity-70 transition-opacity" style={{ color: '#6a3808' }}>
-                  View All →
-                </Link>
-              </div>
-
-              {dbProjects.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 gap-3">
-                  <span className="text-4xl opacity-30">⚒️</span>
-                  <p className="text-[7px]" style={{ color: '#8a6030' }}>No projects logged yet.</p>
-                  <Link href="/skills/projects" className="osrs-btn text-[6.5px] px-3 py-1.5">Start a Project</Link>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {dbProjects.map(p => (
-                    <Link key={p.title} href={p.href} className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-colors hover:opacity-80"
-                      style={{ background: 'rgba(180,120,40,0.18)', border: '1px solid #a07840' }}>
-                      <span className="text-xl shrink-0">{p.icon}</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2 mb-1.5">
-                          <span className="text-[7px] font-bold truncate" style={{ color: '#2a1006' }}>{p.title}</span>
-                          <span className="text-[6px] font-bold shrink-0" style={{ color: '#6a3808' }}>{p.progress}%</span>
-                        </div>
-                        <div className="prog-bar">
-                          <div className="prog-bar-fill" style={{ width: `${p.progress}%` }} />
-                        </div>
-                        <div className="text-[5.5px] mt-1" style={{ color: '#8a6030' }}>Updated {p.updated}</div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="scroll-roll" />
-          </div>
-
-          {/* Achievements — icon badges only */}
-          <div style={{ overflow: 'visible' }}>
-            <div className="scroll-roll" />
-            <div className="scroll-parchment" style={{ padding: '12px 20px' }}>
-              <div className="flex items-center gap-2 mb-2">
-                <span style={{ fontSize: 10 }}>🏆</span>
-                <span className="text-[7px]" style={{ color: '#3a1e06' }}>Achievements</span>
-              </div>
-              {userBadges.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {userBadges.map(key => {
-                    const meta = BADGE_META[key]
-                    return meta ? (
-                      <span key={key} title={meta.label} className="cursor-default select-none"
-                        style={{ fontSize: 22, lineHeight: 1 }}>
-                        {meta.icon}
-                      </span>
-                    ) : null
-                  })}
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 opacity-50">
-                  <span style={{ fontSize: 18 }}>🏆</span>
-                  <span className="text-[6px]" style={{ color: '#8a6030' }}>None yet — post &amp; play to earn</span>
-                </div>
-              )}
-            </div>
-            <div className="scroll-roll" />
-          </div>
-
-        </div>
-      </div>
-
-      {/* ─── ROW 2: Community Feed + Achievements ─────────── */}
-      <div className="community-grid">
-
-        {/* Community Feed — scroll */}
-        <div style={{ overflow: 'visible' }}>
+        {/* My Projects — col 2 row 1 */}
+        <div className="cg-projects" style={{ overflow: 'visible' }}>
           <div className="scroll-roll" />
           <div className="scroll-parchment">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-[9px] flex items-center gap-2" style={{ color: '#3a1e06' }}>
+                <span>⚒️</span> My Projects
+              </h2>
+              <Link href="/skills/projects" className="text-[6px] hover:opacity-70 transition-opacity" style={{ color: '#6a3808' }}>
+                View All →
+              </Link>
+            </div>
+
+            {dbProjects.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 gap-3">
+                <span className="text-4xl opacity-30">⚒️</span>
+                <p className="text-[7px]" style={{ color: '#8a6030' }}>No projects logged yet.</p>
+                <Link href="/skills/projects" className="osrs-btn text-[6.5px] px-3 py-1.5">Start a Project</Link>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {dbProjects.map(p => (
+                  <Link key={p.title} href={p.href} className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-colors hover:opacity-80"
+                    style={{ background: 'rgba(180,120,40,0.18)', border: '1px solid #a07840' }}>
+                    <span className="text-xl shrink-0">{p.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <span className="text-[7px] font-bold truncate" style={{ color: '#2a1006' }}>{p.title}</span>
+                        <span className="text-[6px] font-bold shrink-0" style={{ color: '#6a3808' }}>{p.progress}%</span>
+                      </div>
+                      <div className="prog-bar">
+                        <div className="prog-bar-fill" style={{ width: `${p.progress}%` }} />
+                      </div>
+                      <div className="text-[5.5px] mt-1" style={{ color: '#8a6030' }}>Updated {p.updated}</div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="scroll-roll" />
+        </div>
+
+        {/* Community Feed — col 3, spans both rows */}
+        <div className="cg-feed" style={{ overflow: 'visible' }}>
+          <div className="scroll-roll" />
+          <div className="scroll-parchment" style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 260px)' }}>
             <h2 className="text-[9px] mb-4 flex items-center gap-2" style={{ color: '#3a1e06' }}>
               <span>💬</span> Community Feed
               <span className="ml-auto text-[6px]" style={{ color: '#8a6030' }}>All Communities</span>
@@ -394,8 +355,38 @@ export default async function Home() {
           <div className="scroll-roll" />
         </div>
 
-        {/* XP Guide — scroll */}
-        <div style={{ overflow: 'visible' }}>
+        {/* Achievements — col 1 row 2 */}
+        <div className="cg-achieve" style={{ overflow: 'visible' }}>
+          <div className="scroll-roll" />
+          <div className="scroll-parchment" style={{ padding: '12px 20px' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <span style={{ fontSize: 10 }}>🏆</span>
+              <span className="text-[7px]" style={{ color: '#3a1e06' }}>Achievements</span>
+            </div>
+            {userBadges.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {userBadges.map(key => {
+                  const meta = BADGE_META[key]
+                  return meta ? (
+                    <span key={key} title={meta.label} className="cursor-default select-none"
+                      style={{ fontSize: 22, lineHeight: 1 }}>
+                      {meta.icon}
+                    </span>
+                  ) : null
+                })}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 opacity-50">
+                <span style={{ fontSize: 18 }}>🏆</span>
+                <span className="text-[6px]" style={{ color: '#8a6030' }}>None yet — post &amp; play to earn</span>
+              </div>
+            )}
+          </div>
+          <div className="scroll-roll" />
+        </div>
+
+        {/* How to Earn XP — col 2 row 2 */}
+        <div className="cg-xp" style={{ overflow: 'visible' }}>
           <div className="scroll-roll" />
           <div className="scroll-parchment">
             <h2 className="text-[9px] mb-3 flex items-center gap-2" style={{ color: '#3a1e06' }}>
@@ -420,6 +411,7 @@ export default async function Home() {
           </div>
           <div className="scroll-roll" />
         </div>
+
       </div>
 
     </div>

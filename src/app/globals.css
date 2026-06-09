@@ -337,6 +337,27 @@ a { color: inherit; text-decoration: none; }
   .community-grid { grid-template-columns: 2fr 1fr; }
 }
 
+/* ─── Unified content grid (all 5 sections, no page scroll) ── */
+.content-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 768px) {
+  .content-grid {
+    grid-template-columns: 1fr 1fr 1.5fr;
+    grid-template-areas:
+      "about    projects  feed"
+      "achieve  xpguide   feed";
+    align-items: start;
+  }
+  .cg-about   { grid-area: about; }
+  .cg-projects{ grid-area: projects; }
+  .cg-feed    { grid-area: feed; }
+  .cg-achieve { grid-area: achieve; }
+  .cg-xp      { grid-area: xpguide; }
+}
+
 /* ─── Animations ─────────────────────────────────────────── */
 @keyframes blink {
   0%, 100% { opacity: 1; }
