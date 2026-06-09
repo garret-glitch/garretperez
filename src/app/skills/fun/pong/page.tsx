@@ -1,6 +1,7 @@
 'use client'
 import { useRef, useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
+import GameLeaderboard from '@/components/GameLeaderboard'
 
 const W = 400, H = 280
 const PAD_W = 8, PAD_H = 55
@@ -15,7 +16,10 @@ export default function PongPage() {
   const [sc, setSc] = useState({ p: 0, c: 0 })
   const [result, setResult] = useState<'win' | 'loss'>('win')
   const [xpDone, setXpDone] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
   const keys = useRef({ up: false, dn: false })
+  const resultRef = useRef<'win' | 'loss'>('win')
+  const hasSubmittedScore = useRef(false)
 
   const st = useRef({
     ball: { x: W / 2, y: H / 2, vx: 3, vy: 1.5 },
@@ -24,6 +28,16 @@ export default function PongPage() {
     score: { p: 0, c: 0 },
     alive: false, raf: 0,
   })
+
+  useEffect(() => {
+    if (phase !== 'done' || resultRef.current !== 'win' || hasSubmittedScore.current) return
+    hasSubmittedScore.current = true
+    fetch('/api/minigame/score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ game: 'pong', score: WIN }),
+    }).then(() => setRefreshKey(k => k + 1)).catch(() => {})
+  }, [phase])
 
   const resetBall = (dir: 1 | -1) => {
     const s = st.current
@@ -108,12 +122,12 @@ export default function PongPage() {
 
     if (ball.x < -20) {
       s.score.c++; setSc({ ...s.score })
-      if (s.score.c >= WIN) { s.alive = false; setResult('loss'); setPhase('done'); return }
+      if (s.score.c >= WIN) { s.alive = false; resultRef.current = 'loss'; setResult('loss'); setPhase('done'); return }
       resetBall(-1)
     }
     if (ball.x > W + 20) {
       s.score.p++; setSc({ ...s.score })
-      if (s.score.p >= WIN) { s.alive = false; setResult('win'); setPhase('done'); return }
+      if (s.score.p >= WIN) { s.alive = false; resultRef.current = 'win'; setResult('win'); setPhase('done'); return }
       resetBall(1)
     }
 
@@ -128,6 +142,7 @@ export default function PongPage() {
     s.score = { p: 0, c: 0 }; s.alive = true
     s.ball = { x: W / 2, y: H / 2, vx: 3, vy: 1.5 }
     setSc({ p: 0, c: 0 }); setPhase('play'); setXpDone(false)
+    hasSubmittedScore.current = false
     render()
     s.raf = requestAnimationFrame(loop)
   }, [render, loop])
@@ -203,6 +218,8 @@ export default function PongPage() {
           <p className="mt-2 text-center text-[6px]" style={{ color: 'var(--text-3)' }}>W/S or ↑↓ to move · First to {WIN} wins</p>
         )}
       </div>
+
+      <GameLeaderboard game="pong" scoreLabel="pts" refreshKey={refreshKey} />
 
       <div className="text-center">
         <Link href="/skills/fun" className="text-[7px] hover:opacity-70" style={{ color: 'var(--text-2)' }}>← Back to Fun Zone</Link>

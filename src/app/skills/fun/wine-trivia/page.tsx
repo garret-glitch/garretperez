@@ -1,7 +1,8 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { WINE_QUESTIONS } from '@/lib/trivia-questions'
 import Link from 'next/link'
+import GameLeaderboard from '@/components/GameLeaderboard'
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr]
@@ -19,7 +20,20 @@ export default function WineTriviaPage() {
   const [selected, setSelected] = useState<number | null>(null)
   const [score, setScore] = useState(0)
   const [xpMsg, setXpMsg] = useState('')
+  const [refreshKey, setRefreshKey] = useState(0)
   const hasAwardedXp = useRef(false)
+  const hasSubmittedScore = useRef(false)
+  const finalScoreRef = useRef(0)
+
+  useEffect(() => {
+    if (phase !== 'finished' || hasSubmittedScore.current || finalScoreRef.current < 7) return
+    hasSubmittedScore.current = true
+    fetch('/api/minigame/score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ game: 'wine-trivia', score: finalScoreRef.current }),
+    }).then(() => setRefreshKey(k => k + 1)).catch(() => {})
+  }, [phase])
 
   function startGame() {
     setQuestions(shuffle(WINE_QUESTIONS).slice(0, 10))
@@ -28,6 +42,7 @@ export default function WineTriviaPage() {
     setScore(0)
     setXpMsg('')
     hasAwardedXp.current = false
+    hasSubmittedScore.current = false
     setPhase('playing')
   }
 
@@ -38,6 +53,7 @@ export default function WineTriviaPage() {
     const isCorrect = optionIdx === q.correct
     const newScore = isCorrect ? score + 1 : score
     if (isCorrect) setScore(newScore)
+    finalScoreRef.current = newScore
 
     setTimeout(async () => {
       if (current + 1 >= questions.length) {
@@ -55,6 +71,8 @@ export default function WineTriviaPage() {
     }, 1200)
   }
 
+  const leaderboard = <GameLeaderboard game="wine-trivia" scoreLabel="/ 10" refreshKey={refreshKey} />
+
   if (phase === 'idle') {
     return (
       <div className="space-y-4">
@@ -66,6 +84,7 @@ export default function WineTriviaPage() {
           </p>
           <button onClick={startGame} className="osrs-btn mt-4">Start Quiz</button>
         </div>
+        {leaderboard}
         <Link href="/skills/fun" className="text-[8px] text-[#a0bcd0] hover:underline">
           ← Back to Fun
         </Link>
@@ -89,6 +108,10 @@ export default function WineTriviaPage() {
             <Link href="/skills/fun" className="osrs-btn">← Back</Link>
           </div>
         </div>
+        {leaderboard}
+        <Link href="/skills/fun" className="text-[8px] text-[#a0bcd0] hover:underline">
+          ← Back to Fun
+        </Link>
       </div>
     )
   }
@@ -122,6 +145,7 @@ export default function WineTriviaPage() {
           })}
         </div>
       </div>
+      {leaderboard}
     </div>
   )
 }

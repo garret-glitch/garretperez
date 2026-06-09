@@ -1,6 +1,7 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import GameLeaderboard from '@/components/GameLeaderboard'
 
 const PAIRS = ['🍷', '🍺', '🍸', '🍹', '🥂', '🍾', '🫗', '🧀']
 
@@ -37,7 +38,20 @@ export default function MatchingGamePage() {
   const [locked, setLocked] = useState(false)
   const [won, setWon] = useState(false)
   const [xpMsg, setXpMsg] = useState('')
+  const [refreshKey, setRefreshKey] = useState(0)
   const hasAwardedXp = useRef(false)
+  const hasSubmittedScore = useRef(false)
+  const finalMovesRef = useRef(0)
+
+  useEffect(() => {
+    if (!won || hasSubmittedScore.current) return
+    hasSubmittedScore.current = true
+    fetch('/api/minigame/score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ game: 'matching', score: finalMovesRef.current }),
+    }).then(() => setRefreshKey(k => k + 1)).catch(() => {})
+  }, [won])
 
   function resetGame() {
     setCards(createDeck())
@@ -48,6 +62,7 @@ export default function MatchingGamePage() {
     setWon(false)
     setXpMsg('')
     hasAwardedXp.current = false
+    hasSubmittedScore.current = false
   }
 
   async function handleClick(cardId: number) {
@@ -78,6 +93,7 @@ export default function MatchingGamePage() {
       setLocked(false)
 
       if (newMatches === PAIRS.length) {
+        finalMovesRef.current = moves + 1
         setWon(true)
         if (!hasAwardedXp.current) {
           hasAwardedXp.current = true
@@ -97,6 +113,8 @@ export default function MatchingGamePage() {
     }
   }
 
+  const leaderboard = <GameLeaderboard game="matching" scoreLabel="moves" lowerIsBetter refreshKey={refreshKey} />
+
   if (won) {
     return (
       <div className="space-y-4">
@@ -110,6 +128,10 @@ export default function MatchingGamePage() {
             <Link href="/skills/fun" className="osrs-btn">← Back</Link>
           </div>
         </div>
+        {leaderboard}
+        <Link href="/skills/fun" className="text-[8px] text-[#a0bcd0] hover:underline">
+          ← Back to Fun
+        </Link>
       </div>
     )
   }
@@ -147,6 +169,7 @@ export default function MatchingGamePage() {
 
         <button onClick={resetGame} className="osrs-btn mt-3">Reset</button>
       </div>
+      {leaderboard}
       <Link href="/skills/fun" className="text-[8px] text-[#a0bcd0] hover:underline">
         ← Back to Fun
       </Link>

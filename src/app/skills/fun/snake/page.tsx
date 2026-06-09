@@ -1,6 +1,7 @@
 'use client'
 import { useRef, useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
+import GameLeaderboard from '@/components/GameLeaderboard'
 
 const CELL = 16
 const COLS = 24
@@ -28,6 +29,8 @@ export default function SnakePage() {
   const [phase, setPhase] = useState<'idle' | 'play' | 'dead' | 'win'>('idle')
   const [score, setScore] = useState(0)
   const [xpDone, setXpDone] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
+  const hasSubmittedScore = useRef(false)
   const st = useRef({
     snake: [] as Pt[],
     dir: 'R' as Dir,
@@ -37,6 +40,16 @@ export default function SnakePage() {
     alive: false,
     timer: null as ReturnType<typeof setTimeout> | null,
   })
+
+  useEffect(() => {
+    if (phase !== 'win' || hasSubmittedScore.current) return
+    hasSubmittedScore.current = true
+    fetch('/api/minigame/score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ game: 'snake', score: 10 }),
+    }).then(() => setRefreshKey(k => k + 1)).catch(() => {})
+  }, [phase])
 
   const render = useCallback(() => {
     const canvas = cvs.current; if (!canvas) return
@@ -108,6 +121,7 @@ export default function SnakePage() {
     s.food = rndFood(s.snake)
     s.score = 0; s.alive = true
     setScore(0); setPhase('play'); setXpDone(false)
+    hasSubmittedScore.current = false
     render()
     s.timer = setTimeout(step, TICK)
   }, [render, step])
@@ -183,6 +197,8 @@ export default function SnakePage() {
           <p className="mt-2 text-center text-[6px]" style={{ color: 'var(--text-3)' }}>WASD or Arrow Keys to steer</p>
         )}
       </div>
+
+      <GameLeaderboard game="snake" scoreLabel="coins" refreshKey={refreshKey} />
 
       <div className="text-center">
         <Link href="/skills/fun" className="text-[7px] hover:opacity-70" style={{ color: 'var(--text-2)' }}>← Back to Fun Zone</Link>

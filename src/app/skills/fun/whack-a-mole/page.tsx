@@ -1,6 +1,7 @@
 'use client'
 import { useRef, useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import GameLeaderboard from '@/components/GameLeaderboard'
 
 const GAME_TIME = 30
 const WIN_SCORE = 10
@@ -13,9 +14,11 @@ export default function WhackAMolePage() {
   const [score, setScore] = useState(0)
   const [timeLeft, setTimeLeft] = useState(GAME_TIME)
   const [xpDone, setXpDone] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   const running = useRef(false)
   const scoreRef = useRef(0)
+  const hasSubmittedScore = useRef(false)
   const spawnTimer = useRef<ReturnType<typeof setInterval>>()
   const countdown = useRef<ReturnType<typeof setInterval>>()
 
@@ -28,10 +31,21 @@ export default function WhackAMolePage() {
 
   useEffect(() => stop, [stop])
 
+  useEffect(() => {
+    if (phase !== 'done' || hasSubmittedScore.current || scoreRef.current < WIN_SCORE) return
+    hasSubmittedScore.current = true
+    fetch('/api/minigame/score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ game: 'whack-a-mole', score: scoreRef.current }),
+    }).then(() => setRefreshKey(k => k + 1)).catch(() => {})
+  }, [phase])
+
   const start = useCallback(() => {
     stop()
     scoreRef.current = 0
     running.current = true
+    hasSubmittedScore.current = false
     setScore(0); setTimeLeft(GAME_TIME); setMoles(Array(9).fill(false)); setPhase('play'); setXpDone(false)
 
     spawnTimer.current = setInterval(() => {
@@ -126,6 +140,8 @@ export default function WhackAMolePage() {
           )}
         </div>
       </div>
+
+      <GameLeaderboard game="whack-a-mole" scoreLabel="whacks" refreshKey={refreshKey} />
 
       <div className="text-center">
         <Link href="/skills/fun" className="text-[7px] hover:opacity-70" style={{ color: 'var(--text-2)' }}>

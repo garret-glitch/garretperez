@@ -1,6 +1,7 @@
 'use client'
 import { useRef, useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
+import GameLeaderboard from '@/components/GameLeaderboard'
 
 const W = 400, H = 280
 const BCOLS = 8, BROWS = 4
@@ -27,6 +28,8 @@ export default function BreakoutPage() {
   const [lives, setLives] = useState(3)
   const [score, setScore] = useState(0)
   const [xpDone, setXpDone] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
+  const hasSubmittedScore = useRef(false)
 
   const st = useRef({
     bricks: mkBricks(),
@@ -35,6 +38,16 @@ export default function BreakoutPage() {
     lives: 3, score: 0,
     alive: false, raf: 0,
   })
+
+  useEffect(() => {
+    if (phase !== 'win' || hasSubmittedScore.current) return
+    hasSubmittedScore.current = true
+    fetch('/api/minigame/score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ game: 'breakout', score: BCOLS * BROWS }),
+    }).then(() => setRefreshKey(k => k + 1)).catch(() => {})
+  }, [phase])
 
   const render = useCallback(() => {
     const canvas = cvs.current; if (!canvas) return
@@ -127,6 +140,7 @@ export default function BreakoutPage() {
     s.pad = W / 2 - PAD_W / 2
     s.lives = 3; s.score = 0; s.alive = true
     setLives(3); setScore(0); setPhase('play'); setXpDone(false)
+    hasSubmittedScore.current = false
     render()
     s.raf = requestAnimationFrame(loop)
   }, [render, loop])
@@ -194,6 +208,8 @@ export default function BreakoutPage() {
           <p className="mt-2 text-center text-[6px]" style={{ color: 'var(--text-3)' }}>Move mouse or swipe to control the paddle</p>
         )}
       </div>
+
+      <GameLeaderboard game="breakout" scoreLabel="bricks" refreshKey={refreshKey} />
 
       <div className="text-center">
         <Link href="/skills/fun" className="text-[7px] hover:opacity-70" style={{ color: 'var(--text-2)' }}>← Back to Fun Zone</Link>
