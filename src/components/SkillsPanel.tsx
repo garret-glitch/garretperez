@@ -4,25 +4,22 @@ import { xpToLevel } from '@/lib/xp'
 import { BADGE_META } from '@/lib/badges'
 import Link from 'next/link'
 import SidebarFunGame from './SidebarFunGame'
-import SidebarLogoutButton from './SidebarLogoutButton'
 
 const GUILD_CHANNELS = [
-  { icon: '❤️', label: 'Health',    dbEnum: 'HEALTH',    href: '/skills/health',    sub: 'Wellness & Fitness' },
-  { icon: '⚒️', label: 'Projects',  dbEnum: 'PROJECTS',  href: '/skills/projects',  sub: 'Building & Creating' },
-  { icon: '💼', label: 'Business',  dbEnum: 'BUSINESS',  href: '/skills/business',  sub: 'Wine Sales & Strategy' },
-  { icon: '👥', label: 'Community', dbEnum: 'COMMUNITY', href: '/skills/community', sub: 'Group Discussions' },
-  { icon: '🎣', label: 'Fishing',   dbEnum: 'FISHING',   href: '/skills/fishing',   sub: 'Outdoor Adventures' },
-  { icon: '🍳', label: 'Cooking',   dbEnum: 'FOOD',      href: '/skills/food',      sub: 'Recipes & Pairings' },
-  { icon: '🌱', label: 'Farming',   dbEnum: 'GARDENING', href: '/skills/gardening', sub: 'Garden & Nature' },
-  { icon: '🗺️', label: 'Adventure', dbEnum: 'TRAVEL',    href: '/skills/travel',    sub: 'Adventures & Places' },
+  { icon: '❤️', label: 'Health',    dbEnum: 'HEALTH',    href: '/skills/health' },
+  { icon: '⚒️', label: 'Projects',  dbEnum: 'PROJECTS',  href: '/skills/projects' },
+  { icon: '💼', label: 'Business',  dbEnum: 'BUSINESS',  href: '/skills/business' },
+  { icon: '👥', label: 'Community', dbEnum: 'COMMUNITY', href: '/skills/community' },
+  { icon: '🎣', label: 'Fishing',   dbEnum: 'FISHING',   href: '/skills/fishing' },
+  { icon: '🍳', label: 'Cooking',   dbEnum: 'FOOD',      href: '/skills/food' },
+  { icon: '🌱', label: 'Farming',   dbEnum: 'GARDENING', href: '/skills/gardening' },
+  { icon: '🗺️', label: 'Adventure', dbEnum: 'TRAVEL',    href: '/skills/travel' },
 ]
-
 
 export default async function SkillsPanel() {
   const session = await auth()
   const isAdmin = session?.user?.role === 'ADMIN'
 
-  let totalXp = 0
   let userBadges: string[] = []
   const postCounts: Record<string, number> = {}
   const adminSkillLevels: Record<string, number> = {}
@@ -42,8 +39,6 @@ export default async function SkillsPanel() {
     }
 
     if (session?.user?.id) {
-      const skills = await prisma.userSkill.findMany({ where: { userId: session.user.id } })
-      totalXp = skills.reduce((s, sk) => s + sk.xp, 0)
       const badges = await (prisma as any).userBadge.findMany({
         where: { userId: session.user.id },
         select: { badge: true },
@@ -52,9 +47,6 @@ export default async function SkillsPanel() {
     }
   } catch { /* DB not ready */ }
 
-  const userLevel = xpToLevel(totalXp)
-  const initials = session?.user?.name?.slice(0, 2).toUpperCase() ?? '??'
-
   return (
     <aside className="w-[240px] shrink-0 flex flex-col border-r"
       style={{ borderColor: '#5a3818', background: '#1a0e06', minHeight: '100vh' }}>
@@ -62,95 +54,31 @@ export default async function SkillsPanel() {
       {/* ── Battlements ───────────────────────────────── */}
       <div className="castle-battlements" />
 
-      {/* ── Profile block ─────────────────────────────── */}
-      <div className="px-4 py-4 border-b shrink-0" style={{ borderColor: '#5a3818' }}>
+      {/* ── Admin link (only when admin) ──────────────── */}
+      {isAdmin && (
+        <div className="px-3 py-1.5 border-b shrink-0" style={{ borderColor: '#5a3818' }}>
+          <Link href="/admin"
+            className="flex items-center justify-center gap-1 w-full py-1.5 rounded-lg text-[6px] transition-opacity hover:opacity-80"
+            style={{ background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.3)', color: '#c89b3c' }}>
+            ⚙ Admin Panel
+          </Link>
+        </div>
+      )}
 
-        {session?.user ? (
-          <>
-            {/* Logged-in: show user avatar + name + XP */}
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center text-xs font-bold shrink-0"
-                style={{ background: '#2a1808', border: '1px solid #6a4018', color: '#c89b3c' }}>
-                {initials}
-              </div>
-              <div>
-                <div className="text-[8px] font-bold" style={{ color: '#f0d898' }}>{session.user.name}</div>
-                <div className="text-[6px] mt-0.5" style={{ color: '#c89b3c' }}>Lv {userLevel} · {totalXp.toLocaleString()} XP</div>
-              </div>
-            </div>
-
-            <div className="flex gap-1.5 mb-2">
-              <Link href="/"
-                className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[6.5px] font-bold transition-opacity hover:opacity-85"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(200,155,60,0.2) 0%, rgba(200,155,60,0.08) 100%)',
-                  border: '1px solid rgba(200,155,60,0.45)',
-                  color: 'var(--gold)',
-                }}>
-                <span>🏠</span><span>Home</span>
-              </Link>
-              <SidebarLogoutButton />
-            </div>
-
-            {isAdmin && (
-              <Link href="/admin"
-                className="flex items-center justify-center gap-1 w-full py-1.5 rounded-lg text-[6px] transition-opacity hover:opacity-80"
-                style={{ background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.3)', color: 'var(--gold)' }}>
-                ⚙ Admin Panel
-              </Link>
-            )}
-          </>
-        ) : (
-          <>
-            {/* Logged-out: login box */}
-            <div className="rounded-xl p-3 mb-2"
-              style={{
-                background: 'linear-gradient(135deg, rgba(200,155,60,0.12) 0%, rgba(200,155,60,0.05) 100%)',
-                border: '1px solid rgba(200,155,60,0.35)',
-              }}>
-              <div className="text-[7px] font-bold mb-1" style={{ color: '#c89b3c' }}>⚔ Welcome, Adventurer</div>
-              <div className="text-[6px] mb-3 leading-relaxed" style={{ color: '#c8a870' }}>
-                Log in to earn XP, post in channels, and track your progress.
-              </div>
-              <div className="flex gap-1.5">
-                <Link href="/login" className="osrs-btn flex-1 text-[6.5px] py-1.5 text-center block">Login</Link>
-                <Link href="/register" className="flex-1 flex items-center justify-center py-1.5 rounded-lg text-[6.5px] transition-opacity hover:opacity-80"
-                  style={{ background: '#2a1808', border: '1px solid #6a4018', color: '#c8a870' }}>
-                  Join
-                </Link>
-              </div>
-            </div>
-
-            <Link href="/"
-              className="flex items-center justify-center gap-1 w-full py-1.5 rounded-lg text-[6.5px] font-bold transition-opacity hover:opacity-85"
-              style={{
-                background: 'linear-gradient(135deg, rgba(200,155,60,0.2) 0%, rgba(200,155,60,0.08) 100%)',
-                border: '1px solid rgba(200,155,60,0.45)',
-                color: 'var(--gold)',
-              }}>
-              <span>🏠</span><span>Home</span>
-            </Link>
-          </>
-        )}
-      </div>
-
-      {/* ── Middle: channels + fun zone ───────────────── */}
+      {/* ── Channels + fun zone ───────────────────────── */}
       <div className="flex-1 flex flex-col min-h-0">
         <div className="py-2 shrink-0">
           <div className="px-4 pb-1.5 pt-1">
             <span className="text-[6px] uppercase tracking-widest" style={{ color: '#a07848' }}>⚔ Communities</span>
           </div>
 
-          {/* Quests — special channel entry (no XP level) */}
+          {/* Quests */}
           <Link href="/quest-board" className="guild-channel">
             <span className="text-base shrink-0 w-6 text-center">📋</span>
             <div className="flex-1 min-w-0">
               <div className="text-[7px] truncate" style={{ color: '#f0d898' }}>Quests</div>
-              <div className="text-[5.5px] truncate" style={{ color: '#a07848' }}>Active Quest Log</div>
             </div>
-            <div className="text-right shrink-0">
-              <div className="text-[6px] font-bold" style={{ color: '#c89b3c' }}>4</div>
-            </div>
+            <div className="text-[6px] font-bold" style={{ color: '#c89b3c' }}>4</div>
           </Link>
 
           {/* Skill channels */}
@@ -159,7 +87,6 @@ export default async function SkillsPanel() {
               <span className="text-base shrink-0 w-6 text-center">{ch.icon}</span>
               <div className="flex-1 min-w-0">
                 <div className="text-[7px] truncate" style={{ color: '#f0d898' }}>{ch.label}</div>
-                <div className="text-[5.5px] truncate" style={{ color: '#a07848' }}>{ch.sub}</div>
               </div>
               <div className="text-right shrink-0">
                 <div className="text-[6px] font-bold" style={{ color: '#c89b3c' }}>{adminSkillLevels[ch.dbEnum] ?? 1}</div>
@@ -175,7 +102,7 @@ export default async function SkillsPanel() {
         <SidebarFunGame />
       </div>
 
-      {/* ── Badges — only when logged in ──────────── */}
+      {/* ── Badges — only when logged in ──────────────── */}
       {session?.user && userBadges.length > 0 && (
         <div className="px-3 py-2 border-t shrink-0" style={{ borderColor: '#5a3818' }}>
           <div className="flex flex-wrap gap-1">
