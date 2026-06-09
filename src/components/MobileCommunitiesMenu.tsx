@@ -2,6 +2,12 @@
 import { useState } from 'react'
 import Link from 'next/link'
 
+const NAV = [
+  { icon: '🏠', label: 'Home',      href: '/' },
+  { icon: '📋', label: 'Quests',    href: '/quest-board' },
+  { icon: '📄', label: 'Resume',    href: '/resume' },
+]
+
 const COMMUNITIES = [
   { icon: '❤️', label: 'Health',    href: '/skills/health' },
   { icon: '⚒️', label: 'Projects',  href: '/skills/projects' },
@@ -14,96 +20,107 @@ const COMMUNITIES = [
   { icon: '🎮', label: 'Fun Zone',  href: '/skills/fun' },
 ]
 
-const NAV = [
-  { icon: '📋', label: 'Quests',  href: '/quest-board' },
-  { icon: '📄', label: 'Resume',  href: '/resume' },
-]
+const ROW: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: 16,
+  padding: '14px 24px', minHeight: 54,
+  color: '#e2e2f2',
+  fontFamily: 'Inter, system-ui, sans-serif',
+  fontSize: 18, fontWeight: 500,
+  textDecoration: 'none',
+}
+
+const SECTION_LABEL: React.CSSProperties = {
+  padding: '14px 24px 6px',
+  color: '#8888a8',
+  fontFamily: 'Inter, system-ui, sans-serif',
+  fontSize: 12, fontWeight: 700,
+  letterSpacing: '0.09em',
+  textTransform: 'uppercase',
+}
 
 export default function MobileCommunitiesMenu({ isAdmin }: { isAdmin?: boolean }) {
   const [open, setOpen] = useState(false)
 
   return (
-    <div className="relative md:hidden">
+    <div className="md:hidden">
+      {/* Hamburger button */}
       <button
-        onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-2 shrink-0 rounded-xl"
+        onClick={() => setOpen(true)}
         style={{
-          background: open ? 'rgba(200,155,60,0.22)' : 'rgba(200,155,60,0.1)',
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '10px 16px', minHeight: 44,
+          background: 'rgba(200,155,60,0.1)',
           border: '1px solid rgba(200,155,60,0.4)',
-          color: 'var(--gold)',
-          padding: '10px 16px',
-          minHeight: 44,
+          borderRadius: 10,
+          color: '#c89b3c',
           fontFamily: 'Inter, system-ui, sans-serif',
-          fontSize: 15,
-          fontWeight: 600,
-          letterSpacing: '0.01em',
+          fontSize: 15, fontWeight: 600,
+          cursor: 'pointer',
         }}
-        aria-expanded={open}
       >
         <span style={{ fontSize: 20, lineHeight: 1 }}>☰</span>
         <span>Menu</span>
       </button>
 
+      {/* Full-screen overlay */}
       {open && (
-        <>
-          {/* Tap-outside backdrop */}
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 200,
+          background: '#0d0d14',
+          overflowY: 'auto',
+          display: 'flex', flexDirection: 'column',
+        }}>
+          {/* Overlay header */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '14px 20px',
+            borderBottom: '1px solid #2a2418',
+            position: 'sticky', top: 0, background: '#0d0d14', zIndex: 1,
+          }}>
+            <span style={{ color: '#c89b3c', fontFamily: 'Inter', fontSize: 17, fontWeight: 700 }}>
+              Navigation
+            </span>
+            <button
+              onClick={() => setOpen(false)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '8px 16px', minHeight: 40,
+                background: '#1a1a28', border: '1px solid #2a2a3e', borderRadius: 8,
+                color: '#e2e2f2', fontFamily: 'Inter', fontSize: 14, fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              ✕ Close
+            </button>
+          </div>
 
-          {/* Dropdown panel — fixed + centered on screen */}
-          <div
-            className="fixed z-50 rounded-xl"
-            style={{
-              top: 62,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              background: '#1a1a28',
-              border: '1px solid rgba(200,155,60,0.25)',
-              width: 260,
-              maxWidth: '92vw',
-              maxHeight: '80vh',
-              overflowY: 'auto',
-              boxShadow: '0 16px 40px rgba(0,0,0,0.8)',
-            }}
-          >
-            {/* Section: Navigate */}
-            <div className="px-4 pt-4 pb-2">
-              <span style={{ color: 'var(--text-2)', fontSize: 11, fontFamily: 'Inter, system-ui, sans-serif', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Navigate</span>
-            </div>
+          {/* Menu content */}
+          <div>
+            <div style={SECTION_LABEL}>Pages</div>
             {NAV.map(item => (
-              <Link key={item.href} href={item.href} onClick={() => setOpen(false)}
-                className="flex items-center gap-3 px-4 active:bg-[rgba(200,155,60,0.15)]"
-                style={{ color: '#e2e2f2', fontFamily: 'Inter, system-ui, sans-serif', fontSize: 16, fontWeight: 500, minHeight: 48, display: 'flex', alignItems: 'center' }}>
-                <span style={{ fontSize: 20, width: 28, textAlign: 'center' }}>{item.icon}</span>
-                <span>{item.label}</span>
+              <Link key={item.href} href={item.href} onClick={() => setOpen(false)} style={ROW}>
+                <span style={{ fontSize: 22, width: 34, textAlign: 'center' }}>{item.icon}</span>
+                {item.label}
               </Link>
             ))}
             {isAdmin && (
-              <Link href="/admin" onClick={() => setOpen(false)}
-                className="flex items-center gap-3 px-4 active:bg-[rgba(200,155,60,0.15)]"
-                style={{ color: '#c89b3c', fontFamily: 'Inter, system-ui, sans-serif', fontSize: 16, fontWeight: 500, minHeight: 48, display: 'flex', alignItems: 'center' }}>
-                <span style={{ fontSize: 20, width: 28, textAlign: 'center' }}>⚙️</span>
-                <span>Admin Panel</span>
+              <Link href="/admin" onClick={() => setOpen(false)} style={{ ...ROW, color: '#c89b3c' }}>
+                <span style={{ fontSize: 22, width: 34, textAlign: 'center' }}>⚙️</span>
+                Admin Panel
               </Link>
             )}
 
-            {/* Divider */}
-            <div style={{ height: 1, background: 'rgba(200,155,60,0.15)', margin: '6px 16px' }} />
+            <div style={{ height: 1, background: '#2a2418', margin: '8px 24px' }} />
 
-            {/* Section: Communities */}
-            <div className="px-4 pt-2 pb-2">
-              <span style={{ color: 'var(--text-2)', fontSize: 11, fontFamily: 'Inter, system-ui, sans-serif', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>⚔ Communities</span>
-            </div>
+            <div style={SECTION_LABEL}>⚔ Communities</div>
             {COMMUNITIES.map(ch => (
-              <Link key={ch.href} href={ch.href} onClick={() => setOpen(false)}
-                className="flex items-center gap-3 px-4 active:bg-[rgba(200,155,60,0.15)]"
-                style={{ color: '#e2e2f2', fontFamily: 'Inter, system-ui, sans-serif', fontSize: 16, fontWeight: 500, minHeight: 48, display: 'flex', alignItems: 'center' }}>
-                <span style={{ fontSize: 20, width: 28, textAlign: 'center' }}>{ch.icon}</span>
-                <span>{ch.label}</span>
+              <Link key={ch.href} href={ch.href} onClick={() => setOpen(false)} style={ROW}>
+                <span style={{ fontSize: 22, width: 34, textAlign: 'center' }}>{ch.icon}</span>
+                {ch.label}
               </Link>
             ))}
-            <div style={{ height: 8 }} />
           </div>
-        </>
+        </div>
       )}
     </div>
   )
