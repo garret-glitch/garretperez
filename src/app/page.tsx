@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { xpToLevel, xpProgress } from '@/lib/xp'
 import AccountShield from '@/components/AccountShield'
 import HomepageSections, { type SectionConfig, type ProjectRow } from '@/components/HomepageSections'
-import Link from 'next/link'
+
 
 export const dynamic = 'force-dynamic'
 
