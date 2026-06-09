@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { getSkillByEnum } from '@/lib/skills'
 import { BADGE_META } from '@/lib/badges'
@@ -7,7 +7,9 @@ import { BADGE_META } from '@/lib/badges'
 export type SectionConfig = {
   id: string; heading: string; icon: string
   headingPx: number; bodyPx: number
-  padding: 'compact' | 'normal' | 'spacious' | 'tall'; visible: boolean
+  padding: 'compact' | 'normal' | 'spacious' | 'tall'
+  minHeight: number   // 0 = auto
+  visible: boolean
 }
 export type ProjectRow = { id: string; icon: string; title: string; desc: string; progress: number; href: string; updated: string }
 export type PostRow = {
@@ -28,26 +30,18 @@ interface Props {
 }
 
 const DEFAULT_SECTIONS: SectionConfig[] = [
-  { id: 'about',    heading: 'About Me',       icon: '📜', headingPx: 9,  bodyPx: 12, padding: 'normal',  visible: true },
-  { id: 'projects', heading: 'My Projects',    icon: '⚒️', headingPx: 9,  bodyPx: 12, padding: 'normal',  visible: true },
-  { id: 'feed',     heading: 'Community Feed', icon: '💬', headingPx: 9,  bodyPx: 12, padding: 'normal',  visible: true },
-  { id: 'achieve',  heading: 'Achievements',   icon: '🏆', headingPx: 7,  bodyPx: 10, padding: 'compact', visible: true },
-  { id: 'xp',       heading: 'How to Earn XP', icon: '⚡', headingPx: 9,  bodyPx: 10, padding: 'normal',  visible: true },
+  { id: 'about',    heading: 'About Me',       icon: '📜', headingPx: 9,  bodyPx: 12, padding: 'normal',  minHeight: 0, visible: true },
+  { id: 'projects', heading: 'My Projects',    icon: '⚒️', headingPx: 9,  bodyPx: 12, padding: 'normal',  minHeight: 0, visible: true },
+  { id: 'feed',     heading: 'Community Feed', icon: '💬', headingPx: 9,  bodyPx: 12, padding: 'normal',  minHeight: 0, visible: true },
+  { id: 'achieve',  heading: 'Achievements',   icon: '🏆', headingPx: 7,  bodyPx: 10, padding: 'compact', minHeight: 0, visible: true },
+  { id: 'xp',       heading: 'How to Earn XP', icon: '⚡', headingPx: 9,  bodyPx: 10, padding: 'normal',  minHeight: 0, visible: true },
 ]
-const PADDING_STYLE: Record<string, React.CSSProperties> = {
-  compact:  { padding: '10px 16px' },
-  normal:   { padding: '20px 24px' },
-  spacious: { padding: '32px 28px', minHeight: 230 },
-  tall:     { padding: '20px 24px', minHeight: 420 },
+const PADDING_PAD: Record<string, string> = {
+  compact: '10px 16px', normal: '20px 24px',
+  spacious: '32px 28px', tall: '20px 24px',
 }
 const HEADING_SIZES = [7, 9, 11, 13, 16, 20, 24]
 const BODY_SIZES    = [10, 12, 14, 16, 18]
-const PADDING_OPTS  = [
-  { value: 'compact',  label: 'Compact',  sym: '▬' },
-  { value: 'normal',   label: 'Normal',   sym: '▭' },
-  { value: 'spacious', label: 'Spacious', sym: '▯' },
-  { value: 'tall',     label: 'Tall',     sym: '▱' },
-] as const
 
 function timeAgo(dateStr: string) {
   const mins = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000)
@@ -56,17 +50,37 @@ function timeAgo(dateStr: string) {
   return `${Math.floor(mins / 1440)}d ago`
 }
 
-/* ─── Section wrapper — defined at module scope so React doesn't remount on state changes ─── */
+/* ─── Section wrapper — module scope so React never remounts on state changes ─── */
 interface WrapProps {
   id: string; heading: string; editMode: boolean
   selected: string | null; onSelect: (id: string) => void
+  onResize: (id: string, h: number) => void
   children: React.ReactNode
 }
-function SectionWrap({ id, heading, editMode, selected, onSelect, children }: WrapProps) {
+function SectionWrap({ id, heading, editMode, selected, onSelect, onResize, children }: WrapProps) {
+  const wrapRef = useRef<HTMLDivElement>(null)
+
+  const startDrag = (e: React.MouseEvent) => {
+    e.preventDefault(); e.stopPropagation()
+    const startY = e.clientY
+    const startH = wrapRef.current?.offsetHeight ?? 200
+
+    const onMove = (ev: MouseEvent) => {
+      const newH = Math.max(80, startH + (ev.clientY - startY))
+      onResize(id, newH)
+    }
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+    }
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }
+
   if (!editMode) return <>{children}</>
   const active = selected === id
   return (
-    <div
+    <div ref={wrapRef}
       onClick={e => { e.stopPropagation(); onSelect(id) }}
       style={{
         position: 'relative', cursor: 'pointer', borderRadius: 6,
@@ -74,6 +88,7 @@ function SectionWrap({ id, heading, editMode, selected, onSelect, children }: Wr
         outlineOffset: 3, transition: 'outline 0.12s',
       }}
     >
+      {/* Section label tag */}
       <div style={{
         position: 'absolute', top: -11, left: 8, zIndex: 10, pointerEvents: 'none',
         background: active ? 'var(--gold)' : '#1a1a28',
@@ -83,7 +98,28 @@ function SectionWrap({ id, heading, editMode, selected, onSelect, children }: Wr
       }}>
         ✏ {heading}
       </div>
+
       {children}
+
+      {/* Drag-to-resize handle at bottom */}
+      <div
+        onMouseDown={startDrag}
+        onClick={e => e.stopPropagation()}
+        title="Drag to resize panel"
+        style={{
+          position: 'absolute', bottom: -8, left: '20%', right: '20%',
+          height: 16, zIndex: 20, cursor: 'ns-resize',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: active ? 'var(--gold)' : 'rgba(200,155,60,0.35)',
+          borderRadius: 8, border: '1px solid var(--gold)',
+          transition: 'background 0.15s',
+          userSelect: 'none',
+        }}
+      >
+        <span style={{ fontSize: 9, color: active ? '#000' : 'var(--gold)', lineHeight: 1, letterSpacing: 2 }}>
+          ⣿
+        </span>
+      </div>
     </div>
   )
 }
@@ -111,15 +147,23 @@ export default function HomepageSections({
       .catch(() => {})
   }, [])
 
-  const sec = (id: string): SectionConfig =>
-    layout.find(s => s.id === id) ?? DEFAULT_SECTIONS.find(s => s.id === id)!
-  const pSty = (id: string): React.CSSProperties =>
-    PADDING_STYLE[sec(id).padding] ?? PADDING_STYLE.normal
+  const sec = (id: string): SectionConfig => {
+    const s = layout.find(s => s.id === id) ?? DEFAULT_SECTIONS.find(s => s.id === id)!
+    return { minHeight: 0, ...s }
+  }
+  const pSty = (id: string): React.CSSProperties => {
+    const s = sec(id)
+    const pad = PADDING_PAD[s.padding] ?? '20px 24px'
+    return s.minHeight > 0 ? { padding: pad, minHeight: s.minHeight } : { padding: pad }
+  }
   const update = (id: string, patch: Partial<SectionConfig>) =>
     setLayout(prev => prev.map(s => s.id === id ? { ...s, ...patch } : s))
 
   const handleSelect = (id: string) =>
     setSelected(prev => prev === id ? null : id)
+
+  const handleResize = (id: string, h: number) =>
+    update(id, { minHeight: h })
 
   const save = async () => {
     setSaving(true)
@@ -255,23 +299,34 @@ export default function HomepageSections({
               </div>
             </div>
 
-            {/* Section height */}
+            {/* Panel height */}
             <div>
-              <label style={LBL}>Section Height</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 6 }}>
-                {PADDING_OPTS.map(opt => (
-                  <button key={opt.value} onClick={() => update(selSec.id, { padding: opt.value })}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+                <label style={LBL}>Panel Height</label>
+                <span style={{ fontSize: 7, color: 'var(--gold)', fontWeight: 700 }}>
+                  {selSec.minHeight > 0 ? `${selSec.minHeight}px` : 'Auto'}
+                </span>
+              </div>
+              <input type="range" min={0} max={700} step={10}
+                value={selSec.minHeight}
+                onChange={e => update(selSec.id, { minHeight: +e.target.value })}
+                style={{ width: '100%', accentColor: 'var(--gold)', marginBottom: 6 }} />
+              <div style={{ display: 'flex', gap: 4 }}>
+                {[0, 150, 250, 400, 600].map(h => (
+                  <button key={h} onClick={() => update(selSec.id, { minHeight: h })}
                     style={{
-                      padding: '8px 4px', borderRadius: 8, cursor: 'pointer', textAlign: 'center',
-                      background: selSec.padding === opt.value ? 'rgba(200,155,60,0.15)' : 'var(--bg-elevated)',
-                      border: `2px solid ${selSec.padding === opt.value ? 'var(--gold)' : 'var(--border)'}`,
-                      color: selSec.padding === opt.value ? 'var(--gold)' : 'var(--text-2)',
+                      flex: 1, padding: '4px 2px', borderRadius: 5, cursor: 'pointer', fontSize: 5.5,
+                      background: selSec.minHeight === h ? 'var(--gold)' : 'var(--bg-elevated)',
+                      color: selSec.minHeight === h ? '#000' : 'var(--text-2)',
+                      border: '1px solid var(--border)', fontWeight: selSec.minHeight === h ? 700 : 400,
                     }}>
-                    <div style={{ fontSize: 13 }}>{opt.sym}</div>
-                    <div style={{ fontSize: 6, fontWeight: 600, marginTop: 2 }}>{opt.label}</div>
+                    {h === 0 ? 'Auto' : `${h}`}
                   </button>
                 ))}
               </div>
+              <p style={{ fontSize: 5.5, color: 'var(--text-3)', marginTop: 5 }}>
+                Or drag the ⣿ handle at the bottom of the panel
+              </p>
             </div>
 
             {/* Visibility */}
@@ -314,7 +369,7 @@ export default function HomepageSections({
         {/* About Me */}
         {sec('about').visible && (
           <div className="cg-about" style={{ overflow: 'visible' }}>
-            <SectionWrap id="about" heading={sec('about').heading} editMode={editMode} selected={selected} onSelect={handleSelect}>
+            <SectionWrap id="about" heading={sec('about').heading} editMode={editMode} selected={selected} onSelect={handleSelect} onResize={handleResize}>
               <div className="scroll-roll" />
               <div className="scroll-parchment" style={pSty('about')}>
                 <h2 className="mb-3 flex items-center gap-2" style={{ fontSize: sec('about').headingPx, color: '#3a1e06' }}>
@@ -353,7 +408,7 @@ export default function HomepageSections({
         {/* My Projects */}
         {sec('projects').visible && (
           <div className="cg-projects" style={{ overflow: 'visible' }}>
-            <SectionWrap id="projects" heading={sec('projects').heading} editMode={editMode} selected={selected} onSelect={handleSelect}>
+            <SectionWrap id="projects" heading={sec('projects').heading} editMode={editMode} selected={selected} onSelect={handleSelect} onResize={handleResize}>
               <div className="scroll-roll" />
               <div className="scroll-parchment" style={pSty('projects')}>
                 <div className="flex items-center justify-between mb-4">
@@ -403,7 +458,7 @@ export default function HomepageSections({
         {/* Community Feed */}
         {sec('feed').visible && (
           <div className="cg-feed" style={{ overflow: 'visible' }}>
-            <SectionWrap id="feed" heading={sec('feed').heading} editMode={editMode} selected={selected} onSelect={handleSelect}>
+            <SectionWrap id="feed" heading={sec('feed').heading} editMode={editMode} selected={selected} onSelect={handleSelect} onResize={handleResize}>
               <div className="scroll-roll" />
               <div className="scroll-parchment" style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 260px)' }}>
                 <h2 className="mb-4 flex items-center gap-2" style={{ fontSize: sec('feed').headingPx, color: '#3a1e06' }}>
@@ -464,7 +519,7 @@ export default function HomepageSections({
         {/* Achievements */}
         {sec('achieve').visible && (
           <div className="cg-achieve" style={{ overflow: 'visible' }}>
-            <SectionWrap id="achieve" heading={sec('achieve').heading} editMode={editMode} selected={selected} onSelect={handleSelect}>
+            <SectionWrap id="achieve" heading={sec('achieve').heading} editMode={editMode} selected={selected} onSelect={handleSelect} onResize={handleResize}>
               <div className="scroll-roll" />
               <div className="scroll-parchment" style={pSty('achieve')}>
                 <div className="flex items-center gap-2 mb-2">
@@ -493,7 +548,7 @@ export default function HomepageSections({
         {/* How to Earn XP */}
         {sec('xp').visible && (
           <div className="cg-xp" style={{ overflow: 'visible' }}>
-            <SectionWrap id="xp" heading={sec('xp').heading} editMode={editMode} selected={selected} onSelect={handleSelect}>
+            <SectionWrap id="xp" heading={sec('xp').heading} editMode={editMode} selected={selected} onSelect={handleSelect} onResize={handleResize}>
               <div className="scroll-roll" />
               <div className="scroll-parchment" style={pSty('xp')}>
                 <h2 className="mb-3 flex items-center gap-2" style={{ fontSize: sec('xp').headingPx, color: '#3a1e06' }}>
