@@ -241,7 +241,6 @@ export default function SidebarFunGame() {
         <span className="text-base shrink-0">🎮</span>
         <div className="flex-1 min-w-0">
           <div className="text-[7px] font-bold" style={{ color: 'var(--text-1)' }}>Games &amp; Entertainment</div>
-          <div className="text-[5.5px]" style={{ color: 'var(--text-3)' }}>Mini-games &amp; more</div>
         </div>
         <div className="shrink-0 text-right">
           <div className="text-[6px] font-bold" style={{ color: 'var(--gold)' }}>88</div>
