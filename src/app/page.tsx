@@ -94,52 +94,45 @@ export default async function Home() {
         <div className="hero-panel flex-1 min-w-0">
           <div className="flex flex-col gap-4 sm:flex-row sm:gap-5">
 
-            {/* Row on mobile: photo + name side-by-side */}
-            <div className="flex gap-4 items-center sm:block sm:shrink-0">
-              <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-xl overflow-hidden flex items-center justify-center text-2xl font-bold shrink-0"
+            {/* Photo — square */}
+            <div className="shrink-0">
+              <div className="w-24 h-24 sm:w-28 sm:h-28 overflow-hidden flex items-center justify-center text-2xl font-bold"
                 style={{ border: '2px solid var(--border-lit)', background: 'var(--bg-page)', color: 'var(--gold)' }}>
                 {headshot
                   ? <img src={headshot} alt="Garret Perez" className="w-full h-full object-cover" />
                   : 'GP'}
               </div>
-              {/* Name + level: shown next to photo on mobile only */}
-              <div className="sm:hidden min-w-0">
-                <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <h1 className="text-[12px] leading-tight" style={{ color: 'var(--text-1)' }}>Garret Perez</h1>
-                  <span className="text-[7px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(200,155,60,0.15)', color: 'var(--gold)', border: '1px solid rgba(200,155,60,0.3)' }}>
-                    ⚔ Lv {garretTotalLevel}
-                  </span>
-                </div>
-                <div className="body-text text-[12px] font-semibold" style={{ color: 'var(--text-1)' }}>
-                  Sales · Builder · Family Man
-                </div>
-                <div className="body-text text-[12px]" style={{ color: 'var(--text-2)' }}>📍 Houston, TX</div>
-              </div>
             </div>
 
             {/* Main info */}
             <div className="flex-1 min-w-0">
-              <div className="hidden sm:flex items-center gap-3 flex-wrap mb-1">
-                <h1 className="text-[14px] leading-tight" style={{ color: 'var(--text-1)' }}>Garret Perez</h1>
-                <span className="text-[7px] px-2 py-0.5 rounded" style={{ background: 'rgba(200,155,60,0.15)', color: 'var(--gold)', border: '1px solid rgba(200,155,60,0.3)' }}>
+              {/* Name row */}
+              <div className="flex items-center gap-3 flex-wrap mb-1">
+                <h1 style={{
+                  fontSize: 22, lineHeight: 1.1, color: 'var(--text-1)',
+                  textShadow: '0 0 18px rgba(200,155,60,0.45), 1px 1px 3px rgba(0,0,0,0.9)',
+                  letterSpacing: '0.02em',
+                }}>Garret Perez</h1>
+                <span className="text-[7px] px-2 py-0.5" style={{ background: 'rgba(200,155,60,0.15)', color: 'var(--gold)', border: '1px solid rgba(200,155,60,0.35)' }}>
                   ⚔ Level {garretTotalLevel}
                 </span>
               </div>
-              <div className="hidden sm:block body-text text-[13px] font-semibold mb-0.5" style={{ color: 'var(--text-1)' }}>
+
+              <div className="body-text text-[13px] font-semibold mb-0.5" style={{ color: 'var(--text-1)' }}>
                 Sales Supervisor · Builder · Family Man
               </div>
-              <div className="hidden sm:block body-text text-[12px] mb-2" style={{ color: 'var(--text-2)' }}>
+              <div className="body-text text-[12px] mb-3" style={{ color: 'var(--text-2)' }}>
                 📍 Houston, TX
               </div>
 
-              {/* Stat chips */}
+              {/* Stat chips — square */}
               <div className="flex gap-2 mb-2">
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg"
+                <div className="flex items-center gap-1.5 px-2.5 py-1"
                   style={{ background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.22)' }}>
                   <span className="text-[11px] font-bold" style={{ color: 'var(--gold)' }}>{totalUsers}</span>
                   <span className="body-text text-[11px]" style={{ color: 'var(--text-2)' }}>Members</span>
                 </div>
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg"
+                <div className="flex items-center gap-1.5 px-2.5 py-1"
                   style={{ background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.22)' }}>
                   <span className="text-[11px] font-bold" style={{ color: 'var(--gold)' }}>{totalPosts}</span>
                   <span className="body-text text-[11px]" style={{ color: 'var(--text-2)' }}>Posts</span>
@@ -157,8 +150,8 @@ export default async function Home() {
               </div>
             </div>
 
-            {/* Contact panel */}
-            <div className="flex flex-col sm:shrink-0 overflow-hidden" style={{ background: 'rgba(0,0,0,0.22)', border: '1px solid rgba(200,155,60,0.18)', borderRadius: 6, minWidth: 170 }}>
+            {/* Contact panel — square */}
+            <div className="flex flex-col sm:shrink-0 overflow-hidden" style={{ background: 'rgba(0,0,0,0.22)', border: '1px solid rgba(200,155,60,0.22)', minWidth: 170 }}>
               <div className="px-3 py-2 border-b shrink-0" style={{ borderColor: 'rgba(200,155,60,0.15)' }}>
                 <span className="text-[6px] uppercase tracking-widest" style={{ color: '#a07848' }}>⚔ Contact</span>
               </div>
@@ -166,7 +159,7 @@ export default async function Home() {
                 <a href="tel:346-604-1635"
                   className="flex items-center gap-2.5 px-3 py-2.5 transition-colors hover:bg-white/5">
                   <span className="shrink-0 flex items-center justify-center text-sm"
-                    style={{ width: 26, height: 26, background: '#2a1a0a', borderRadius: 7 }}>📞</span>
+                    style={{ width: 26, height: 26, background: '#2a1a0a', borderRadius: 2 }}>📞</span>
                   <div>
                     <div style={{ fontSize: 5, color: '#a07848', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Phone</div>
                     <div style={{ fontSize: 7, color: '#f0d898' }}>(346) 604-1635</div>
@@ -175,7 +168,7 @@ export default async function Home() {
                 <a href="mailto:gis.owner@gmail.com"
                   className="flex items-center gap-2.5 px-3 py-2.5 transition-colors hover:bg-white/5">
                   <span className="shrink-0 flex items-center justify-center text-sm"
-                    style={{ width: 26, height: 26, background: '#1a2a1a', borderRadius: 7 }}>✉️</span>
+                    style={{ width: 26, height: 26, background: '#1a2a1a', borderRadius: 2 }}>✉️</span>
                   <div>
                     <div style={{ fontSize: 5, color: '#a07848', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Email</div>
                     <div style={{ fontSize: 7, color: '#f0d898' }}>gis.owner@gmail.com</div>
@@ -184,7 +177,7 @@ export default async function Home() {
                 <a href="https://www.linkedin.com/in/garretperez" target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-2.5 px-3 py-2.5 transition-colors hover:bg-white/5">
                   <span className="shrink-0 flex items-center justify-center text-sm"
-                    style={{ width: 26, height: 26, background: '#1a1a3a', borderRadius: 7 }}>🔗</span>
+                    style={{ width: 26, height: 26, background: '#1a1a3a', borderRadius: 2 }}>🔗</span>
                   <div>
                     <div style={{ fontSize: 5, color: '#a07848', textTransform: 'uppercase', letterSpacing: '0.08em' }}>LinkedIn</div>
                     <div style={{ fontSize: 7, color: '#f0d898' }}>garretperez</div>
