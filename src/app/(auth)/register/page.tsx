@@ -78,6 +78,12 @@ export default function RegisterPage() {
               Login here
             </Link>
           </p>
+          <p className="text-[7px] text-center" style={{ color: 'var(--text-3)' }}>
+            By registering you agree to our{' '}
+            <Link href="/privacy" className="hover:underline" style={{ color: 'var(--text-2)' }}>
+              Privacy Policy
+            </Link>
+          </p>
         </form>
       </div>
     </div>
