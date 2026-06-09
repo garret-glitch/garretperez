@@ -1,14 +1,11 @@
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { getSkillByEnum } from '@/lib/skills'
-import { BADGE_META } from '@/lib/badges'
 import { xpToLevel, xpProgress } from '@/lib/xp'
 import AccountShield from '@/components/AccountShield'
+import HomepageSections, { type SectionConfig, type ProjectRow } from '@/components/HomepageSections'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
-
-type ProjectRow = { id: string; icon: string; title: string; desc: string; progress: number; href: string; updated: string }
 
 export default async function Home() {
   const session = await auth()
@@ -40,25 +37,7 @@ export default async function Home() {
   let bio2 = "Outside of work I'm a builder, gardener, fisherman, and father. Whether I'm fixing something around the house, growing vegetables in the backyard, or teaching my kids to cast a line, I'm always working with my hands on something that matters."
   let bio3 = "This site is my personal hub — a place to log projects, share recipes, track progress, and connect with community. Built with Next.js and a heavy dose of OSRS nostalgia."
 
-  type SectionConfig = {
-    id: string; heading: string; icon: string
-    headingPx: number; bodyPx: number
-    padding: 'compact' | 'normal' | 'spacious' | 'tall'; visible: boolean
-  }
-  const DEFAULT_LAYOUT: SectionConfig[] = [
-    { id: 'about',    heading: 'About Me',       icon: '📜', headingPx: 9,  bodyPx: 12, padding: 'normal',  visible: true },
-    { id: 'projects', heading: 'My Projects',    icon: '⚒️', headingPx: 9,  bodyPx: 12, padding: 'normal',  visible: true },
-    { id: 'feed',     heading: 'Community Feed', icon: '💬', headingPx: 9,  bodyPx: 12, padding: 'normal',  visible: true },
-    { id: 'achieve',  heading: 'Achievements',   icon: '🏆', headingPx: 7,  bodyPx: 10, padding: 'compact', visible: true },
-    { id: 'xp',       heading: 'How to Earn XP', icon: '⚡', headingPx: 9,  bodyPx: 10, padding: 'normal',  visible: true },
-  ]
-  const PADDING_STYLE: Record<string, React.CSSProperties> = {
-    compact:  { padding: '10px 16px' },
-    normal:   { padding: '20px 24px' },
-    spacious: { padding: '32px 28px', minHeight: 230 },
-    tall:     { padding: '20px 24px', minHeight: 420 },
-  }
-  let layout = DEFAULT_LAYOUT
+  let layout: SectionConfig[] = []
 
   try {
     const allSettings = await (prisma as any).siteSetting.findMany()
@@ -117,16 +96,6 @@ export default async function Home() {
       shieldColor = (userData as any)?.shieldColor ?? '#1a0e06'
     }
   } catch { /* DB not configured */ }
-
-  const sec = (id: string) => layout.find(s => s.id === id) ?? DEFAULT_LAYOUT.find(s => s.id === id)!
-  const parchStyle = (id: string): React.CSSProperties => PADDING_STYLE[sec(id).padding] ?? PADDING_STYLE.normal
-
-  const timeAgo = (date: Date) => {
-    const mins = Math.floor((Date.now() - new Date(date).getTime()) / 60000)
-    if (mins < 60) return `${mins}m ago`
-    if (mins < 1440) return `${Math.floor(mins / 60)}h ago`
-    return `${Math.floor(mins / 1440)}d ago`
-  }
 
   return (
     <div className="space-y-5 fade-in">
@@ -267,210 +236,15 @@ export default async function Home() {
 
       </div>
 
-      {/* ─── ALL SECTIONS: 3-col grid, no page scroll ────────── */}
-      <div className="content-grid">
-
-        {/* About Me — col 1 row 1 */}
-        {sec('about').visible && (
-        <div className="cg-about" style={{ overflow: 'visible' }}>
-          <div className="scroll-roll" />
-          <div className="scroll-parchment" style={parchStyle('about')}>
-            <h2 className="mb-3 flex items-center gap-2" style={{ fontSize: sec('about').headingPx, color: '#3a1e06' }}>
-              <span>{sec('about').icon}</span> {sec('about').heading}
-            </h2>
-            <div className="space-y-2 body-text" style={{ fontSize: sec('about').bodyPx, color: '#3a2810' }}>
-              {bio1 && <p>{bio1}</p>}
-              {bio2 && <p>{bio2}</p>}
-              {bio3 && <p>{bio3}</p>}
-            </div>
-          </div>
-          <div className="scroll-roll" />
-        </div>
-        )}
-
-        {/* My Projects — col 2 row 1 */}
-        {sec('projects').visible && (
-        <div className="cg-projects" style={{ overflow: 'visible' }}>
-          <div className="scroll-roll" />
-          <div className="scroll-parchment" style={parchStyle('projects')}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="flex items-center gap-2" style={{ fontSize: sec('projects').headingPx, color: '#3a1e06' }}>
-                <span>{sec('projects').icon}</span> {sec('projects').heading}
-              </h2>
-              <Link href="/skills/projects" className="text-[6px] hover:opacity-70 transition-opacity" style={{ color: '#6a3808' }}>
-                View All →
-              </Link>
-            </div>
-
-            {dbProjects.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 gap-3">
-                <span className="text-4xl opacity-30">⚒️</span>
-                <p className="text-[7px]" style={{ color: '#8a6030' }}>No projects logged yet.</p>
-                <Link href="/skills/projects" className="osrs-btn text-[6.5px] px-3 py-1.5">Start a Project</Link>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {dbProjects.map(p => (
-                  <Link key={p.title} href={p.href} className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-colors hover:opacity-80"
-                    style={{ background: 'rgba(180,120,40,0.18)', border: '1px solid #a07840' }}>
-                    <span className="text-xl shrink-0">{p.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2 mb-1.5">
-                        <span className="text-[7px] font-bold truncate" style={{ color: '#2a1006' }}>{p.title}</span>
-                        <span className="text-[6px] font-bold shrink-0" style={{ color: '#6a3808' }}>{p.progress}%</span>
-                      </div>
-                      <div className="prog-bar">
-                        <div className="prog-bar-fill" style={{ width: `${p.progress}%` }} />
-                      </div>
-                      <div className="text-[5.5px] mt-1" style={{ color: '#8a6030' }}>Updated {p.updated}</div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="scroll-roll" />
-        </div>
-        )}
-
-        {/* Community Feed — col 3, spans both rows */}
-        {sec('feed').visible && (
-        <div className="cg-feed" style={{ overflow: 'visible' }}>
-          <div className="scroll-roll" />
-          <div className="scroll-parchment" style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 260px)' }}>
-            <h2 className="mb-4 flex items-center gap-2" style={{ fontSize: sec('feed').headingPx, color: '#3a1e06' }}>
-              <span>{sec('feed').icon}</span> {sec('feed').heading}
-              <span className="ml-auto text-[6px]" style={{ color: '#8a6030' }}>All Communities</span>
-            </h2>
-
-            {recentPosts.length === 0 ? (
-              <div className="text-center py-10">
-                <div className="text-3xl mb-3">💬</div>
-                <p className="text-[8px] mb-4" style={{ color: '#5a3818' }}>The community feed is empty.</p>
-                {!session?.user ? (
-                  <div className="flex justify-center gap-2">
-                    <Link href="/register" className="osrs-btn text-[7px]">Join &amp; Post</Link>
-                    <Link href="/login" className="osrs-btn text-[7px]">Login</Link>
-                  </div>
-                ) : (
-                  <p className="text-[7px]" style={{ color: '#8a6030' }}>Click any community in the sidebar to post!</p>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {recentPosts.map(post => {
-                  const skill = getSkillByEnum(post.skill)
-                  const upvotes = post.upvotes.length
-                  const replies = post.replies.length
-                  return (
-                    <Link key={post.id} href={skill?.href ?? '/'} className="block post-card">
-                      <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center text-[8px] font-bold"
-                          style={{ background: 'rgba(180,120,40,0.2)', border: '1px solid #a07840', color: '#6a3808' }}>
-                          {post.user.username.slice(0, 2).toUpperCase()}
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <span className="text-[7px] font-bold" style={{ color: '#2a1006' }}>{post.user.username}</span>
-                            <span className="text-[6px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(180,120,40,0.2)', color: '#5a3818', border: '1px solid #a07840' }}>
-                              {skill?.icon} {skill?.label}
-                            </span>
-                            <span className="text-[5.5px] ml-auto" style={{ color: '#8a6030' }}>{timeAgo(post.createdAt)}</span>
-                          </div>
-
-                          <div className="text-[8px] font-bold mb-1 truncate" style={{ color: '#2a1006' }}>{post.title}</div>
-
-                          <p className="body-text text-[12px] mb-2 line-clamp-2" style={{ color: '#3a2810' }}>
-                            {post.body}
-                          </p>
-
-                          <div className="flex items-center gap-3">
-                            {upvotes > 0 && (
-                              <span className="text-[6px] flex items-center gap-1" style={{ color: '#6a3808' }}>
-                                ▲ {upvotes}
-                              </span>
-                            )}
-                            {replies > 0 && (
-                              <span className="text-[6px] flex items-center gap-1" style={{ color: '#8a6030' }}>
-                                💬 {replies}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-          <div className="scroll-roll" />
-        </div>
-        )}
-
-        {/* Achievements — col 1 row 2 */}
-        {sec('achieve').visible && (
-        <div className="cg-achieve" style={{ overflow: 'visible' }}>
-          <div className="scroll-roll" />
-          <div className="scroll-parchment" style={parchStyle('achieve')}>
-            <div className="flex items-center gap-2 mb-2">
-              <span style={{ fontSize: sec('achieve').headingPx }}>{sec('achieve').icon}</span>
-              <span style={{ fontSize: sec('achieve').headingPx, color: '#3a1e06' }}>{sec('achieve').heading}</span>
-            </div>
-            {userBadges.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {userBadges.map(key => {
-                  const meta = BADGE_META[key]
-                  return meta ? (
-                    <span key={key} title={meta.label} className="cursor-default select-none"
-                      style={{ fontSize: 22, lineHeight: 1 }}>
-                      {meta.icon}
-                    </span>
-                  ) : null
-                })}
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 opacity-50">
-                <span style={{ fontSize: 18 }}>🏆</span>
-                <span className="text-[6px]" style={{ color: '#8a6030' }}>None yet — post &amp; play to earn</span>
-              </div>
-            )}
-          </div>
-          <div className="scroll-roll" />
-        </div>
-        )}
-
-        {/* How to Earn XP — col 2 row 2 */}
-        {sec('xp').visible && (
-        <div className="cg-xp" style={{ overflow: 'visible' }}>
-          <div className="scroll-roll" />
-          <div className="scroll-parchment" style={parchStyle('xp')}>
-            <h2 className="mb-3 flex items-center gap-2" style={{ fontSize: sec('xp').headingPx, color: '#3a1e06' }}>
-              <span>{sec('xp').icon}</span> {sec('xp').heading}
-            </h2>
-            <div className="space-y-1.5">
-              {[
-                { icon: '📝', action: 'Post to a skill',  xp: '+50 XP' },
-                { icon: '🍳', action: 'Add a recipe',     xp: '+50 XP' },
-                { icon: '🎮', action: 'Win a mini-game',  xp: '+25 XP' },
-                { icon: '📅', action: 'Daily login',      xp: '+10 XP' },
-              ].map(row => (
-                <div key={row.action}
-                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg"
-                  style={{ background: 'rgba(180,120,40,0.18)', border: '1px solid #a07840' }}>
-                  <span className="text-sm shrink-0">{row.icon}</span>
-                  <span className="flex-1 text-[6px]" style={{ color: '#3a2810' }}>{row.action}</span>
-                  <span className="text-[6px] font-bold shrink-0" style={{ color: '#6a3808' }}>{row.xp}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="scroll-roll" />
-        </div>
-        )}
-
-      </div>
+      <HomepageSections
+        isAdmin={session?.user?.role === 'ADMIN'}
+        bio1={bio1} bio2={bio2} bio3={bio3}
+        dbProjects={dbProjects}
+        recentPosts={recentPosts.map(p => ({ ...p, createdAt: p.createdAt.toISOString() }))}
+        hasSession={!!session?.user}
+        userBadges={userBadges}
+        initialLayout={layout}
+      />
 
     </div>
   )
