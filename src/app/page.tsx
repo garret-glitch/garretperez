@@ -208,31 +208,21 @@ export default async function Home() {
       {/* ─── ROW 1: About Me + Projects ───────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
-        {/* About Me — scroll, stretches to match right column height */}
-        <div style={{ overflow: 'visible', display: 'flex', flexDirection: 'column' }}>
+        {/* About Me — scroll */}
+        <div style={{ overflow: 'visible' }}>
           <div className="scroll-roll" />
-          <div className="scroll-parchment" style={{ flex: 1 }}>
-            <h2 className="text-[9px] mb-4 flex items-center gap-2" style={{ color: '#3a1e06' }}>
+          <div className="scroll-parchment">
+            <h2 className="text-[9px] mb-3 flex items-center gap-2" style={{ color: '#3a1e06' }}>
               <span>📜</span> About Me
             </h2>
-            <div className="space-y-3 body-text" style={{ color: '#3a2810' }}>
+            <div className="space-y-2 body-text" style={{ color: '#3a2810' }}>
               <p>
-                I&apos;m a sales professional based in Houston, TX with a focus on distribution,
+                Sales professional based in Houston, TX — focused on distribution,
                 team management, and building strong customer relationships.
               </p>
               <p>
-                Outside of work, I&apos;m always building something. From home projects and DIY builds
-                to maintaining a garden, fishing local waters, and taking on new challenges, I enjoy
-                learning through hands-on experience.
-              </p>
-              <p>
-                I&apos;m passionate about community and creating spaces where people can connect,
-                share ideas, and help each other grow.
-              </p>
-              <p>
-                This site is where I document my projects, share what I&apos;m learning, and invite
-                others to be part of the conversation. Explore the projects, join the discussions,
-                and let&apos;s build something great together.
+                Builder, gardener, fisherman, and father. This site is where I
+                document projects, share ideas, and grow community.
               </p>
             </div>
           </div>
@@ -285,35 +275,30 @@ export default async function Home() {
             <div className="scroll-roll" />
           </div>
 
-          {/* Achievements — compact scroll */}
+          {/* Achievements — icon badges only */}
           <div style={{ overflow: 'visible' }}>
             <div className="scroll-roll" />
-            <div className="scroll-parchment">
-              <h2 className="text-[9px] mb-4 flex items-center gap-2" style={{ color: '#3a1e06' }}>
-                <span>🏆</span> Achievements
-              </h2>
+            <div className="scroll-parchment" style={{ padding: '12px 20px' }}>
+              <div className="flex items-center gap-2 mb-2">
+                <span style={{ fontSize: 10 }}>🏆</span>
+                <span className="text-[7px]" style={{ color: '#3a1e06' }}>Achievements</span>
+              </div>
               {userBadges.length > 0 ? (
-                <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-wrap gap-2">
                   {userBadges.map(key => {
                     const meta = BADGE_META[key]
                     return meta ? (
-                      <div key={key} className="badge-tile">
-                        <span className="text-2xl">{meta.icon}</span>
-                        <span className="text-[5.5px] text-center leading-tight" style={{ color: '#5a3818' }}>{meta.label}</span>
-                        <span className="text-[5px] text-center leading-tight" style={{ color: '#8a6030' }}>{meta.desc}</span>
-                      </div>
+                      <span key={key} title={meta.label} className="cursor-default select-none"
+                        style={{ fontSize: 22, lineHeight: 1 }}>
+                        {meta.icon}
+                      </span>
                     ) : null
                   })}
                 </div>
               ) : (
-                <div className="text-center py-6">
-                  <div className="text-3xl mb-3">🏆</div>
-                  <p className="text-[7px] mb-1" style={{ color: '#3a2810' }}>No achievements yet.</p>
-                  <p className="text-[6px] mb-4" style={{ color: '#8a6030' }}>Create an account to earn your first badge!</p>
-                  <div className="flex justify-center gap-2">
-                    <Link href="/register" className="osrs-btn text-[6.5px] px-3 py-1.5">Join</Link>
-                    <Link href="/login" className="osrs-btn text-[6.5px] px-3 py-1.5">Login</Link>
-                  </div>
+                <div className="flex items-center gap-2 opacity-50">
+                  <span style={{ fontSize: 18 }}>🏆</span>
+                  <span className="text-[6px]" style={{ color: '#8a6030' }}>None yet — post &amp; play to earn</span>
                 </div>
               )}
             </div>
