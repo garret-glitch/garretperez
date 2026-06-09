@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getSkillByEnum } from '@/lib/skills'
 import { BADGE_META } from '@/lib/badges'
 import { xpToLevel, xpProgress } from '@/lib/xp'
+import SidebarLogoutButton from '@/components/SidebarLogoutButton'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -26,6 +27,9 @@ export default async function Home() {
   let garretXpBar = { currentXp: 0, neededXp: 100, percent: 0 }
   let garretTotalXpRaw = 0
   let dbProjects: ProjectRow[] = []
+  let currentUserXp = 0
+  let currentUserLevel = 1
+  let currentUserXpBar = { currentXp: 0, neededXp: 100, percent: 0 }
 
   try {
     const headshotSetting = await (prisma as any).siteSetting.findUnique({ where: { key: 'headshot' } })
@@ -59,11 +63,14 @@ export default async function Home() {
     })
 
     if (session?.user?.id) {
-      const badges = await (prisma as any).userBadge.findMany({
-        where: { userId: session.user.id },
-        select: { badge: true },
-      })
+      const [badges, userSkills] = await Promise.all([
+        (prisma as any).userBadge.findMany({ where: { userId: session.user.id }, select: { badge: true } }),
+        prisma.userSkill.findMany({ where: { userId: session.user.id } }),
+      ])
       userBadges = badges.map((b: { badge: string }) => b.badge)
+      currentUserXp = userSkills.reduce((s: number, sk: { xp: number }) => s + sk.xp, 0)
+      currentUserLevel = xpToLevel(currentUserXp)
+      currentUserXpBar = xpProgress(currentUserXp)
     }
   } catch { /* DB not configured */ }
 
@@ -168,6 +175,37 @@ export default async function Home() {
             </a>
 
             <a href="/resume" className="osrs-btn text-[7px] text-center mt-0.5 block">📄 View Resume</a>
+          </div>
+
+          {/* User session — login/logout column */}
+          <div className="flex flex-col gap-2 sm:shrink-0 sm:border-l sm:pl-4"
+            style={{ minWidth: 150, borderColor: 'var(--border)' }}>
+            <div className="text-[7px] uppercase tracking-widest" style={{ color: 'var(--text-3)' }}>Account</div>
+
+            {session?.user ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center text-[10px] font-bold shrink-0"
+                    style={{ background: 'var(--bg-page)', border: '2px solid var(--border)', color: 'var(--gold)' }}>
+                    {session.user.name?.slice(0, 2).toUpperCase() ?? '??'}
+                  </div>
+                  <div>
+                    <div className="text-[8px] font-bold leading-tight" style={{ color: 'var(--text-1)' }}>{session.user.name}</div>
+                    <div className="text-[7px] mt-0.5" style={{ color: 'var(--gold)' }}>⚔ Lv {currentUserLevel}</div>
+                  </div>
+                </div>
+                <div className="xp-bar">
+                  <div className="xp-bar-fill" style={{ width: `${currentUserXpBar.percent}%` }} />
+                </div>
+                <div className="text-[6px]" style={{ color: 'var(--text-2)' }}>{currentUserXp.toLocaleString()} XP total</div>
+                <SidebarLogoutButton />
+              </>
+            ) : (
+              <>
+                <Link href="/login" className="osrs-btn text-center block">Login</Link>
+                <Link href="/register" className="osrs-btn text-center block" style={{ opacity: 0.85 }}>Join Free</Link>
+              </>
+            )}
           </div>
         </div>
       </div>
