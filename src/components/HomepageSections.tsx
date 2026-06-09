@@ -9,7 +9,6 @@ export type SectionConfig = {
   headingPx: number; bodyPx: number
   padding: 'compact' | 'normal' | 'spacious' | 'tall'; visible: boolean
 }
-
 export type ProjectRow = { id: string; icon: string; title: string; desc: string; progress: number; href: string; updated: string }
 export type PostRow = {
   id: string; title: string; body: string; skill: string; createdAt: string
@@ -35,21 +34,19 @@ const DEFAULT_SECTIONS: SectionConfig[] = [
   { id: 'achieve',  heading: 'Achievements',   icon: '🏆', headingPx: 7,  bodyPx: 10, padding: 'compact', visible: true },
   { id: 'xp',       heading: 'How to Earn XP', icon: '⚡', headingPx: 9,  bodyPx: 10, padding: 'normal',  visible: true },
 ]
-
 const PADDING_STYLE: Record<string, React.CSSProperties> = {
   compact:  { padding: '10px 16px' },
   normal:   { padding: '20px 24px' },
   spacious: { padding: '32px 28px', minHeight: 230 },
   tall:     { padding: '20px 24px', minHeight: 420 },
 }
-
 const HEADING_SIZES = [7, 9, 11, 13, 16, 20, 24]
 const BODY_SIZES    = [10, 12, 14, 16, 18]
 const PADDING_OPTS  = [
-  { value: 'compact',  label: 'Compact' },
-  { value: 'normal',   label: 'Normal' },
-  { value: 'spacious', label: 'Spacious' },
-  { value: 'tall',     label: 'Tall' },
+  { value: 'compact',  label: 'Compact',  sym: '▬' },
+  { value: 'normal',   label: 'Normal',   sym: '▭' },
+  { value: 'spacious', label: 'Spacious', sym: '▯' },
+  { value: 'tall',     label: 'Tall',     sym: '▱' },
 ] as const
 
 function timeAgo(dateStr: string) {
@@ -59,308 +56,320 @@ function timeAgo(dateStr: string) {
   return `${Math.floor(mins / 1440)}d ago`
 }
 
+/* ─── Section wrapper — defined at module scope so React doesn't remount on state changes ─── */
+interface WrapProps {
+  id: string; heading: string; editMode: boolean
+  selected: string | null; onSelect: (id: string) => void
+  children: React.ReactNode
+}
+function SectionWrap({ id, heading, editMode, selected, onSelect, children }: WrapProps) {
+  if (!editMode) return <>{children}</>
+  const active = selected === id
+  return (
+    <div
+      onClick={e => { e.stopPropagation(); onSelect(id) }}
+      style={{
+        position: 'relative', cursor: 'pointer', borderRadius: 6,
+        outline: active ? '2px solid var(--gold)' : '1px dashed rgba(200,155,60,0.4)',
+        outlineOffset: 3, transition: 'outline 0.12s',
+      }}
+    >
+      <div style={{
+        position: 'absolute', top: -11, left: 8, zIndex: 10, pointerEvents: 'none',
+        background: active ? 'var(--gold)' : '#1a1a28',
+        color: active ? '#000' : 'var(--gold)',
+        border: '1px solid var(--gold)', borderRadius: 4,
+        padding: '2px 8px', fontSize: 5.5, fontWeight: 700, letterSpacing: '0.07em',
+      }}>
+        ✏ {heading}
+      </div>
+      {children}
+    </div>
+  )
+}
+
+/* ─── Main component ─────────────────────────────────────────── */
 export default function HomepageSections({
-  isAdmin, bio1, bio2, bio3, dbProjects, recentPosts, hasSession, userBadges, initialLayout,
+  isAdmin, bio1: initBio1, bio2: initBio2, bio3: initBio3,
+  dbProjects, recentPosts, hasSession, userBadges, initialLayout,
 }: Props) {
-  const [layout, setLayout]     = useState<SectionConfig[]>(initialLayout)
+  const [layout,   setLayout]   = useState<SectionConfig[]>(initialLayout.length ? initialLayout : DEFAULT_SECTIONS)
   const [editMode, setEditMode] = useState(false)
   const [selected, setSelected] = useState<string | null>(null)
-  const [saving, setSaving]     = useState(false)
-  const [saved, setSaved]       = useState(false)
+  const [saving,   setSaving]   = useState(false)
+  const [saved,    setSaved]    = useState(false)
 
-  // Sync with server on mount in case DB has newer settings
+  // Editable bio text
+  const [bio1, setBio1] = useState(initBio1)
+  const [bio2, setBio2] = useState(initBio2)
+  const [bio3, setBio3] = useState(initBio3)
+
   useEffect(() => {
     fetch('/api/admin/layout')
       .then(r => r.json())
-      .then(d => { if (d.sections) setLayout(d.sections) })
+      .then(d => { if (d.sections?.length) setLayout(d.sections) })
       .catch(() => {})
   }, [])
 
   const sec = (id: string): SectionConfig =>
     layout.find(s => s.id === id) ?? DEFAULT_SECTIONS.find(s => s.id === id)!
-
+  const pSty = (id: string): React.CSSProperties =>
+    PADDING_STYLE[sec(id).padding] ?? PADDING_STYLE.normal
   const update = (id: string, patch: Partial<SectionConfig>) =>
     setLayout(prev => prev.map(s => s.id === id ? { ...s, ...patch } : s))
 
-  const parchStyle = (id: string): React.CSSProperties =>
-    PADDING_STYLE[sec(id).padding] ?? PADDING_STYLE.normal
+  const handleSelect = (id: string) =>
+    setSelected(prev => prev === id ? null : id)
 
   const save = async () => {
     setSaving(true)
-    await fetch('/api/admin/layout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sections: layout }),
-    })
-    setSaving(false)
-    setSaved(true)
+    await Promise.all([
+      fetch('/api/admin/layout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sections: layout }),
+      }),
+      fetch('/api/admin/homepage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bio_1: bio1, bio_2: bio2, bio_3: bio3 }),
+      }),
+    ])
+    setSaving(false); setSaved(true)
     setTimeout(() => setSaved(false), 2500)
   }
 
-  const selSection = selected ? sec(selected) : null
-
-  /* ── Section wrapper for edit mode ─────────────────────── */
-  function EditWrap({ id, children }: { id: string; children: React.ReactNode }) {
-    if (!editMode) return <>{children}</>
-    const isSelected = selected === id
-    return (
-      <div
-        onClick={() => setSelected(isSelected ? null : id)}
-        style={{
-          position: 'relative', cursor: 'pointer',
-          outline: isSelected ? '2px solid var(--gold)' : '1px dashed rgba(200,155,60,0.45)',
-          outlineOffset: 3, borderRadius: 6,
-          transition: 'outline 0.15s',
-        }}
-      >
-        {/* Edit badge */}
-        <div style={{
-          position: 'absolute', top: -10, left: 8, zIndex: 10,
-          background: isSelected ? 'var(--gold)' : 'var(--bg-elevated)',
-          color: isSelected ? '#000' : 'var(--gold)',
-          border: '1px solid var(--gold)',
-          borderRadius: 4, padding: '2px 7px',
-          fontSize: 5.5, fontWeight: 700, letterSpacing: '0.06em',
-          pointerEvents: 'none',
-        }}>
-          ✏ {sec(id).heading}
-        </div>
-        {children}
-      </div>
-    )
-  }
+  const selSec = selected ? sec(selected) : null
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div>
 
-      {/* ── Admin edit mode toolbar ────────────────────────── */}
+      {/* ── Admin floating toolbar ─────────────────────────── */}
       {isAdmin && (
         <div style={{
-          position: 'fixed', bottom: 20, right: editMode && selSection ? 308 : 20,
+          position: 'fixed', bottom: 20,
+          right: editMode && selected ? 308 : 20,
           zIndex: 100, display: 'flex', gap: 8,
-          transition: 'right 0.25s',
+          transition: 'right 0.2s',
         }}>
           {editMode && (
-            <button
-              onClick={save}
-              disabled={saving}
-              style={{
-                padding: '9px 16px', borderRadius: 8, cursor: saving ? 'wait' : 'pointer',
-                background: saved ? 'rgba(0,200,100,0.2)' : 'rgba(200,155,60,0.15)',
-                border: `1px solid ${saved ? 'rgba(0,200,100,0.5)' : 'rgba(200,155,60,0.5)'}`,
-                color: saved ? '#5ddf8f' : 'var(--gold)',
-                fontSize: 7, fontWeight: 700,
-              }}
-            >
+            <button onClick={save} disabled={saving} style={{
+              padding: '9px 16px', borderRadius: 8, cursor: saving ? 'wait' : 'pointer',
+              background: saved ? 'rgba(0,200,100,0.2)' : 'rgba(200,155,60,0.12)',
+              border: `1px solid ${saved ? 'rgba(0,200,100,0.5)' : 'rgba(200,155,60,0.5)'}`,
+              color: saved ? '#5ddf8f' : 'var(--gold)', fontSize: 7, fontWeight: 700,
+            }}>
               {saving ? 'Saving…' : saved ? '✓ Saved!' : '💾 Save to Site'}
             </button>
           )}
-          <button
-            onClick={() => { setEditMode(e => !e); setSelected(null) }}
-            style={{
-              padding: '9px 16px', borderRadius: 8, cursor: 'pointer',
-              background: editMode ? 'rgba(200,155,60,0.2)' : 'var(--bg-elevated)',
-              border: `1px solid ${editMode ? 'var(--gold)' : 'var(--border)'}`,
-              color: editMode ? 'var(--gold)' : 'var(--text-2)',
-              fontSize: 7, fontWeight: 700,
-            }}
-          >
-            {editMode ? '✕ Exit Edit Mode' : '✏️ Edit Layout'}
+          <button onClick={() => { setEditMode(e => !e); setSelected(null) }} style={{
+            padding: '9px 16px', borderRadius: 8, cursor: 'pointer',
+            background: editMode ? 'rgba(200,155,60,0.18)' : 'var(--bg-elevated)',
+            border: `1px solid ${editMode ? 'var(--gold)' : 'var(--border)'}`,
+            color: editMode ? 'var(--gold)' : 'var(--text-2)', fontSize: 7, fontWeight: 700,
+          }}>
+            {editMode ? '✕ Exit Edit Mode' : '✏️ Edit Page'}
           </button>
         </div>
       )}
 
-      {/* ── Properties panel (slides in from right) ─────────── */}
-      {editMode && selSection && (
+      {/* ── Properties panel ──────────────────────────────────── */}
+      {editMode && selSec && (
         <div style={{
           position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 99,
           width: 300, overflowY: 'auto',
           background: 'var(--bg-card)', borderLeft: '1px solid var(--border)',
-          boxShadow: '-8px 0 32px rgba(0,0,0,0.5)',
-          padding: '16px 14px',
+          boxShadow: '-6px 0 28px rgba(0,0,0,0.5)', padding: '14px 14px',
         }}>
-          {/* Panel header */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <div style={{ fontSize: 8, color: 'var(--gold)', fontWeight: 700 }}>
-              {selSection.icon} {selSection.heading}
-            </div>
-            <button
-              onClick={() => setSelected(null)}
-              style={{ fontSize: 14, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-3)' }}
-            >✕</button>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <span style={{ fontSize: 8, color: 'var(--gold)', fontWeight: 700 }}>
+              {selSec.icon} {selSec.heading}
+            </span>
+            <button onClick={() => setSelected(null)}
+              style={{ fontSize: 14, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-3)' }}>✕</button>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
             {/* Section title */}
             <div>
-              <label style={{ display: 'block', fontSize: 5.5, color: 'var(--text-3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                Section Title
-              </label>
-              <input
-                type="text"
-                value={selSection.heading}
-                onChange={e => update(selSection.id, { heading: e.target.value })}
-                className="osrs-input w-full"
-                style={{ fontSize: 9, padding: '7px 10px' }}
-              />
+              <label style={LBL}>Section Title</label>
+              <input type="text" value={selSec.heading}
+                onChange={e => update(selSec.id, { heading: e.target.value })}
+                className="osrs-input w-full" style={{ fontSize: 9, padding: '7px 10px' }} />
             </div>
 
             {/* Heading size */}
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-                <label style={{ fontSize: 5.5, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                  Heading Size
-                </label>
-                <span style={{ fontSize: selSection.headingPx, color: 'var(--gold)', lineHeight: 1, maxWidth: 140, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                  {selSection.heading}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
+                <label style={LBL}>Heading Size</label>
+                <span style={{ fontSize: selSec.headingPx, color: 'var(--gold)', lineHeight: 1, maxWidth: 130, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                  {selSec.heading}
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 6, color: 'var(--text-3)' }}>A</span>
-                <input
-                  type="range" min={0} max={HEADING_SIZES.length - 1}
-                  value={Math.max(0, HEADING_SIZES.indexOf(selSection.headingPx))}
-                  onChange={e => update(selSection.id, { headingPx: HEADING_SIZES[+e.target.value] })}
-                  style={{ flex: 1, accentColor: 'var(--gold)' }}
-                />
+                <input type="range" min={0} max={HEADING_SIZES.length - 1}
+                  value={Math.max(0, HEADING_SIZES.indexOf(selSec.headingPx))}
+                  onChange={e => update(selSec.id, { headingPx: HEADING_SIZES[+e.target.value] })}
+                  style={{ flex: 1, accentColor: 'var(--gold)' }} />
                 <span style={{ fontSize: 13, color: 'var(--text-3)' }}>A</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5 }}>
                 {HEADING_SIZES.map(s => (
-                  <button key={s} onClick={() => update(selSection.id, { headingPx: s })}
-                    style={{
-                      fontSize: 5.5, padding: '3px 4px', borderRadius: 4, cursor: 'pointer',
-                      background: selSection.headingPx === s ? 'var(--gold)' : 'var(--bg-elevated)',
-                      color: selSection.headingPx === s ? '#000' : 'var(--text-2)',
-                      border: '1px solid var(--border)', fontWeight: selSection.headingPx === s ? 700 : 400,
-                    }}>{s}px</button>
+                  <button key={s} onClick={() => update(selSec.id, { headingPx: s })}
+                    style={{ fontSize: 5, padding: '3px 4px', borderRadius: 4, cursor: 'pointer',
+                      background: selSec.headingPx === s ? 'var(--gold)' : 'var(--bg-elevated)',
+                      color: selSec.headingPx === s ? '#000' : 'var(--text-2)',
+                      border: '1px solid var(--border)', fontWeight: selSec.headingPx === s ? 700 : 400 }}>
+                    {s}px</button>
                 ))}
               </div>
             </div>
 
             {/* Body text size */}
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-                <label style={{ fontSize: 5.5, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                  Body Text Size
-                </label>
-                <span className="body-text" style={{ fontSize: selSection.bodyPx, color: 'var(--text-2)', lineHeight: 1 }}>
-                  {selSection.bodyPx}px preview
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
+                <label style={LBL}>Body Text Size</label>
+                <span className="body-text" style={{ fontSize: selSec.bodyPx, color: 'var(--text-2)', lineHeight: 1 }}>
+                  {selSec.bodyPx}px
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 6, color: 'var(--text-3)' }}>a</span>
-                <input
-                  type="range" min={0} max={BODY_SIZES.length - 1}
-                  value={Math.max(0, BODY_SIZES.indexOf(selSection.bodyPx))}
-                  onChange={e => update(selSection.id, { bodyPx: BODY_SIZES[+e.target.value] })}
-                  style={{ flex: 1, accentColor: 'var(--gold)' }}
-                />
+                <input type="range" min={0} max={BODY_SIZES.length - 1}
+                  value={Math.max(0, BODY_SIZES.indexOf(selSec.bodyPx))}
+                  onChange={e => update(selSec.id, { bodyPx: BODY_SIZES[+e.target.value] })}
+                  style={{ flex: 1, accentColor: 'var(--gold)' }} />
                 <span style={{ fontSize: 13, color: 'var(--text-3)' }}>a</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5 }}>
                 {BODY_SIZES.map(s => (
-                  <button key={s} onClick={() => update(selSection.id, { bodyPx: s })}
-                    style={{
-                      fontSize: 5.5, padding: '3px 6px', borderRadius: 4, cursor: 'pointer',
-                      background: selSection.bodyPx === s ? 'var(--gold)' : 'var(--bg-elevated)',
-                      color: selSection.bodyPx === s ? '#000' : 'var(--text-2)',
-                      border: '1px solid var(--border)', fontWeight: selSection.bodyPx === s ? 700 : 400,
-                    }}>{s}px</button>
+                  <button key={s} onClick={() => update(selSec.id, { bodyPx: s })}
+                    style={{ fontSize: 5, padding: '3px 6px', borderRadius: 4, cursor: 'pointer',
+                      background: selSec.bodyPx === s ? 'var(--gold)' : 'var(--bg-elevated)',
+                      color: selSec.bodyPx === s ? '#000' : 'var(--text-2)',
+                      border: '1px solid var(--border)', fontWeight: selSec.bodyPx === s ? 700 : 400 }}>
+                    {s}px</button>
                 ))}
               </div>
             </div>
 
             {/* Section height */}
             <div>
-              <label style={{ display: 'block', fontSize: 5.5, color: 'var(--text-3)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                Section Height
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+              <label style={LBL}>Section Height</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 6 }}>
                 {PADDING_OPTS.map(opt => (
-                  <button key={opt.value} onClick={() => update(selSection.id, { padding: opt.value })}
+                  <button key={opt.value} onClick={() => update(selSec.id, { padding: opt.value })}
                     style={{
-                      padding: '8px 6px', borderRadius: 8, cursor: 'pointer', textAlign: 'center',
-                      background: selSection.padding === opt.value ? 'rgba(200,155,60,0.15)' : 'var(--bg-elevated)',
-                      border: `2px solid ${selSection.padding === opt.value ? 'var(--gold)' : 'var(--border)'}`,
-                      color: selSection.padding === opt.value ? 'var(--gold)' : 'var(--text-2)',
+                      padding: '8px 4px', borderRadius: 8, cursor: 'pointer', textAlign: 'center',
+                      background: selSec.padding === opt.value ? 'rgba(200,155,60,0.15)' : 'var(--bg-elevated)',
+                      border: `2px solid ${selSec.padding === opt.value ? 'var(--gold)' : 'var(--border)'}`,
+                      color: selSec.padding === opt.value ? 'var(--gold)' : 'var(--text-2)',
                     }}>
-                    <div style={{ fontSize: 14 }}>
-                      {opt.value === 'compact' ? '▬' : opt.value === 'normal' ? '▭' : opt.value === 'spacious' ? '▯' : '▱'}
-                    </div>
-                    <div style={{ fontSize: 6, fontWeight: 600, marginTop: 3 }}>{opt.label}</div>
+                    <div style={{ fontSize: 13 }}>{opt.sym}</div>
+                    <div style={{ fontSize: 6, fontWeight: 600, marginTop: 2 }}>{opt.label}</div>
                   </button>
                 ))}
               </div>
             </div>
 
             {/* Visibility */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 8, background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '10px 12px', borderRadius: 8,
+              background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
               <div>
                 <div style={{ fontSize: 7, color: 'var(--text-1)', fontWeight: 600 }}>Visibility</div>
-                <div style={{ fontSize: 5.5, color: 'var(--text-3)', marginTop: 2 }}>
-                  Show or hide on homepage
-                </div>
+                <div style={{ fontSize: 5.5, color: 'var(--text-3)', marginTop: 2 }}>Show or hide on homepage</div>
               </div>
-              <button
-                onClick={() => update(selSection.id, { visible: !selSection.visible })}
-                style={{
-                  fontSize: 7, padding: '6px 10px', borderRadius: 6, cursor: 'pointer', fontWeight: 600,
-                  background: selSection.visible ? 'rgba(0,200,100,0.15)' : 'rgba(200,50,50,0.15)',
-                  color:      selSection.visible ? '#5ddf8f'              : '#df5d5d',
-                  border: `1px solid ${selSection.visible ? 'rgba(0,200,100,0.35)' : 'rgba(200,50,50,0.35)'}`,
-                }}
-              >
-                {selSection.visible ? '👁 Visible' : '🚫 Hidden'}
+              <button onClick={() => update(selSec.id, { visible: !selSec.visible })}
+                style={{ fontSize: 7, padding: '6px 10px', borderRadius: 6, cursor: 'pointer', fontWeight: 600,
+                  background: selSec.visible ? 'rgba(0,200,100,0.15)' : 'rgba(200,50,50,0.15)',
+                  color:      selSec.visible ? '#5ddf8f'              : '#df5d5d',
+                  border: `1px solid ${selSec.visible ? 'rgba(0,200,100,0.35)' : 'rgba(200,50,50,0.35)'}` }}>
+                {selSec.visible ? '👁 Visible' : '🚫 Hidden'}
               </button>
             </div>
 
+            {/* Inline content editing hint for About Me */}
+            {selSec.id === 'about' && (
+              <div style={{ background: 'rgba(200,155,60,0.07)', border: '1px solid rgba(200,155,60,0.25)', borderRadius: 8, padding: '10px 12px' }}>
+                <div style={{ fontSize: 6.5, color: 'var(--gold)', fontWeight: 700, marginBottom: 5 }}>✏ Edit Text Content</div>
+                <div style={{ fontSize: 5.5, color: 'var(--text-3)', marginBottom: 8 }}>
+                  Click the paragraphs directly on the panel to edit them.
+                </div>
+              </div>
+            )}
+
             <div style={{ fontSize: 5.5, color: 'var(--text-3)', lineHeight: 1.7 }}>
-              Changes preview live on the page.<br />
-              Hit <strong style={{ color: 'var(--gold)' }}>Save to Site</strong> to make them permanent.
+              Changes preview live. Hit <strong style={{ color: 'var(--gold)' }}>Save to Site</strong> to keep them.
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Sections Grid ────────────────────────────────────── */}
+      {/* ── Sections grid ─────────────────────────────────────── */}
       <div className="content-grid">
 
         {/* About Me */}
         {sec('about').visible && (
           <div className="cg-about" style={{ overflow: 'visible' }}>
-            <EditWrap id="about">
+            <SectionWrap id="about" heading={sec('about').heading} editMode={editMode} selected={selected} onSelect={handleSelect}>
               <div className="scroll-roll" />
-              <div className="scroll-parchment" style={parchStyle('about')}>
+              <div className="scroll-parchment" style={pSty('about')}>
                 <h2 className="mb-3 flex items-center gap-2" style={{ fontSize: sec('about').headingPx, color: '#3a1e06' }}>
                   <span>{sec('about').icon}</span> {sec('about').heading}
                 </h2>
-                <div className="space-y-2 body-text" style={{ fontSize: sec('about').bodyPx, color: '#3a2810' }}>
-                  {bio1 && <p>{bio1}</p>}
-                  {bio2 && <p>{bio2}</p>}
-                  {bio3 && <p>{bio3}</p>}
+                <div className="space-y-2 body-text" style={{ color: '#3a2810' }}>
+                  {editMode ? (
+                    <>
+                      <textarea value={bio1} onChange={e => setBio1(e.target.value)} onClick={e => e.stopPropagation()}
+                        style={{ width: '100%', background: 'rgba(200,155,60,0.08)', border: '1px solid rgba(200,155,60,0.35)',
+                          borderRadius: 4, padding: '6px 8px', color: '#3a2810', fontSize: sec('about').bodyPx,
+                          fontFamily: 'Inter, system-ui', resize: 'vertical', minHeight: 60 }} />
+                      <textarea value={bio2} onChange={e => setBio2(e.target.value)} onClick={e => e.stopPropagation()}
+                        style={{ width: '100%', background: 'rgba(200,155,60,0.08)', border: '1px solid rgba(200,155,60,0.35)',
+                          borderRadius: 4, padding: '6px 8px', color: '#3a2810', fontSize: sec('about').bodyPx,
+                          fontFamily: 'Inter, system-ui', resize: 'vertical', minHeight: 60 }} />
+                      <textarea value={bio3} onChange={e => setBio3(e.target.value)} onClick={e => e.stopPropagation()}
+                        style={{ width: '100%', background: 'rgba(200,155,60,0.08)', border: '1px solid rgba(200,155,60,0.35)',
+                          borderRadius: 4, padding: '6px 8px', color: '#3a2810', fontSize: sec('about').bodyPx,
+                          fontFamily: 'Inter, system-ui', resize: 'vertical', minHeight: 60 }} />
+                    </>
+                  ) : (
+                    <>
+                      {bio1 && <p style={{ fontSize: sec('about').bodyPx }}>{bio1}</p>}
+                      {bio2 && <p style={{ fontSize: sec('about').bodyPx }}>{bio2}</p>}
+                      {bio3 && <p style={{ fontSize: sec('about').bodyPx }}>{bio3}</p>}
+                    </>
+                  )}
                 </div>
               </div>
               <div className="scroll-roll" />
-            </EditWrap>
+            </SectionWrap>
           </div>
         )}
 
         {/* My Projects */}
         {sec('projects').visible && (
           <div className="cg-projects" style={{ overflow: 'visible' }}>
-            <EditWrap id="projects">
+            <SectionWrap id="projects" heading={sec('projects').heading} editMode={editMode} selected={selected} onSelect={handleSelect}>
               <div className="scroll-roll" />
-              <div className="scroll-parchment" style={parchStyle('projects')}>
+              <div className="scroll-parchment" style={pSty('projects')}>
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="flex items-center gap-2" style={{ fontSize: sec('projects').headingPx, color: '#3a1e06' }}>
                     <span>{sec('projects').icon}</span> {sec('projects').heading}
                   </h2>
-                  <Link href="/skills/projects" className="text-[6px] hover:opacity-70 transition-opacity" style={{ color: '#6a3808' }}>
+                  <Link href="/skills/projects" onClick={e => editMode && e.preventDefault()}
+                    className="text-[6px] hover:opacity-70 transition-opacity" style={{ color: '#6a3808' }}>
                     View All →
                   </Link>
                 </div>
+                {editMode && selected === 'projects' && (
+                  <div style={{ marginBottom: 10, padding: '7px 10px', borderRadius: 6, background: 'rgba(200,155,60,0.08)', border: '1px solid rgba(200,155,60,0.25)', fontSize: 6, color: '#8a6030' }}>
+                    ⚒️ Edit projects in <a href="/admin/projects" target="_blank" style={{ color: 'var(--gold)' }}>Admin → Projects</a>
+                  </div>
+                )}
                 {dbProjects.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-10 gap-3">
                     <span className="text-4xl opacity-30">⚒️</span>
@@ -370,7 +379,7 @@ export default function HomepageSections({
                 ) : (
                   <div className="space-y-2">
                     {dbProjects.map(p => (
-                      <Link key={p.id} href={p.href} className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-colors hover:opacity-80"
+                      <div key={p.id} className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg"
                         style={{ background: 'rgba(180,120,40,0.18)', border: '1px solid #a07840' }}>
                         <span className="text-xl shrink-0">{p.icon}</span>
                         <div className="flex-1 min-w-0">
@@ -378,25 +387,23 @@ export default function HomepageSections({
                             <span className="font-bold truncate" style={{ fontSize: sec('projects').bodyPx, color: '#2a1006' }}>{p.title}</span>
                             <span className="text-[6px] font-bold shrink-0" style={{ color: '#6a3808' }}>{p.progress}%</span>
                           </div>
-                          <div className="prog-bar">
-                            <div className="prog-bar-fill" style={{ width: `${p.progress}%` }} />
-                          </div>
+                          <div className="prog-bar"><div className="prog-bar-fill" style={{ width: `${p.progress}%` }} /></div>
                           <div className="text-[5.5px] mt-1" style={{ color: '#8a6030' }}>Updated {p.updated}</div>
                         </div>
-                      </Link>
+                      </div>
                     ))}
                   </div>
                 )}
               </div>
               <div className="scroll-roll" />
-            </EditWrap>
+            </SectionWrap>
           </div>
         )}
 
         {/* Community Feed */}
         {sec('feed').visible && (
           <div className="cg-feed" style={{ overflow: 'visible' }}>
-            <EditWrap id="feed">
+            <SectionWrap id="feed" heading={sec('feed').heading} editMode={editMode} selected={selected} onSelect={handleSelect}>
               <div className="scroll-roll" />
               <div className="scroll-parchment" style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 260px)' }}>
                 <h2 className="mb-4 flex items-center gap-2" style={{ fontSize: sec('feed').headingPx, color: '#3a1e06' }}>
@@ -420,10 +427,8 @@ export default function HomepageSections({
                   <div className="space-y-3">
                     {recentPosts.map(post => {
                       const skill = getSkillByEnum(post.skill)
-                      const upvotes = post.upvotes.length
-                      const replies = post.replies.length
                       return (
-                        <Link key={post.id} href={skill?.href ?? '/'} className="block post-card">
+                        <Link key={post.id} href={editMode ? '#' : (skill?.href ?? '/')} className="block post-card">
                           <div className="flex items-start gap-3">
                             <div className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center text-[8px] font-bold"
                               style={{ background: 'rgba(180,120,40,0.2)', border: '1px solid #a07840', color: '#6a3808' }}>
@@ -438,12 +443,10 @@ export default function HomepageSections({
                                 <span className="text-[5.5px] ml-auto" style={{ color: '#8a6030' }}>{timeAgo(post.createdAt)}</span>
                               </div>
                               <div className="text-[8px] font-bold mb-1 truncate" style={{ color: '#2a1006' }}>{post.title}</div>
-                              <p className="body-text mb-2 line-clamp-2" style={{ fontSize: sec('feed').bodyPx, color: '#3a2810' }}>
-                                {post.body}
-                              </p>
+                              <p className="body-text mb-2 line-clamp-2" style={{ fontSize: sec('feed').bodyPx, color: '#3a2810' }}>{post.body}</p>
                               <div className="flex items-center gap-3">
-                                {upvotes > 0 && <span className="text-[6px] flex items-center gap-1" style={{ color: '#6a3808' }}>▲ {upvotes}</span>}
-                                {replies > 0 && <span className="text-[6px] flex items-center gap-1" style={{ color: '#8a6030' }}>💬 {replies}</span>}
+                                {post.upvotes.length > 0 && <span className="text-[6px]" style={{ color: '#6a3808' }}>▲ {post.upvotes.length}</span>}
+                                {post.replies.length > 0 && <span className="text-[6px]" style={{ color: '#8a6030' }}>💬 {post.replies.length}</span>}
                               </div>
                             </div>
                           </div>
@@ -454,16 +457,16 @@ export default function HomepageSections({
                 )}
               </div>
               <div className="scroll-roll" />
-            </EditWrap>
+            </SectionWrap>
           </div>
         )}
 
         {/* Achievements */}
         {sec('achieve').visible && (
           <div className="cg-achieve" style={{ overflow: 'visible' }}>
-            <EditWrap id="achieve">
+            <SectionWrap id="achieve" heading={sec('achieve').heading} editMode={editMode} selected={selected} onSelect={handleSelect}>
               <div className="scroll-roll" />
-              <div className="scroll-parchment" style={parchStyle('achieve')}>
+              <div className="scroll-parchment" style={pSty('achieve')}>
                 <div className="flex items-center gap-2 mb-2">
                   <span style={{ fontSize: sec('achieve').headingPx }}>{sec('achieve').icon}</span>
                   <span style={{ fontSize: sec('achieve').headingPx, color: '#3a1e06' }}>{sec('achieve').heading}</span>
@@ -472,11 +475,7 @@ export default function HomepageSections({
                   <div className="flex flex-wrap gap-2">
                     {userBadges.map(key => {
                       const meta = BADGE_META[key]
-                      return meta ? (
-                        <span key={key} title={meta.label} className="cursor-default select-none" style={{ fontSize: 22, lineHeight: 1 }}>
-                          {meta.icon}
-                        </span>
-                      ) : null
+                      return meta ? <span key={key} title={meta.label} style={{ fontSize: 22, lineHeight: 1, cursor: 'default' }}>{meta.icon}</span> : null
                     })}
                   </div>
                 ) : (
@@ -487,28 +486,27 @@ export default function HomepageSections({
                 )}
               </div>
               <div className="scroll-roll" />
-            </EditWrap>
+            </SectionWrap>
           </div>
         )}
 
         {/* How to Earn XP */}
         {sec('xp').visible && (
           <div className="cg-xp" style={{ overflow: 'visible' }}>
-            <EditWrap id="xp">
+            <SectionWrap id="xp" heading={sec('xp').heading} editMode={editMode} selected={selected} onSelect={handleSelect}>
               <div className="scroll-roll" />
-              <div className="scroll-parchment" style={parchStyle('xp')}>
+              <div className="scroll-parchment" style={pSty('xp')}>
                 <h2 className="mb-3 flex items-center gap-2" style={{ fontSize: sec('xp').headingPx, color: '#3a1e06' }}>
                   <span>{sec('xp').icon}</span> {sec('xp').heading}
                 </h2>
                 <div className="space-y-1.5">
                   {[
-                    { icon: '📝', action: 'Post to a skill',  xp: '+50 XP' },
-                    { icon: '🍳', action: 'Add a recipe',     xp: '+50 XP' },
-                    { icon: '🎮', action: 'Win a mini-game',  xp: '+25 XP' },
-                    { icon: '📅', action: 'Daily login',      xp: '+10 XP' },
+                    { icon: '📝', action: 'Post to a skill', xp: '+50 XP' },
+                    { icon: '🍳', action: 'Add a recipe',    xp: '+50 XP' },
+                    { icon: '🎮', action: 'Win a mini-game', xp: '+25 XP' },
+                    { icon: '📅', action: 'Daily login',     xp: '+10 XP' },
                   ].map(row => (
-                    <div key={row.action}
-                      className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg"
+                    <div key={row.action} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg"
                       style={{ background: 'rgba(180,120,40,0.18)', border: '1px solid #a07840' }}>
                       <span className="text-sm shrink-0">{row.icon}</span>
                       <span className="flex-1" style={{ fontSize: sec('xp').bodyPx, color: '#3a2810' }}>{row.action}</span>
@@ -518,11 +516,16 @@ export default function HomepageSections({
                 </div>
               </div>
               <div className="scroll-roll" />
-            </EditWrap>
+            </SectionWrap>
           </div>
         )}
 
       </div>
     </div>
   )
+}
+
+const LBL: React.CSSProperties = {
+  fontSize: 5.5, color: 'var(--text-3)',
+  textTransform: 'uppercase', letterSpacing: '0.1em',
 }
