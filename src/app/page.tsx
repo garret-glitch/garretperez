@@ -294,7 +294,7 @@ export default async function Home() {
 
                         <div className="text-[8px] font-bold mb-1 truncate" style={{ color: 'var(--text-1)' }}>{post.title}</div>
 
-                        <p className="body-text text-[12px] mb-2 line-clamp-2" style={{ color: '#7878a0' }}>
+                        <p className="body-text text-[12px] mb-2 line-clamp-2" style={{ color: 'var(--text-2)' }}>
                           {post.body}
                         </p>
 
