@@ -81,21 +81,31 @@ a { color: inherit; text-decoration: none; }
     padding: 14px;
   }
 
-  /* Hero panel with sienna top accent */
+  /* Hero panel — low-key castle dark stone */
   .hero-panel {
-    background: linear-gradient(135deg, #dcc08a 0%, #e4cc98 60%, #dcc08a 100%);
-    border: 2px solid var(--border);
+    /* Scope dark-bg–friendly values so all var() children flip automatically */
+    --text-1:     #f0d898;
+    --text-2:     #c8a870;
+    --text-3:     #a07848;
+    --gold:       #c89b3c;
+    --bg-page:    #0e0c08;
+    --border:     rgba(200,155,60,0.22);
+    --border-lit: rgba(200,155,60,0.5);
+    --border-dim: rgba(200,155,60,0.12);
+
+    background: linear-gradient(160deg, #181410 0%, #201c14 55%, #181410 100%);
+    border: 1px solid #4a3018;
     border-radius: 4px;
     padding: 24px;
     position: relative;
     overflow: hidden;
-    box-shadow: inset 0 1px 0 rgba(255,220,140,0.3), 2px 4px 12px rgba(60,30,0,0.2);
+    box-shadow: 0 3px 18px rgba(0,0,0,0.5), inset 0 1px 0 rgba(200,155,60,0.08);
   }
   .hero-panel::before {
     content: '';
     position: absolute;
-    top: 0; left: 0; right: 0; height: 3px;
-    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(200,155,60,0.35), transparent);
   }
 
   /* ─── Sidebar Guild Channels ───────────────────────────── */

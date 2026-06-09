@@ -157,9 +157,9 @@ export default async function Home() {
               </div>
             </div>
 
-            {/* Contact panel — dark sidebar style */}
-            <div className="flex flex-col sm:shrink-0 overflow-hidden" style={{ background: '#1a0e06', border: '1px solid #5a3818', borderRadius: 6, minWidth: 170 }}>
-              <div className="px-3 py-2 border-b shrink-0" style={{ borderColor: '#3a2010' }}>
+            {/* Contact panel */}
+            <div className="flex flex-col sm:shrink-0 overflow-hidden" style={{ background: 'rgba(0,0,0,0.22)', border: '1px solid rgba(200,155,60,0.18)', borderRadius: 6, minWidth: 170 }}>
+              <div className="px-3 py-2 border-b shrink-0" style={{ borderColor: 'rgba(200,155,60,0.15)' }}>
                 <span className="text-[6px] uppercase tracking-widest" style={{ color: '#a07848' }}>⚔ Contact</span>
               </div>
               <div className="flex flex-col">
