@@ -76,16 +76,16 @@ export default function WineTriviaPage() {
   if (phase === 'idle') {
     return (
       <div className="space-y-4">
-        <div className="osrs-panel rounded-xl text-center">
+        <div className="rp-card rounded-xl text-center">
           <div className="text-4xl mb-3">🍷</div>
-          <h1 className="text-[12px] text-[#1a1a1a] font-bold">Wine Trivia</h1>
-          <p className="text-[8px] text-[#3d3d3d] mt-2 leading-relaxed">
+          <h1 className="text-[12px] font-bold" style={{ color: 'var(--gold)' }}>Wine Trivia</h1>
+          <p className="text-[8px] mt-2 leading-relaxed" style={{ color: 'var(--text-2)' }}>
             10 questions. Score 7 or more to earn +25 Fun XP!
           </p>
           <button onClick={startGame} className="osrs-btn mt-4">Start Quiz</button>
         </div>
         {leaderboard}
-        <Link href="/skills/fun" className="text-[8px] text-[#a0bcd0] hover:underline">
+        <Link href="/skills/fun" className="text-[8px] hover:underline" style={{ color: 'var(--text-3)' }}>
           ← Back to Fun
         </Link>
       </div>
@@ -96,20 +96,20 @@ export default function WineTriviaPage() {
     const won = score >= 7
     return (
       <div className="space-y-4">
-        <div className="osrs-panel rounded-xl text-center">
+        <div className="rp-card rounded-xl text-center">
           <div className="text-4xl mb-3">{won ? '🏆' : '😔'}</div>
-          <h2 className="text-[12px] text-[#1a1a1a] font-bold">
+          <h2 className="text-[12px] font-bold" style={{ color: won ? 'var(--gold)' : 'var(--text-1)' }}>
             {won ? 'Well done!' : 'Better luck next time!'}
           </h2>
-          <p className="text-[10px] text-[#3d3d3d] mt-2">Score: {score} / 10</p>
-          {xpMsg && <p className="text-[9px] text-[#00b800] mt-2">{xpMsg}</p>}
+          <p className="text-[10px] mt-2" style={{ color: 'var(--text-2)' }}>Score: {score} / 10</p>
+          {xpMsg && <p className="text-[9px] mt-2" style={{ color: '#4ade80' }}>{xpMsg}</p>}
           <div className="flex gap-2 justify-center mt-4">
             <button onClick={startGame} className="osrs-btn">Play Again</button>
             <Link href="/skills/fun" className="osrs-btn">← Back</Link>
           </div>
         </div>
         {leaderboard}
-        <Link href="/skills/fun" className="text-[8px] text-[#a0bcd0] hover:underline">
+        <Link href="/skills/fun" className="text-[8px] hover:underline" style={{ color: 'var(--text-3)' }}>
           ← Back to Fun
         </Link>
       </div>
@@ -119,12 +119,12 @@ export default function WineTriviaPage() {
   const q = questions[current]
   return (
     <div className="space-y-4">
-      <div className="osrs-panel rounded-xl">
-        <div className="flex justify-between text-[7px] text-[#3d3d3d] mb-3">
+      <div className="rp-card rounded-xl">
+        <div className="flex justify-between text-[7px] mb-3" style={{ color: 'var(--text-3)' }}>
           <span>Question {current + 1} / 10</span>
-          <span>Score: {score}</span>
+          <span style={{ color: 'var(--gold)' }}>Score: {score}</span>
         </div>
-        <p className="text-[10px] text-[#1a1a1a] font-bold mb-4 leading-relaxed">{q.question}</p>
+        <p className="text-[10px] font-bold mb-4 leading-relaxed" style={{ color: 'var(--text-1)' }}>{q.question}</p>
         <div className="space-y-2">
           {q.options.map((option, i) => {
             let extra = ''

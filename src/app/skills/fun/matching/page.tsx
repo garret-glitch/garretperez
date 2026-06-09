@@ -118,11 +118,11 @@ export default function MatchingGamePage() {
   if (won) {
     return (
       <div className="space-y-4">
-        <div className="osrs-panel rounded-xl text-center">
+        <div className="rp-card rounded-xl text-center">
           <div className="text-4xl mb-3">🏆</div>
-          <h2 className="text-[12px] text-[#1a1a1a] font-bold">You win!</h2>
-          <p className="text-[9px] text-[#3d3d3d] mt-2">Completed in {moves} moves</p>
-          {xpMsg && <p className="text-[9px] text-[#00b800] mt-2">{xpMsg}</p>}
+          <h2 className="text-[12px] font-bold" style={{ color: 'var(--gold)' }}>You win!</h2>
+          <p className="text-[9px] mt-2" style={{ color: 'var(--text-2)' }}>Completed in {moves} moves</p>
+          {xpMsg && <p className="text-[9px] mt-2" style={{ color: '#4ade80' }}>{xpMsg}</p>}
           <div className="flex gap-2 justify-center mt-4">
             <button onClick={resetGame} className="osrs-btn">Play Again</button>
             <Link href="/skills/fun" className="osrs-btn">← Back</Link>
@@ -138,14 +138,14 @@ export default function MatchingGamePage() {
 
   return (
     <div className="space-y-4">
-      <div className="osrs-panel rounded-xl">
+      <div className="rp-card rounded-xl">
         <div className="flex items-center justify-between mb-2">
-          <h1 className="text-[10px] text-[#1a1a1a] font-bold">🃏 Matching Game</h1>
-          <span className="text-[7px] text-[#3d3d3d]">
+          <h1 className="text-[10px] font-bold" style={{ color: 'var(--text-1)' }}>🃏 Matching Game</h1>
+          <span className="text-[7px]" style={{ color: 'var(--text-3)' }}>
             Moves: {moves} | {matches}/{PAIRS.length} matched
           </span>
         </div>
-        <p className="text-[7px] text-[#3d3d3d] mb-3">Match all pairs to earn +25 Fun XP!</p>
+        <p className="text-[7px] mb-3" style={{ color: 'var(--text-2)' }}>Match all pairs to earn +25 Fun XP!</p>
 
         <div className="grid grid-cols-4 gap-1.5">
           {cards.map(card => (
@@ -170,7 +170,7 @@ export default function MatchingGamePage() {
         <button onClick={resetGame} className="osrs-btn mt-3">Reset</button>
       </div>
       {leaderboard}
-      <Link href="/skills/fun" className="text-[8px] text-[#a0bcd0] hover:underline">
+      <Link href="/skills/fun" className="text-[8px] hover:underline" style={{ color: 'var(--text-3)' }}>
         ← Back to Fun
       </Link>
     </div>
