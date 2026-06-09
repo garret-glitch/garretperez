@@ -109,9 +109,11 @@ export default async function Home() {
               {/* Name row */}
               <div className="flex items-center gap-3 flex-wrap mb-1">
                 <h1 style={{
-                  fontSize: 22, lineHeight: 1.1, color: 'var(--text-1)',
-                  textShadow: '0 0 18px rgba(200,155,60,0.45), 1px 1px 3px rgba(0,0,0,0.9)',
-                  letterSpacing: '0.02em',
+                  fontSize: 26, lineHeight: 1.1, color: 'var(--text-1)',
+                  fontFamily: "'Cinzel', serif",
+                  fontWeight: 700,
+                  textShadow: '0 0 22px rgba(200,155,60,0.4), 1px 1px 3px rgba(0,0,0,0.9)',
+                  letterSpacing: '0.04em',
                 }}>Garret Perez</h1>
                 <span className="text-[7px] px-2 py-0.5" style={{ background: 'rgba(200,155,60,0.15)', color: 'var(--gold)', border: '1px solid rgba(200,155,60,0.35)' }}>
                   ⚔ Level {garretTotalLevel}
