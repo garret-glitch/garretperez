@@ -206,7 +206,7 @@ export default async function Home() {
       </div>
 
       {/* ─── ROW 1: About Me + Projects ───────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:items-end">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
         {/* About Me — scroll */}
         <div style={{ overflow: 'visible' }}>
@@ -385,32 +385,26 @@ export default async function Home() {
           <div className="scroll-roll" />
         </div>
 
-        {/* XP Rewards — scroll */}
+        {/* XP Guide — scroll */}
         <div style={{ overflow: 'visible' }}>
           <div className="scroll-roll" />
-          <div className="scroll-parchment" style={{ padding: '14px 18px 16px' }}>
-            <h2 className="text-[8px] mb-3 flex items-center gap-2" style={{ color: '#3a1e06' }}>
-              <span>⚡</span> XP Rewards
+          <div className="scroll-parchment">
+            <h2 className="text-[9px] mb-3 flex items-center gap-2" style={{ color: '#3a1e06' }}>
+              <span>⚡</span> How to Earn XP
             </h2>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
               {[
-                { icon: '📝', action: 'Post',       xp: '+50' },
-                { icon: '🍳', action: 'Recipe',     xp: '+50' },
-                { icon: '🎮', action: 'Mini-game',  xp: '+25' },
-                { icon: '📅', action: 'Daily login', xp: '+10' },
+                { icon: '📝', action: 'Post to a skill',  xp: '+50 XP' },
+                { icon: '🍳', action: 'Add a recipe',     xp: '+50 XP' },
+                { icon: '🎮', action: 'Win a mini-game',  xp: '+25 XP' },
+                { icon: '📅', action: 'Daily login',      xp: '+10 XP' },
               ].map(row => (
                 <div key={row.action}
-                  className="flex flex-col items-center justify-center gap-1 py-3"
-                  style={{
-                    background: 'radial-gradient(ellipse at 50% 35%, #e0b840 0%, #a87818 55%, #704808 100%)',
-                    border: '3px solid #5a3008',
-                    borderRadius: '50%',
-                    aspectRatio: '1',
-                    boxShadow: '0 3px 10px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,230,120,0.3)',
-                  }}>
-                  <span style={{ fontSize: 22, lineHeight: 1 }}>{row.icon}</span>
-                  <span className="text-[5px] text-center leading-tight" style={{ color: '#f8e8b0' }}>{row.action}</span>
-                  <span className="text-[7px] font-bold" style={{ color: '#f8e8b0', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>{row.xp} XP</span>
+                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg"
+                  style={{ background: 'rgba(180,120,40,0.18)', border: '1px solid #a07840' }}>
+                  <span className="text-sm shrink-0">{row.icon}</span>
+                  <span className="flex-1 text-[6px]" style={{ color: '#3a2810' }}>{row.action}</span>
+                  <span className="text-[6px] font-bold shrink-0" style={{ color: '#6a3808' }}>{row.xp}</span>
                 </div>
               ))}
             </div>
