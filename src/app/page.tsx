@@ -223,9 +223,9 @@ export default async function Home() {
                 developing people as much as hitting numbers.
               </p>
               <p>
-                Outside of work I'm a builder, gardener, fisherman, and father.
-                Whether I'm fixing something around the house, growing vegetables in
-                the backyard, or teaching my kids to cast a line, I'm always working
+                Outside of work I&apos;m a builder, gardener, fisherman, and father.
+                Whether I&apos;m fixing something around the house, growing vegetables in
+                the backyard, or teaching my kids to cast a line, I&apos;m always working
                 with my hands on something that matters.
               </p>
               <p>
