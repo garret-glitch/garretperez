@@ -10,7 +10,7 @@ export default async function SiteHeader() {
   return (
     <header
       className="px-4 sm:px-5 py-3 flex items-center gap-3 sticky top-0 z-50"
-      style={{ background: '#0a0a10', borderBottom: '1px solid #2a2418' }}
+      style={{ background: '#1e1008', borderBottom: '2px solid #5a3818' }}
     >
       {/* Logo — always visible */}
       <Link
@@ -23,14 +23,14 @@ export default async function SiteHeader() {
 
       {/* Desktop nav links — hidden on mobile (sidebar handles navigation) */}
       <div className="hidden md:flex items-center gap-6 flex-1">
-        <Link href="/quest-board" className="text-[8px] transition-colors hover:opacity-80" style={{ color: 'var(--text-2)' }}>
+        <Link href="/quest-board" className="text-[8px] transition-colors hover:opacity-80" style={{ color: '#c8a870' }}>
           Quests
         </Link>
-        <Link href="/resume" className="text-[8px] transition-colors hover:opacity-80" style={{ color: 'var(--text-2)' }}>
+        <Link href="/resume" className="text-[8px] transition-colors hover:opacity-80" style={{ color: '#c8a870' }}>
           Resume
         </Link>
         {isAdmin && (
-          <Link href="/admin" className="text-[8px]" style={{ color: 'var(--gold)' }}>
+          <Link href="/admin" className="text-[8px]" style={{ color: '#e8c060' }}>
             Admin
           </Link>
         )}

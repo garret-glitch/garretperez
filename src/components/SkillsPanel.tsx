@@ -57,25 +57,25 @@ export default async function SkillsPanel() {
 
   return (
     <aside className="w-[240px] shrink-0 flex flex-col border-r"
-      style={{ borderColor: '#2a2418', background: '#0f0f18', minHeight: '100vh' }}>
+      style={{ borderColor: '#5a3818', background: '#1a0e06', minHeight: '100vh' }}>
 
       {/* ── Battlements ───────────────────────────────── */}
       <div className="castle-battlements" />
 
       {/* ── Profile block ─────────────────────────────── */}
-      <div className="px-4 py-4 border-b shrink-0" style={{ borderColor: '#2a2418' }}>
+      <div className="px-4 py-4 border-b shrink-0" style={{ borderColor: '#5a3818' }}>
 
         {session?.user ? (
           <>
             {/* Logged-in: show user avatar + name + XP */}
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-lg flex items-center justify-center text-xs font-bold shrink-0"
-                style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--gold)' }}>
+                style={{ background: '#2a1808', border: '1px solid #6a4018', color: '#c89b3c' }}>
                 {initials}
               </div>
               <div>
-                <div className="text-[8px] font-bold" style={{ color: 'var(--text-1)' }}>{session.user.name}</div>
-                <div className="text-[6px] mt-0.5" style={{ color: 'var(--gold)' }}>Lv {userLevel} · {totalXp.toLocaleString()} XP</div>
+                <div className="text-[8px] font-bold" style={{ color: '#f0d898' }}>{session.user.name}</div>
+                <div className="text-[6px] mt-0.5" style={{ color: '#c89b3c' }}>Lv {userLevel} · {totalXp.toLocaleString()} XP</div>
               </div>
             </div>
 
@@ -105,17 +105,17 @@ export default async function SkillsPanel() {
             {/* Logged-out: login box */}
             <div className="rounded-xl p-3 mb-2"
               style={{
-                background: 'linear-gradient(135deg, rgba(200,155,60,0.08) 0%, rgba(200,155,60,0.03) 100%)',
-                border: '1px solid rgba(200,155,60,0.25)',
+                background: 'linear-gradient(135deg, rgba(200,155,60,0.12) 0%, rgba(200,155,60,0.05) 100%)',
+                border: '1px solid rgba(200,155,60,0.35)',
               }}>
-              <div className="text-[7px] font-bold mb-1" style={{ color: 'var(--gold)' }}>⚔ Welcome, Adventurer</div>
-              <div className="text-[6px] mb-3 leading-relaxed" style={{ color: 'var(--text-2)' }}>
+              <div className="text-[7px] font-bold mb-1" style={{ color: '#c89b3c' }}>⚔ Welcome, Adventurer</div>
+              <div className="text-[6px] mb-3 leading-relaxed" style={{ color: '#c8a870' }}>
                 Log in to earn XP, post in channels, and track your progress.
               </div>
               <div className="flex gap-1.5">
                 <Link href="/login" className="osrs-btn flex-1 text-[6.5px] py-1.5 text-center block">Login</Link>
                 <Link href="/register" className="flex-1 flex items-center justify-center py-1.5 rounded-lg text-[6.5px] transition-opacity hover:opacity-80"
-                  style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-2)' }}>
+                  style={{ background: '#2a1808', border: '1px solid #6a4018', color: '#c8a870' }}>
                   Join
                 </Link>
               </div>
@@ -138,18 +138,18 @@ export default async function SkillsPanel() {
       <div className="flex-1 flex flex-col min-h-0">
         <div className="py-2 shrink-0">
           <div className="px-4 pb-1.5 pt-1">
-            <span className="text-[6px] uppercase tracking-widest" style={{ color: 'var(--text-3)' }}>⚔ Communities</span>
+            <span className="text-[6px] uppercase tracking-widest" style={{ color: '#a07848' }}>⚔ Communities</span>
           </div>
 
           {/* Quests — special channel entry (no XP level) */}
           <Link href="/quest-board" className="guild-channel">
             <span className="text-base shrink-0 w-6 text-center">📋</span>
             <div className="flex-1 min-w-0">
-              <div className="text-[7px] truncate" style={{ color: 'var(--text-1)' }}>Quests</div>
-              <div className="text-[5.5px] truncate" style={{ color: 'var(--text-3)' }}>Active Quest Log</div>
+              <div className="text-[7px] truncate" style={{ color: '#f0d898' }}>Quests</div>
+              <div className="text-[5.5px] truncate" style={{ color: '#a07848' }}>Active Quest Log</div>
             </div>
             <div className="text-right shrink-0">
-              <div className="text-[6px] font-bold" style={{ color: 'var(--gold)' }}>4</div>
+              <div className="text-[6px] font-bold" style={{ color: '#c89b3c' }}>4</div>
             </div>
           </Link>
 
@@ -158,13 +158,13 @@ export default async function SkillsPanel() {
             <Link key={ch.href} href={ch.href} className="guild-channel">
               <span className="text-base shrink-0 w-6 text-center">{ch.icon}</span>
               <div className="flex-1 min-w-0">
-                <div className="text-[7px] truncate" style={{ color: 'var(--text-1)' }}>{ch.label}</div>
-                <div className="text-[5.5px] truncate" style={{ color: 'var(--text-3)' }}>{ch.sub}</div>
+                <div className="text-[7px] truncate" style={{ color: '#f0d898' }}>{ch.label}</div>
+                <div className="text-[5.5px] truncate" style={{ color: '#a07848' }}>{ch.sub}</div>
               </div>
               <div className="text-right shrink-0">
-                <div className="text-[6px] font-bold" style={{ color: 'var(--gold)' }}>{adminSkillLevels[ch.dbEnum] ?? 1}</div>
+                <div className="text-[6px] font-bold" style={{ color: '#c89b3c' }}>{adminSkillLevels[ch.dbEnum] ?? 1}</div>
                 {(postCounts[ch.dbEnum] ?? 0) > 0 && (
-                  <div className="text-[5px]" style={{ color: 'var(--text-3)' }}>{postCounts[ch.dbEnum]}p</div>
+                  <div className="text-[5px]" style={{ color: '#a07848' }}>{postCounts[ch.dbEnum]}p</div>
                 )}
               </div>
             </Link>
@@ -177,7 +177,7 @@ export default async function SkillsPanel() {
 
       {/* ── Badges — only when logged in ──────────── */}
       {session?.user && userBadges.length > 0 && (
-        <div className="px-3 py-2 border-t shrink-0" style={{ borderColor: '#2a2418' }}>
+        <div className="px-3 py-2 border-t shrink-0" style={{ borderColor: '#5a3818' }}>
           <div className="flex flex-wrap gap-1">
             {userBadges.map(b => {
               const m = BADGE_META[b]

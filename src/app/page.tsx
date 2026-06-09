@@ -163,7 +163,7 @@ export default async function Home() {
 
             <a href="https://www.linkedin.com/in/garretperez" target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-2 body-text text-[13px] transition-opacity hover:opacity-80"
-              style={{ color: '#5b9bd5' }}>
+              style={{ color: '#3a5e8a' }}>
               <span>🔗</span><span>linkedin.com/in/garretperez</span>
             </a>
 

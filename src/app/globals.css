@@ -5,19 +5,19 @@
 @tailwind utilities;
 
 :root {
-  --bg-page:     #0d0d14;
-  --bg-card:     #13131c;
-  --bg-elevated: #1a1a28;
-  --border-dim:  #1e1e2c;
-  --border:      #2a2a3e;
-  --border-lit:  #3a3a56;
-  --gold:        #c89b3c;
-  --gold-bright: #e8b44e;
-  --text-1:      #eeedf8;
-  --text-2:      #b4b2cc;
-  --text-3:      #7a7898;
-  --green:       #22c55e;
-  --red:         #ef4444;
+  --bg-page:     #b89658;
+  --bg-card:     #d8bc88;
+  --bg-elevated: #e4cc98;
+  --border-dim:  #a07840;
+  --border:      #7a5828;
+  --border-lit:  #4a2808;
+  --gold:        #6a3808;
+  --gold-bright: #9a5818;
+  --text-1:      #1e0e02;
+  --text-2:      #5a3818;
+  --text-3:      #8a6030;
+  --green:       #2a5a18;
+  --red:         #7a1818;
 }
 
 * { box-sizing: border-box; }
@@ -33,6 +33,21 @@ button { cursor: pointer; }
 
 body {
   background-color: var(--bg-page);
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(0,0,0,0.018) 3px,
+      rgba(0,0,0,0.018) 4px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 6px,
+      rgba(0,0,0,0.010) 6px,
+      rgba(0,0,0,0.010) 7px
+    );
   color: var(--text-1);
   font-family: 'Press Start 2P', monospace;
   font-size: 12px;
@@ -46,38 +61,40 @@ a { color: inherit; text-decoration: none; }
   font-family: 'Inter', system-ui, sans-serif;
   font-size: 15px;
   line-height: 1.75;
-  color: #d0ceea;
+  color: #4a2c10;
 }
 
 /* ─── Cards ─────────────────────────────────────────────── */
 @layer components {
   .rp-card {
     background: var(--bg-card);
-    border: 1px solid var(--border-dim);
-    border-radius: 10px;
+    border: 2px solid var(--border);
+    border-radius: 4px;
     padding: 20px;
+    box-shadow: inset 0 1px 0 rgba(255,220,140,0.18), 2px 3px 8px rgba(60,30,0,0.18);
   }
 
   .rp-card-inner {
     background: var(--bg-elevated);
-    border: 1px solid var(--border);
-    border-radius: 8px;
+    border: 1px solid var(--border-dim);
+    border-radius: 3px;
     padding: 14px;
   }
 
-  /* Hero panel with gold top accent */
+  /* Hero panel with sienna top accent */
   .hero-panel {
-    background: linear-gradient(135deg, #13131c 0%, #1a1a28 60%, #13131c 100%);
-    border: 1px solid var(--border);
-    border-radius: 12px;
+    background: linear-gradient(135deg, #dcc08a 0%, #e4cc98 60%, #dcc08a 100%);
+    border: 2px solid var(--border);
+    border-radius: 4px;
     padding: 24px;
     position: relative;
     overflow: hidden;
+    box-shadow: inset 0 1px 0 rgba(255,220,140,0.3), 2px 4px 12px rgba(60,30,0,0.2);
   }
   .hero-panel::before {
     content: '';
     position: absolute;
-    top: 0; left: 0; right: 0; height: 2px;
+    top: 0; left: 0; right: 0; height: 3px;
     background: linear-gradient(90deg, transparent, var(--gold), transparent);
   }
 
@@ -91,30 +108,30 @@ a { color: inherit; text-decoration: none; }
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s, color 0.15s;
     text-decoration: none;
-    color: var(--text-2);
+    color: #c8a870;
     min-height: 48px;
   }
   .guild-channel:hover {
-    background: rgba(200, 155, 60, 0.12);
-    border-left-color: var(--gold);
-    color: var(--text-1);
+    background: rgba(200, 160, 80, 0.18);
+    border-left-color: #c89b3c;
+    color: #f0d898;
   }
   .guild-channel:active {
-    background: rgba(200, 155, 60, 0.2);
+    background: rgba(200, 160, 80, 0.3);
   }
 
   /* ─── XP Bar ────────────────────────────────────────────── */
   .xp-bar {
     height: 10px;
-    background: #0a0a12;
-    border-radius: 5px;
+    background: #a88040;
+    border-radius: 2px;
     border: 1px solid var(--border);
     overflow: hidden;
   }
   .xp-bar-fill {
     height: 100%;
-    background: linear-gradient(90deg, #16a34a, #22c55e);
-    border-radius: 5px;
+    background: linear-gradient(90deg, #2a5a18, #3a7a22);
+    border-radius: 2px;
     position: relative;
     transition: width 0.6s ease;
   }
@@ -123,40 +140,41 @@ a { color: inherit; text-decoration: none; }
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 45%;
-    background: rgba(255,255,255,0.12);
-    border-radius: 5px 5px 0 0;
+    background: rgba(255,255,255,0.15);
+    border-radius: 2px 2px 0 0;
   }
 
   /* ─── Quest card ────────────────────────────────────────── */
   .quest-card {
     background: var(--bg-elevated);
-    border: 1px solid var(--border);
-    border-radius: 8px;
+    border: 2px solid var(--border);
+    border-radius: 3px;
     padding: 14px;
     transition: all 0.15s;
     cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255,220,140,0.2);
   }
   .quest-card:hover {
     border-color: var(--gold);
-    background: rgba(200,155,60,0.06);
-    box-shadow: 0 0 10px rgba(200,155,60,0.1);
+    background: #ecd9a8;
+    box-shadow: inset 0 1px 0 rgba(255,220,140,0.3), 0 2px 6px rgba(60,30,0,0.15);
   }
   .quest-card:active {
-    background: rgba(200,155,60,0.1);
+    filter: brightness(0.96);
   }
 
   /* Progress bar (generic) */
   .prog-bar {
     height: 6px;
-    background: #0a0a12;
-    border-radius: 3px;
+    background: #a88040;
+    border-radius: 2px;
     overflow: hidden;
-    border: 1px solid var(--border-dim);
+    border: 1px solid var(--border);
   }
   .prog-bar-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--gold), var(--gold-bright));
-    border-radius: 3px;
+    background: linear-gradient(90deg, #6a3808, #9a5818);
+    border-radius: 2px;
   }
 
   /* Achievement badge */
@@ -167,75 +185,79 @@ a { color: inherit; text-decoration: none; }
     gap: 6px;
     padding: 12px 8px;
     background: var(--bg-elevated);
-    border: 1px solid var(--border-dim);
-    border-radius: 8px;
+    border: 2px solid var(--border);
+    border-radius: 3px;
     text-align: center;
     transition: all 0.15s;
     cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255,220,140,0.18);
   }
   .badge-tile:hover {
     border-color: var(--gold);
-    background: rgba(200,155,60,0.08);
-    box-shadow: 0 0 8px rgba(200,155,60,0.12);
+    background: #ecd9a8;
+    box-shadow: inset 0 1px 0 rgba(255,220,140,0.3), 0 2px 6px rgba(60,30,0,0.12);
   }
-  .badge-tile.earned { border-color: var(--gold); background: rgba(200,155,60,0.07); }
+  .badge-tile.earned { border-color: var(--gold); background: #ecd9a8; }
 
   /* Community post card */
   .post-card {
     background: var(--bg-elevated);
-    border: 1px solid var(--border-dim);
-    border-radius: 8px;
+    border: 2px solid var(--border);
+    border-radius: 3px;
     padding: 14px;
     transition: all 0.15s;
     cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255,220,140,0.18);
   }
   .post-card:hover {
-    border-color: var(--border-lit);
-    background: #1e1e2e;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    border-color: var(--gold);
+    background: #ecd9a8;
+    box-shadow: inset 0 1px 0 rgba(255,220,140,0.3), 0 2px 8px rgba(60,30,0,0.15);
   }
   .post-card:active {
-    background: #222238;
+    filter: brightness(0.96);
   }
 
   /* ─── Panels ───────────────────────────────────────────── */
   .osrs-panel {
     background: var(--bg-elevated);
     color: var(--text-1);
-    border: 1px solid var(--border);
-    border-radius: 8px;
+    border: 2px solid var(--border);
+    border-radius: 3px;
     padding: 16px;
+    box-shadow: inset 0 1px 0 rgba(255,220,140,0.18);
   }
 
   .osrs-panel-dark {
     background: var(--bg-card);
     color: var(--text-1);
-    border: 1px solid var(--border-dim);
-    border-radius: 8px;
+    border: 2px solid var(--border-dim);
+    border-radius: 3px;
     padding: 16px;
   }
 
   /* ─── Button ─────────────────────────────────────────────── */
   .osrs-btn {
     display: inline-block;
-    background: linear-gradient(180deg, #2a2a3e 0%, #1e1e2c 100%);
-    color: var(--gold);
+    background: linear-gradient(180deg, #4a2e10 0%, #2e1a06 100%);
+    color: #e8d090;
     padding: 8px 14px;
     font-size: 8px;
     font-family: 'Press Start 2P', monospace;
     cursor: pointer;
-    border: 1px solid var(--border-lit);
-    border-radius: 4px;
+    border: 2px solid #6a4018;
+    border-radius: 3px;
     transition: all 0.15s;
     text-align: center;
     line-height: 1.6;
     user-select: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,200,100,0.15);
   }
   .osrs-btn:hover:not(:disabled) {
-    background: linear-gradient(180deg, #3a3a55 0%, #2a2a3e 100%);
-    border-color: var(--gold);
-    color: var(--gold-bright);
-    box-shadow: 0 0 10px rgba(200,155,60,0.25);
+    background: linear-gradient(180deg, #6a4018 0%, #4a2e10 100%);
+    border-color: #c89b3c;
+    color: #f8e4a8;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,200,100,0.25);
   }
   .osrs-btn:active:not(:disabled) {
     transform: translateY(1px);
@@ -246,13 +268,13 @@ a { color: inherit; text-decoration: none; }
   /* ─── Input ──────────────────────────────────────────────── */
   .osrs-input {
     display: block;
-    background: #0a0a12;
+    background: #ecdcb0;
     color: var(--text-1);
     padding: 10px 12px;
     font-size: 9px;
     font-family: 'Press Start 2P', monospace;
-    border: 1px solid var(--border);
-    border-radius: 4px;
+    border: 2px solid var(--border);
+    border-radius: 3px;
     outline: none;
     width: 100%;
     line-height: 1.6;
@@ -260,10 +282,10 @@ a { color: inherit; text-decoration: none; }
   }
   .osrs-input:focus {
     border-color: var(--gold);
-    box-shadow: 0 0 0 2px rgba(200,155,60,0.18);
+    box-shadow: 0 0 0 2px rgba(106,56,8,0.2);
   }
   .osrs-input::placeholder { color: var(--text-3); font-size: 8px; }
-  .osrs-input:disabled { opacity: 0.45; }
+  .osrs-input:disabled { opacity: 0.55; }
 
   /* ─── Skill cell ─────────────────────────────────────────── */
   .skill-cell {
@@ -274,18 +296,18 @@ a { color: inherit; text-decoration: none; }
     padding: 8px 4px;
     cursor: pointer;
     background: var(--bg-card);
-    border: 1px solid var(--border-dim);
+    border: 2px solid var(--border);
     text-decoration: none;
     transition: all 0.15s;
     min-height: 56px;
   }
   .skill-cell:hover {
     background: var(--bg-elevated);
-    border-color: rgba(200, 155, 60, 0.45);
-    box-shadow: 0 0 8px rgba(200,155,60,0.12);
+    border-color: var(--gold);
+    box-shadow: 0 2px 6px rgba(60,30,0,0.15);
   }
   .skill-cell:active {
-    background: rgba(200,155,60,0.08);
+    filter: brightness(0.96);
   }
 }
 
@@ -322,25 +344,26 @@ a { color: inherit; text-decoration: none; }
   font-family: 'Inter', system-ui, sans-serif;
   font-size: 15px;
   line-height: 1.75;
-  color: #d0ceea;
+  color: #3a2010;
 }
 .prose h1, .prose h2, .prose h3 {
   font-family: 'Press Start 2P', monospace;
   color: var(--text-1);
   margin-bottom: 12px;
 }
-.prose a  { color: #7eb8d0; text-decoration: underline; }
+.prose a  { color: #3a5e8a; text-decoration: underline; }
 .prose code {
-  background: #0a0a12;
-  color: #c0c0d8;
+  background: #c8a860;
+  color: #2a1408;
   padding: 2px 5px;
-  border-radius: 3px;
+  border-radius: 2px;
   font-size: 12px;
+  border: 1px solid #8a6030;
 }
 .prose pre {
-  background: #0a0a12;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  background: #c0a050;
+  border: 2px solid #7a5020;
+  border-radius: 3px;
   padding: 14px;
 }
 
@@ -361,7 +384,7 @@ a { color: inherit; text-decoration: none; }
   border: 2px solid #8a5e18;
   position: relative;
   z-index: 2;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,220,120,0.25);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,220,120,0.25);
 }
 .scroll-roll::before,
 .scroll-roll::after {
@@ -372,26 +395,26 @@ a { color: inherit; text-decoration: none; }
   background: linear-gradient(180deg, #0e0602 0%, #3a1e08 45%, #0e0602 100%);
   border-radius: 4px;
   border: 1px solid #5a3010;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.8);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.6);
   z-index: 3;
 }
 .scroll-roll::before { left: 8px; }
 .scroll-roll::after  { right: 8px; }
 
-/* Genuine paper-parchment body */
+/* Genuine paper-parchment body — richer/older than page bg to stand out */
 .scroll-parchment {
   background: linear-gradient(
     180deg,
-    #e0ccaa 0%,
-    #eeddb8 8%,
-    #f5e8c8 30%,
-    #f8eecf 50%,
-    #f5e8c8 70%,
-    #eeddb8 92%,
-    #e0ccaa 100%
+    #c8a040 0%,
+    #d4ae50 8%,
+    #e0bc60 30%,
+    #e8c468 50%,
+    #e0bc60 70%,
+    #d4ae50 92%,
+    #c8a040 100%
   );
-  border-left: 3px solid #b8881e;
-  border-right: 3px solid #b8881e;
+  border-left: 3px solid #7a5010;
+  border-right: 3px solid #7a5010;
   padding: 20px 26px 22px;
   position: relative;
 }
@@ -406,27 +429,27 @@ a { color: inherit; text-decoration: none; }
 }
 .scroll-parchment::before {
   top: 0;
-  background: linear-gradient(180deg, rgba(0,0,0,0.14), transparent);
+  background: linear-gradient(180deg, rgba(0,0,0,0.12), transparent);
 }
 .scroll-parchment::after {
   bottom: 0;
-  background: linear-gradient(0deg, rgba(0,0,0,0.14), transparent);
+  background: linear-gradient(0deg, rgba(0,0,0,0.12), transparent);
 }
 
 /* ─── Castle sidebar battlements ─────────────────────────── */
 .castle-battlements {
   height: 18px;
   flex-shrink: 0;
-  background-color: #1c1a14;
+  background-color: #2a1808;
   background-image: linear-gradient(
     90deg,
-    #1c1a14 0%, #1c1a14 61.5%,
-    #0d0d14 61.5%, #0d0d14 100%
+    #2a1808 0%, #2a1808 61.5%,
+    #1a0e04 61.5%, #1a0e04 100%
   );
   background-size: 26px 50%;
   background-position: 0 0;
   background-repeat: repeat-x;
-  border-bottom: 1px solid rgba(200,155,60,0.14);
+  border-bottom: 1px solid rgba(200,140,40,0.2);
 }
 
 /* ─── Global: bump all tiny Press Start 2P sizes to readable minimums ── */
@@ -467,7 +490,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 /* Scrollbar */
-::-webkit-scrollbar        { width: 6px; }
-::-webkit-scrollbar-track  { background: #0a0a12; }
-::-webkit-scrollbar-thumb  { background: #2a2a3e; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #3a3a55; }
+::-webkit-scrollbar        { width: 8px; }
+::-webkit-scrollbar-track  { background: #a07838; }
+::-webkit-scrollbar-thumb  { background: #5a3010; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #3a1e08; }
