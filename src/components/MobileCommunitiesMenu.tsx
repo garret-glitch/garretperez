@@ -49,17 +49,19 @@ export default function MobileCommunitiesMenu({ isAdmin }: { isAdmin?: boolean }
           {/* Tap-outside backdrop */}
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
 
-          {/* Dropdown panel — explicit width overrides the * max-width rule */}
+          {/* Dropdown panel — fixed + centered on screen */}
           <div
-            className="absolute right-0 top-full mt-2 z-50 rounded-xl"
+            className="fixed z-50 rounded-xl"
             style={{
+              top: 62,
+              left: '50%',
+              transform: 'translateX(-50%)',
               background: '#1a1a28',
               border: '1px solid rgba(200,155,60,0.25)',
-              width: 240,
-              maxWidth: '90vw',
+              width: 260,
+              maxWidth: '92vw',
               maxHeight: '80vh',
               overflowY: 'auto',
-              overflowX: 'visible',
               boxShadow: '0 16px 40px rgba(0,0,0,0.8)',
             }}
           >

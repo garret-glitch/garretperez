@@ -18,7 +18,7 @@ export default async function SiteHeader() {
         className="text-[11px] font-bold shrink-0 mr-2"
         style={{ color: 'var(--gold)' }}
       >
-        GP
+        Home
       </Link>
 
       {/* Desktop nav links — hidden on mobile (sidebar handles navigation) */}
