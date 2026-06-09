@@ -431,17 +431,30 @@ a { color: inherit; text-decoration: none; }
 
 /* ─── Mobile ─────────────────────────────────────────────── */
 @media (max-width: 767px) {
+  /* Prevent any element from pushing page wider than viewport */
+  body { overflow-x: hidden; }
+  * { max-width: 100%; }
+  img, video { max-width: 100%; height: auto; }
+
   .hero-panel { padding: 16px; }
   .rp-card    { padding: 14px; }
 
-  /* Keep buttons tap-friendly */
+  /* Tap-friendly buttons */
   .osrs-btn {
     padding: 10px 16px;
     min-height: 40px;
   }
 
-  /* Larger touch target for channels */
-  .guild-channel { min-height: 52px; }
+  /* Bump up all the unreadably tiny Press Start 2P sizes */
+  .text-\[5\.5px\] { font-size: 11px; }
+  .text-\[6px\]    { font-size: 11px; }
+  .text-\[6\.5px\] { font-size: 11px; }
+  .text-\[7px\]    { font-size: 12px; }
+  .text-\[8px\]    { font-size: 13px; }
+  .text-\[9px\]    { font-size: 14px; }
+
+  /* Make Inter body text comfortably readable */
+  .body-text { font-size: 15px; line-height: 1.7; }
 }
 
 /* Scrollbar */

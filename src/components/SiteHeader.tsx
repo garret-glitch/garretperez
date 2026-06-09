@@ -1,5 +1,6 @@
 import { auth } from '@/auth'
 import AuthButton from './AuthButton'
+import MobileCommunitiesMenu from './MobileCommunitiesMenu'
 import Link from 'next/link'
 
 export default async function SiteHeader() {
@@ -43,6 +44,9 @@ export default async function SiteHeader() {
           </Link>
         )}
       </div>
+      {/* Communities dropdown — mobile only */}
+      <MobileCommunitiesMenu />
+
       <AuthButton session={session} />
     </header>
   )

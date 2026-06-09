@@ -79,32 +79,44 @@ export default async function Home() {
 
       {/* ─── HERO ─────────────────────────────────────────── */}
       <div className="hero-panel">
-        <div className="flex gap-5 flex-wrap">
+        {/* Mobile: column stack. sm+: three-column row */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:gap-5">
 
-          {/* Profile Photo */}
-          <div className="shrink-0">
-            <div className="w-28 h-28 rounded-xl overflow-hidden flex items-center justify-center text-2xl font-bold"
-              style={{ border: '2px solid var(--border-lit)', background: 'var(--bg-page)', color: 'var(--gold)', flexShrink: 0 }}>
+          {/* Row on mobile: photo + name side-by-side */}
+          <div className="flex gap-4 items-center sm:block sm:shrink-0">
+            <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-xl overflow-hidden flex items-center justify-center text-2xl font-bold shrink-0"
+              style={{ border: '2px solid var(--border-lit)', background: 'var(--bg-page)', color: 'var(--gold)' }}>
               {headshot
                 ? <img src={headshot} alt="Garret Perez" className="w-full h-full object-cover" />
                 : 'GP'}
             </div>
+            {/* Name + level: shown next to photo on mobile only */}
+            <div className="sm:hidden min-w-0">
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <h1 className="text-[12px] leading-tight" style={{ color: 'var(--text-1)' }}>Garret Perez</h1>
+                <span className="text-[7px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(200,155,60,0.15)', color: 'var(--gold)', border: '1px solid rgba(200,155,60,0.3)' }}>
+                  ⚔ Lv {garretTotalLevel}
+                </span>
+              </div>
+              <div className="body-text text-[12px] font-semibold" style={{ color: 'var(--text-1)' }}>
+                Sales · Builder · Family Man
+              </div>
+              <div className="body-text text-[12px]" style={{ color: 'var(--text-2)' }}>📍 Houston, TX</div>
+            </div>
           </div>
 
-          {/* Main info */}
-          <div className="flex-1 min-w-[200px]">
-            <div className="flex items-center gap-3 flex-wrap mb-1">
-              <h1 className="text-[14px] leading-tight" style={{ color: 'var(--text-1)' }}>
-                Garret Perez
-              </h1>
+          {/* Main info — full version, hidden on mobile (shown above) */}
+          <div className="flex-1 min-w-0">
+            <div className="hidden sm:flex items-center gap-3 flex-wrap mb-1">
+              <h1 className="text-[14px] leading-tight" style={{ color: 'var(--text-1)' }}>Garret Perez</h1>
               <span className="text-[7px] px-2 py-0.5 rounded" style={{ background: 'rgba(200,155,60,0.15)', color: 'var(--gold)', border: '1px solid rgba(200,155,60,0.3)' }}>
                 ⚔ Level {garretTotalLevel}
               </span>
             </div>
-            <div className="body-text text-[13px] font-semibold mb-0.5" style={{ color: 'var(--text-1)' }}>
+            <div className="hidden sm:block body-text text-[13px] font-semibold mb-0.5" style={{ color: 'var(--text-1)' }}>
               Sales Supervisor · Builder · Family Man
             </div>
-            <div className="body-text text-[12px] mb-2" style={{ color: 'var(--text-2)' }}>
+            <div className="hidden sm:block body-text text-[12px] mb-2" style={{ color: 'var(--text-2)' }}>
               📍 Houston, TX
             </div>
 
@@ -112,52 +124,50 @@ export default async function Home() {
             <div className="flex gap-2 mb-2">
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg"
                 style={{ background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.22)' }}>
-                <span className="text-[10px] font-bold" style={{ color: 'var(--gold)' }}>{totalUsers}</span>
-                <span className="text-[6px]" style={{ color: 'var(--text-3)' }}>Members</span>
+                <span className="text-[11px] font-bold" style={{ color: 'var(--gold)' }}>{totalUsers}</span>
+                <span className="body-text text-[11px]" style={{ color: 'var(--text-2)' }}>Members</span>
               </div>
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg"
                 style={{ background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.22)' }}>
-                <span className="text-[10px] font-bold" style={{ color: 'var(--gold)' }}>{totalPosts}</span>
-                <span className="text-[6px]" style={{ color: 'var(--text-3)' }}>Posts</span>
+                <span className="text-[11px] font-bold" style={{ color: 'var(--gold)' }}>{totalPosts}</span>
+                <span className="body-text text-[11px]" style={{ color: 'var(--text-2)' }}>Posts</span>
               </div>
             </div>
 
             {/* XP bar */}
-            <div className="mb-1 flex items-center gap-3">
-              <div className="xp-bar flex-1" style={{ maxWidth: 280 }}>
+            <div className="flex items-center gap-3">
+              <div className="xp-bar flex-1">
                 <div className="xp-bar-fill" style={{ width: `${garretXpBar.percent}%` }} />
               </div>
-              <span className="text-[6px]" style={{ color: 'var(--text-3)' }}>{garretXpBar.currentXp} / {garretXpBar.neededXp} XP</span>
+              <span className="body-text text-[11px]" style={{ color: 'var(--text-2)' }}>
+                {garretXpBar.currentXp} / {garretXpBar.neededXp} XP
+              </span>
             </div>
-
           </div>
 
           {/* Contact info */}
-          <div className="shrink-0 flex flex-col gap-2" style={{ minWidth: 175, maxWidth: 210 }}>
-            <div className="text-[6px] uppercase tracking-widest" style={{ color: 'var(--text-3)' }}>Contact</div>
+          <div className="flex flex-col gap-2 sm:shrink-0" style={{ maxWidth: 220 }}>
+            <div className="text-[7px] uppercase tracking-widest" style={{ color: 'var(--text-3)' }}>Contact</div>
 
             <a href="tel:346-604-1635"
-              className="flex items-center gap-2 body-text text-[12px] hover:opacity-80 transition-opacity"
+              className="flex items-center gap-2 body-text text-[13px] transition-opacity hover:opacity-80"
               style={{ color: 'var(--text-1)' }}>
-              <span>📞</span>
-              <span>(346) 604-1635</span>
+              <span>📞</span><span>(346) 604-1635</span>
             </a>
 
             <a href="mailto:gis.owner@gmail.com"
-              className="flex items-center gap-2 body-text text-[12px] hover:opacity-80 transition-opacity"
+              className="flex items-center gap-2 body-text text-[13px] transition-opacity hover:opacity-80"
               style={{ color: 'var(--text-1)' }}>
-              <span>✉️</span>
-              <span>gis.owner@gmail.com</span>
+              <span>✉️</span><span>gis.owner@gmail.com</span>
             </a>
 
             <a href="https://www.linkedin.com/in/garretperez" target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-2 body-text text-[12px] hover:opacity-80 transition-opacity"
+              className="flex items-center gap-2 body-text text-[13px] transition-opacity hover:opacity-80"
               style={{ color: '#5b9bd5' }}>
-              <span>🔗</span>
-              <span>linkedin.com/in/garretperez</span>
+              <span>🔗</span><span>linkedin.com/in/garretperez</span>
             </a>
 
-            <a href="/resume" className="osrs-btn text-[7px] text-center mt-0.5">📄 View Resume</a>
+            <a href="/resume" className="osrs-btn text-[7px] text-center mt-0.5 block">📄 View Resume</a>
           </div>
         </div>
       </div>
