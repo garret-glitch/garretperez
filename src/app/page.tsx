@@ -7,13 +7,7 @@ import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
-const PROJECTS = [
-  { icon: '🎃', title: 'Haunted House',     desc: 'Building the ultimate neighborhood haunted house experience for the community.',  progress: 65, href: '/skills/community', updated: 'Nov 2024' },
-  { icon: '🎣', title: 'Fishing Log',       desc: 'Documenting fishing adventures, best spots, and catches across Texas.',           progress: 40, href: '/skills/fishing',   updated: 'Oct 2024' },
-  { icon: '🌱', title: 'Garden Project',    desc: 'Growing and maintaining a productive home garden through all seasons.',           progress: 30, href: '/skills/gardening', updated: 'Sep 2024' },
-  { icon: '💼', title: 'Wine Sales Goals',  desc: 'Hitting quarterly H-E-B distribution targets and growing client relationships.',  progress: 75, href: '/skills/business',  updated: 'Nov 2024' },
-  { icon: '⚒️', title: 'Personal Projects', desc: 'Building, fixing, and creating things — home improvements and DIY builds.',       progress: 20, href: '/skills/projects',  updated: 'Oct 2024' },
-]
+const PROJECTS: { icon: string; title: string; desc: string; progress: number; href: string; updated: string }[] = []
 
 export default async function Home() {
   const session = await auth()
@@ -193,27 +187,42 @@ export default async function Home() {
         </div>
 
         {/* My Projects */}
-        <div className="rp-card">
-          <h2 className="text-[9px] mb-3 flex items-center gap-2" style={{ color: 'var(--text-1)' }}>
-            <span style={{ color: 'var(--gold)' }}>⚒️</span> My Projects
-          </h2>
-          <div className="space-y-2">
-            {PROJECTS.map(p => (
-              <Link key={p.title} href={p.href} className="flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors hover:opacity-80"
-                style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-dim)' }}>
-                <span className="text-base shrink-0">{p.icon}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <span className="text-[7px] font-bold truncate" style={{ color: 'var(--text-1)' }}>{p.title}</span>
-                    <span className="text-[6px] shrink-0" style={{ color: 'var(--gold)' }}>{p.progress}%</span>
-                  </div>
-                  <div className="prog-bar">
-                    <div className="prog-bar-fill" style={{ width: `${p.progress}%` }} />
-                  </div>
-                </div>
-              </Link>
-            ))}
+        <div className="rp-card flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[9px] flex items-center gap-2" style={{ color: 'var(--text-1)' }}>
+              <span style={{ color: 'var(--gold)' }}>⚒️</span> My Projects
+            </h2>
+            <Link href="/skills/projects" className="text-[6px] hover:opacity-70 transition-opacity" style={{ color: 'var(--gold)' }}>
+              View All →
+            </Link>
           </div>
+
+          {PROJECTS.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center py-10 gap-3">
+              <span className="text-4xl opacity-30">⚒️</span>
+              <p className="text-[7px]" style={{ color: 'var(--text-3)' }}>No projects logged yet.</p>
+              <Link href="/skills/projects" className="osrs-btn text-[6.5px] px-3 py-1.5">Start a Project</Link>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {PROJECTS.slice(0, 3).map(p => (
+                <Link key={p.title} href={p.href} className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-colors hover:opacity-80"
+                  style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-dim)' }}>
+                  <span className="text-xl shrink-0">{p.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className="text-[7px] font-bold truncate" style={{ color: 'var(--text-1)' }}>{p.title}</span>
+                      <span className="text-[6px] font-bold shrink-0" style={{ color: 'var(--gold)' }}>{p.progress}%</span>
+                    </div>
+                    <div className="prog-bar">
+                      <div className="prog-bar-fill" style={{ width: `${p.progress}%` }} />
+                    </div>
+                    <div className="text-[5.5px] mt-1" style={{ color: 'var(--text-3)' }}>Updated {p.updated}</div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
