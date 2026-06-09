@@ -285,10 +285,10 @@ export default async function Home() {
             <div className="scroll-roll" />
           </div>
 
-          {/* Achievements — scroll, fills remaining right-column space */}
-          <div style={{ overflow: 'visible', flex: 1, display: 'flex', flexDirection: 'column' }}>
+          {/* Achievements — compact scroll */}
+          <div style={{ overflow: 'visible' }}>
             <div className="scroll-roll" />
-            <div className="scroll-parchment" style={{ flex: 1 }}>
+            <div className="scroll-parchment">
               <h2 className="text-[9px] mb-4 flex items-center gap-2" style={{ color: '#3a1e06' }}>
                 <span>🏆</span> Achievements
               </h2>
