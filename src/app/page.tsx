@@ -7,7 +7,7 @@ import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
-const PROJECTS: { icon: string; title: string; desc: string; progress: number; href: string; updated: string }[] = []
+type ProjectRow = { id: string; icon: string; title: string; desc: string; progress: number; href: string; updated: string }
 
 export default async function Home() {
   const session = await auth()
@@ -25,6 +25,7 @@ export default async function Home() {
   let garretTotalLevel = 9
   let garretXpBar = { currentXp: 0, neededXp: 100, percent: 0 }
   let garretTotalXpRaw = 0
+  let dbProjects: ProjectRow[] = []
 
   try {
     const headshotSetting = await (prisma as any).siteSetting.findUnique({ where: { key: 'headshot' } })
@@ -51,6 +52,11 @@ export default async function Home() {
     })
     totalPosts = await prisma.post.count()
     totalUsers = await prisma.user.count()
+
+    dbProjects = await (prisma as any).project.findMany({
+      orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
+      take: 3,
+    })
 
     if (session?.user?.id) {
       const badges = await (prisma as any).userBadge.findMany({
@@ -197,7 +203,7 @@ export default async function Home() {
             </Link>
           </div>
 
-          {PROJECTS.length === 0 ? (
+          {dbProjects.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center py-10 gap-3">
               <span className="text-4xl opacity-30">⚒️</span>
               <p className="text-[7px]" style={{ color: 'var(--text-3)' }}>No projects logged yet.</p>
@@ -205,7 +211,7 @@ export default async function Home() {
             </div>
           ) : (
             <div className="space-y-2">
-              {PROJECTS.slice(0, 3).map(p => (
+              {dbProjects.map(p => (
                 <Link key={p.title} href={p.href} className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-colors hover:opacity-80"
                   style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-dim)' }}>
                   <span className="text-xl shrink-0">{p.icon}</span>

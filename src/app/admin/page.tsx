@@ -13,6 +13,9 @@ interface Post {
 interface Announcement {
   id: string; title: string; body: string; createdAt: string
 }
+interface Project {
+  id: string; icon: string; title: string; desc: string; progress: number; href: string; updated: string; order: number
+}
 
 export default function AdminPage() {
   const { data: session, status } = useSession()
@@ -21,8 +24,9 @@ export default function AdminPage() {
   const [users, setUsers] = useState<User[]>([])
   const [posts, setPosts] = useState<Post[]>([])
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
+  const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'users' | 'posts' | 'announce' | 'settings'>('settings')
+  const [tab, setTab] = useState<'users' | 'posts' | 'announce' | 'settings' | 'projects'>('settings')
 
   // XP form
   const [xpUser, setXpUser] = useState('')
@@ -32,6 +36,14 @@ export default function AdminPage() {
   // Announcement form
   const [aTitle, setATitle] = useState('')
   const [aBody, setABody] = useState('')
+
+  // Project form
+  const [pIcon, setPIcon] = useState('⚒️')
+  const [pTitle, setPTitle] = useState('')
+  const [pDesc, setPDesc] = useState('')
+  const [pProgress, setPProgress] = useState('0')
+  const [pHref, setPHref] = useState('/skills/projects')
+  const [pUpdated, setPUpdated] = useState('')
 
   // Photo upload
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
@@ -51,15 +63,17 @@ export default function AdminPage() {
   async function loadData() {
     setLoading(true)
     try {
-      const [u, p, a, s] = await Promise.all([
+      const [u, p, a, s, pr] = await Promise.all([
         fetch('/api/admin/users').then(r => r.json()),
         fetch('/api/admin/posts').then(r => r.json()),
         fetch('/api/admin/announcements').then(r => r.json()),
         fetch('/api/admin/settings').then(r => r.json()),
+        fetch('/api/admin/projects').then(r => r.json()),
       ])
       setUsers(u.users ?? [])
       setPosts(p.posts ?? [])
       setAnnouncements(a.announcements ?? [])
+      setProjects(pr.projects ?? [])
       if (s.settings?.headshot) setPhotoPreview(s.settings.headshot)
     } catch {
       setMsg('Failed to load data')
@@ -156,6 +170,29 @@ export default function AdminPage() {
     loadData()
   }
 
+  async function createProject() {
+    if (!pTitle.trim()) return setMsg('Enter a project title.')
+    await fetch('/api/admin/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ icon: pIcon, title: pTitle, desc: pDesc, progress: pProgress, href: pHref, updated: pUpdated }),
+    })
+    setPIcon('⚒️'); setPTitle(''); setPDesc(''); setPProgress('0'); setPHref('/skills/projects'); setPUpdated('')
+    setMsg('Project added!')
+    loadData()
+  }
+
+  async function deleteProject(id: string) {
+    if (!confirm('Delete this project?')) return
+    await fetch('/api/admin/projects', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
+    setMsg('Project deleted.')
+    loadData()
+  }
+
   async function resetMyXp() {
     if (!confirm('Reset ALL your skill XP to 0 (level 1)? This cannot be undone.')) return
     const res = await fetch('/api/admin/reset-xp', { method: 'POST' })
@@ -184,14 +221,14 @@ export default function AdminPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1">
-        {(['settings', 'users', 'posts', 'announce'] as const).map(t => (
+      <div className="flex gap-1 flex-wrap">
+        {(['settings', 'projects', 'users', 'posts', 'announce'] as const).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`osrs-btn text-[7px] capitalize ${tab === t ? 'brightness-125' : 'opacity-70'}`}
           >
-            {t === 'announce' ? 'Announcements' : t === 'settings' ? '⚙ Settings' : t}
+            {t === 'announce' ? 'Announcements' : t === 'settings' ? '⚙ Settings' : t === 'projects' ? '⚒️ Projects' : t}
           </button>
         ))}
       </div>
@@ -334,6 +371,87 @@ export default function AdminPage() {
                 </button>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Projects tab */}
+      {tab === 'projects' && (
+        <div className="space-y-3">
+          <div className="osrs-panel-dark rounded-xl">
+            <h2 className="text-[9px] text-[#c0c0c0] font-bold mb-3">Add Project</h2>
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <input
+                  className="osrs-input text-[7px] w-16 text-center"
+                  placeholder="Icon"
+                  value={pIcon}
+                  onChange={e => setPIcon(e.target.value)}
+                />
+                <input
+                  className="osrs-input text-[7px] flex-1"
+                  placeholder="Title *"
+                  value={pTitle}
+                  onChange={e => setPTitle(e.target.value)}
+                />
+              </div>
+              <textarea
+                className="osrs-input text-[7px] w-full h-16 resize-none"
+                placeholder="Description"
+                value={pDesc}
+                onChange={e => setPDesc(e.target.value)}
+              />
+              <div className="flex gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <label className="text-[6px]" style={{ color: 'var(--text-3)' }}>Progress %</label>
+                  <input
+                    type="number"
+                    min="0" max="100"
+                    className="osrs-input text-[7px] w-14"
+                    value={pProgress}
+                    onChange={e => setPProgress(e.target.value)}
+                  />
+                </div>
+                <input
+                  className="osrs-input text-[7px] flex-1 min-w-[120px]"
+                  placeholder="Link (e.g. /skills/projects)"
+                  value={pHref}
+                  onChange={e => setPHref(e.target.value)}
+                />
+                <input
+                  className="osrs-input text-[7px] w-28"
+                  placeholder="Updated (e.g. Jun 2026)"
+                  value={pUpdated}
+                  onChange={e => setPUpdated(e.target.value)}
+                />
+              </div>
+              <button onClick={createProject} className="osrs-btn text-[7px]">+ Add Project</button>
+            </div>
+          </div>
+
+          <div className="osrs-panel-dark rounded-xl">
+            <h2 className="text-[9px] text-[#c0c0c0] font-bold mb-2">Projects ({projects.length})</h2>
+            {projects.length === 0 ? (
+              <p className="text-[7px] text-[#707070]">No projects yet. Add one above.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {projects.map(p => (
+                  <div key={p.id} className="flex items-center gap-2 bg-[#282828] rounded-lg px-3 py-2">
+                    <span className="text-base shrink-0">{p.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[8px] text-[#d0d0d0] font-bold truncate">{p.title}</div>
+                      <div className="text-[6px] text-[#707070]">{p.progress}% · {p.updated}</div>
+                    </div>
+                    <button
+                      onClick={() => deleteProject(p.id)}
+                      className="text-[6px] px-1.5 py-0.5 rounded border border-[#8a4a4a] text-[#e09090] hover:bg-[#3a1a1a] shrink-0"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -195,3 +195,15 @@ model GameBest {
 
   @@unique([userId, game])
 }
+
+model Project {
+  id        String   @id @default(cuid())
+  icon      String
+  title     String
+  desc      String   @db.Text
+  progress  Int      @default(0)
+  href      String
+  updated   String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+}
