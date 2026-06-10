@@ -36,6 +36,7 @@ model User {
   skillVisits   SkillVisit[]
   announcements Announcement[]
   gameBests     GameBest[]
+  xpEvents      XpEvent[]
 }
 
 model Account {
@@ -250,4 +251,19 @@ model PageBlock {
   updatedAt DateTime @updatedAt
 
   @@index([pageSlug, order])
+}
+
+// Tracks individual XP events for anti-spam (once-per-tab-per-day, play limits, etc.)
+model XpEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  eventType String   // TAB_CLICK, SKILL_OPEN, POST_VIEW, MINIGAME_PLAY, TIME_SPENT, etc.
+  eventKey  String   @default("")  // tab path, skill slug, post ID, etc.
+  amount    Int
+  date      String   // YYYY-MM-DD
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, eventType, date])
+  @@index([userId, eventType, eventKey, date])
 }

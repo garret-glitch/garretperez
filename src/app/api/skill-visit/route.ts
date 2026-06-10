@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { XP_PER_VISIT } from '@/lib/xp'
+import { getXpAmount } from '@/lib/award-xp'
+import { mirrorXpToAdmin } from '@/lib/admin-xp'
 import { SkillType } from '@prisma/client'
 
 export async function POST(req: Request) {
@@ -28,12 +29,16 @@ export async function POST(req: Request) {
       data: { userId: session.user.id, skill, date: today },
     })
 
+    const xpAmount = await getXpAmount('SKILL_OPEN')
+
     await prisma.userSkill.update({
       where: { userId_skill: { userId: session.user.id, skill: skill as SkillType } },
-      data: { xp: { increment: XP_PER_VISIT } },
+      data: { xp: { increment: xpAmount } },
     })
 
-    return NextResponse.json({ ok: true, xpAwarded: XP_PER_VISIT })
+    await mirrorXpToAdmin(skill as SkillType, xpAmount, session.user.id)
+
+    return NextResponse.json({ ok: true, xpAwarded: xpAmount })
   } catch {
     return NextResponse.json({ ok: false })
   }

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { XP_PER_LOGIN } from '@/lib/xp'
+import { getXpAmount } from '@/lib/award-xp'
 import { checkBadges } from '@/lib/badges'
 import { mirrorXpToAdmin } from '@/lib/admin-xp'
 import { SkillType } from '@prisma/client'
@@ -30,6 +30,7 @@ export async function POST() {
     }
 
     const randomSkill = ALL_SKILLS[Math.floor(Math.random() * ALL_SKILLS.length)]
+    const xpAmount = await getXpAmount('DAILY_LOGIN')
 
     await prisma.$transaction([
       prisma.user.update({
@@ -38,14 +39,14 @@ export async function POST() {
       }),
       prisma.userSkill.update({
         where: { userId_skill: { userId: session.user.id, skill: randomSkill } },
-        data: { xp: { increment: XP_PER_LOGIN } },
+        data: { xp: { increment: xpAmount } },
       }),
     ])
 
     await checkBadges(session.user.id, 'login')
-    await mirrorXpToAdmin(randomSkill, XP_PER_LOGIN, session.user.id)
+    await mirrorXpToAdmin(randomSkill, xpAmount, session.user.id)
 
-    return NextResponse.json({ success: true, skill: randomSkill, xpAwarded: XP_PER_LOGIN })
+    return NextResponse.json({ success: true, skill: randomSkill, xpAwarded: xpAmount })
   } catch (error) {
     console.error('Daily login error:', error)
     return NextResponse.json({ error: 'Failed to award daily XP.' }, { status: 500 })

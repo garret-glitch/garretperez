@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { XP_PER_POST } from '@/lib/xp'
+import { getXpAmount } from '@/lib/award-xp'
 import { checkBadges } from '@/lib/badges'
 import { mirrorXpToAdmin } from '@/lib/admin-xp'
 
@@ -19,6 +19,7 @@ export async function POST(req: Request) {
     }
 
     const ingredientList = Array.isArray(ingredients) ? ingredients : [ingredients]
+    const xpAmount = await getXpAmount('RECIPE_ADD')
 
     await prisma.$transaction([
       prisma.recipe.create({
@@ -32,14 +33,14 @@ export async function POST(req: Request) {
       }),
       prisma.userSkill.update({
         where: { userId_skill: { userId: session.user.id, skill: 'FOOD' } },
-        data: { xp: { increment: XP_PER_POST } },
+        data: { xp: { increment: xpAmount } },
       }),
     ])
 
     await checkBadges(session.user.id, 'recipe')
-    await mirrorXpToAdmin('FOOD', XP_PER_POST, session.user.id)
+    await mirrorXpToAdmin('FOOD', xpAmount, session.user.id)
 
-    return NextResponse.json({ success: true, xpAwarded: XP_PER_POST })
+    return NextResponse.json({ success: true, xpAwarded: xpAmount })
   } catch (error) {
     console.error('Recipe error:', error)
     return NextResponse.json({ error: 'Failed to create recipe.' }, { status: 500 })

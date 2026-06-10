@@ -2,10 +2,15 @@ import type { PageBlock, XpGuideBlockConfig } from '@/types/builder'
 import { applyStylesToElement } from '@/lib/block-defaults'
 
 const XP_ROWS = [
-  { icon: '📝', action: 'Post to a skill', xp: '+50 XP' },
-  { icon: '🍳', action: 'Add a recipe',    xp: '+50 XP' },
-  { icon: '🎮', action: 'Win a mini-game', xp: '+25 XP' },
-  { icon: '📅', action: 'Daily login',     xp: '+10 XP' },
+  { icon: '📅', action: 'Use the website daily',               xp: '+10 XP' },
+  { icon: '🗺️', action: 'Explore tabs and communities',        xp: '+2–5 XP' },
+  { icon: '📝', action: 'Post updates in any skill',            xp: '+50 XP' },
+  { icon: '💬', action: 'Comment on posts',                     xp: '+20 XP' },
+  { icon: '🍳', action: 'Add photos or recipes',                xp: '+25–50 XP' },
+  { icon: '🎮', action: 'Play mini-games',                      xp: '+10 XP' },
+  { icon: '🏆', action: 'Win mini-games',                       xp: '+25 XP' },
+  { icon: '⚒️', action: 'Complete projects and milestones',     xp: '+50–100 XP' },
+  { icon: '⏱️', action: 'Spend 5+ minutes on the site',         xp: '+10 XP' },
 ]
 
 interface Props { block: PageBlock; isEditing: boolean }
@@ -33,6 +38,9 @@ export default function XpGuideBlock({ block }: Props) {
             </div>
           ))}
         </div>
+        <p className="mt-3 text-center" style={{ fontSize: bPx - 2, color: '#7a5030', fontStyle: 'italic' }}>
+          Level up naturally just by using the site.
+        </p>
       </div>
       <div className="scroll-roll" />
     </>

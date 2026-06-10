@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { XP_LABELS, XP_DEFAULTS, type XpEventType } from '@/lib/xp'
 
 type AdminTab = 'dashboard' | 'users' | 'posts' | 'settings'
 
@@ -413,12 +414,23 @@ function SettingsTab() {
   const [loading, setLoading] = useState(true)
   const [notice, setNotice] = useState('')
   const [noticeOk, setNoticeOk] = useState(true)
+  const [xpConfig, setXpConfig] = useState<Record<string, number>>(() =>
+    Object.fromEntries(Object.entries(XP_DEFAULTS).map(([k, v]) => [k, v]))
+  )
+  const [xpSaving, setXpSaving] = useState(false)
 
   useEffect(() => {
     fetch('/api/admin/settings')
       .then(r => r.json())
       .then(d => { if (d.settings?.headshot) setPhotoPreview(d.settings.headshot); setLoading(false) })
       .catch(() => setLoading(false))
+  }, [])
+
+  useEffect(() => {
+    fetch('/api/admin/xp-config')
+      .then(r => r.json())
+      .then(d => { if (d.config) setXpConfig(d.config) })
+      .catch(() => {})
   }, [])
 
   function flash(text: string, ok = true) { setNotice(text); setNoticeOk(ok); setTimeout(() => setNotice(''), 4000) }
@@ -450,6 +462,16 @@ function SettingsTab() {
     })
     setPhotoPreview(null)
     flash('Photo removed.')
+  }
+
+  async function saveXpConfig() {
+    setXpSaving(true)
+    const r = await fetch('/api/admin/xp-config', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ updates: xpConfig }),
+    })
+    setXpSaving(false)
+    flash(r.ok ? 'XP values saved!' : 'Failed to save XP values.', r.ok)
   }
 
   async function resetXp() {
@@ -500,6 +522,35 @@ function SettingsTab() {
             </button>
           )}
         </div>
+      </div>
+
+      {/* XP Config */}
+      <div style={SECTION}>
+        <label style={LBL}>XP Values</label>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '3px 6px', alignItems: 'center', marginBottom: 7 }}>
+          {(Object.keys(XP_LABELS) as XpEventType[]).map(key => (
+            <>
+              <span key={`lbl-${key}`} style={{ fontSize: 6.5, color: 'var(--text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {XP_LABELS[key]}
+              </span>
+              <input
+                key={`inp-${key}`}
+                type="number"
+                min={0}
+                value={xpConfig[key] ?? XP_DEFAULTS[key]}
+                onChange={e => setXpConfig(prev => ({ ...prev, [key]: Number(e.target.value) }))}
+                style={{ ...inp(), width: 42, textAlign: 'center' }}
+              />
+            </>
+          ))}
+        </div>
+        <button onClick={saveXpConfig} disabled={xpSaving} style={{
+          width: '100%', fontSize: 6.5, padding: '4px 0',
+          background: 'rgba(200,155,60,0.12)', border: '1px solid var(--border-lit)',
+          color: 'var(--gold)', borderRadius: 4, cursor: 'pointer',
+        }}>
+          {xpSaving ? 'Saving…' : '✓ Save XP Values'}
+        </button>
       </div>
 
       {/* Danger zone */}

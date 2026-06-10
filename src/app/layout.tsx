@@ -11,6 +11,7 @@ import SkillsPanel from '@/components/SkillsPanel'
 import SiteHeader from '@/components/SiteHeader'
 import SessionProvider from '@/components/SessionProvider'
 import AdminFloatingBar from '@/components/AdminFloatingBar'
+import XpTracker from '@/components/XpTracker'
 
 export const metadata: Metadata = {
   title: 'Garret Perez',
@@ -28,6 +29,7 @@ export default async function RootLayout({
     <html lang="en">
       <body>
         <SessionProvider session={session}>
+          <XpTracker />
           <AdminFloatingBar isAdmin={session?.user?.role === 'ADMIN'} />
           <div className="flex flex-col min-h-screen" style={{
             background: 'var(--bg-page)',
