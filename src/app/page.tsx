@@ -2,7 +2,8 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { xpToLevel, xpProgress } from '@/lib/xp'
 import AccountShield from '@/components/AccountShield'
-import HomepageSections, { type SectionConfig, type ProjectRow } from '@/components/HomepageSections'
+import HomepageBlockRenderer from '@/components/HomepageBlockRenderer'
+import type { PageBlock } from '@/types/builder'
 
 
 export const dynamic = 'force-dynamic'
@@ -23,7 +24,7 @@ export default async function Home() {
   let garretTotalLevel = 9
   let garretXpBar = { currentXp: 0, neededXp: 100, percent: 0 }
   let garretTotalXpRaw = 0
-  let dbProjects: ProjectRow[] = []
+  let dbProjects: Array<{ id: string; icon: string; title: string; desc: string; progress: number; href: string; updated: string }> = []
   let currentUserXp = 0
   let currentUserLevel = 1
   let currentUserXpBar = { currentXp: 0, neededXp: 100, percent: 0 }
@@ -33,12 +34,8 @@ export default async function Home() {
   let contactPhone = '(346) 604-1635'
   let contactEmail = 'gis.owner@gmail.com'
   let contactLinkedin = 'garretperez'
-  let bio1 = 'Sales professional based in Houston, TX — focused on distribution, team management, and building strong customer relationships. I bring energy and structure to every team I lead, and I take pride in developing people as much as hitting numbers.'
-  let bio2 = "Outside of work I'm a builder, gardener, fisherman, and father. Whether I'm fixing something around the house, growing vegetables in the backyard, or teaching my kids to cast a line, I'm always working with my hands on something that matters."
-  let bio3 = "This site is my personal hub — a place to log projects, share recipes, track progress, and connect with community. Built with Next.js and a heavy dose of OSRS nostalgia."
 
-  let layout: SectionConfig[] = []
-  let initialOrder: string[] = []
+  let homeBlocks: PageBlock[] = []
 
   try {
     const allSettings = await (prisma as any).siteSetting.findMany()
@@ -50,15 +47,15 @@ export default async function Home() {
     if (settingsMap.contact_phone) contactPhone = settingsMap.contact_phone
     if (settingsMap.contact_email) contactEmail = settingsMap.contact_email
     if (settingsMap.contact_linkedin) contactLinkedin = settingsMap.contact_linkedin
-    if (settingsMap.bio_1) bio1 = settingsMap.bio_1
-    if (settingsMap.bio_2) bio2 = settingsMap.bio_2
-    if (settingsMap.bio_3) bio3 = settingsMap.bio_3
-    if (settingsMap.layout_sections) {
-      try { layout = JSON.parse(settingsMap.layout_sections) } catch { /* use default */ }
-    }
-    if (settingsMap.layout_order) {
-      try { initialOrder = JSON.parse(settingsMap.layout_order) } catch { /* use default */ }
-    }
+    const rawBlocks = await (prisma as any).pageBlock.findMany({
+      where: { pageSlug: 'home', visible: true },
+      orderBy: { order: 'asc' },
+    })
+    homeBlocks = rawBlocks.map((b: { config: string; styles: string } & Record<string, unknown>) => ({
+      ...b,
+      config: (() => { try { return JSON.parse(b.config as string) } catch { return {} } })(),
+      styles: (() => { try { return JSON.parse(b.styles as string) } catch { return {} } })(),
+    })) as PageBlock[]
 
     const adminUser = await prisma.user.findFirst({
       where: { role: 'ADMIN' },
@@ -240,15 +237,15 @@ export default async function Home() {
 
       </div>
 
-      <HomepageSections
-        isAdmin={session?.user?.role === 'ADMIN'}
-        bio1={bio1} bio2={bio2} bio3={bio3}
+      <HomepageBlockRenderer
+        blocks={homeBlocks}
         dbProjects={dbProjects}
         recentPosts={recentPosts.map(p => ({ ...p, createdAt: p.createdAt.toISOString() }))}
         hasSession={!!session?.user}
         userBadges={userBadges}
-        initialLayout={layout}
-        initialOrder={initialOrder}
+        contactPhone={contactPhone}
+        contactEmail={contactEmail}
+        contactLinkedin={contactLinkedin}
       />
 
     </div>

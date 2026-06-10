@@ -235,3 +235,19 @@ model CmsBlogPost {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
+
+model PageBlock {
+  id        String   @id @default(cuid())
+  pageSlug  String
+  type      String
+  order     Int      @default(0)
+  colSpan   Int      @default(1)
+  colStart  Int      @default(1)
+  visible   Boolean  @default(true)
+  config    String   @db.Text
+  styles    String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([pageSlug, order])
+}
