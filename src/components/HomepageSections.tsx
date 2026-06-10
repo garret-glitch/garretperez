@@ -56,32 +56,17 @@ interface WrapProps {
   id: string; heading: string; editMode: boolean
   selected: string | null; onSelect: (id: string) => void
   onResize: (id: string, h: number) => void
+  minHeight: number
+  colIdx: 0 | 1 | 2
+  cols: [number, number, number]
+  onColChange: (colIdx: 0 | 1 | 2, fr: number) => void
   children: React.ReactNode
 }
-function SectionWrap({ id, heading, editMode, selected, onSelect, onResize, children }: WrapProps) {
-  const wrapRef = useRef<HTMLDivElement>(null)
-
-  const startDrag = (e: React.MouseEvent) => {
-    e.preventDefault(); e.stopPropagation()
-    const startY = e.clientY
-    const startH = wrapRef.current?.offsetHeight ?? 200
-
-    const onMove = (ev: MouseEvent) => {
-      const newH = Math.max(80, startH + (ev.clientY - startY))
-      onResize(id, newH)
-    }
-    const onUp = () => {
-      document.removeEventListener('mousemove', onMove)
-      document.removeEventListener('mouseup', onUp)
-    }
-    document.addEventListener('mousemove', onMove)
-    document.addEventListener('mouseup', onUp)
-  }
-
+function SectionWrap({ id, heading, editMode, selected, onSelect, onResize, minHeight, colIdx, cols, onColChange, children }: WrapProps) {
   if (!editMode) return <>{children}</>
   const active = selected === id
   return (
-    <div ref={wrapRef}
+    <div
       onClick={e => { e.stopPropagation(); onSelect(id) }}
       style={{
         position: 'relative', cursor: 'pointer', borderRadius: 6,
@@ -102,24 +87,43 @@ function SectionWrap({ id, heading, editMode, selected, onSelect, onResize, chil
 
       {children}
 
-      {/* Drag-to-resize handle at bottom */}
+      {/* Two sliders: height + width */}
       <div
-        onMouseDown={startDrag}
         onClick={e => e.stopPropagation()}
-        title="Drag to resize panel"
+        onMouseDown={e => e.stopPropagation()}
         style={{
-          position: 'absolute', bottom: -8, left: '20%', right: '20%',
-          height: 16, zIndex: 20, cursor: 'ns-resize',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: active ? 'var(--gold)' : 'rgba(200,155,60,0.35)',
-          borderRadius: 8, border: '1px solid var(--gold)',
-          transition: 'background 0.15s',
-          userSelect: 'none',
+          background: 'rgba(13,13,20,0.93)',
+          borderTop: '1px solid rgba(200,155,60,0.35)',
+          padding: '8px 12px',
+          display: 'flex', flexDirection: 'column', gap: 7,
         }}
       >
-        <span style={{ fontSize: 9, color: active ? '#000' : 'var(--gold)', lineHeight: 1, letterSpacing: 2 }}>
-          ⣿
-        </span>
+        {/* Height slider */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 5.5, color: '#a07848', width: 44, flexShrink: 0 }}>↕ Height</span>
+          <input
+            type="range" min={0} max={800} step={10}
+            value={minHeight}
+            onChange={e => onResize(id, +e.target.value)}
+            style={{ flex: 1, accentColor: '#c89b3c', cursor: 'pointer', height: 4 }}
+          />
+          <span style={{ fontSize: 5.5, color: 'var(--gold)', width: 34, textAlign: 'right', flexShrink: 0 }}>
+            {minHeight > 0 ? `${minHeight}px` : 'Auto'}
+          </span>
+        </div>
+        {/* Width slider */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 5.5, color: '#a07848', width: 44, flexShrink: 0 }}>↔ Width</span>
+          <input
+            type="range" min={0.3} max={4} step={0.05}
+            value={cols[colIdx]}
+            onChange={e => onColChange(colIdx, +e.target.value)}
+            style={{ flex: 1, accentColor: '#c89b3c', cursor: 'pointer', height: 4 }}
+          />
+          <span style={{ fontSize: 5.5, color: 'var(--gold)', width: 34, textAlign: 'right', flexShrink: 0 }}>
+            {cols[colIdx].toFixed(1)}fr
+          </span>
+        </div>
       </div>
     </div>
   )
@@ -188,6 +192,9 @@ export default function HomepageSections({
 
   const handleResize = (id: string, h: number) =>
     update(id, { minHeight: h })
+
+  const handleColChange = (colIdx: 0 | 1 | 2, fr: number) =>
+    setCols(prev => { const n: [number, number, number] = [...prev]; n[colIdx] = fr; return n })
 
   const startColDrag = (e: React.MouseEvent, boundary: 0 | 1) => {
     e.preventDefault(); e.stopPropagation()
@@ -448,7 +455,7 @@ export default function HomepageSections({
         {/* About Me */}
         {sec('about').visible && (
           <div className="cg-about" style={{ overflow: 'visible' }}>
-            <SectionWrap id="about" heading={sec('about').heading} editMode={editMode} selected={selected} onSelect={handleSelect} onResize={handleResize}>
+            <SectionWrap id="about" heading={sec('about').heading} editMode={editMode} selected={selected} onSelect={handleSelect} onResize={handleResize} minHeight={sec('about').minHeight} colIdx={0} cols={cols} onColChange={handleColChange}>
               <div className="scroll-roll" />
               <div className="scroll-parchment" style={pSty('about')}>
                 <h2 className="mb-3 flex items-center gap-2" style={{ fontSize: sec('about').headingPx, color: '#3a1e06' }}>
@@ -487,7 +494,7 @@ export default function HomepageSections({
         {/* My Projects */}
         {sec('projects').visible && (
           <div className="cg-projects" style={{ overflow: 'visible' }}>
-            <SectionWrap id="projects" heading={sec('projects').heading} editMode={editMode} selected={selected} onSelect={handleSelect} onResize={handleResize}>
+            <SectionWrap id="projects" heading={sec('projects').heading} editMode={editMode} selected={selected} onSelect={handleSelect} onResize={handleResize} minHeight={sec('projects').minHeight} colIdx={1} cols={cols} onColChange={handleColChange}>
               <div className="scroll-roll" />
               <div className="scroll-parchment" style={pSty('projects')}>
                 <div className="flex items-center justify-between mb-4">
@@ -537,7 +544,7 @@ export default function HomepageSections({
         {/* Community Feed */}
         {sec('feed').visible && (
           <div className="cg-feed" style={{ overflow: 'visible' }}>
-            <SectionWrap id="feed" heading={sec('feed').heading} editMode={editMode} selected={selected} onSelect={handleSelect} onResize={handleResize}>
+            <SectionWrap id="feed" heading={sec('feed').heading} editMode={editMode} selected={selected} onSelect={handleSelect} onResize={handleResize} minHeight={sec('feed').minHeight} colIdx={2} cols={cols} onColChange={handleColChange}>
               <div className="scroll-roll" />
               <div className="scroll-parchment" style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 260px)' }}>
                 <h2 className="mb-4 flex items-center gap-2" style={{ fontSize: sec('feed').headingPx, color: '#3a1e06' }}>
@@ -598,7 +605,7 @@ export default function HomepageSections({
         {/* Achievements */}
         {sec('achieve').visible && (
           <div className="cg-achieve" style={{ overflow: 'visible' }}>
-            <SectionWrap id="achieve" heading={sec('achieve').heading} editMode={editMode} selected={selected} onSelect={handleSelect} onResize={handleResize}>
+            <SectionWrap id="achieve" heading={sec('achieve').heading} editMode={editMode} selected={selected} onSelect={handleSelect} onResize={handleResize} minHeight={sec('achieve').minHeight} colIdx={0} cols={cols} onColChange={handleColChange}>
               <div className="scroll-roll" />
               <div className="scroll-parchment" style={pSty('achieve')}>
                 <div className="flex items-center gap-2 mb-2">
@@ -627,7 +634,7 @@ export default function HomepageSections({
         {/* How to Earn XP */}
         {sec('xp').visible && (
           <div className="cg-xp" style={{ overflow: 'visible' }}>
-            <SectionWrap id="xp" heading={sec('xp').heading} editMode={editMode} selected={selected} onSelect={handleSelect} onResize={handleResize}>
+            <SectionWrap id="xp" heading={sec('xp').heading} editMode={editMode} selected={selected} onSelect={handleSelect} onResize={handleResize} minHeight={sec('xp').minHeight} colIdx={1} cols={cols} onColChange={handleColChange}>
               <div className="scroll-roll" />
               <div className="scroll-parchment" style={pSty('xp')}>
                 <h2 className="mb-3 flex items-center gap-2" style={{ fontSize: sec('xp').headingPx, color: '#3a1e06' }}>
