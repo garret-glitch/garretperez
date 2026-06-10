@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { getSkillByEnum } from '@/lib/skills'
 import { BADGE_META } from '@/lib/badges'
@@ -214,6 +214,15 @@ export default function HomepageSections({
   const colTotal = cols[0] + cols[1] + cols[2]
   const b0Pct = (cols[0] / colTotal) * 100
   const b1Pct = ((cols[0] + cols[1]) / colTotal) * 100
+
+  // Directly set CSS custom properties on the DOM — React's style prop
+  // doesn't reliably update custom properties, so we use setProperty instead.
+  useEffect(() => {
+    if (!gridRef.current) return
+    gridRef.current.style.setProperty('--cg-c1', `${cols[0]}fr`)
+    gridRef.current.style.setProperty('--cg-c2', `${cols[1]}fr`)
+    gridRef.current.style.setProperty('--cg-c3', `${cols[2]}fr`)
+  }, [cols])
 
   const save = async () => {
     setSaving(true)
@@ -434,9 +443,7 @@ export default function HomepageSections({
       )}
 
       {/* ── Sections grid ─────────────────────────────────────── */}
-      <div className="content-grid" ref={gridRef}
-        style={{ position: 'relative', '--cg-c1': `${cols[0]}fr`, '--cg-c2': `${cols[1]}fr`, '--cg-c3': `${cols[2]}fr` } as React.CSSProperties}
-      >
+      <div className="content-grid" ref={gridRef} style={{ position: 'relative' }}>
 
         {/* About Me */}
         {sec('about').visible && (
