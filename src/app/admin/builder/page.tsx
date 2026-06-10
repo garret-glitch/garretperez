@@ -44,7 +44,8 @@ export default async function BuilderPage() {
   })
 
   const quests = await (prisma as any).quest.findMany({
-    where: { active: true }, orderBy: { order: 'asc' },
+    where: { active: true },
+    orderBy: { order: 'asc' },
   })
 
   const liveData: BlockLiveData = {
@@ -52,10 +53,10 @@ export default async function BuilderPage() {
     recentPosts: recentPosts.map((p: { createdAt: Date } & Record<string, unknown>) => ({ ...p, createdAt: p.createdAt.toISOString() })),
     hasSession: true,
     userBadges: [],
-    quests,
     contactPhone: settingsMap.contact_phone ?? '(346) 604-1635',
     contactEmail: settingsMap.contact_email ?? 'gis.owner@gmail.com',
     contactLinkedin: settingsMap.contact_linkedin ?? 'garretperez',
+    quests,
   }
 
   return (

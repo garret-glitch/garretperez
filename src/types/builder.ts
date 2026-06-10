@@ -179,7 +179,7 @@ export interface BlockLiveData {
   contactPhone?: string
   contactEmail?: string
   contactLinkedin?: string
-  quests?: Array<{ id: string; icon: string; title: string; description: string; xp: number; skill: string; href: string; active: boolean }>
+  quests?: Array<{ id: string; icon: string; title: string; description: string; xp: number; skill: string; href: string }>
 }
 
 // ─── Builder UI state ─────────────────────────────────────────────────────────

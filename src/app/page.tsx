@@ -37,6 +37,7 @@ export default async function Home() {
   let contactLinkedin = 'garretperez'
 
   let homeBlocks: PageBlock[] = []
+  let quests: Array<{ id: string; icon: string; title: string; description: string; xp: number; skill: string; href: string }> = []
 
   try {
     const allSettings = await (prisma as any).siteSetting.findMany()
@@ -98,6 +99,11 @@ export default async function Home() {
     dbProjects = await (prisma as any).project.findMany({
       orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
       take: 3,
+    })
+
+    quests = await (prisma as any).quest.findMany({
+      where: { active: true },
+      orderBy: { order: 'asc' },
     })
 
     if (session?.user?.id) {
@@ -262,6 +268,7 @@ export default async function Home() {
         contactPhone={contactPhone}
         contactEmail={contactEmail}
         contactLinkedin={contactLinkedin}
+        quests={quests}
       />
 
 

@@ -12,7 +12,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import {
   Heart, Hammer, Briefcase, Users, Fish, Wine, Leaf, Compass, Gamepad2,
-  GripVertical, Home, ScrollText,
+  GripVertical, Home,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -167,8 +167,7 @@ export default function SkillsPanelClient({
     }).catch(() => {})
   }
 
-  const isHome   = pathname === '/'
-  const isQuests = pathname === '/quest-board'
+  const isHome = pathname === '/'
 
   return (
     <div>
@@ -192,26 +191,6 @@ export default function SkillsPanelClient({
       {/* Section label */}
       <div style={{ padding: '8px 14px 5px', fontSize: 5.5, color: '#a07848', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: "'Press Start 2P', monospace" }}>
         ⚔ Communities
-      </div>
-
-      {/* Quests */}
-      <div style={{ display: 'flex', alignItems: 'stretch' }}>
-        {isAdmin && <div style={{ width: 22, flexShrink: 0 }} />}
-        <Link
-          href="/quest-board"
-          className="guild-channel"
-          style={{
-            flex: 1, paddingLeft: 8, paddingRight: 12,
-            borderLeftColor: isQuests ? '#c89b3c' : 'transparent',
-            background: isQuests ? 'rgba(200,155,60,0.1)' : undefined,
-            color: isQuests ? '#f0d898' : undefined,
-          }}
-        >
-          <span style={{ flexShrink: 0, width: 30, height: 30, background: '#241a08', borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <ScrollText size={14} color="#dcc898" strokeWidth={1.6} />
-          </span>
-          <span style={{ flex: 1, fontSize: 7 }}>Quests</span>
-        </Link>
       </div>
 
       {/* Draggable community channels */}

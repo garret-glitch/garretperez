@@ -23,9 +23,6 @@ export default async function SiteHeader() {
 
       {/* Desktop nav links — hidden on mobile (sidebar handles navigation) */}
       <div className="hidden md:flex items-center gap-6 flex-1">
-        <Link href="/quest-board" className="text-[8px] transition-colors hover:opacity-80" style={{ color: '#c8a870' }}>
-          Quests
-        </Link>
         <Link href="/resume" className="text-[8px] transition-colors hover:opacity-80" style={{ color: '#c8a870' }}>
           Resume
         </Link>

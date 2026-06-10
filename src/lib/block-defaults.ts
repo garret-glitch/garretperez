@@ -46,7 +46,7 @@ export function getDefaultConfig(type: BlockType): AnyBlockConfig {
     case 'divider':
       return { style: 'solid', thickness: 1, color: 'var(--border)', width: 'full', align: 'center' }
     case 'quest-list':
-      return { heading: 'Active Quests', icon: '⚔️', maxItems: 5 }
+      return { heading: 'Active Quests', icon: '⚔️', maxItems: 6 }
     case 'skill-card':
       return { skillKey: 'PROJECTS', showXp: true, showLevel: true }
     case 'contact-card':

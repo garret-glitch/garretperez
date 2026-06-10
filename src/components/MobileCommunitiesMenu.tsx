@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   Heart, Hammer, Briefcase, Users, Fish, Wine, Leaf, Compass, Gamepad2,
-  Home, ScrollText, FileText, Menu, X,
+  Home, FileText, Menu, X,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -16,7 +16,6 @@ const NAV_ITEMS: NavItem[] = [
 ]
 
 const COMMUNITIES: NavItem[] = [
-  { label: 'Quests',      Icon: ScrollText, href: '/quest-board',     bg: '#241a08' },
   { label: 'Health',      Icon: Heart,      href: '/skills/health',   bg: '#5a1414' },
   { label: 'Projects',    Icon: Hammer,     href: '/skills/projects', bg: '#382e0e' },
   { label: 'Business',    Icon: Briefcase,  href: '/skills/business', bg: '#1c2e10' },

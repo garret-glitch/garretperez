@@ -7,7 +7,6 @@ const NAV_ITEMS = [
   { label: 'Homepage', href: '/admin/homepage', icon: '🏠' },
   { label: 'Builder', href: '/admin/builder', icon: '🖼️' },
   { label: 'Projects', href: '/admin/projects', icon: '⚒️' },
-  { label: 'Quests', href: '/admin/quests', icon: '⚔️' },
   { label: 'Blog', href: '/admin/blog', icon: '📝' },
   { label: 'Users', href: '/admin/users', icon: '👥' },
   { label: 'Community', href: '/admin/community', icon: '💬' },
