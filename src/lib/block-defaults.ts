@@ -70,6 +70,22 @@ export function getDefaultStyles(type: BlockType): BlockStyles {
   }
 }
 
+export function getHeadingStyle(styles: BlockStyles): React.CSSProperties {
+  return {
+    fontFamily: styles.headingFont || undefined,
+    color: styles.headingColor || undefined,
+    fontSize: styles.headingPx != null ? styles.headingPx : undefined,
+  }
+}
+
+export function getBodyStyle(styles: BlockStyles): React.CSSProperties {
+  return {
+    fontFamily: styles.bodyFont || undefined,
+    color: styles.textColor || undefined,
+    fontSize: styles.bodyPx != null ? styles.bodyPx : undefined,
+  }
+}
+
 export function applyStylesToElement(styles: BlockStyles): React.CSSProperties {
   const shadow: Record<string, string> = {
     none: 'none',
@@ -96,5 +112,7 @@ export function applyStylesToElement(styles: BlockStyles): React.CSSProperties {
     borderRadius:  styles.borderRadius != null ? styles.borderRadius : undefined,
     boxShadow:     styles.shadow       ? shadow[styles.shadow]       : undefined,
     opacity:       styles.opacity      != null ? styles.opacity      : undefined,
+    fontFamily:    styles.bodyFont     || undefined,
+    color:         styles.textColor    || undefined,
   } as React.CSSProperties
 }

@@ -144,6 +144,9 @@ export interface BlockStyles {
   borderRadius?: number
   headingPx?: number
   bodyPx?: number
+  headingFont?: string
+  bodyFont?: string
+  headingColor?: string
   textColor?: string
   shadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl'
   opacity?: number

@@ -3,6 +3,18 @@ import type { PageBlock, BlockStyles } from '@/types/builder'
 import { HexColorPicker } from 'react-colorful'
 import { useState } from 'react'
 
+const FONTS = [
+  { label: 'Cinzel (RPG Serif)',       value: "'Cinzel', serif" },
+  { label: 'Playfair Display (Elegant)', value: "'Playfair Display', serif" },
+  { label: 'Crimson Pro (Literary)',   value: "'Crimson Pro', Georgia, serif" },
+  { label: 'Rajdhani (Modern)',        value: "'Rajdhani', sans-serif" },
+  { label: 'Inter (Clean Sans)',       value: "'Inter', system-ui, sans-serif" },
+  { label: 'Press Start 2P (Pixel)',   value: "'Press Start 2P', monospace" },
+  { label: 'Georgia (Classic Serif)',  value: "Georgia, serif" },
+  { label: 'Arial (System Sans)',      value: "Arial, sans-serif" },
+  { label: 'Courier New (Mono)',       value: "'Courier New', monospace" },
+]
+
 const LBL: React.CSSProperties = { fontSize: 5.5, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: 4 }
 const ROW: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }
 const INPUT = (w?: number): React.CSSProperties => ({
@@ -152,21 +164,47 @@ export default function StylesPanel({ block, onStyleChange, onSpanChange, onDele
       {/* Typography */}
       <div style={SECTION}>
         <label style={LBL}>Typography</label>
+
+        {/* Heading font */}
+        <label style={{ ...LBL, marginTop: 4 }}>Heading Font</label>
+        <select value={s.headingFont ?? ''}
+          onChange={e => upd({ headingFont: e.target.value || undefined })}
+          style={{ ...INPUT(230), width: '100%', marginBottom: 8, cursor: 'pointer' }}>
+          <option value="">Default (Press Start 2P)</option>
+          {FONTS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+        </select>
+
+        {/* Heading size + color */}
         <div style={ROW}>
-          <span style={{ fontSize: 6, color: 'var(--text-3)', width: 48 }}>Heading</span>
-          <input type="range" min={7} max={32} value={s.headingPx ?? 9}
+          <span style={{ fontSize: 6, color: 'var(--text-3)', width: 48 }}>H Size</span>
+          <input type="range" min={7} max={48} value={s.headingPx ?? 9}
             onChange={e => upd({ headingPx: +e.target.value })}
             style={{ flex: 1, accentColor: 'var(--gold)' }} />
           <span style={{ fontSize: 7, color: 'var(--gold)', width: 30 }}>{s.headingPx ?? 9}px</span>
         </div>
+        <ColorField label="Heading Color" value={s.headingColor ?? ''} onChange={v => upd({ headingColor: v || undefined })} />
+
+        {/* Divider */}
+        <div style={{ height: 1, background: 'var(--border-dim)', margin: '8px 0' }} />
+
+        {/* Body font */}
+        <label style={LBL}>Body Font</label>
+        <select value={s.bodyFont ?? ''}
+          onChange={e => upd({ bodyFont: e.target.value || undefined })}
+          style={{ ...INPUT(230), width: '100%', marginBottom: 8, cursor: 'pointer' }}>
+          <option value="">Default (Inter)</option>
+          {FONTS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+        </select>
+
+        {/* Body size + color */}
         <div style={ROW}>
-          <span style={{ fontSize: 6, color: 'var(--text-3)', width: 48 }}>Body</span>
-          <input type="range" min={8} max={20} value={s.bodyPx ?? 12}
+          <span style={{ fontSize: 6, color: 'var(--text-3)', width: 48 }}>B Size</span>
+          <input type="range" min={8} max={24} value={s.bodyPx ?? 12}
             onChange={e => upd({ bodyPx: +e.target.value })}
             style={{ flex: 1, accentColor: 'var(--gold)' }} />
           <span style={{ fontSize: 7, color: 'var(--gold)', width: 30 }}>{s.bodyPx ?? 12}px</span>
         </div>
-        <ColorField label="Text Color" value={s.textColor ?? ''} onChange={v => upd({ textColor: v || undefined })} />
+        <ColorField label="Body Color" value={s.textColor ?? ''} onChange={v => upd({ textColor: v || undefined })} />
       </div>
 
       {/* Effects */}

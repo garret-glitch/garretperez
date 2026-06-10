@@ -167,6 +167,9 @@ export default function AboutBlock({ block, isEditing, onConfigChange }: Props) 
   const style = applyStylesToElement(block.styles)
   const hPx = block.styles.headingPx ?? 9
   const bPx = block.styles.bodyPx ?? 12
+  const hFont = block.styles.headingFont ?? undefined
+  const hColor = block.styles.headingColor ?? '#3a1e06'
+  const bColor = block.styles.textColor ?? '#3a2810'
 
   const [focusId, setFocusId] = useState<string | null>(null)
   const textareaRefs = useRef<Record<string, HTMLTextAreaElement | null>>({})
@@ -257,7 +260,7 @@ export default function AboutBlock({ block, isEditing, onConfigChange }: Props) 
           </div>
         ) : (
           <h2 className="mb-3 flex items-center gap-2"
-            style={{ fontSize: hPx, color: block.styles.textColor ?? '#3a1e06' }}>
+            style={{ fontSize: hPx, color: hColor, fontFamily: hFont }}>
             <span>{cfg.headingIcon}</span> {cfg.headingText}
           </h2>
         )}
@@ -319,7 +322,7 @@ export default function AboutBlock({ block, isEditing, onConfigChange }: Props) 
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {cfg.bubbles.map(b => b.content
-                ? <p key={b.id} style={{ fontSize: bPx, color: '#3a2810', margin: 0 }}>{b.content}</p>
+                ? <p key={b.id} style={{ fontSize: bPx, color: bColor, margin: 0 }}>{b.content}</p>
                 : null
               )}
             </div>
