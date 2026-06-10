@@ -129,129 +129,106 @@ export default async function Home() {
 
         {/* ── Hero panel — unified dashboard ──────────────────── */}
         <div className="hero-panel flex-1 min-w-0">
-          <div className="flex gap-4 sm:gap-5 items-stretch">
 
-            {/* 1 ── Large profile photo (desktop) */}
-            <div className="hidden sm:flex shrink-0 items-center">
-              <div
-                className="overflow-hidden flex items-center justify-center font-bold"
-                style={{
-                  width: 175, height: 175,
-                  border: '2px solid var(--border-lit)',
-                  background: 'var(--bg-page)',
-                  color: 'var(--gold)',
-                  fontSize: 32,
-                  boxShadow: '0 0 0 4px rgba(200,155,60,0.08), 0 6px 28px rgba(0,0,0,0.6)',
-                  flexShrink: 0,
-                }}
-              >
+          {/* ── DESKTOP: 3-col grid ─────────────────────────────── */}
+          <div className="hidden sm:grid" style={{
+            gridTemplateColumns: '200px 1fr 185px',
+            gap: 28,
+            minHeight: 210,
+            alignItems: 'stretch',
+          }}>
+
+            {/* Col 1 — Photo */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{
+                width: 200, height: 200, flexShrink: 0,
+                border: '3px solid #c89b3c',
+                boxShadow: '0 0 0 5px rgba(200,155,60,0.1), 0 10px 40px rgba(0,0,0,0.7)',
+                overflow: 'hidden',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'var(--bg-page)', color: 'var(--gold)',
+                fontSize: 38, fontWeight: 700,
+              }}>
                 {headshot
-                  ? <img src={headshot} alt="Garret Perez" className="w-full h-full object-cover" />
+                  ? <img src={headshot} alt="Garret Perez" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   : 'GP'}
               </div>
             </div>
 
-            {/* 2 ── Center: name + stats + XP */}
-            <div className="flex-1 min-w-0 flex flex-col justify-between">
+            {/* Col 2 — Identity + Stats + XP */}
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
 
-              {/* Mobile: small photo + name side-by-side */}
-              <div className="flex items-start gap-3">
-                <div className="sm:hidden shrink-0">
-                  <div
-                    className="overflow-hidden flex items-center justify-center font-bold"
-                    style={{ width: 68, height: 68, border: '2px solid var(--border-lit)', background: 'var(--bg-page)', color: 'var(--gold)', fontSize: 16 }}
-                  >
-                    {headshot
-                      ? <img src={headshot} alt="Garret Perez" className="w-full h-full object-cover" />
-                      : 'GP'}
-                  </div>
-                </div>
-                <div>
-                  <h1 style={{
-                    fontSize: 24, lineHeight: 1.1, color: 'var(--text-1)',
-                    fontFamily: "'Cinzel', serif", fontWeight: 700,
-                    textShadow: '0 0 22px rgba(200,155,60,0.4), 1px 1px 3px rgba(0,0,0,0.9)',
-                    letterSpacing: '0.04em', marginBottom: 4,
-                  }}>Garret Perez</h1>
-                  <div className="body-text" style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-1)', marginBottom: 2 }}>{heroTitle}</div>
-                  <div className="body-text" style={{ fontSize: 11, color: 'var(--text-2)' }}>📍 {heroLocation}</div>
-                </div>
+              {/* Name / title / location */}
+              <div style={{ marginBottom: 16 }}>
+                <h1 style={{
+                  fontFamily: "'Cinzel', serif",
+                  fontSize: 30, fontWeight: 700, lineHeight: 1.1,
+                  color: 'var(--text-1)',
+                  textShadow: '0 0 24px rgba(200,155,60,0.45), 1px 2px 4px rgba(0,0,0,0.9)',
+                  letterSpacing: '0.04em', marginBottom: 7,
+                }}>Garret Perez</h1>
+                <div className="body-text" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)', marginBottom: 4 }}>{heroTitle}</div>
+                <div className="body-text" style={{ fontSize: 12, color: 'var(--text-2)' }}>📍 {heroLocation}</div>
               </div>
 
               {/* Divider */}
-              <div style={{ height: 1, background: 'rgba(200,155,60,0.1)', margin: '12px 0' }} />
+              <div style={{ height: 1, background: 'linear-gradient(90deg, rgba(200,155,60,0.35) 0%, transparent 100%)', marginBottom: 16 }} />
 
-              {/* Stats: Members · Posts · Level */}
-              <div className="flex items-center gap-2 flex-wrap mb-3">
-                <div className="flex items-center gap-1.5 px-2.5 py-1.5"
-                  style={{ background: 'rgba(200,155,60,0.08)', border: '1px solid rgba(200,155,60,0.2)' }}>
-                  <span className="body-text font-bold" style={{ fontSize: 11, color: 'var(--gold)' }}>{totalUsers}</span>
-                  <span className="body-text" style={{ fontSize: 10, color: 'var(--text-2)' }}>Members</span>
-                </div>
-                <div className="flex items-center gap-1.5 px-2.5 py-1.5"
-                  style={{ background: 'rgba(200,155,60,0.08)', border: '1px solid rgba(200,155,60,0.2)' }}>
-                  <span className="body-text font-bold" style={{ fontSize: 11, color: 'var(--gold)' }}>{totalPosts}</span>
-                  <span className="body-text" style={{ fontSize: 10, color: 'var(--text-2)' }}>Posts</span>
-                </div>
-                <div className="flex items-center gap-1.5 px-2.5 py-1.5"
-                  style={{ background: 'rgba(200,155,60,0.08)', border: '1px solid rgba(200,155,60,0.2)' }}>
-                  <span className="body-text font-bold" style={{ fontSize: 11, color: 'var(--gold)' }}>{garretTotalLevel}</span>
-                  <span className="body-text" style={{ fontSize: 10, color: 'var(--text-2)' }}>Level</span>
-                </div>
-              </div>
-
-              {/* XP bar + label */}
-              <div className="flex items-center gap-2.5 mb-1" style={{ maxWidth: 300 }}>
-                <div className="xp-bar flex-1" style={{ height: 5 }}>
-                  <div className="xp-bar-fill" style={{ width: `${garretXpBar.percent}%` }} />
-                </div>
-                <span className="body-text" style={{ fontSize: 8, color: 'var(--text-3)', whiteSpace: 'nowrap' }}>
-                  {garretXpBar.currentXp} / {garretXpBar.neededXp} XP
-                </span>
-              </div>
-              <p className="body-text" style={{ fontSize: 7, color: 'var(--text-3)', marginBottom: 8 }}>
-                Interact with my website to get XP.
-              </p>
-
-              {/* Mobile contact icons */}
-              <div className="sm:hidden flex items-center justify-around gap-2 mt-4">
-                {[
-                  { href: `tel:${contactPhone.replace(/\D/g, '')}`, label: 'Call',     external: false, icon: <Phone size={15} color="#c89b3c" strokeWidth={1.7} /> },
-                  { href: `mailto:${contactEmail}`,                  label: 'Email',    external: false, icon: <Mail size={15} color="#c89b3c" strokeWidth={1.7} /> },
-                  { href: `https://www.linkedin.com/in/${contactLinkedin}`, label: 'LinkedIn', external: true, icon: <span style={{ fontFamily: 'Georgia, serif', fontWeight: 900, color: '#4a88d0', fontSize: 14, lineHeight: 1 }}>in</span> },
-                  { href: '/resume',                                 label: 'Resume',   external: false, icon: <FileText size={15} color="#c89b3c" strokeWidth={1.7} /> },
-                ].map(item => (
-                  <a key={item.label} href={item.href}
-                    {...(item.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                    className="flex flex-col items-center gap-1.5 flex-1 py-2.5 transition-colors hover:bg-white/5"
-                    style={{ border: '1px solid rgba(200,155,60,0.2)', background: 'rgba(0,0,0,0.2)', textDecoration: 'none' }}>
-                    {item.icon}
-                    <span style={{ fontSize: 6.5, color: '#a07848' }}>{item.label}</span>
-                  </a>
+              {/* Stats — vertical-stack chips */}
+              <div style={{ display: 'flex', gap: 10, marginBottom: 18 }}>
+                {([
+                  { value: totalUsers,       label: 'Members' },
+                  { value: totalPosts,        label: 'Posts' },
+                  { value: garretTotalLevel,  label: 'Level' },
+                ] as const).map(stat => (
+                  <div key={stat.label} style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center',
+                    padding: '10px 20px',
+                    background: 'rgba(200,155,60,0.07)',
+                    border: '1px solid rgba(200,155,60,0.22)',
+                  }}>
+                    <span className="body-text" style={{ fontSize: 22, fontWeight: 700, color: '#c89b3c', lineHeight: 1, marginBottom: 5 }}>{stat.value}</span>
+                    <span style={{ fontSize: 5.5, color: '#7a6040', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: "'Press Start 2P', monospace" }}>{stat.label}</span>
+                  </div>
                 ))}
               </div>
+
+              {/* XP bar — full-width, premium */}
+              <div style={{ marginBottom: 6 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontSize: 5.5, color: '#6a5030', textTransform: 'uppercase', letterSpacing: '0.14em', fontFamily: "'Press Start 2P', monospace" }}>XP Progress</span>
+                  <span className="body-text" style={{ fontSize: 8, color: 'var(--text-3)' }}>{garretXpBar.currentXp} / {garretXpBar.neededXp} XP</span>
+                </div>
+                <div style={{ height: 10, background: '#a88040', border: '1px solid rgba(200,155,60,0.3)', overflow: 'hidden', position: 'relative' }}>
+                  <div style={{ height: '100%', width: `${garretXpBar.percent}%`, background: 'linear-gradient(90deg, #2a5a18, #3a7a22)', position: 'relative' }}>
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '45%', background: 'rgba(255,255,255,0.12)' }} />
+                  </div>
+                </div>
+              </div>
+              <p className="body-text" style={{ fontSize: 7, color: 'var(--text-3)' }}>Earn XP by using the site.</p>
             </div>
 
-            {/* 3 ── Contact — desktop, integrated */}
-            <div
-              className="hidden sm:flex flex-col shrink-0 justify-between"
-              style={{ borderLeft: '1px solid rgba(200,155,60,0.18)', paddingLeft: 22, minWidth: 196 }}
-            >
-              <div className="flex flex-col" style={{ gap: 2 }}>
+            {/* Col 3 — Contact */}
+            <div style={{
+              display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+              borderLeft: '1px solid rgba(200,155,60,0.2)',
+              paddingLeft: 22,
+            }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                 <a href={`tel:${contactPhone.replace(/\D/g, '')}`}
                   className="flex items-center gap-3 rounded transition-colors hover:bg-white/[0.04]"
-                  style={{ textDecoration: 'none', padding: '7px 8px', margin: '0 -8px' }}>
+                  style={{ textDecoration: 'none', padding: '9px 8px', margin: '0 -8px' }}>
                   <div style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(200,155,60,0.12)', border: '1px solid rgba(200,155,60,0.28)' }}>
                     <Phone size={15} color="#c89b3c" strokeWidth={1.7} />
                   </div>
                   <div>
                     <div style={{ fontSize: 5.5, color: '#6a5030', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 2 }}>Phone</div>
-                    <div className="body-text" style={{ fontSize: 10, color: '#f0dc90', fontWeight: 700, letterSpacing: '0.01em' }}>{contactPhone}</div>
+                    <div className="body-text" style={{ fontSize: 10, color: '#f0dc90', fontWeight: 700 }}>{contactPhone}</div>
                   </div>
                 </a>
                 <a href={`mailto:${contactEmail}`}
                   className="flex items-center gap-3 rounded transition-colors hover:bg-white/[0.04]"
-                  style={{ textDecoration: 'none', padding: '7px 8px', margin: '0 -8px' }}>
+                  style={{ textDecoration: 'none', padding: '9px 8px', margin: '0 -8px' }}>
                   <div style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(60,110,200,0.12)', border: '1px solid rgba(60,110,200,0.28)' }}>
                     <Mail size={15} color="#7090c8" strokeWidth={1.7} />
                   </div>
@@ -262,7 +239,7 @@ export default async function Home() {
                 </a>
                 <a href={`https://www.linkedin.com/in/${contactLinkedin}`} target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-3 rounded transition-colors hover:bg-white/[0.04]"
-                  style={{ textDecoration: 'none', padding: '7px 8px', margin: '0 -8px' }}>
+                  style={{ textDecoration: 'none', padding: '9px 8px', margin: '0 -8px' }}>
                   <div style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,90,200,0.14)', border: '1px solid rgba(0,90,200,0.3)' }}>
                     <span style={{ fontFamily: 'Georgia, serif', fontWeight: 900, color: '#4a88d0', fontSize: 15, lineHeight: 1, userSelect: 'none' }}>in</span>
                   </div>
@@ -272,29 +249,79 @@ export default async function Home() {
                   </div>
                 </a>
               </div>
-
-              {/* Resume — anchored to bottom */}
               <a href="/resume"
                 className="flex items-center justify-center gap-2 transition-opacity hover:opacity-85"
                 style={{
                   background: 'linear-gradient(135deg, #c89b3c 0%, #9a7228 100%)',
                   color: '#120c00',
                   fontFamily: "'Press Start 2P', monospace",
-                  fontSize: 6.5,
-                  padding: '10px 14px',
-                  textDecoration: 'none',
-                  fontWeight: 700,
-                  letterSpacing: '0.03em',
-                  boxShadow: '0 3px 16px rgba(200,155,60,0.4)',
+                  fontSize: 6.5, fontWeight: 700,
+                  padding: '10px 14px', marginTop: 16,
+                  textDecoration: 'none', letterSpacing: '0.03em',
+                  boxShadow: '0 3px 18px rgba(200,155,60,0.42)',
                   display: 'flex',
-                  marginTop: 14,
-                }}
-              >
+                }}>
                 <FileText size={12} strokeWidth={2.2} />
                 View Resume
               </a>
             </div>
           </div>
+
+          {/* ── MOBILE: stacked layout ───────────────────────────── */}
+          <div className="sm:hidden flex flex-col gap-3">
+            {/* Photo + name */}
+            <div className="flex items-start gap-3">
+              <div style={{ width: 72, height: 72, border: '2px solid #c89b3c', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-page)', color: 'var(--gold)', fontSize: 18, fontWeight: 700 }}>
+                {headshot ? <img src={headshot} alt="Garret Perez" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : 'GP'}
+              </div>
+              <div>
+                <h1 style={{ fontFamily: "'Cinzel', serif", fontSize: 20, fontWeight: 700, color: 'var(--text-1)', textShadow: '0 0 16px rgba(200,155,60,0.4)', letterSpacing: '0.03em', marginBottom: 3, lineHeight: 1.1 }}>Garret Perez</h1>
+                <div className="body-text" style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-1)', marginBottom: 2 }}>{heroTitle}</div>
+                <div className="body-text" style={{ fontSize: 10, color: 'var(--text-2)' }}>📍 {heroLocation}</div>
+              </div>
+            </div>
+            {/* Stats */}
+            <div className="flex gap-2">
+              {([
+                { value: totalUsers, label: 'Members' },
+                { value: totalPosts, label: 'Posts' },
+                { value: garretTotalLevel, label: 'Level' },
+              ] as const).map(stat => (
+                <div key={stat.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '7px 0', background: 'rgba(200,155,60,0.07)', border: '1px solid rgba(200,155,60,0.2)', flex: 1 }}>
+                  <span className="body-text" style={{ fontSize: 16, fontWeight: 700, color: '#c89b3c', lineHeight: 1, marginBottom: 3 }}>{stat.value}</span>
+                  <span style={{ fontSize: 5, color: '#7a6040', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{stat.label}</span>
+                </div>
+              ))}
+            </div>
+            {/* XP bar */}
+            <div>
+              <div style={{ height: 8, background: '#a88040', border: '1px solid rgba(200,155,60,0.3)', overflow: 'hidden', position: 'relative' }}>
+                <div style={{ height: '100%', width: `${garretXpBar.percent}%`, background: 'linear-gradient(90deg, #2a5a18, #3a7a22)', position: 'relative' }}>
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '45%', background: 'rgba(255,255,255,0.12)' }} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                <p className="body-text" style={{ fontSize: 7, color: 'var(--text-3)' }}>Earn XP by using the site.</p>
+                <span className="body-text" style={{ fontSize: 7, color: 'var(--text-3)' }}>{garretXpBar.currentXp}/{garretXpBar.neededXp} XP</span>
+              </div>
+            </div>
+            {/* Contact icons */}
+            <div className="flex items-center justify-around gap-2">
+              <a href={`tel:${contactPhone.replace(/\D/g, '')}`} className="flex flex-col items-center gap-1.5 flex-1 py-2.5 transition-colors hover:bg-white/5" style={{ border: '1px solid rgba(200,155,60,0.2)', background: 'rgba(0,0,0,0.2)', textDecoration: 'none' }}>
+                <Phone size={15} color="#c89b3c" strokeWidth={1.7} /><span style={{ fontSize: 6.5, color: '#a07848' }}>Call</span>
+              </a>
+              <a href={`mailto:${contactEmail}`} className="flex flex-col items-center gap-1.5 flex-1 py-2.5 transition-colors hover:bg-white/5" style={{ border: '1px solid rgba(200,155,60,0.2)', background: 'rgba(0,0,0,0.2)', textDecoration: 'none' }}>
+                <Mail size={15} color="#c89b3c" strokeWidth={1.7} /><span style={{ fontSize: 6.5, color: '#a07848' }}>Email</span>
+              </a>
+              <a href={`https://www.linkedin.com/in/${contactLinkedin}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1.5 flex-1 py-2.5 transition-colors hover:bg-white/5" style={{ border: '1px solid rgba(200,155,60,0.2)', background: 'rgba(0,0,0,0.2)', textDecoration: 'none' }}>
+                <span style={{ fontFamily: 'Georgia, serif', fontWeight: 900, color: '#4a88d0', fontSize: 14, lineHeight: 1 }}>in</span><span style={{ fontSize: 6.5, color: '#a07848' }}>LinkedIn</span>
+              </a>
+              <a href="/resume" className="flex flex-col items-center gap-1.5 flex-1 py-2.5 transition-colors hover:bg-white/5" style={{ border: '1px solid rgba(200,155,60,0.2)', background: 'rgba(0,0,0,0.2)', textDecoration: 'none' }}>
+                <FileText size={15} color="#c89b3c" strokeWidth={1.7} /><span style={{ fontSize: 6.5, color: '#a07848' }}>Resume</span>
+              </a>
+            </div>
+          </div>
+
         </div>
 
         {/* ─── Account shield ───────────────────────────── */}
