@@ -234,21 +234,6 @@ export default function SidebarFunGame() {
     <div className="flex flex-col flex-1 min-h-0"
       style={{ borderTop: '2px solid rgba(200,155,60,0.35)', background: 'rgba(200,155,60,0.03)' }}>
 
-      {/* Skill-style header — gold left border matches active guild channel style */}
-      <Link href="/skills/fun"
-        className="flex items-center gap-2.5 px-3 py-2.5 shrink-0 hover:opacity-80 transition-opacity"
-        style={{ borderLeft: '3px solid var(--gold)', borderBottom: '1px solid rgba(200,155,60,0.15)' }}>
-        <span className="shrink-0 flex items-center justify-center text-base"
-          style={{ width: 28, height: 28, background: '#4a2060', borderRadius: 8 }}>🎮</span>
-        <div className="flex-1 min-w-0">
-          <div className="text-[7px] font-bold" style={{ color: '#f0d898' }}>Games</div>
-        </div>
-        <div className="shrink-0 text-right">
-          <div className="text-[6px] font-bold" style={{ color: 'var(--gold)' }}>88</div>
-          <div className="text-[5px]" style={{ color: 'var(--gold)' }}>⭐ {score}</div>
-        </div>
-      </Link>
-
       {/* Mini game canvas */}
       <div className="px-2 pt-2 pb-0.5 shrink-0">
         <canvas

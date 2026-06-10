@@ -1,0 +1,238 @@
+'use client'
+import { useState } from 'react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import {
+  DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors,
+} from '@dnd-kit/core'
+import type { DragEndEvent } from '@dnd-kit/core'
+import {
+  SortableContext, verticalListSortingStrategy, useSortable, arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import {
+  Heart, Hammer, Briefcase, Users, Fish, Wine, Leaf, Compass, Gamepad2,
+  GripVertical, Home, ScrollText,
+} from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+
+export type ChanKey =
+  | 'HEALTH' | 'PROJECTS' | 'BUSINESS' | 'COMMUNITY'
+  | 'FISHING' | 'FOOD' | 'GARDENING' | 'TRAVEL' | 'FUN'
+
+const CHAN: Record<ChanKey, { label: string; Icon: LucideIcon; bg: string; href: string }> = {
+  HEALTH:    { label: 'Health',      Icon: Heart,     bg: '#5a1414', href: '/skills/health' },
+  PROJECTS:  { label: 'Projects',    Icon: Hammer,    bg: '#382e0e', href: '/skills/projects' },
+  BUSINESS:  { label: 'Business',    Icon: Briefcase, bg: '#1c2e10', href: '/skills/business' },
+  COMMUNITY: { label: 'Community',   Icon: Users,     bg: '#181e4a', href: '/skills/community' },
+  FISHING:   { label: 'Fishing',     Icon: Fish,      bg: '#0e2c48', href: '/skills/fishing' },
+  FOOD:      { label: 'Food & Wine', Icon: Wine,      bg: '#4e2006', href: '/skills/food' },
+  GARDENING: { label: 'Gardening',   Icon: Leaf,      bg: '#0e3810', href: '/skills/gardening' },
+  TRAVEL:    { label: 'Adventure',   Icon: Compass,   bg: '#382808', href: '/skills/travel' },
+  FUN:       { label: 'Games',       Icon: Gamepad2,  bg: '#320c4a', href: '/skills/fun' },
+}
+
+export const DEFAULT_CHAN_ORDER: ChanKey[] = [
+  'HEALTH', 'PROJECTS', 'BUSINESS', 'COMMUNITY',
+  'FISHING', 'FOOD', 'GARDENING', 'TRAVEL', 'FUN',
+]
+
+// ── Single draggable channel row ──────────────────────────────────────────────
+function ChannelRow({
+  id, level, postCount, isAdmin, pathname,
+}: {
+  id: ChanKey
+  level: number
+  postCount: number
+  isAdmin: boolean
+  pathname: string
+}) {
+  const cfg = CHAN[id]
+  const isActive = pathname === cfg.href || pathname.startsWith(cfg.href + '/')
+
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id })
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        display: 'flex',
+        alignItems: 'stretch',
+        opacity: isDragging ? 0.45 : 1,
+      }}
+    >
+      {/* Grip handle — admin only */}
+      {isAdmin && (
+        <button
+          {...listeners}
+          {...attributes}
+          tabIndex={-1}
+          style={{
+            flexShrink: 0, width: 22, background: 'none', border: 'none',
+            cursor: 'grab', color: '#5a4a30', touchAction: 'none', padding: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <GripVertical size={11} />
+        </button>
+      )}
+
+      <Link
+        href={cfg.href}
+        className="guild-channel"
+        style={{
+          flex: 1,
+          paddingLeft: 8,
+          paddingRight: 12,
+          borderLeftColor: isActive ? '#c89b3c' : 'transparent',
+          background: isActive ? 'rgba(200,155,60,0.1)' : undefined,
+          color: isActive ? '#f0d898' : undefined,
+          minHeight: 48,
+        }}
+      >
+        {/* Icon box */}
+        <span style={{
+          flexShrink: 0, width: 30, height: 30,
+          background: cfg.bg, borderRadius: 7,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <cfg.Icon size={14} color="#dcc898" strokeWidth={1.6} />
+        </span>
+
+        {/* Label */}
+        <span style={{
+          flex: 1, fontSize: 7, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {cfg.label}
+        </span>
+
+        {/* Level badge */}
+        <span style={{
+          flexShrink: 0,
+          background: 'rgba(200,155,60,0.13)',
+          border: '1px solid rgba(200,155,60,0.32)',
+          borderRadius: 4,
+          padding: '2px 5px',
+          fontSize: 5.5,
+          fontFamily: "'Press Start 2P', monospace",
+          color: '#c89b3c',
+          letterSpacing: '0.03em',
+        }}>
+          LVL {level}
+        </span>
+
+        {/* Post count — admin only */}
+        {isAdmin && postCount > 0 && (
+          <span style={{ flexShrink: 0, fontSize: 5, color: '#6a5030', marginLeft: 4 }}>
+            {postCount}p
+          </span>
+        )}
+      </Link>
+    </div>
+  )
+}
+
+// ── Panel client root ─────────────────────────────────────────────────────────
+interface Props {
+  initialOrder: ChanKey[]
+  levels: Record<string, number>
+  postCounts: Record<string, number>
+  isAdmin: boolean
+}
+
+export default function SkillsPanelClient({
+  initialOrder, levels, postCounts, isAdmin,
+}: Props) {
+  const [order, setOrder] = useState<ChanKey[]>(initialOrder)
+  const pathname = usePathname()
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+  )
+
+  function handleDragEnd({ active, over }: DragEndEvent) {
+    if (!over || active.id === over.id) return
+    const from = order.indexOf(active.id as ChanKey)
+    const to   = order.indexOf(over.id   as ChanKey)
+    const next = arrayMove(order, from, to)
+    setOrder(next)
+    fetch('/api/admin/skills-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order: next }),
+    }).catch(() => {})
+  }
+
+  const isHome   = pathname === '/'
+  const isQuests = pathname === '/quest-board'
+
+  return (
+    <div>
+      {/* Home */}
+      <Link
+        href="/"
+        className="guild-channel"
+        style={{
+          paddingLeft: 14,
+          borderLeftColor: isHome ? '#c89b3c' : 'transparent',
+          background: isHome ? 'rgba(200,155,60,0.1)' : undefined,
+          color: isHome ? '#f0d898' : undefined,
+        }}
+      >
+        <span style={{ flexShrink: 0, width: 30, height: 30, background: '#241a08', borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Home size={14} color="#dcc898" strokeWidth={1.6} />
+        </span>
+        <span style={{ fontSize: 7 }}>Home</span>
+      </Link>
+
+      {/* Section label */}
+      <div style={{ padding: '8px 14px 5px', fontSize: 5.5, color: '#a07848', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: "'Press Start 2P', monospace" }}>
+        ⚔ Communities
+      </div>
+
+      {/* Quests */}
+      <div style={{ display: 'flex', alignItems: 'stretch' }}>
+        {isAdmin && <div style={{ width: 22, flexShrink: 0 }} />}
+        <Link
+          href="/quest-board"
+          className="guild-channel"
+          style={{
+            flex: 1, paddingLeft: 8, paddingRight: 12,
+            borderLeftColor: isQuests ? '#c89b3c' : 'transparent',
+            background: isQuests ? 'rgba(200,155,60,0.1)' : undefined,
+            color: isQuests ? '#f0d898' : undefined,
+          }}
+        >
+          <span style={{ flexShrink: 0, width: 30, height: 30, background: '#241a08', borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <ScrollText size={14} color="#dcc898" strokeWidth={1.6} />
+          </span>
+          <span style={{ flex: 1, fontSize: 7 }}>Quests</span>
+        </Link>
+      </div>
+
+      {/* Draggable community channels */}
+      <DndContext
+        sensors={isAdmin ? sensors : []}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={order} strategy={verticalListSortingStrategy}>
+          {order.map(key => (
+            <ChannelRow
+              key={key}
+              id={key}
+              level={levels[key] ?? 1}
+              postCount={postCounts[key] ?? 0}
+              isAdmin={isAdmin}
+              pathname={pathname}
+            />
+          ))}
+        </SortableContext>
+      </DndContext>
+    </div>
+  )
+}

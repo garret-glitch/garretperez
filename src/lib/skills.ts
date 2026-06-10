@@ -39,7 +39,7 @@ export const SKILLS: SkillMeta[] = [
   { slug: 'projects',   dbEnum: 'PROJECTS',   label: 'Projects',  icon: '⚒️',  description: 'Building things — yearly haunted house, DIY projects & tech builds.', href: '/skills/projects',  color: '#3a3020' },
   { slug: 'fishing',    dbEnum: 'FISHING',    label: 'Fishing',   icon: '🎣',  description: 'Fishing trips, outdoor adventures & tips from the water.',             href: '/skills/fishing',   color: '#1a4a5a' },
   { slug: 'business',   dbEnum: 'BUSINESS',   label: 'Business',  icon: '💼',  description: 'Wine sales, H-E-B distribution, team coaching & route planning.',      href: '/skills/business',  color: '#2a3a18' },
-  { slug: 'food',       dbEnum: 'FOOD',       label: 'Cooking',   icon: '🍳',  description: 'Recipes, wine pairings & food tips from the kitchen.',                 href: '/skills/food',      color: '#6a3010' },
+  { slug: 'food',       dbEnum: 'FOOD',       label: 'Food & Wine', icon: '🍷',  description: 'Recipes, wine pairings & food tips from the kitchen.',               href: '/skills/food',      color: '#6a3010' },
   { slug: 'community',  dbEnum: 'COMMUNITY',  label: 'Community', icon: '👥',  description: 'Neighborhood events, social connections & group discussions.',         href: '/skills/community', color: '#2a3060' },
   { slug: 'gardening',  dbEnum: 'GARDENING',  label: 'Gardening', icon: '🌱',  description: 'Garden tips, outdoor upkeep & growing things.',                        href: '/skills/gardening', color: '#1e4a1e' },
   { slug: 'fun',         dbEnum: 'FUN',         label: 'Fun',         icon: '🎮',  description: 'Mini-games, hobbies & entertainment for the whole community.',  href: '/skills/fun',         color: '#4a2060' },

@@ -14,7 +14,7 @@ const COMMUNITIES = [
   { icon: '💼', label: 'Business',  href: '/skills/business' },
   { icon: '👥', label: 'Community', href: '/skills/community' },
   { icon: '🎣', label: 'Fishing',   href: '/skills/fishing' },
-  { icon: '🍳', label: 'Cooking',   href: '/skills/food' },
+  { icon: '🍷', label: 'Food & Wine', href: '/skills/food' },
   { icon: '🌱', label: 'Farming',   href: '/skills/gardening' },
   { icon: '🗺️', label: 'Adventure', href: '/skills/travel' },
   { icon: '🎮', label: 'Games',     href: '/skills/fun' },

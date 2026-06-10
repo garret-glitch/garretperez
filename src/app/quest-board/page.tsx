@@ -11,7 +11,7 @@ const FALLBACK_QUESTS = [
   { id: 'f4', icon: '🌅', title: 'Daily Check-In', description: 'Log in every day to keep your XP streak going.', xp: 3, skill: 'All skills', href: '/', active: true },
   { id: 'f5', icon: '🍷', title: 'Wine Expert', description: 'Score 7 or higher on the Wine Trivia quiz.', xp: 20, skill: 'Fun', href: '/skills/fun/wine-trivia', active: true },
   { id: 'f6', icon: '🃏', title: 'Memory Master', description: 'Complete the Matching Card Game.', xp: 20, skill: 'Fun', href: '/skills/fun/matching', active: true },
-  { id: 'f7', icon: '🍳', title: 'Home Cook', description: 'Share a recipe you love in the Cooking section.', xp: 10, skill: 'Cooking', href: '/skills/food', active: true },
+  { id: 'f7', icon: '🍷', title: 'Home Cook', description: 'Share a recipe you love in the Food &amp; Wine section.', xp: 10, skill: 'Food & Wine', href: '/skills/food', active: true },
   { id: 'f8', icon: '💼', title: 'Business Mind', description: 'Share a sales tip, business insight, or work win.', xp: 10, skill: 'Business', href: '/skills/business', active: true },
   { id: 'f9', icon: '🎣', title: "Gone Fishin'", description: 'Post a fishing trip report, tip, or photo description.', xp: 10, skill: 'Fishing', href: '/skills/fishing', active: true },
   { id: 'f10', icon: '🗺️', title: 'Road Warrior', description: 'Share a travel story, destination review, or trip highlight.', xp: 10, skill: 'Travel', href: '/skills/travel', active: true },

@@ -20,7 +20,7 @@ const DEFAULT_QUESTS = [
   { icon: '🌅', title: 'Daily Check-In', description: 'Log in every day to keep your XP streak going.', xp: 3, skill: 'All skills', href: '/' },
   { icon: '🍷', title: 'Wine Expert', description: 'Score 7 or higher on the Wine Trivia quiz.', xp: 20, skill: 'Fun', href: '/skills/fun/wine-trivia' },
   { icon: '🃏', title: 'Memory Master', description: 'Complete the Matching Card Game.', xp: 20, skill: 'Fun', href: '/skills/fun/matching' },
-  { icon: '🍳', title: 'Home Cook', description: 'Share a recipe you love in the Cooking section.', xp: 10, skill: 'Cooking', href: '/skills/food' },
+  { icon: '🍷', title: 'Home Cook', description: 'Share a recipe you love in the Food & Wine section.', xp: 10, skill: 'Food & Wine', href: '/skills/food' },
   { icon: '💼', title: 'Business Mind', description: 'Share a sales tip, business insight, or work win.', xp: 10, skill: 'Business', href: '/skills/business' },
   { icon: '🎣', title: "Gone Fishin'", description: 'Post a fishing trip report, tip, or photo description.', xp: 10, skill: 'Fishing', href: '/skills/fishing' },
   { icon: '🗺️', title: 'Road Warrior', description: 'Share a travel story, destination review, or trip highlight.', xp: 10, skill: 'Travel', href: '/skills/travel' },

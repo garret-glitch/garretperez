@@ -44,15 +44,15 @@ export default async function FoodPage() {
     <div className="space-y-4">
       <div className="osrs-panel rounded-xl">
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-2xl">🍳</span>
-          <h1 className="text-[14px] text-[#1a1a1a] font-bold">Cooking</h1>
+          <span className="text-2xl">🍷</span>
+          <h1 className="text-[14px] text-[#1a1a1a] font-bold">Food &amp; Wine</h1>
         </div>
         <p className="text-[8px] text-[#3d3d3d]">
-          Share recipes and earn XP. Add a recipe → +50 Cooking XP!
+          Share recipes, wine picks and food tips. Add a recipe → +50 XP!
         </p>
         {session?.user && (
           <div className="mt-3">
-            <XpBar xp={userXp} skillName="Cooking" />
+            <XpBar xp={userXp} skillName="Food & Wine" />
           </div>
         )}
       </div>
