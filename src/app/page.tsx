@@ -27,7 +27,7 @@ export default async function Home() {
   let garretTotalLevel = 9
   let garretXpBar = { currentXp: 0, neededXp: 100, percent: 0 }
   let garretTotalXpRaw = 0
-  let garretSkillLevels: Record<string, number> = {}
+  const garretSkillLevels: Record<string, number> = {}
   let dbProjects: Array<{ id: string; icon: string; title: string; desc: string; progress: number; href: string; updated: string }> = []
   let currentUserXp = 0
   let currentUserLevel = 1
