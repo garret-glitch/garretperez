@@ -181,7 +181,7 @@ export default async function Home() {
               {/* Divider */}
               <div style={{ height: 1, background: 'rgba(200,155,60,0.1)', margin: '12px 0' }} />
 
-              {/* Stats: Members · Posts · then Level prominent on right */}
+              {/* Stats: Members · Posts · Level */}
               <div className="flex items-center gap-2 flex-wrap mb-3">
                 <div className="flex items-center gap-1.5 px-2.5 py-1.5"
                   style={{ background: 'rgba(200,155,60,0.08)', border: '1px solid rgba(200,155,60,0.2)' }}>
@@ -193,19 +193,10 @@ export default async function Home() {
                   <span className="body-text font-bold" style={{ fontSize: 11, color: 'var(--gold)' }}>{totalPosts}</span>
                   <span className="body-text" style={{ fontSize: 10, color: 'var(--text-2)' }}>Posts</span>
                 </div>
-                {/* Level — prominent, pushed to the right */}
-                <div className="flex items-center gap-2 ml-auto"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(200,155,60,0.2) 0%, rgba(200,155,60,0.07) 100%)',
-                    border: '1px solid rgba(200,155,60,0.45)',
-                    padding: '5px 12px',
-                    boxShadow: '0 0 14px rgba(200,155,60,0.15)',
-                  }}>
-                  <span style={{ fontSize: 11 }}>⚔</span>
-                  <div>
-                    <div style={{ fontSize: 5, color: '#a07848', textTransform: 'uppercase', letterSpacing: '0.12em', lineHeight: 1, marginBottom: 2 }}>Level</div>
-                    <div style={{ fontSize: 16, color: '#c89b3c', fontFamily: "'Press Start 2P', monospace", lineHeight: 1 }}>{garretTotalLevel}</div>
-                  </div>
+                <div className="flex items-center gap-1.5 px-2.5 py-1.5"
+                  style={{ background: 'rgba(200,155,60,0.08)', border: '1px solid rgba(200,155,60,0.2)' }}>
+                  <span className="body-text font-bold" style={{ fontSize: 11, color: 'var(--gold)' }}>{garretTotalLevel}</span>
+                  <span className="body-text" style={{ fontSize: 10, color: 'var(--text-2)' }}>Level</span>
                 </div>
               </div>
 
