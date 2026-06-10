@@ -100,7 +100,7 @@ export default function BuilderClient({ initialBlocks, liveData, showMigrate }: 
   const selectedBlock = state.blocks.find(b => b.id === state.selectedId) ?? null
 
   return (
-    <div style={{ paddingTop: 49 }}>
+    <div style={{ paddingTop: 87 }}>
       <BuilderToolbar
         isDirty={state.isDirty}
         saving={saving || migrating}

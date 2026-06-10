@@ -27,7 +27,7 @@ export default function BuilderToolbar({
 
   return (
     <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200,
+      position: 'fixed', top: 38, left: 0, right: 0, zIndex: 200,
       background: '#0d0d14ee', backdropFilter: 'blur(12px)',
       borderBottom: '1px solid rgba(200,155,60,0.25)',
       display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px',

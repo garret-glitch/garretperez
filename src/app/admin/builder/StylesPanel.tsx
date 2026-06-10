@@ -70,7 +70,7 @@ export default function StylesPanel({ block, onStyleChange, onSpanChange, onDele
 
   return (
     <div style={{
-      position: 'fixed', top: 49, right: 0, bottom: 0, zIndex: 150,
+      position: 'fixed', top: 87, right: 0, bottom: 0, zIndex: 150,
       width: 280, background: 'var(--bg-card)', borderLeft: '1px solid var(--border)',
       boxShadow: '-4px 0 24px rgba(0,0,0,0.5)', overflowY: 'auto', padding: '14px 14px',
     }}>
