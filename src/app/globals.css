@@ -337,7 +337,7 @@ a { color: inherit; text-decoration: none; }
   .community-grid { grid-template-columns: 2fr 1fr; }
 }
 
-/* ─── Unified content grid (all 5 sections, no page scroll) ── */
+/* ─── Unified content grid — panels flow by DOM order ───────── */
 .content-grid {
   display: grid;
   gap: 1rem;
@@ -345,17 +345,9 @@ a { color: inherit; text-decoration: none; }
 }
 @media (min-width: 768px) {
   .content-grid {
-    grid-template-columns: 1fr 1fr 1.5fr;
-    grid-template-areas:
-      "about    projects  feed"
-      "achieve  xpguide   feed";
+    grid-template-columns: var(--cg-c1, 1fr) var(--cg-c2, 1fr) var(--cg-c3, 1.5fr);
     align-items: start;
   }
-  .cg-about   { grid-area: about; }
-  .cg-projects{ grid-area: projects; }
-  .cg-feed    { grid-area: feed; }
-  .cg-achieve { grid-area: achieve; }
-  .cg-xp      { grid-area: xpguide; }
 }
 
 /* ─── Animations ─────────────────────────────────────────── */

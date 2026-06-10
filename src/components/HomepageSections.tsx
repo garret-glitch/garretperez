@@ -1,6 +1,14 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import {
+  DndContext, closestCenter, PointerSensor, useSensor, useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext, rectSortingStrategy, arrayMove, useSortable,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { getSkillByEnum } from '@/lib/skills'
 import { BADGE_META } from '@/lib/badges'
 
@@ -8,7 +16,7 @@ export type SectionConfig = {
   id: string; heading: string; icon: string
   headingPx: number; bodyPx: number
   padding: 'compact' | 'normal' | 'spacious' | 'tall'
-  minHeight: number   // 0 = auto
+  minHeight: number
   visible: boolean
 }
 export type ProjectRow = { id: string; icon: string; title: string; desc: string; progress: number; href: string; updated: string }
@@ -28,8 +36,10 @@ interface Props {
   userBadges: string[]
   initialLayout: SectionConfig[]
   initialCols: [number, number, number]
+  initialOrder: string[]
 }
 
+const DEFAULT_ORDER = ['about', 'projects', 'feed', 'achieve', 'xp']
 const DEFAULT_SECTIONS: SectionConfig[] = [
   { id: 'about',    heading: 'About Me',       icon: '📜', headingPx: 9,  bodyPx: 12, padding: 'normal',  minHeight: 0, visible: true },
   { id: 'projects', heading: 'My Projects',    icon: '⚒️', headingPx: 9,  bodyPx: 12, padding: 'normal',  minHeight: 0, visible: true },
@@ -51,7 +61,7 @@ function timeAgo(dateStr: string) {
   return `${Math.floor(mins / 1440)}d ago`
 }
 
-/* ─── Section wrapper — module scope so React never remounts on state changes ─── */
+/* ─── Section wrapper — module scope (prevents remount on state changes) ─── */
 interface WrapProps {
   id: string; heading: string; editMode: boolean
   selected: string | null; onSelect: (id: string) => void
@@ -63,34 +73,56 @@ interface WrapProps {
   children: React.ReactNode
 }
 function SectionWrap({ id, heading, editMode, selected, onSelect, onResize, minHeight, colIdx, cols, onColChange, children }: WrapProps) {
-  if (!editMode) return <>{children}</>
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+    disabled: !editMode,
+  })
+
+  // In view mode: just a ref-holder with no extra chrome
+  if (!editMode) {
+    return <div ref={setNodeRef}>{children}</div>
+  }
+
   const active = selected === id
+  const dragStyle: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform) ?? undefined,
+    transition,
+    opacity: isDragging ? 0.45 : 1,
+    zIndex: isDragging ? 50 : undefined,
+  }
+
   return (
     <div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
       onClick={e => { e.stopPropagation(); onSelect(id) }}
       style={{
-        position: 'relative', cursor: 'pointer', borderRadius: 6,
+        ...dragStyle,
+        position: 'relative',
+        cursor: isDragging ? 'grabbing' : 'grab',
+        borderRadius: 6,
         outline: active ? '3px solid #c89b3c' : '2px dashed #c89b3c',
         outlineOffset: 4,
       }}
     >
-      {/* Section label tag */}
+      {/* Panel label — pointerEvents none so it doesn&apos;t block drag */}
       <div style={{
         position: 'absolute', top: -11, left: 8, zIndex: 10, pointerEvents: 'none',
         background: active ? 'var(--gold)' : '#1a1a28',
         color: active ? '#000' : 'var(--gold)',
         border: '1px solid var(--gold)', borderRadius: 4,
         padding: '2px 8px', fontSize: 5.5, fontWeight: 700, letterSpacing: '0.07em',
+        userSelect: 'none',
       }}>
-        ✏ {heading}
+        ⠿ {heading}
       </div>
 
       {children}
 
-      {/* Two sliders: height + width */}
+      {/* Resize sliders */}
       <div
         onClick={e => e.stopPropagation()}
-        onMouseDown={e => e.stopPropagation()}
         style={{
           background: 'rgba(13,13,20,0.93)',
           borderTop: '1px solid rgba(200,155,60,0.35)',
@@ -98,28 +130,22 @@ function SectionWrap({ id, heading, editMode, selected, onSelect, onResize, minH
           display: 'flex', flexDirection: 'column', gap: 7,
         }}
       >
-        {/* Height slider */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ fontSize: 5.5, color: '#a07848', width: 44, flexShrink: 0 }}>↕ Height</span>
-          <input
-            type="range" min={0} max={800} step={10}
+          <input type="range" min={0} max={800} step={10}
             value={minHeight}
             onChange={e => onResize(id, +e.target.value)}
-            style={{ flex: 1, accentColor: '#c89b3c', cursor: 'pointer', height: 4 }}
-          />
+            style={{ flex: 1, accentColor: '#c89b3c', cursor: 'pointer', height: 4 }} />
           <span style={{ fontSize: 5.5, color: 'var(--gold)', width: 34, textAlign: 'right', flexShrink: 0 }}>
             {minHeight > 0 ? `${minHeight}px` : 'Auto'}
           </span>
         </div>
-        {/* Width slider */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ fontSize: 5.5, color: '#a07848', width: 44, flexShrink: 0 }}>↔ Width</span>
-          <input
-            type="range" min={0.3} max={4} step={0.05}
+          <input type="range" min={0.3} max={4} step={0.05}
             value={cols[colIdx]}
             onChange={e => onColChange(colIdx, +e.target.value)}
-            style={{ flex: 1, accentColor: '#c89b3c', cursor: 'pointer', height: 4 }}
-          />
+            style={{ flex: 1, accentColor: '#c89b3c', cursor: 'pointer', height: 4 }} />
           <span style={{ fontSize: 5.5, color: 'var(--gold)', width: 34, textAlign: 'right', flexShrink: 0 }}>
             {cols[colIdx].toFixed(1)}fr
           </span>
@@ -129,17 +155,11 @@ function SectionWrap({ id, heading, editMode, selected, onSelect, onResize, minH
   )
 }
 
-/* ─── Column drag handle — module scope ─────────────────────── */
-interface ColHandleProps {
-  leftPct: number
-  onDragStart: (e: React.MouseEvent) => void
-}
+/* ─── Column drag handle ─────────────────────────────────────── */
+interface ColHandleProps { leftPct: number; onDragStart: (e: React.MouseEvent) => void }
 function ColHandle({ leftPct, onDragStart }: ColHandleProps) {
   return (
-    <div
-      onMouseDown={onDragStart}
-      onClick={e => e.stopPropagation()}
-      title="Drag to resize columns"
+    <div onMouseDown={onDragStart} onClick={e => e.stopPropagation()} title="Drag to resize columns"
       style={{
         position: 'absolute', left: `calc(${leftPct}% - 8px)`,
         top: '4%', bottom: '4%', width: 16, zIndex: 30,
@@ -157,22 +177,27 @@ function ColHandle({ leftPct, onDragStart }: ColHandleProps) {
 /* ─── Main component ─────────────────────────────────────────── */
 export default function HomepageSections({
   isAdmin, bio1: initBio1, bio2: initBio2, bio3: initBio3,
-  dbProjects, recentPosts, hasSession, userBadges, initialLayout, initialCols,
+  dbProjects, recentPosts, hasSession, userBadges, initialLayout, initialCols, initialOrder,
 }: Props) {
-  const [layout,   setLayout]   = useState<SectionConfig[]>(initialLayout.length ? initialLayout : DEFAULT_SECTIONS)
-  const [editMode, setEditMode] = useState(false)
-  const [selected, setSelected] = useState<string | null>(null)
-  const [saving,   setSaving]   = useState(false)
-  const [saved,    setSaved]    = useState(false)
-  const [cols, setCols] = useState<[number, number, number]>(initialCols)
+  const [layout,     setLayout]     = useState<SectionConfig[]>(initialLayout.length ? initialLayout : DEFAULT_SECTIONS)
+  const [editMode,   setEditMode]   = useState(false)
+  const [selected,   setSelected]   = useState<string | null>(null)
+  const [saving,     setSaving]     = useState(false)
+  const [saved,      setSaved]      = useState(false)
+  const [cols,       setCols]       = useState<[number, number, number]>(initialCols)
+  const [panelOrder, setPanelOrder] = useState<string[]>(
+    initialOrder.length === 5 ? initialOrder : [...DEFAULT_ORDER]
+  )
   const gridRef = useRef<HTMLDivElement>(null)
 
-  // Editable bio text
   const [bio1, setBio1] = useState(initBio1)
   const [bio2, setBio2] = useState(initBio2)
   const [bio3, setBio3] = useState(initBio3)
 
-  // initialLayout already comes from the server — no re-fetch needed on mount
+  // DnD sensors — 8px distance prevents accidental drags on click
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  )
 
   const sec = (id: string): SectionConfig => {
     const base = DEFAULT_SECTIONS.find(s => s.id === id)!
@@ -187,12 +212,8 @@ export default function HomepageSections({
   const update = (id: string, patch: Partial<SectionConfig>) =>
     setLayout(prev => prev.map(s => s.id === id ? { ...s, ...patch } : s))
 
-  const handleSelect = (id: string) =>
-    setSelected(prev => prev === id ? null : id)
-
-  const handleResize = (id: string, h: number) =>
-    update(id, { minHeight: h })
-
+  const handleSelect   = (id: string) => setSelected(prev => prev === id ? null : id)
+  const handleResize   = (id: string, h: number) => update(id, { minHeight: h })
   const handleColChange = (colIdx: 0 | 1 | 2, fr: number) =>
     setCols(prev => { const n: [number, number, number] = [...prev]; n[colIdx] = fr; return n })
 
@@ -203,17 +224,11 @@ export default function HomepageSections({
     const [c0, c1, c2] = cols
     const total = c0 + c1 + c2
     const onMove = (ev: MouseEvent) => {
-      const deltaFr = ((ev.clientX - startX) / containerW) * total
-      if (boundary === 0) {
-        setCols([Math.max(0.3, c0 + deltaFr), Math.max(0.3, c1 - deltaFr), c2])
-      } else {
-        setCols([c0, Math.max(0.3, c1 + deltaFr), Math.max(0.3, c2 - deltaFr)])
-      }
+      const d = ((ev.clientX - startX) / containerW) * total
+      if (boundary === 0) setCols([Math.max(0.3, c0 + d), Math.max(0.3, c1 - d), c2])
+      else                setCols([c0, Math.max(0.3, c1 + d), Math.max(0.3, c2 - d)])
     }
-    const onUp = () => {
-      document.removeEventListener('mousemove', onMove)
-      document.removeEventListener('mouseup', onUp)
-    }
+    const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp) }
     document.addEventListener('mousemove', onMove)
     document.addEventListener('mouseup', onUp)
   }
@@ -222,8 +237,6 @@ export default function HomepageSections({
   const b0Pct = (cols[0] / colTotal) * 100
   const b1Pct = ((cols[0] + cols[1]) / colTotal) * 100
 
-  // Directly set CSS custom properties on the DOM — React's style prop
-  // doesn't reliably update custom properties, so we use setProperty instead.
   useEffect(() => {
     if (!gridRef.current) return
     gridRef.current.style.setProperty('--cg-c1', `${cols[0]}fr`)
@@ -231,13 +244,23 @@ export default function HomepageSections({
     gridRef.current.style.setProperty('--cg-c3', `${cols[2]}fr`)
   }, [cols])
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    setPanelOrder(prev => {
+      const from = prev.indexOf(active.id as string)
+      const to   = prev.indexOf(over.id as string)
+      return arrayMove(prev, from, to)
+    })
+  }
+
   const save = async () => {
     setSaving(true)
     await Promise.all([
       fetch('/api/admin/layout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sections: layout, cols }),
+        body: JSON.stringify({ sections: layout, cols, order: panelOrder }),
       }),
       fetch('/api/admin/homepage', {
         method: 'POST',
@@ -250,11 +273,214 @@ export default function HomepageSections({
   }
 
   const selSec = selected ? sec(selected) : null
+  const visibleOrder = panelOrder.filter(id => sec(id).visible)
+
+  // Render the inner JSX for each section (children of SectionWrap)
+  const renderContent = (secId: string) => {
+    const s = sec(secId)
+    switch (secId) {
+      case 'about': return (
+        <>
+          <div className="scroll-roll" />
+          <div className="scroll-parchment" style={pSty('about')}>
+            <h2 className="mb-3 flex items-center gap-2" style={{ fontSize: s.headingPx, color: '#3a1e06' }}>
+              <span>{s.icon}</span> {s.heading}
+            </h2>
+            <div className="space-y-2 body-text" style={{ color: '#3a2810' }}>
+              {editMode ? (
+                <>
+                  <textarea value={bio1} onChange={e => setBio1(e.target.value)} onClick={e => e.stopPropagation()}
+                    style={{ width: '100%', background: 'rgba(200,155,60,0.08)', border: '1px solid rgba(200,155,60,0.35)',
+                      borderRadius: 4, padding: '6px 8px', color: '#3a2810', fontSize: s.bodyPx,
+                      fontFamily: 'Inter, system-ui', resize: 'vertical', minHeight: 60 }} />
+                  <textarea value={bio2} onChange={e => setBio2(e.target.value)} onClick={e => e.stopPropagation()}
+                    style={{ width: '100%', background: 'rgba(200,155,60,0.08)', border: '1px solid rgba(200,155,60,0.35)',
+                      borderRadius: 4, padding: '6px 8px', color: '#3a2810', fontSize: s.bodyPx,
+                      fontFamily: 'Inter, system-ui', resize: 'vertical', minHeight: 60 }} />
+                  <textarea value={bio3} onChange={e => setBio3(e.target.value)} onClick={e => e.stopPropagation()}
+                    style={{ width: '100%', background: 'rgba(200,155,60,0.08)', border: '1px solid rgba(200,155,60,0.35)',
+                      borderRadius: 4, padding: '6px 8px', color: '#3a2810', fontSize: s.bodyPx,
+                      fontFamily: 'Inter, system-ui', resize: 'vertical', minHeight: 60 }} />
+                </>
+              ) : (
+                <>
+                  {bio1 && <p style={{ fontSize: s.bodyPx }}>{bio1}</p>}
+                  {bio2 && <p style={{ fontSize: s.bodyPx }}>{bio2}</p>}
+                  {bio3 && <p style={{ fontSize: s.bodyPx }}>{bio3}</p>}
+                </>
+              )}
+            </div>
+          </div>
+          <div className="scroll-roll" />
+        </>
+      )
+
+      case 'projects': return (
+        <>
+          <div className="scroll-roll" />
+          <div className="scroll-parchment" style={pSty('projects')}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="flex items-center gap-2" style={{ fontSize: s.headingPx, color: '#3a1e06' }}>
+                <span>{s.icon}</span> {s.heading}
+              </h2>
+              <Link href="/skills/projects" onClick={e => editMode && e.preventDefault()}
+                className="text-[6px] hover:opacity-70 transition-opacity" style={{ color: '#6a3808' }}>
+                View All →
+              </Link>
+            </div>
+            {editMode && selected === 'projects' && (
+              <div style={{ marginBottom: 10, padding: '7px 10px', borderRadius: 6, background: 'rgba(200,155,60,0.08)', border: '1px solid rgba(200,155,60,0.25)', fontSize: 6, color: '#8a6030' }}>
+                ⚒️ Edit projects in <a href="/admin/projects" target="_blank" style={{ color: 'var(--gold)' }}>Admin → Projects</a>
+              </div>
+            )}
+            {dbProjects.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 gap-3">
+                <span className="text-4xl opacity-30">⚒️</span>
+                <p className="text-[7px]" style={{ color: '#8a6030' }}>No projects logged yet.</p>
+                <Link href="/skills/projects" className="osrs-btn text-[6.5px] px-3 py-1.5">Start a Project</Link>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {dbProjects.map(p => (
+                  <div key={p.id} className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg"
+                    style={{ background: 'rgba(180,120,40,0.18)', border: '1px solid #a07840' }}>
+                    <span className="text-xl shrink-0">{p.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <span className="font-bold truncate" style={{ fontSize: s.bodyPx, color: '#2a1006' }}>{p.title}</span>
+                        <span className="text-[6px] font-bold shrink-0" style={{ color: '#6a3808' }}>{p.progress}%</span>
+                      </div>
+                      <div className="prog-bar"><div className="prog-bar-fill" style={{ width: `${p.progress}%` }} /></div>
+                      <div className="text-[5.5px] mt-1" style={{ color: '#8a6030' }}>Updated {p.updated}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="scroll-roll" />
+        </>
+      )
+
+      case 'feed': return (
+        <>
+          <div className="scroll-roll" />
+          <div className="scroll-parchment" style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 260px)' }}>
+            <h2 className="mb-4 flex items-center gap-2" style={{ fontSize: s.headingPx, color: '#3a1e06' }}>
+              <span>{s.icon}</span> {s.heading}
+              <span className="ml-auto text-[6px]" style={{ color: '#8a6030' }}>All Communities</span>
+            </h2>
+            {recentPosts.length === 0 ? (
+              <div className="text-center py-10">
+                <div className="text-3xl mb-3">💬</div>
+                <p className="text-[8px] mb-4" style={{ color: '#5a3818' }}>The community feed is empty.</p>
+                {!hasSession ? (
+                  <div className="flex justify-center gap-2">
+                    <Link href="/register" className="osrs-btn text-[7px]">Join &amp; Post</Link>
+                    <Link href="/login" className="osrs-btn text-[7px]">Login</Link>
+                  </div>
+                ) : (
+                  <p className="text-[7px]" style={{ color: '#8a6030' }}>Click any community in the sidebar to post!</p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {recentPosts.map(post => {
+                  const skill = getSkillByEnum(post.skill)
+                  return (
+                    <Link key={post.id} href={editMode ? '#' : (skill?.href ?? '/')} className="block post-card">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center text-[8px] font-bold"
+                          style={{ background: 'rgba(180,120,40,0.2)', border: '1px solid #a07840', color: '#6a3808' }}>
+                          {post.user.username.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <span className="text-[7px] font-bold" style={{ color: '#2a1006' }}>{post.user.username}</span>
+                            <span className="text-[6px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(180,120,40,0.2)', color: '#5a3818', border: '1px solid #a07840' }}>
+                              {skill?.icon} {skill?.label}
+                            </span>
+                            <span className="text-[5.5px] ml-auto" style={{ color: '#8a6030' }}>{timeAgo(post.createdAt)}</span>
+                          </div>
+                          <div className="text-[8px] font-bold mb-1 truncate" style={{ color: '#2a1006' }}>{post.title}</div>
+                          <p className="body-text mb-2 line-clamp-2" style={{ fontSize: s.bodyPx, color: '#3a2810' }}>{post.body}</p>
+                          <div className="flex items-center gap-3">
+                            {post.upvotes.length > 0 && <span className="text-[6px]" style={{ color: '#6a3808' }}>▲ {post.upvotes.length}</span>}
+                            {post.replies.length > 0 && <span className="text-[6px]" style={{ color: '#8a6030' }}>💬 {post.replies.length}</span>}
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+          <div className="scroll-roll" />
+        </>
+      )
+
+      case 'achieve': return (
+        <>
+          <div className="scroll-roll" />
+          <div className="scroll-parchment" style={pSty('achieve')}>
+            <div className="flex items-center gap-2 mb-2">
+              <span style={{ fontSize: s.headingPx }}>{s.icon}</span>
+              <span style={{ fontSize: s.headingPx, color: '#3a1e06' }}>{s.heading}</span>
+            </div>
+            {userBadges.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {userBadges.map(key => {
+                  const meta = BADGE_META[key]
+                  return meta ? <span key={key} title={meta.label} style={{ fontSize: 22, lineHeight: 1, cursor: 'default' }}>{meta.icon}</span> : null
+                })}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 opacity-50">
+                <span style={{ fontSize: 18 }}>🏆</span>
+                <span className="text-[6px]" style={{ color: '#8a6030' }}>None yet — post &amp; play to earn</span>
+              </div>
+            )}
+          </div>
+          <div className="scroll-roll" />
+        </>
+      )
+
+      case 'xp': return (
+        <>
+          <div className="scroll-roll" />
+          <div className="scroll-parchment" style={pSty('xp')}>
+            <h2 className="mb-3 flex items-center gap-2" style={{ fontSize: s.headingPx, color: '#3a1e06' }}>
+              <span>{s.icon}</span> {s.heading}
+            </h2>
+            <div className="space-y-1.5">
+              {[
+                { icon: '📝', action: 'Post to a skill', xp: '+50 XP' },
+                { icon: '🍳', action: 'Add a recipe',    xp: '+50 XP' },
+                { icon: '🎮', action: 'Win a mini-game', xp: '+25 XP' },
+                { icon: '📅', action: 'Daily login',     xp: '+10 XP' },
+              ].map(row => (
+                <div key={row.action} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg"
+                  style={{ background: 'rgba(180,120,40,0.18)', border: '1px solid #a07840' }}>
+                  <span className="text-sm shrink-0">{row.icon}</span>
+                  <span className="flex-1" style={{ fontSize: s.bodyPx, color: '#3a2810' }}>{row.action}</span>
+                  <span className="text-[6px] font-bold shrink-0" style={{ color: '#6a3808' }}>{row.xp}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="scroll-roll" />
+        </>
+      )
+
+      default: return null
+    }
+  }
 
   return (
     <div>
 
-      {/* ── Admin toolbar ─────────────────────────────────── */}
+      {/* ── Admin toolbar ────────────────────────────────────── */}
       {isAdmin && !editMode && (
         <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'flex-end' }}>
           <button onClick={() => setEditMode(true)} style={{
@@ -267,7 +493,7 @@ export default function HomepageSections({
         </div>
       )}
 
-      {/* ── Edit mode sticky banner ────────────────────────── */}
+      {/* ── Edit mode banner ─────────────────────────────────── */}
       {editMode && (
         <div style={{
           position: 'sticky', top: 0, zIndex: 50,
@@ -277,7 +503,7 @@ export default function HomepageSections({
           boxShadow: '0 4px 20px rgba(200,155,60,0.4)',
         }}>
           <span style={{ fontSize: 8, fontWeight: 700, color: '#000' }}>
-            ✏️ EDIT MODE — Drag ⣿ to resize panels · Drag ↔ to resize columns
+            ✏️ EDIT MODE — Drag panels to reorder · Sliders to resize · ↩ Cols to reset
           </span>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={() => setCols([1, 1, 1.5])} style={{
@@ -303,7 +529,7 @@ export default function HomepageSections({
         </div>
       )}
 
-      {/* ── Properties panel ──────────────────────────────────── */}
+      {/* ── Properties side panel ───────────────────────────── */}
       {editMode && selSec && (
         <div style={{
           position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 99,
@@ -321,7 +547,6 @@ export default function HomepageSections({
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-            {/* Section title */}
             <div>
               <label style={LBL}>Section Title</label>
               <input type="text" value={selSec.heading}
@@ -329,7 +554,6 @@ export default function HomepageSections({
                 className="osrs-input w-full" style={{ fontSize: 9, padding: '7px 10px' }} />
             </div>
 
-            {/* Heading size */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
                 <label style={LBL}>Heading Size</label>
@@ -357,7 +581,6 @@ export default function HomepageSections({
               </div>
             </div>
 
-            {/* Body text size */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
                 <label style={LBL}>Body Text Size</label>
@@ -385,37 +608,6 @@ export default function HomepageSections({
               </div>
             </div>
 
-            {/* Panel height */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-                <label style={LBL}>Panel Height</label>
-                <span style={{ fontSize: 7, color: 'var(--gold)', fontWeight: 700 }}>
-                  {selSec.minHeight > 0 ? `${selSec.minHeight}px` : 'Auto'}
-                </span>
-              </div>
-              <input type="range" min={0} max={700} step={10}
-                value={selSec.minHeight}
-                onChange={e => update(selSec.id, { minHeight: +e.target.value })}
-                style={{ width: '100%', accentColor: 'var(--gold)', marginBottom: 6 }} />
-              <div style={{ display: 'flex', gap: 4 }}>
-                {[0, 150, 250, 400, 600].map(h => (
-                  <button key={h} onClick={() => update(selSec.id, { minHeight: h })}
-                    style={{
-                      flex: 1, padding: '4px 2px', borderRadius: 5, cursor: 'pointer', fontSize: 5.5,
-                      background: selSec.minHeight === h ? 'var(--gold)' : 'var(--bg-elevated)',
-                      color: selSec.minHeight === h ? '#000' : 'var(--text-2)',
-                      border: '1px solid var(--border)', fontWeight: selSec.minHeight === h ? 700 : 400,
-                    }}>
-                    {h === 0 ? 'Auto' : `${h}`}
-                  </button>
-                ))}
-              </div>
-              <p style={{ fontSize: 5.5, color: 'var(--text-3)', marginTop: 5 }}>
-                Or drag the ⣿ handle at the bottom of the panel
-              </p>
-            </div>
-
-            {/* Visibility */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               padding: '10px 12px', borderRadius: 8,
               background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
@@ -432,244 +624,53 @@ export default function HomepageSections({
               </button>
             </div>
 
-            {/* Inline content editing hint for About Me */}
-            {selSec.id === 'about' && (
-              <div style={{ background: 'rgba(200,155,60,0.07)', border: '1px solid rgba(200,155,60,0.25)', borderRadius: 8, padding: '10px 12px' }}>
-                <div style={{ fontSize: 6.5, color: 'var(--gold)', fontWeight: 700, marginBottom: 5 }}>✏ Edit Text Content</div>
-                <div style={{ fontSize: 5.5, color: 'var(--text-3)', marginBottom: 8 }}>
-                  Click the paragraphs directly on the panel to edit them.
-                </div>
-              </div>
-            )}
-
             <div style={{ fontSize: 5.5, color: 'var(--text-3)', lineHeight: 1.7 }}>
-              Changes preview live. Hit <strong style={{ color: 'var(--gold)' }}>Save to Site</strong> to keep them.
+              Changes preview live. Hit <strong style={{ color: 'var(--gold)' }}>Save</strong> to keep them.
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Sections grid ─────────────────────────────────────── */}
-      <div className="content-grid" ref={gridRef} style={{ position: 'relative' }}>
+      {/* ── Sections grid ────────────────────────────────────── */}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={visibleOrder} strategy={rectSortingStrategy}>
+          <div className="content-grid" ref={gridRef} style={{ position: 'relative' }}>
 
-        {/* About Me */}
-        {sec('about').visible && (
-          <div className="cg-about" style={{ overflow: 'visible' }}>
-            <SectionWrap id="about" heading={sec('about').heading} editMode={editMode} selected={selected} onSelect={handleSelect} onResize={handleResize} minHeight={sec('about').minHeight} colIdx={0} cols={cols} onColChange={handleColChange}>
-              <div className="scroll-roll" />
-              <div className="scroll-parchment" style={pSty('about')}>
-                <h2 className="mb-3 flex items-center gap-2" style={{ fontSize: sec('about').headingPx, color: '#3a1e06' }}>
-                  <span>{sec('about').icon}</span> {sec('about').heading}
-                </h2>
-                <div className="space-y-2 body-text" style={{ color: '#3a2810' }}>
-                  {editMode ? (
-                    <>
-                      <textarea value={bio1} onChange={e => setBio1(e.target.value)} onClick={e => e.stopPropagation()}
-                        style={{ width: '100%', background: 'rgba(200,155,60,0.08)', border: '1px solid rgba(200,155,60,0.35)',
-                          borderRadius: 4, padding: '6px 8px', color: '#3a2810', fontSize: sec('about').bodyPx,
-                          fontFamily: 'Inter, system-ui', resize: 'vertical', minHeight: 60 }} />
-                      <textarea value={bio2} onChange={e => setBio2(e.target.value)} onClick={e => e.stopPropagation()}
-                        style={{ width: '100%', background: 'rgba(200,155,60,0.08)', border: '1px solid rgba(200,155,60,0.35)',
-                          borderRadius: 4, padding: '6px 8px', color: '#3a2810', fontSize: sec('about').bodyPx,
-                          fontFamily: 'Inter, system-ui', resize: 'vertical', minHeight: 60 }} />
-                      <textarea value={bio3} onChange={e => setBio3(e.target.value)} onClick={e => e.stopPropagation()}
-                        style={{ width: '100%', background: 'rgba(200,155,60,0.08)', border: '1px solid rgba(200,155,60,0.35)',
-                          borderRadius: 4, padding: '6px 8px', color: '#3a2810', fontSize: sec('about').bodyPx,
-                          fontFamily: 'Inter, system-ui', resize: 'vertical', minHeight: 60 }} />
-                    </>
-                  ) : (
-                    <>
-                      {bio1 && <p style={{ fontSize: sec('about').bodyPx }}>{bio1}</p>}
-                      {bio2 && <p style={{ fontSize: sec('about').bodyPx }}>{bio2}</p>}
-                      {bio3 && <p style={{ fontSize: sec('about').bodyPx }}>{bio3}</p>}
-                    </>
-                  )}
+            {visibleOrder.map((secId, idx) => {
+              const s = sec(secId)
+              const colIdx = (idx % 3) as 0 | 1 | 2
+              return (
+                <div key={secId} style={{ overflow: 'visible' }}>
+                  <SectionWrap
+                    id={secId}
+                    heading={s.heading}
+                    editMode={editMode}
+                    selected={selected}
+                    onSelect={handleSelect}
+                    onResize={handleResize}
+                    minHeight={s.minHeight}
+                    colIdx={colIdx}
+                    cols={cols}
+                    onColChange={handleColChange}
+                  >
+                    {renderContent(secId)}
+                  </SectionWrap>
                 </div>
-              </div>
-              <div className="scroll-roll" />
-            </SectionWrap>
+              )
+            })}
+
+            {/* Column width drag handles */}
+            {editMode && (
+              <>
+                <ColHandle leftPct={b0Pct} onDragStart={e => startColDrag(e, 0)} />
+                <ColHandle leftPct={b1Pct} onDragStart={e => startColDrag(e, 1)} />
+              </>
+            )}
+
           </div>
-        )}
+        </SortableContext>
+      </DndContext>
 
-        {/* My Projects */}
-        {sec('projects').visible && (
-          <div className="cg-projects" style={{ overflow: 'visible' }}>
-            <SectionWrap id="projects" heading={sec('projects').heading} editMode={editMode} selected={selected} onSelect={handleSelect} onResize={handleResize} minHeight={sec('projects').minHeight} colIdx={1} cols={cols} onColChange={handleColChange}>
-              <div className="scroll-roll" />
-              <div className="scroll-parchment" style={pSty('projects')}>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="flex items-center gap-2" style={{ fontSize: sec('projects').headingPx, color: '#3a1e06' }}>
-                    <span>{sec('projects').icon}</span> {sec('projects').heading}
-                  </h2>
-                  <Link href="/skills/projects" onClick={e => editMode && e.preventDefault()}
-                    className="text-[6px] hover:opacity-70 transition-opacity" style={{ color: '#6a3808' }}>
-                    View All →
-                  </Link>
-                </div>
-                {editMode && selected === 'projects' && (
-                  <div style={{ marginBottom: 10, padding: '7px 10px', borderRadius: 6, background: 'rgba(200,155,60,0.08)', border: '1px solid rgba(200,155,60,0.25)', fontSize: 6, color: '#8a6030' }}>
-                    ⚒️ Edit projects in <a href="/admin/projects" target="_blank" style={{ color: 'var(--gold)' }}>Admin → Projects</a>
-                  </div>
-                )}
-                {dbProjects.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-10 gap-3">
-                    <span className="text-4xl opacity-30">⚒️</span>
-                    <p className="text-[7px]" style={{ color: '#8a6030' }}>No projects logged yet.</p>
-                    <Link href="/skills/projects" className="osrs-btn text-[6.5px] px-3 py-1.5">Start a Project</Link>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {dbProjects.map(p => (
-                      <div key={p.id} className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg"
-                        style={{ background: 'rgba(180,120,40,0.18)', border: '1px solid #a07840' }}>
-                        <span className="text-xl shrink-0">{p.icon}</span>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2 mb-1.5">
-                            <span className="font-bold truncate" style={{ fontSize: sec('projects').bodyPx, color: '#2a1006' }}>{p.title}</span>
-                            <span className="text-[6px] font-bold shrink-0" style={{ color: '#6a3808' }}>{p.progress}%</span>
-                          </div>
-                          <div className="prog-bar"><div className="prog-bar-fill" style={{ width: `${p.progress}%` }} /></div>
-                          <div className="text-[5.5px] mt-1" style={{ color: '#8a6030' }}>Updated {p.updated}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className="scroll-roll" />
-            </SectionWrap>
-          </div>
-        )}
-
-        {/* Community Feed */}
-        {sec('feed').visible && (
-          <div className="cg-feed" style={{ overflow: 'visible' }}>
-            <SectionWrap id="feed" heading={sec('feed').heading} editMode={editMode} selected={selected} onSelect={handleSelect} onResize={handleResize} minHeight={sec('feed').minHeight} colIdx={2} cols={cols} onColChange={handleColChange}>
-              <div className="scroll-roll" />
-              <div className="scroll-parchment" style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 260px)' }}>
-                <h2 className="mb-4 flex items-center gap-2" style={{ fontSize: sec('feed').headingPx, color: '#3a1e06' }}>
-                  <span>{sec('feed').icon}</span> {sec('feed').heading}
-                  <span className="ml-auto text-[6px]" style={{ color: '#8a6030' }}>All Communities</span>
-                </h2>
-                {recentPosts.length === 0 ? (
-                  <div className="text-center py-10">
-                    <div className="text-3xl mb-3">💬</div>
-                    <p className="text-[8px] mb-4" style={{ color: '#5a3818' }}>The community feed is empty.</p>
-                    {!hasSession ? (
-                      <div className="flex justify-center gap-2">
-                        <Link href="/register" className="osrs-btn text-[7px]">Join &amp; Post</Link>
-                        <Link href="/login" className="osrs-btn text-[7px]">Login</Link>
-                      </div>
-                    ) : (
-                      <p className="text-[7px]" style={{ color: '#8a6030' }}>Click any community in the sidebar to post!</p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {recentPosts.map(post => {
-                      const skill = getSkillByEnum(post.skill)
-                      return (
-                        <Link key={post.id} href={editMode ? '#' : (skill?.href ?? '/')} className="block post-card">
-                          <div className="flex items-start gap-3">
-                            <div className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center text-[8px] font-bold"
-                              style={{ background: 'rgba(180,120,40,0.2)', border: '1px solid #a07840', color: '#6a3808' }}>
-                              {post.user.username.slice(0, 2).toUpperCase()}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap mb-1">
-                                <span className="text-[7px] font-bold" style={{ color: '#2a1006' }}>{post.user.username}</span>
-                                <span className="text-[6px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(180,120,40,0.2)', color: '#5a3818', border: '1px solid #a07840' }}>
-                                  {skill?.icon} {skill?.label}
-                                </span>
-                                <span className="text-[5.5px] ml-auto" style={{ color: '#8a6030' }}>{timeAgo(post.createdAt)}</span>
-                              </div>
-                              <div className="text-[8px] font-bold mb-1 truncate" style={{ color: '#2a1006' }}>{post.title}</div>
-                              <p className="body-text mb-2 line-clamp-2" style={{ fontSize: sec('feed').bodyPx, color: '#3a2810' }}>{post.body}</p>
-                              <div className="flex items-center gap-3">
-                                {post.upvotes.length > 0 && <span className="text-[6px]" style={{ color: '#6a3808' }}>▲ {post.upvotes.length}</span>}
-                                {post.replies.length > 0 && <span className="text-[6px]" style={{ color: '#8a6030' }}>💬 {post.replies.length}</span>}
-                              </div>
-                            </div>
-                          </div>
-                        </Link>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-              <div className="scroll-roll" />
-            </SectionWrap>
-          </div>
-        )}
-
-        {/* Achievements */}
-        {sec('achieve').visible && (
-          <div className="cg-achieve" style={{ overflow: 'visible' }}>
-            <SectionWrap id="achieve" heading={sec('achieve').heading} editMode={editMode} selected={selected} onSelect={handleSelect} onResize={handleResize} minHeight={sec('achieve').minHeight} colIdx={0} cols={cols} onColChange={handleColChange}>
-              <div className="scroll-roll" />
-              <div className="scroll-parchment" style={pSty('achieve')}>
-                <div className="flex items-center gap-2 mb-2">
-                  <span style={{ fontSize: sec('achieve').headingPx }}>{sec('achieve').icon}</span>
-                  <span style={{ fontSize: sec('achieve').headingPx, color: '#3a1e06' }}>{sec('achieve').heading}</span>
-                </div>
-                {userBadges.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {userBadges.map(key => {
-                      const meta = BADGE_META[key]
-                      return meta ? <span key={key} title={meta.label} style={{ fontSize: 22, lineHeight: 1, cursor: 'default' }}>{meta.icon}</span> : null
-                    })}
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 opacity-50">
-                    <span style={{ fontSize: 18 }}>🏆</span>
-                    <span className="text-[6px]" style={{ color: '#8a6030' }}>None yet — post &amp; play to earn</span>
-                  </div>
-                )}
-              </div>
-              <div className="scroll-roll" />
-            </SectionWrap>
-          </div>
-        )}
-
-        {/* How to Earn XP */}
-        {sec('xp').visible && (
-          <div className="cg-xp" style={{ overflow: 'visible' }}>
-            <SectionWrap id="xp" heading={sec('xp').heading} editMode={editMode} selected={selected} onSelect={handleSelect} onResize={handleResize} minHeight={sec('xp').minHeight} colIdx={1} cols={cols} onColChange={handleColChange}>
-              <div className="scroll-roll" />
-              <div className="scroll-parchment" style={pSty('xp')}>
-                <h2 className="mb-3 flex items-center gap-2" style={{ fontSize: sec('xp').headingPx, color: '#3a1e06' }}>
-                  <span>{sec('xp').icon}</span> {sec('xp').heading}
-                </h2>
-                <div className="space-y-1.5">
-                  {[
-                    { icon: '📝', action: 'Post to a skill', xp: '+50 XP' },
-                    { icon: '🍳', action: 'Add a recipe',    xp: '+50 XP' },
-                    { icon: '🎮', action: 'Win a mini-game', xp: '+25 XP' },
-                    { icon: '📅', action: 'Daily login',     xp: '+10 XP' },
-                  ].map(row => (
-                    <div key={row.action} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg"
-                      style={{ background: 'rgba(180,120,40,0.18)', border: '1px solid #a07840' }}>
-                      <span className="text-sm shrink-0">{row.icon}</span>
-                      <span className="flex-1" style={{ fontSize: sec('xp').bodyPx, color: '#3a2810' }}>{row.action}</span>
-                      <span className="text-[6px] font-bold shrink-0" style={{ color: '#6a3808' }}>{row.xp}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="scroll-roll" />
-            </SectionWrap>
-          </div>
-        )}
-
-        {/* Column resize handles — only visible in edit mode on desktop */}
-        {editMode && (
-          <>
-            <ColHandle leftPct={b0Pct} onDragStart={e => startColDrag(e, 0)} />
-            <ColHandle leftPct={b1Pct} onDragStart={e => startColDrag(e, 1)} />
-          </>
-        )}
-
-      </div>
     </div>
   )
 }
@@ -677,4 +678,5 @@ export default function HomepageSections({
 const LBL: React.CSSProperties = {
   fontSize: 5.5, color: 'var(--text-3)',
   textTransform: 'uppercase', letterSpacing: '0.1em',
+  display: 'block', marginBottom: 5,
 }

@@ -39,6 +39,7 @@ export default async function Home() {
 
   let layout: SectionConfig[] = []
   let initialCols: [number, number, number] = [1, 1, 1.5]
+  let initialOrder: string[] = []
 
   try {
     const allSettings = await (prisma as any).siteSetting.findMany()
@@ -58,6 +59,9 @@ export default async function Home() {
     }
     if (settingsMap.layout_cols) {
       try { initialCols = JSON.parse(settingsMap.layout_cols) } catch { /* use default */ }
+    }
+    if (settingsMap.layout_order) {
+      try { initialOrder = JSON.parse(settingsMap.layout_order) } catch { /* use default */ }
     }
 
     const adminUser = await prisma.user.findFirst({
@@ -249,6 +253,7 @@ export default async function Home() {
         userBadges={userBadges}
         initialLayout={layout}
         initialCols={initialCols}
+        initialOrder={initialOrder}
       />
 
     </div>
