@@ -19,58 +19,168 @@ export default function BuilderToolbar({
   isDirty, saving, saved, canUndo, canRedo,
   onSave, onUndo, onRedo, onAddBlock, onPreview, onMigrate, showMigrate,
 }: Props) {
-  const BTN = (disabled = false): React.CSSProperties => ({
-    padding: '7px 14px', borderRadius: 6, cursor: disabled ? 'not-allowed' : 'pointer',
-    fontSize: 8, fontWeight: 700, border: 'none', opacity: disabled ? 0.4 : 1,
-    background: 'rgba(200,155,60,0.15)', color: 'var(--gold)',
-  })
-
   return (
     <div style={{
       position: 'fixed', top: 38, left: 0, right: 0, zIndex: 200,
-      background: '#0d0d14ee', backdropFilter: 'blur(12px)',
-      borderBottom: '1px solid rgba(200,155,60,0.25)',
-      display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px',
-      boxShadow: '0 2px 20px rgba(0,0,0,0.6)',
+      height: 52,
+      background: 'linear-gradient(180deg, #16131f 0%, #0f0d18 100%)',
+      borderBottom: '2px solid rgba(200,155,60,0.4)',
+      boxShadow: '0 4px 24px rgba(0,0,0,0.7)',
+      display: 'flex', alignItems: 'center', gap: 6, padding: '0 16px',
     }}>
+
       {/* Brand */}
-      <span style={{ fontSize: 8, color: 'var(--gold)', fontWeight: 700, marginRight: 8 }}>⚙ Page Builder</span>
+      <div style={{ marginRight: 10, flexShrink: 0 }}>
+        <div style={{ fontSize: 7, fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.12em', textTransform: 'uppercase', lineHeight: 1.2 }}>
+          ⚙ Page Builder
+        </div>
+        {isDirty && (
+          <div style={{ fontSize: 5.5, color: 'rgba(200,155,60,0.55)', letterSpacing: '0.08em' }}>
+            ● unsaved changes
+          </div>
+        )}
+      </div>
 
-      {/* Undo / Redo */}
-      <button onClick={onUndo} disabled={!canUndo} style={BTN(!canUndo)} title="Undo (Ctrl+Z)">↩ Undo</button>
-      <button onClick={onRedo} disabled={!canRedo} style={BTN(!canRedo)} title="Redo (Ctrl+Y)">↪ Redo</button>
+      {/* Divider */}
+      <div style={{ width: 1, height: 28, background: 'rgba(200,155,60,0.2)', marginRight: 4, flexShrink: 0 }} />
 
-      <div style={{ width: 1, height: 24, background: 'var(--border)', margin: '0 4px' }} />
+      {/* Undo */}
+      <ToolBtn
+        onClick={onUndo}
+        disabled={!canUndo}
+        title="Undo (Ctrl+Z)"
+        icon="↩"
+        label="Undo"
+        color="var(--text-2)"
+      />
+
+      {/* Redo */}
+      <ToolBtn
+        onClick={onRedo}
+        disabled={!canRedo}
+        title="Redo (Ctrl+Y)"
+        icon="↪"
+        label="Redo"
+        color="var(--text-2)"
+      />
+
+      {/* Divider */}
+      <div style={{ width: 1, height: 28, background: 'rgba(200,155,60,0.2)', margin: '0 4px', flexShrink: 0 }} />
 
       {/* Add Block */}
-      <button onClick={onAddBlock} style={{ ...BTN(), background: 'rgba(200,155,60,0.25)' }}>+ Add Block</button>
+      <ToolBtn
+        onClick={onAddBlock}
+        icon="＋"
+        label="Add Block"
+        color="#a0d8ff"
+        bg="rgba(100,180,255,0.12)"
+        border="rgba(100,180,255,0.3)"
+      />
 
       <div style={{ flex: 1 }} />
 
+      {/* Migrate */}
       {showMigrate && onMigrate && (
-        <button onClick={onMigrate} style={{ ...BTN(), background: 'rgba(100,60,180,0.2)', color: '#a080ff', border: '1px solid rgba(100,60,180,0.4)' }}>
-          ⬆ Migrate Old Layout
-        </button>
+        <ToolBtn
+          onClick={onMigrate}
+          icon="⬆"
+          label="Migrate"
+          color="#a080ff"
+          bg="rgba(100,60,180,0.18)"
+          border="rgba(100,60,180,0.45)"
+        />
       )}
 
       {/* Preview */}
-      <button onClick={onPreview} style={{ ...BTN(), background: 'rgba(255,255,255,0.05)', color: 'var(--text-2)' }}>
-        👁 Preview
-      </button>
+      <ToolBtn
+        onClick={onPreview}
+        icon="👁"
+        label="Preview"
+        color="var(--text-2)"
+        bg="rgba(255,255,255,0.06)"
+        border="rgba(255,255,255,0.12)"
+      />
 
       {/* Save */}
       <button
         onClick={onSave}
         disabled={saving}
+        title="Save (Ctrl+S)"
         style={{
-          ...BTN(saving),
-          background: saved ? 'rgba(0,200,100,0.2)' : isDirty ? 'rgba(200,155,60,0.3)' : 'rgba(200,155,60,0.1)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 7,
+          padding: '8px 20px',
+          borderRadius: 6,
+          border: `2px solid ${saved ? 'rgba(76,210,130,0.7)' : 'rgba(200,155,60,0.8)'}`,
+          background: saved
+            ? 'linear-gradient(135deg, rgba(76,210,130,0.25), rgba(50,180,100,0.15))'
+            : isDirty
+            ? 'linear-gradient(135deg, rgba(200,155,60,0.35), rgba(160,120,40,0.25))'
+            : 'linear-gradient(135deg, rgba(200,155,60,0.18), rgba(160,120,40,0.1))',
           color: saved ? '#5ddf8f' : 'var(--gold)',
-          border: `1px solid ${saved ? 'rgba(0,200,100,0.4)' : 'rgba(200,155,60,0.35)'}`,
-          minWidth: 80,
-        }}>
-        {saving ? '⏳ Saving…' : saved ? '✓ Saved!' : isDirty ? '💾 Save*' : '💾 Save'}
+          fontSize: 9,
+          fontWeight: 700,
+          cursor: saving ? 'not-allowed' : 'pointer',
+          opacity: saving ? 0.6 : 1,
+          letterSpacing: '0.06em',
+          boxShadow: isDirty && !saved
+            ? '0 0 14px rgba(200,155,60,0.35), inset 0 1px 0 rgba(255,255,255,0.05)'
+            : 'inset 0 1px 0 rgba(255,255,255,0.05)',
+          transition: 'all 0.2s ease',
+          minWidth: 90,
+          flexShrink: 0,
+        }}
+      >
+        <span style={{ fontSize: 14 }}>
+          {saving ? '⏳' : saved ? '✓' : '💾'}
+        </span>
+        {saving ? 'Saving…' : saved ? 'Saved!' : 'Save'}
       </button>
+
     </div>
+  )
+}
+
+// ── Small tool button ─────────────────────────────────────────────────────────
+function ToolBtn({
+  onClick, disabled, title, icon, label, color, bg, border,
+}: {
+  onClick: () => void
+  disabled?: boolean
+  title?: string
+  icon: string
+  label: string
+  color?: string
+  bg?: string
+  border?: string
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 2,
+        padding: '5px 10px',
+        borderRadius: 6,
+        border: `1px solid ${border ?? 'rgba(200,155,60,0.22)'}`,
+        background: bg ?? 'rgba(200,155,60,0.08)',
+        color: color ?? 'var(--gold)',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.35 : 1,
+        transition: 'all 0.15s',
+        flexShrink: 0,
+        minWidth: 48,
+      }}
+      onMouseEnter={e => { if (!disabled) e.currentTarget.style.filter = 'brightness(1.3)' }}
+      onMouseLeave={e => { e.currentTarget.style.filter = '' }}
+    >
+      <span style={{ fontSize: 14, lineHeight: 1 }}>{icon}</span>
+      <span style={{ fontSize: 5.5, letterSpacing: '0.06em', fontWeight: 600, textTransform: 'uppercase' }}>{label}</span>
+    </button>
   )
 }
