@@ -4,6 +4,7 @@ import { xpToLevel, xpProgress } from '@/lib/xp'
 import AccountShield from '@/components/AccountShield'
 import HomepageBlockRenderer from '@/components/HomepageBlockRenderer'
 import type { PageBlock } from '@/types/builder'
+import { migrateExistingSections } from '@/lib/builder-migration'
 
 
 export const dynamic = 'force-dynamic'
@@ -51,11 +52,26 @@ export default async function Home() {
       where: { pageSlug: 'home', visible: true },
       orderBy: { order: 'asc' },
     })
-    homeBlocks = rawBlocks.map((b: { config: string; styles: string } & Record<string, unknown>) => ({
-      ...b,
-      config: (() => { try { return JSON.parse(b.config as string) } catch { return {} } })(),
-      styles: (() => { try { return JSON.parse(b.styles as string) } catch { return {} } })(),
-    })) as PageBlock[]
+    const parseBlocks = (rows: ({ config: string; styles: string } & Record<string, unknown>)[]): PageBlock[] =>
+      rows.map(b => ({
+        ...b,
+        config: (() => { try { return JSON.parse(b.config as string) } catch { return {} } })(),
+        styles: (() => { try { return JSON.parse(b.styles as string) } catch { return {} } })(),
+      })) as PageBlock[]
+
+    homeBlocks = parseBlocks(rawBlocks)
+
+    // Auto-seed blocks on first visit after deploy
+    if (homeBlocks.length === 0) {
+      try {
+        await migrateExistingSections()
+        const seeded = await (prisma as any).pageBlock.findMany({
+          where: { pageSlug: 'home', visible: true },
+          orderBy: { order: 'asc' },
+        })
+        homeBlocks = parseBlocks(seeded)
+      } catch { /* migration failed silently */ }
+    }
 
     const adminUser = await prisma.user.findFirst({
       where: { role: 'ADMIN' },
