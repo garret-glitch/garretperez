@@ -44,7 +44,7 @@ export default function AccountShield({ username, level, xp, xpPercent, isLogged
   }
 
   return (
-    <div className="sm:shrink-0 flex flex-col items-center w-full sm:w-[200px] mx-auto sm:mx-0">
+    <div className="sm:shrink-0 flex flex-col items-center w-[200px] mx-auto sm:mx-0">
 
       {/* ── Shield SVG ───────────────────────────────────── */}
       <div className="relative w-full sm:w-[200px]">

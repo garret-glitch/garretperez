@@ -5,6 +5,7 @@ import AccountShield from '@/components/AccountShield'
 import HomepageBlockRenderer from '@/components/HomepageBlockRenderer'
 import type { PageBlock } from '@/types/builder'
 import { migrateExistingSections } from '@/lib/builder-migration'
+import Link from 'next/link'
 import { Phone, Mail, FileText } from 'lucide-react'
 
 
@@ -26,6 +27,7 @@ export default async function Home() {
   let garretTotalLevel = 9
   let garretXpBar = { currentXp: 0, neededXp: 100, percent: 0 }
   let garretTotalXpRaw = 0
+  let garretSkillLevels: Record<string, number> = {}
   let dbProjects: Array<{ id: string; icon: string; title: string; desc: string; progress: number; href: string; updated: string }> = []
   let currentUserXp = 0
   let currentUserLevel = 1
@@ -77,12 +79,15 @@ export default async function Home() {
 
     const adminUser = await prisma.user.findFirst({
       where: { role: 'ADMIN' },
-      select: { skills: { select: { xp: true } } },
+      select: { skills: { select: { xp: true, skill: true } } },
     })
     if (adminUser?.skills?.length) {
       garretTotalLevel = adminUser.skills.reduce((s: number, sk: { xp: number }) => s + xpToLevel(sk.xp), 0)
       garretTotalXpRaw = adminUser.skills.reduce((s: number, sk: { xp: number }) => s + sk.xp, 0)
       garretXpBar = xpProgress(garretTotalXpRaw)
+      for (const sk of adminUser.skills as { xp: number; skill: string }[]) {
+        garretSkillLevels[sk.skill] = xpToLevel(sk.xp)
+      }
     }
 
     recentPosts = await (prisma as any).post.findMany({
@@ -267,57 +272,123 @@ export default async function Home() {
             </div>
           </div>
 
-          {/* ── MOBILE: stacked layout ───────────────────────────── */}
-          <div className="sm:hidden flex flex-col gap-3">
-            {/* Photo + name */}
-            <div className="flex items-start gap-3">
-              <div style={{ width: 72, height: 72, border: '2px solid #c89b3c', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-page)', color: 'var(--gold)', fontSize: 18, fontWeight: 700 }}>
-                {headshot ? <img src={headshot} alt="Garret Perez" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : 'GP'}
-              </div>
-              <div>
-                <h1 style={{ fontFamily: "'Cinzel', serif", fontSize: 20, fontWeight: 700, color: 'var(--text-1)', textShadow: '0 0 16px rgba(200,155,60,0.4)', letterSpacing: '0.03em', marginBottom: 3, lineHeight: 1.1 }}>Garret Perez</h1>
-                <div className="body-text" style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-1)', marginBottom: 2 }}>{heroTitle}</div>
-                <div className="body-text" style={{ fontSize: 10, color: 'var(--text-2)' }}>📍 {heroLocation}</div>
+          {/* ── MOBILE: premium centered layout ──────────────────── */}
+          <div className="sm:hidden flex flex-col" style={{ gap: 20 }}>
+
+            {/* Photo — centered focal point */}
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <div style={{
+                width: 140, height: 140,
+                border: '3px solid #c89b3c',
+                boxShadow: '0 0 0 5px rgba(200,155,60,0.1), 0 8px 32px rgba(0,0,0,0.7)',
+                overflow: 'hidden', flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'var(--bg-page)', color: 'var(--gold)',
+                fontSize: 36, fontWeight: 700,
+              }}>
+                {headshot
+                  ? <img src={headshot} alt="Garret Perez" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : 'GP'}
               </div>
             </div>
-            {/* Stats */}
-            <div className="flex gap-2">
+
+            {/* Name + title + location — centered */}
+            <div style={{ textAlign: 'center' }}>
+              <h1 style={{
+                fontFamily: "'Cinzel', serif",
+                fontSize: 26, fontWeight: 700, lineHeight: 1.15,
+                color: 'var(--text-1)',
+                textShadow: '0 0 20px rgba(200,155,60,0.45), 1px 1px 3px rgba(0,0,0,0.9)',
+                letterSpacing: '0.04em', marginBottom: 8,
+              }}>Garret Perez</h1>
+              <div className="body-text" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)', marginBottom: 5, lineHeight: 1.4 }}>{heroTitle}</div>
+              <div className="body-text" style={{ fontSize: 12, color: 'var(--text-2)' }}>📍 {heroLocation}</div>
+            </div>
+
+            {/* Gold divider — symmetric fade */}
+            <div style={{ height: 1, background: 'linear-gradient(90deg, transparent 0%, rgba(200,155,60,0.5) 25%, rgba(200,155,60,0.5) 75%, transparent 100%)' }} />
+
+            {/* Stats — 3 equal columns, big numbers */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
               {([
-                { value: totalUsers, label: 'Members' },
-                { value: totalPosts, label: 'Posts' },
-                { value: garretTotalLevel, label: 'Level' },
+                { value: totalUsers,       label: 'Members' },
+                { value: totalPosts,        label: 'Posts' },
+                { value: garretTotalLevel,  label: 'Level' },
               ] as const).map(stat => (
-                <div key={stat.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '7px 0', background: 'rgba(200,155,60,0.07)', border: '1px solid rgba(200,155,60,0.2)', flex: 1 }}>
-                  <span className="body-text" style={{ fontSize: 16, fontWeight: 700, color: '#c89b3c', lineHeight: 1, marginBottom: 3 }}>{stat.value}</span>
-                  <span style={{ fontSize: 5, color: '#7a6040', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{stat.label}</span>
+                <div key={stat.label} style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  padding: '14px 8px',
+                  background: 'rgba(200,155,60,0.07)',
+                  border: '1px solid rgba(200,155,60,0.22)',
+                }}>
+                  <span className="body-text" style={{ fontSize: 26, fontWeight: 700, color: '#c89b3c', lineHeight: 1, marginBottom: 7 }}>{stat.value}</span>
+                  <span style={{ fontSize: 8, color: '#7a6040', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: "'Press Start 2P', monospace" }}>{stat.label}</span>
                 </div>
               ))}
             </div>
-            {/* XP bar */}
+
+            {/* XP bar — full width, 12px, premium */}
             <div>
-              <div style={{ height: 8, background: '#a88040', border: '1px solid rgba(200,155,60,0.3)', overflow: 'hidden', position: 'relative' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <span style={{ fontSize: 8, color: '#6a5030', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: "'Press Start 2P', monospace" }}>XP Progress</span>
+                <span className="body-text" style={{ fontSize: 9, color: 'var(--text-3)' }}>{garretXpBar.currentXp} / {garretXpBar.neededXp} XP</span>
+              </div>
+              <div style={{ height: 12, background: '#a88040', border: '1px solid rgba(200,155,60,0.3)', overflow: 'hidden', position: 'relative' }}>
                 <div style={{ height: '100%', width: `${garretXpBar.percent}%`, background: 'linear-gradient(90deg, #2a5a18, #3a7a22)', position: 'relative' }}>
                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '45%', background: 'rgba(255,255,255,0.12)' }} />
                 </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-                <p className="body-text" style={{ fontSize: 7, color: 'var(--text-3)' }}>Earn XP by using the site.</p>
-                <span className="body-text" style={{ fontSize: 7, color: 'var(--text-3)' }}>{garretXpBar.currentXp}/{garretXpBar.neededXp} XP</span>
-              </div>
+              <p className="body-text" style={{ fontSize: 9, color: 'var(--text-3)', marginTop: 8, textAlign: 'center' }}>Earn XP by using the site.</p>
             </div>
-            {/* Contact icons */}
-            <div className="flex items-center justify-around gap-2">
-              <a href={`tel:${contactPhone.replace(/\D/g, '')}`} className="flex flex-col items-center gap-1.5 flex-1 py-2.5 transition-colors hover:bg-white/5" style={{ border: '1px solid rgba(200,155,60,0.2)', background: 'rgba(0,0,0,0.2)', textDecoration: 'none' }}>
-                <Phone size={15} color="#c89b3c" strokeWidth={1.7} /><span style={{ fontSize: 6.5, color: '#a07848' }}>Call</span>
+
+            {/* Gold divider */}
+            <div style={{ height: 1, background: 'linear-gradient(90deg, transparent 0%, rgba(200,155,60,0.4) 25%, rgba(200,155,60,0.4) 75%, transparent 100%)' }} />
+
+            {/* Contact — 2×2 grid with full values */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+
+              <a href={`tel:${contactPhone.replace(/\D/g, '')}`}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 14px', background: 'rgba(200,155,60,0.08)', border: '1px solid rgba(200,155,60,0.22)', textDecoration: 'none', borderRadius: 3 }}>
+                <div style={{ width: 38, height: 38, flexShrink: 0, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(200,155,60,0.15)', border: '1px solid rgba(200,155,60,0.35)' }}>
+                  <Phone size={16} color="#c89b3c" strokeWidth={1.7} />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 8, color: '#6a5030', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3, fontFamily: "'Press Start 2P', monospace" }}>Phone</div>
+                  <div className="body-text" style={{ fontSize: 11, color: '#f0dc90', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{contactPhone}</div>
+                </div>
               </a>
-              <a href={`mailto:${contactEmail}`} className="flex flex-col items-center gap-1.5 flex-1 py-2.5 transition-colors hover:bg-white/5" style={{ border: '1px solid rgba(200,155,60,0.2)', background: 'rgba(0,0,0,0.2)', textDecoration: 'none' }}>
-                <Mail size={15} color="#c89b3c" strokeWidth={1.7} /><span style={{ fontSize: 6.5, color: '#a07848' }}>Email</span>
+
+              <a href={`mailto:${contactEmail}`}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 14px', background: 'rgba(60,110,200,0.08)', border: '1px solid rgba(60,110,200,0.22)', textDecoration: 'none', borderRadius: 3 }}>
+                <div style={{ width: 38, height: 38, flexShrink: 0, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(60,110,200,0.15)', border: '1px solid rgba(60,110,200,0.35)' }}>
+                  <Mail size={16} color="#7090c8" strokeWidth={1.7} />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 8, color: '#6a5030', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3, fontFamily: "'Press Start 2P', monospace" }}>Email</div>
+                  <div className="body-text" style={{ fontSize: 10, color: '#f0dc90', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{contactEmail}</div>
+                </div>
               </a>
-              <a href={`https://www.linkedin.com/in/${contactLinkedin}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1.5 flex-1 py-2.5 transition-colors hover:bg-white/5" style={{ border: '1px solid rgba(200,155,60,0.2)', background: 'rgba(0,0,0,0.2)', textDecoration: 'none' }}>
-                <span style={{ fontFamily: 'Georgia, serif', fontWeight: 900, color: '#4a88d0', fontSize: 14, lineHeight: 1 }}>in</span><span style={{ fontSize: 6.5, color: '#a07848' }}>LinkedIn</span>
+
+              <a href={`https://www.linkedin.com/in/${contactLinkedin}`} target="_blank" rel="noopener noreferrer"
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 14px', background: 'rgba(0,90,200,0.08)', border: '1px solid rgba(0,90,200,0.22)', textDecoration: 'none', borderRadius: 3 }}>
+                <div style={{ width: 38, height: 38, flexShrink: 0, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,90,200,0.15)', border: '1px solid rgba(0,90,200,0.35)' }}>
+                  <span style={{ fontFamily: 'Georgia, serif', fontWeight: 900, color: '#4a88d0', fontSize: 16, lineHeight: 1, userSelect: 'none' }}>in</span>
+                </div>
+                <div>
+                  <div style={{ fontSize: 8, color: '#6a5030', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3, fontFamily: "'Press Start 2P', monospace" }}>LinkedIn</div>
+                  <div className="body-text" style={{ fontSize: 11, color: '#f0dc90', fontWeight: 700 }}>/{contactLinkedin}</div>
+                </div>
               </a>
-              <a href="/resume" className="flex flex-col items-center gap-1.5 flex-1 py-2.5 transition-colors hover:bg-white/5" style={{ border: '1px solid rgba(200,155,60,0.2)', background: 'rgba(0,0,0,0.2)', textDecoration: 'none' }}>
-                <FileText size={15} color="#c89b3c" strokeWidth={1.7} /><span style={{ fontSize: 6.5, color: '#a07848' }}>Resume</span>
+
+              <a href="/resume"
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 14px', background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.28)', textDecoration: 'none', borderRadius: 3 }}>
+                <div style={{ width: 38, height: 38, flexShrink: 0, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(200,155,60,0.2)', border: '1px solid rgba(200,155,60,0.4)' }}>
+                  <FileText size={16} color="#c89b3c" strokeWidth={1.7} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 8, color: '#6a5030', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3, fontFamily: "'Press Start 2P', monospace" }}>Resume</div>
+                  <div className="body-text" style={{ fontSize: 11, color: '#f0dc90', fontWeight: 700 }}>View / Download</div>
+                </div>
               </a>
             </div>
           </div>
@@ -348,6 +419,60 @@ export default async function Home() {
         quests={quests}
       />
 
+      {/* ── Communities section ────────────────────────────────── */}
+      {(() => {
+        const CHANNELS = [
+          { icon: '❤️', label: 'Health',      href: '/skills/health',    dbEnum: 'HEALTH',    bg: '#5a1414' },
+          { icon: '⚒️', label: 'Projects',    href: '/skills/projects',  dbEnum: 'PROJECTS',  bg: '#382e0e' },
+          { icon: '💼', label: 'Business',    href: '/skills/business',  dbEnum: 'BUSINESS',  bg: '#1c2e10' },
+          { icon: '👥', label: 'Community',   href: '/skills/community', dbEnum: 'COMMUNITY', bg: '#181e4a' },
+          { icon: '🎣', label: 'Fishing',     href: '/skills/fishing',   dbEnum: 'FISHING',   bg: '#0e2c48' },
+          { icon: '🍳', label: 'Food & Wine', href: '/skills/food',      dbEnum: 'FOOD',      bg: '#4e2006' },
+          { icon: '🌱', label: 'Gardening',   href: '/skills/gardening', dbEnum: 'GARDENING', bg: '#0e3810' },
+          { icon: '🗺️', label: 'Travel',      href: '/skills/travel',    dbEnum: 'TRAVEL',    bg: '#382808' },
+          { icon: '🎮', label: 'Games',       href: '/skills/fun',       dbEnum: 'FUN',       bg: '#320c4a' },
+          { icon: '⚔️', label: 'Quests',      href: '/quests',           dbEnum: '',          bg: '#2a1a06' },
+        ]
+        return (
+          <div className="rp-card">
+            {/* Header */}
+            <div className="flex items-center gap-3" style={{ marginBottom: 18 }}>
+              <div style={{
+                width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+                background: 'linear-gradient(135deg, #3a2008 0%, #1a0c04 100%)',
+                border: '2px solid rgba(200,155,60,0.4)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
+              }}>⚔️</div>
+              <div>
+                <div style={{ fontSize: 9, color: 'var(--gold)', fontWeight: 700, lineHeight: 1, marginBottom: 4 }}>Communities</div>
+                <div className="body-text" style={{ fontSize: 10, color: 'var(--text-2)' }}>Post, earn XP, and level up your skills</div>
+              </div>
+            </div>
+
+            {/* 2-col on mobile, 3-col on sm+ */}
+            <div className="grid grid-cols-2 sm:grid-cols-3" style={{ gap: 8 }}>
+              {CHANNELS.map(ch => (
+                <Link key={ch.href} href={ch.href} className="community-card">
+                  <div style={{
+                    width: 40, height: 40, flexShrink: 0,
+                    background: ch.bg, borderRadius: 10,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 18, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)',
+                  }}>{ch.icon}</div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 8, fontWeight: 700, color: 'var(--text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.35, marginBottom: 3 }}>
+                      {ch.label}
+                    </div>
+                    <div style={{ fontSize: 7, color: 'var(--text-3)', fontFamily: "'Press Start 2P', monospace" }}>
+                      {ch.dbEnum ? `Lv ${garretSkillLevels[ch.dbEnum] ?? 1}` : 'Active'}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )
+      })()}
 
     </div>
   )
