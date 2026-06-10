@@ -345,7 +345,7 @@ a { color: inherit; text-decoration: none; }
 }
 @media (min-width: 768px) {
   .content-grid {
-    grid-template-columns: var(--cg-c1, 1fr) var(--cg-c2, 1fr) var(--cg-c3, 1.5fr);
+    grid-template-columns: 1fr 1fr;
     align-items: start;
   }
 }

@@ -38,9 +38,7 @@ export default async function Home() {
   let bio3 = "This site is my personal hub — a place to log projects, share recipes, track progress, and connect with community. Built with Next.js and a heavy dose of OSRS nostalgia."
 
   let layout: SectionConfig[] = []
-  let initialCols: [number, number, number] = [1, 1, 1.5]
   let initialOrder: string[] = []
-  let initialColCount: 1 | 2 | 3 = 3
 
   try {
     const allSettings = await (prisma as any).siteSetting.findMany()
@@ -58,15 +56,8 @@ export default async function Home() {
     if (settingsMap.layout_sections) {
       try { layout = JSON.parse(settingsMap.layout_sections) } catch { /* use default */ }
     }
-    if (settingsMap.layout_cols) {
-      try { initialCols = JSON.parse(settingsMap.layout_cols) } catch { /* use default */ }
-    }
     if (settingsMap.layout_order) {
       try { initialOrder = JSON.parse(settingsMap.layout_order) } catch { /* use default */ }
-    }
-    if (settingsMap.layout_col_count) {
-      const n = parseInt(settingsMap.layout_col_count)
-      if (n === 1 || n === 2 || n === 3) initialColCount = n as 1 | 2 | 3
     }
 
     const adminUser = await prisma.user.findFirst({
@@ -257,9 +248,7 @@ export default async function Home() {
         hasSession={!!session?.user}
         userBadges={userBadges}
         initialLayout={layout}
-        initialCols={initialCols}
         initialOrder={initialOrder}
-        initialColCount={initialColCount}
       />
 
     </div>

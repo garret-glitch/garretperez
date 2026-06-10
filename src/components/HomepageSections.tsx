@@ -35,9 +35,7 @@ interface Props {
   hasSession: boolean
   userBadges: string[]
   initialLayout: SectionConfig[]
-  initialCols: [number, number, number]
   initialOrder: string[]
-  initialColCount: 1 | 2 | 3
 }
 
 const DEFAULT_ORDER = ['about', 'projects', 'feed', 'achieve', 'xp']
@@ -68,12 +66,9 @@ interface WrapProps {
   selected: string | null; onSelect: (id: string) => void
   onResize: (id: string, h: number) => void
   minHeight: number
-  colIdx: 0 | 1 | 2
-  cols: [number, number, number]
-  onColChange: (colIdx: 0 | 1 | 2, fr: number) => void
   children: React.ReactNode
 }
-function SectionWrap({ id, heading, editMode, selected, onSelect, onResize, minHeight, colIdx, cols, onColChange, children }: WrapProps) {
+function SectionWrap({ id, heading, editMode, selected, onSelect, onResize, minHeight, children }: WrapProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
     disabled: !editMode,
@@ -141,16 +136,6 @@ function SectionWrap({ id, heading, editMode, selected, onSelect, onResize, minH
             {minHeight > 0 ? `${minHeight}px` : 'Auto'}
           </span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 5.5, color: '#a07848', width: 44, flexShrink: 0 }}>↔ Width</span>
-          <input type="range" min={0.3} max={4} step={0.05}
-            value={cols[colIdx]}
-            onChange={e => onColChange(colIdx, +e.target.value)}
-            style={{ flex: 1, accentColor: '#c89b3c', cursor: 'pointer', height: 4 }} />
-          <span style={{ fontSize: 5.5, color: 'var(--gold)', width: 34, textAlign: 'right', flexShrink: 0 }}>
-            {cols[colIdx].toFixed(1)}fr
-          </span>
-        </div>
       </div>
     </div>
   )
@@ -159,19 +144,17 @@ function SectionWrap({ id, heading, editMode, selected, onSelect, onResize, minH
 /* ─── Main component ─────────────────────────────────────────── */
 export default function HomepageSections({
   isAdmin, bio1: initBio1, bio2: initBio2, bio3: initBio3,
-  dbProjects, recentPosts, hasSession, userBadges, initialLayout, initialCols, initialOrder, initialColCount,
+  dbProjects, recentPosts, hasSession, userBadges, initialLayout, initialOrder,
 }: Props) {
   const [layout,     setLayout]     = useState<SectionConfig[]>(initialLayout.length ? initialLayout : DEFAULT_SECTIONS)
   const [editMode,   setEditMode]   = useState(false)
   const [selected,   setSelected]   = useState<string | null>(null)
   const [saving,     setSaving]     = useState(false)
   const [saved,      setSaved]      = useState(false)
-  const [colCount,   setColCount]   = useState<1 | 2 | 3>(initialColCount)
-  const [cols,       setCols]       = useState<[number, number, number]>(initialCols)
   const [panelOrder, setPanelOrder] = useState<string[]>(
     initialOrder.length === 5 ? initialOrder : [...DEFAULT_ORDER]
   )
-  const gridRef = useRef<HTMLDivElement>(null) // kept for dnd-kit compat, col template applied via style prop
+  const gridRef = useRef<HTMLDivElement>(null)
 
   const [bio1, setBio1] = useState(initBio1)
   const [bio2, setBio2] = useState(initBio2)
@@ -195,14 +178,8 @@ export default function HomepageSections({
   const update = (id: string, patch: Partial<SectionConfig>) =>
     setLayout(prev => prev.map(s => s.id === id ? { ...s, ...patch } : s))
 
-  const handleSelect   = (id: string) => setSelected(prev => prev === id ? null : id)
-  const handleResize   = (id: string, h: number) => update(id, { minHeight: h })
-  const handleColChange = (colIdx: 0 | 1 | 2, fr: number) =>
-    setCols(prev => { const n: [number, number, number] = [...prev]; n[colIdx] = fr; return n })
-
-  const gridTemplate = colCount === 1 ? '1fr'
-    : colCount === 2 ? `${cols[0]}fr ${cols[1]}fr`
-    : `${cols[0]}fr ${cols[1]}fr ${cols[2]}fr`
+  const handleSelect = (id: string) => setSelected(prev => prev === id ? null : id)
+  const handleResize = (id: string, h: number) => update(id, { minHeight: h })
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
@@ -220,7 +197,7 @@ export default function HomepageSections({
       fetch('/api/admin/layout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sections: layout, cols, order: panelOrder, col_count: colCount }),
+        body: JSON.stringify({ sections: layout, order: panelOrder }),
       }),
       fetch('/api/admin/homepage', {
         method: 'POST',
@@ -462,31 +439,10 @@ export default function HomepageSections({
           marginBottom: 16, borderRadius: 8,
           boxShadow: '0 4px 20px rgba(200,155,60,0.4)',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 8, fontWeight: 700, color: '#000' }}>
-              ✏️ EDIT MODE — Drag to reorder · Sliders to resize
-            </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ fontSize: 6, color: '#000', fontWeight: 700 }}>Columns:</span>
-              {([1, 2, 3] as const).map(n => (
-                <button key={n} onClick={() => setColCount(n)} style={{
-                  padding: '5px 10px', borderRadius: 4, cursor: 'pointer', border: 'none',
-                  background: colCount === n ? '#000' : 'rgba(0,0,0,0.2)',
-                  color: colCount === n ? '#c89b3c' : '#000',
-                  fontSize: 7, fontWeight: 700,
-                }}>
-                  {n}
-                </button>
-              ))}
-            </div>
-          </div>
+          <span style={{ fontSize: 8, fontWeight: 700, color: '#000' }}>
+            ✏️ EDIT MODE — Drag to reorder · Slider to resize
+          </span>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={() => { setCols([1, 1, 1.5]); setColCount(3) }} style={{
-              padding: '7px 14px', borderRadius: 6, cursor: 'pointer',
-              background: 'rgba(0,0,0,0.25)', color: '#000', fontSize: 7, fontWeight: 700, border: 'none',
-            }}>
-              ↩ Reset
-            </button>
             <button onClick={save} disabled={saving} style={{
               padding: '7px 14px', borderRadius: 6, cursor: saving ? 'wait' : 'pointer',
               background: saved ? '#2a7a4a' : '#000',
@@ -609,11 +565,10 @@ export default function HomepageSections({
       {/* ── Sections grid ────────────────────────────────────── */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={visibleOrder} strategy={rectSortingStrategy}>
-          <div className="content-grid" ref={gridRef} style={{ position: 'relative', '--cg-template': gridTemplate } as React.CSSProperties}>
+          <div className="content-grid" ref={gridRef} style={{ position: 'relative' }}>
 
-            {visibleOrder.map((secId, idx) => {
+            {visibleOrder.map((secId) => {
               const s = sec(secId)
-              const colIdx = (idx % colCount) as 0 | 1 | 2
               return (
                 <div key={secId} style={{ overflow: 'visible' }}>
                   <SectionWrap
@@ -624,9 +579,6 @@ export default function HomepageSections({
                     onSelect={handleSelect}
                     onResize={handleResize}
                     minHeight={s.minHeight}
-                    colIdx={colIdx}
-                    cols={cols}
-                    onColChange={handleColChange}
                   >
                     {renderContent(secId)}
                   </SectionWrap>
