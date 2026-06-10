@@ -38,6 +38,7 @@ export default async function Home() {
   let bio3 = "This site is my personal hub — a place to log projects, share recipes, track progress, and connect with community. Built with Next.js and a heavy dose of OSRS nostalgia."
 
   let layout: SectionConfig[] = []
+  let initialCols: [number, number, number] = [1, 1, 1.5]
 
   try {
     const allSettings = await (prisma as any).siteSetting.findMany()
@@ -54,6 +55,9 @@ export default async function Home() {
     if (settingsMap.bio_3) bio3 = settingsMap.bio_3
     if (settingsMap.layout_sections) {
       try { layout = JSON.parse(settingsMap.layout_sections) } catch { /* use default */ }
+    }
+    if (settingsMap.layout_cols) {
+      try { initialCols = JSON.parse(settingsMap.layout_cols) } catch { /* use default */ }
     }
 
     const adminUser = await prisma.user.findFirst({
@@ -244,6 +248,7 @@ export default async function Home() {
         hasSession={!!session?.user}
         userBadges={userBadges}
         initialLayout={layout}
+        initialCols={initialCols}
       />
 
     </div>

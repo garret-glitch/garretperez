@@ -27,6 +27,7 @@ interface Props {
   hasSession: boolean
   userBadges: string[]
   initialLayout: SectionConfig[]
+  initialCols: [number, number, number]
 }
 
 const DEFAULT_SECTIONS: SectionConfig[] = [
@@ -124,16 +125,43 @@ function SectionWrap({ id, heading, editMode, selected, onSelect, onResize, chil
   )
 }
 
+/* ─── Column drag handle — module scope ─────────────────────── */
+interface ColHandleProps {
+  leftPct: number
+  onDragStart: (e: React.MouseEvent) => void
+}
+function ColHandle({ leftPct, onDragStart }: ColHandleProps) {
+  return (
+    <div
+      onMouseDown={onDragStart}
+      onClick={e => e.stopPropagation()}
+      title="Drag to resize columns"
+      style={{
+        position: 'absolute', left: `calc(${leftPct}% - 8px)`,
+        top: '4%', bottom: '4%', width: 16, zIndex: 30,
+        cursor: 'ew-resize', borderRadius: 8, border: '1px solid var(--gold)',
+        background: 'rgba(200,155,60,0.38)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        userSelect: 'none',
+      }}
+    >
+      <span style={{ fontSize: 8, color: 'var(--gold)', writingMode: 'vertical-lr', letterSpacing: 1 }}>⋮⋮</span>
+    </div>
+  )
+}
+
 /* ─── Main component ─────────────────────────────────────────── */
 export default function HomepageSections({
   isAdmin, bio1: initBio1, bio2: initBio2, bio3: initBio3,
-  dbProjects, recentPosts, hasSession, userBadges, initialLayout,
+  dbProjects, recentPosts, hasSession, userBadges, initialLayout, initialCols,
 }: Props) {
   const [layout,   setLayout]   = useState<SectionConfig[]>(initialLayout.length ? initialLayout : DEFAULT_SECTIONS)
   const [editMode, setEditMode] = useState(false)
   const [selected, setSelected] = useState<string | null>(null)
   const [saving,   setSaving]   = useState(false)
   const [saved,    setSaved]    = useState(false)
+  const [cols, setCols] = useState<[number, number, number]>(initialCols)
+  const gridRef = useRef<HTMLDivElement>(null)
 
   // Editable bio text
   const [bio1, setBio1] = useState(initBio1)
@@ -161,13 +189,39 @@ export default function HomepageSections({
   const handleResize = (id: string, h: number) =>
     update(id, { minHeight: h })
 
+  const startColDrag = (e: React.MouseEvent, boundary: 0 | 1) => {
+    e.preventDefault(); e.stopPropagation()
+    const startX = e.clientX
+    const containerW = gridRef.current?.offsetWidth ?? 600
+    const [c0, c1, c2] = cols
+    const total = c0 + c1 + c2
+    const onMove = (ev: MouseEvent) => {
+      const deltaFr = ((ev.clientX - startX) / containerW) * total
+      if (boundary === 0) {
+        setCols([Math.max(0.3, c0 + deltaFr), Math.max(0.3, c1 - deltaFr), c2])
+      } else {
+        setCols([c0, Math.max(0.3, c1 + deltaFr), Math.max(0.3, c2 - deltaFr)])
+      }
+    }
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+    }
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }
+
+  const colTotal = cols[0] + cols[1] + cols[2]
+  const b0Pct = (cols[0] / colTotal) * 100
+  const b1Pct = ((cols[0] + cols[1]) / colTotal) * 100
+
   const save = async () => {
     setSaving(true)
     await Promise.all([
       fetch('/api/admin/layout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sections: layout }),
+        body: JSON.stringify({ sections: layout, cols }),
       }),
       fetch('/api/admin/homepage', {
         method: 'POST',
@@ -207,9 +261,15 @@ export default function HomepageSections({
           boxShadow: '0 4px 20px rgba(200,155,60,0.4)',
         }}>
           <span style={{ fontSize: 8, fontWeight: 700, color: '#000' }}>
-            ✏️ EDIT MODE — Click any panel below to resize or edit it
+            ✏️ EDIT MODE — Drag ⣿ to resize panels · Drag ↔ to resize columns
           </span>
           <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => setCols([1, 1, 1.5])} style={{
+              padding: '7px 14px', borderRadius: 6, cursor: 'pointer',
+              background: 'rgba(0,0,0,0.25)', color: '#000', fontSize: 7, fontWeight: 700, border: 'none',
+            }}>
+              ↩ Cols
+            </button>
             <button onClick={save} disabled={saving} style={{
               padding: '7px 14px', borderRadius: 6, cursor: saving ? 'wait' : 'pointer',
               background: saved ? '#2a7a4a' : '#000',
@@ -374,7 +434,9 @@ export default function HomepageSections({
       )}
 
       {/* ── Sections grid ─────────────────────────────────────── */}
-      <div className="content-grid">
+      <div className="content-grid" ref={gridRef}
+        style={{ position: 'relative', '--cg-c1': `${cols[0]}fr`, '--cg-c2': `${cols[1]}fr`, '--cg-c3': `${cols[2]}fr` } as React.CSSProperties}
+      >
 
         {/* About Me */}
         {sec('about').visible && (
@@ -583,6 +645,14 @@ export default function HomepageSections({
               <div className="scroll-roll" />
             </SectionWrap>
           </div>
+        )}
+
+        {/* Column resize handles — only visible in edit mode on desktop */}
+        {editMode && (
+          <>
+            <ColHandle leftPct={b0Pct} onDragStart={e => startColDrag(e, 0)} />
+            <ColHandle leftPct={b1Pct} onDragStart={e => startColDrag(e, 1)} />
+          </>
         )}
 
       </div>
