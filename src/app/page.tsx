@@ -201,7 +201,7 @@ export default async function Home() {
               </div>
 
               {/* XP bar + label */}
-              <div className="flex items-center gap-2.5 mb-1">
+              <div className="flex items-center gap-2.5 mb-1" style={{ maxWidth: 220 }}>
                 <div className="xp-bar flex-1" style={{ height: 5 }}>
                   <div className="xp-bar-fill" style={{ width: `${garretXpBar.percent}%` }} />
                 </div>
@@ -210,7 +210,7 @@ export default async function Home() {
                 </span>
               </div>
               <p className="body-text" style={{ fontSize: 7, color: 'var(--text-3)', marginBottom: 8 }}>
-                Login and use the site to earn XP.
+                Interact with my website to get XP.
               </p>
 
               {/* Mobile contact icons */}
