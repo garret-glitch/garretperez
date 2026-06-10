@@ -363,6 +363,10 @@ a { color: inherit; text-decoration: none; }
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 5px #4caf50, 0 0 10px rgba(76,175,80,0.4); }
+  50%       { box-shadow: 0 0 8px #4caf50, 0 0 18px rgba(76,175,80,0.7); }
+}
 
 .blink   { animation: blink   1s step-end infinite; }
 .shimmer { animation: shimmer 2s ease-in-out infinite; }
