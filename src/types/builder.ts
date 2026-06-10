@@ -193,6 +193,7 @@ export type BuilderAction =
   | { type: 'REORDER'; payload: PageBlock[] }
   | { type: 'DELETE_BLOCK'; payload: string }
   | { type: 'DUPLICATE_BLOCK'; payload: string }
+  | { type: 'INSERT_AFTER'; payload: { afterId: string; block: PageBlock } }
   | { type: 'TOGGLE_VISIBLE'; payload: string }
   | { type: 'UNDO' }
   | { type: 'REDO' }

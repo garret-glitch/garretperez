@@ -94,6 +94,14 @@ export function builderReducer(state: BuilderState, action: BuilderAction): Buil
       return { ...next, blocks: newBlocks, selectedId: clone.id }
     }
 
+    case 'INSERT_AFTER': {
+      const idx = state.blocks.findIndex(b => b.id === action.payload.afterId)
+      const newBlocks = [...state.blocks]
+      newBlocks.splice(idx + 1, 0, action.payload.block)
+      const next = snapshot(state)
+      return { ...next, blocks: newBlocks, selectedId: action.payload.block.id }
+    }
+
     case 'TOGGLE_VISIBLE': {
       const next = snapshot(state)
       return {

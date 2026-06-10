@@ -1,7 +1,7 @@
 'use client'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import type { PageBlock, AnyBlockConfig, BlockLiveData } from '@/types/builder'
+import type { PageBlock, AnyBlockConfig, BlockLiveData, BlockType } from '@/types/builder'
 import BlockRenderer from '@/components/builder/BlockRenderer'
 
 interface Props {
@@ -13,11 +13,12 @@ interface Props {
   onDelete: (id: string) => void
   onDuplicate: (id: string) => void
   onToggleVisible: (id: string) => void
+  onInsertAfter: (afterId: string, type: BlockType) => void
 }
 
 export default function SortableBlock({
   block, isSelected, liveData,
-  onSelect, onConfigChange, onDelete, onDuplicate, onToggleVisible,
+  onSelect, onConfigChange, onDelete, onDuplicate, onToggleVisible, onInsertAfter,
 }: Props) {
   const {
     attributes, listeners, setNodeRef,
@@ -70,15 +71,19 @@ export default function SortableBlock({
           ⠿ {block.type}
         </div>
         {[
-          { icon: '⧉', title: 'Duplicate', onClick: () => onDuplicate(block.id) },
-          { icon: block.visible ? '👁' : '🚫', title: 'Toggle Visibility', onClick: () => onToggleVisible(block.id) },
-          { icon: '🗑', title: 'Delete', onClick: () => { if (confirm('Delete this block?')) onDelete(block.id) } },
+          { icon: '⧉',  title: 'Duplicate',       color: 'var(--text-2)', onClick: () => onDuplicate(block.id) },
+          { icon: block.visible ? '👁' : '🚫', title: 'Toggle Visibility', color: 'var(--text-2)', onClick: () => onToggleVisible(block.id) },
+          { icon: '💬+', title: 'Add Chat Box',    color: '#5ddf8f',       onClick: () => onInsertAfter(block.id, 'community-feed') },
+          ...(block.type === 'community-feed' ? [{ icon: '💬✕', title: 'Delete Chat Box', color: '#df5d5d', onClick: () => { if (confirm('Delete this chat box?')) onDelete(block.id) } }] : []),
+          { icon: '🖼+',  title: 'Add Image',       color: '#5db8df',       onClick: () => onInsertAfter(block.id, 'image') },
+          ...(block.type === 'image' ? [{ icon: '🖼✕', title: 'Delete Image', color: '#df5d5d', onClick: () => { if (confirm('Delete this image?')) onDelete(block.id) } }] : []),
+          { icon: '🗑',  title: 'Delete',           color: '#df5d5d',       onClick: () => { if (confirm('Delete this block?')) onDelete(block.id) } },
         ].map(btn => (
           <button key={btn.title} onClick={e => { e.stopPropagation(); btn.onClick() }} title={btn.title}
             style={{
               background: 'var(--bg-elevated)', border: '1px solid var(--border)',
               borderRadius: '3px 3px 0 0', padding: '3px 6px', fontSize: 8,
-              cursor: 'pointer', color: btn.icon === '🗑' ? '#df5d5d' : 'var(--text-2)',
+              cursor: 'pointer', color: btn.color,
             }}>
             {btn.icon}
           </button>

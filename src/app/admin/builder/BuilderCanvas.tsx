@@ -4,7 +4,7 @@ import {
 } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable'
 import { arrayMove } from '@dnd-kit/sortable'
-import type { PageBlock, BlockLiveData, BuilderAction } from '@/types/builder'
+import type { PageBlock, BlockLiveData, BuilderAction, BlockType } from '@/types/builder'
 import SortableBlock from './SortableBlock'
 
 interface Props {
@@ -12,9 +12,10 @@ interface Props {
   selectedId: string | null
   liveData: BlockLiveData
   dispatch: React.Dispatch<BuilderAction>
+  onInsertAfter: (afterId: string, type: BlockType) => void
 }
 
-export default function BuilderCanvas({ blocks, selectedId, liveData, dispatch }: Props) {
+export default function BuilderCanvas({ blocks, selectedId, liveData, dispatch, onInsertAfter }: Props) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -48,6 +49,7 @@ export default function BuilderCanvas({ blocks, selectedId, liveData, dispatch }
               onDelete={id => dispatch({ type: 'DELETE_BLOCK', payload: id })}
               onDuplicate={id => dispatch({ type: 'DUPLICATE_BLOCK', payload: id })}
               onToggleVisible={id => dispatch({ type: 'TOGGLE_VISIBLE', payload: id })}
+              onInsertAfter={onInsertAfter}
             />
           ))}
 

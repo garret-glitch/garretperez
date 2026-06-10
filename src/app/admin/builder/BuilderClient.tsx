@@ -53,6 +53,22 @@ export default function BuilderClient({ initialBlocks, liveData, showMigrate }: 
     router.refresh()
   }, [state.blocks, router])
 
+  const handleInsertAfter = (afterId: string, type: BlockType) => {
+    const afterIdx = state.blocks.findIndex(b => b.id === afterId)
+    const newBlock: PageBlock = {
+      id: `new-${Date.now()}`,
+      pageSlug: 'home',
+      type,
+      order: afterIdx + 1,
+      colSpan: type === 'community-feed' || type === 'text' || type === 'heading' || type === 'divider' ? 2 : 1,
+      colStart: 1,
+      visible: true,
+      config: getDefaultConfig(type),
+      styles: getDefaultStyles(type),
+    }
+    dispatch({ type: 'INSERT_AFTER', payload: { afterId, block: newBlock } })
+  }
+
   const handleAddBlock = (type: BlockType) => {
     const newBlock: PageBlock = {
       id: `new-${Date.now()}`,
@@ -130,6 +146,7 @@ export default function BuilderClient({ initialBlocks, liveData, showMigrate }: 
           selectedId={state.selectedId}
           liveData={liveData}
           dispatch={dispatch}
+          onInsertAfter={handleInsertAfter}
         />
       </div>
 
