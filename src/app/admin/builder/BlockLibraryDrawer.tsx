@@ -25,7 +25,7 @@ export default function BlockLibraryDrawer({ open, onClose, onAdd }: Props) {
       }} />
       {/* Drawer */}
       <div style={{
-        position: 'fixed', top: 49, left: 0, bottom: 0, zIndex: 150,
+        position: 'fixed', top: 87, left: 280, bottom: 0, zIndex: 150,
         width: 280, background: 'var(--bg-card)',
         borderRight: '1px solid var(--border)',
         boxShadow: '4px 0 24px rgba(0,0,0,0.5)',

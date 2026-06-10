@@ -9,6 +9,7 @@ import StylesPanel from './StylesPanel'
 import type { PageBlock, BlockType, BlockLiveData, BlockStyles } from '@/types/builder'
 import { getDefaultConfig, getDefaultStyles } from '@/lib/block-defaults'
 import { EditorProvider } from '@/components/builder/EditorContext'
+import AdminSidePanel from './AdminSidePanel'
 
 interface Props {
   initialBlocks: PageBlock[]
@@ -103,6 +104,7 @@ export default function BuilderClient({ initialBlocks, liveData, showMigrate }: 
   return (
     <EditorProvider>
     <div style={{ paddingTop: 87 }}>
+      <AdminSidePanel />
       <BuilderToolbar
         isDirty={state.isDirty}
         saving={saving || migrating}
@@ -126,7 +128,7 @@ export default function BuilderClient({ initialBlocks, liveData, showMigrate }: 
 
       {/* Canvas area */}
       <div style={{
-        marginLeft: state.libraryOpen ? 280 : 0,
+        marginLeft: state.libraryOpen ? 560 : 280,
         marginRight: selectedBlock ? 280 : 0,
         transition: 'margin 0.2s ease',
         padding: '24px 20px',
