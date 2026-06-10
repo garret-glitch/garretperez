@@ -528,32 +528,41 @@ export default function AdminSidePanel() {
   const [tab, setTab] = useState<AdminTab>('dashboard')
 
   return (
+    // Outer: in document flow, stretches to match canvas height so the background covers the full page
     <div style={{
-      position: 'fixed', top: 87, left: 0, bottom: 0, zIndex: 140,
-      width: 280, background: 'var(--bg-card)', borderRight: '1px solid var(--border)',
-      boxShadow: '4px 0 16px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column',
+      width: 280, flexShrink: 0,
+      background: 'var(--bg-card)', borderRight: '1px solid var(--border)',
+      boxShadow: '4px 0 16px rgba(0,0,0,0.3)',
     }}>
-      {/* Tab bar */}
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-        {TABS.map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)} style={{
-            flex: 1, padding: '7px 2px', background: 'none', border: 'none', cursor: 'pointer',
-            borderBottom: tab === t.key ? '2px solid var(--gold)' : '2px solid transparent',
-            color: tab === t.key ? 'var(--gold)' : 'var(--text-3)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-          }}>
-            <span style={{ fontSize: 13 }}>{t.icon}</span>
-            <span style={{ fontSize: 5.5, fontWeight: 600, letterSpacing: '0.05em' }}>{t.label}</span>
-          </button>
-        ))}
-      </div>
+      {/* Inner: sticky so the UI stays visible while the page scrolls */}
+      <div style={{
+        position: 'sticky', top: 87,
+        height: 'calc(100vh - 87px)',
+        display: 'flex', flexDirection: 'column',
+        overflow: 'hidden',
+      }}>
+        {/* Tab bar */}
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+          {TABS.map(t => (
+            <button key={t.key} onClick={() => setTab(t.key)} style={{
+              flex: 1, padding: '7px 2px', background: 'none', border: 'none', cursor: 'pointer',
+              borderBottom: tab === t.key ? '2px solid var(--gold)' : '2px solid transparent',
+              color: tab === t.key ? 'var(--gold)' : 'var(--text-3)',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+            }}>
+              <span style={{ fontSize: 13 }}>{t.icon}</span>
+              <span style={{ fontSize: 5.5, fontWeight: 600, letterSpacing: '0.05em' }}>{t.label}</span>
+            </button>
+          ))}
+        </div>
 
-      {/* Content */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '10px 10px' }}>
-        {tab === 'dashboard' && <DashboardTab />}
-        {tab === 'users'     && <UsersTab />}
-        {tab === 'posts'     && <PostsTab />}
-        {tab === 'settings'  && <SettingsTab />}
+        {/* Content */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '10px 10px' }}>
+          {tab === 'dashboard' && <DashboardTab />}
+          {tab === 'users'     && <UsersTab />}
+          {tab === 'posts'     && <PostsTab />}
+          {tab === 'settings'  && <SettingsTab />}
+        </div>
       </div>
     </div>
   )

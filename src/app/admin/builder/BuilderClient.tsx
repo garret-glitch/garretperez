@@ -103,8 +103,7 @@ export default function BuilderClient({ initialBlocks, liveData, showMigrate }: 
 
   return (
     <EditorProvider>
-    <div style={{ paddingTop: 87 }}>
-      <AdminSidePanel />
+    <div>
       <BuilderToolbar
         isDirty={state.isDirty}
         saving={saving || migrating}
@@ -126,15 +125,19 @@ export default function BuilderClient({ initialBlocks, liveData, showMigrate }: 
         onAdd={handleAddBlock}
       />
 
-      {/* Canvas area */}
-      <div style={{
-        marginLeft: state.libraryOpen ? 560 : 280,
-        marginRight: selectedBlock ? 280 : 0,
-        transition: 'margin 0.2s ease',
-        padding: '24px 20px',
-        minHeight: 'calc(100vh - 49px)',
-        background: 'var(--bg-page)',
-      }}>
+      {/* Main row: sidebar + canvas, starts below the fixed toolbar */}
+      <div style={{ display: 'flex', paddingTop: 87, minHeight: '100vh', alignItems: 'stretch' }}>
+        <AdminSidePanel />
+
+        {/* Canvas area */}
+        <div style={{
+          flex: 1,
+          marginLeft: state.libraryOpen ? 280 : 0,
+          marginRight: selectedBlock ? 280 : 0,
+          transition: 'margin 0.2s ease',
+          padding: '24px 20px',
+          background: 'var(--bg-page)',
+        }}>
         {/* Page label */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <span style={{ fontSize: 7, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
@@ -153,6 +156,7 @@ export default function BuilderClient({ initialBlocks, liveData, showMigrate }: 
           onInsertAfter={handleInsertAfter}
         />
       </div>
+      </div>{/* end flex row */}
 
       {/* Styles panel */}
       {selectedBlock && (
