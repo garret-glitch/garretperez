@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import Link from 'next/link'
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
@@ -37,6 +37,7 @@ interface Props {
   initialLayout: SectionConfig[]
   initialCols: [number, number, number]
   initialOrder: string[]
+  initialColCount: 1 | 2 | 3
 }
 
 const DEFAULT_ORDER = ['about', 'projects', 'feed', 'achieve', 'xp']
@@ -158,18 +159,19 @@ function SectionWrap({ id, heading, editMode, selected, onSelect, onResize, minH
 /* ─── Main component ─────────────────────────────────────────── */
 export default function HomepageSections({
   isAdmin, bio1: initBio1, bio2: initBio2, bio3: initBio3,
-  dbProjects, recentPosts, hasSession, userBadges, initialLayout, initialCols, initialOrder,
+  dbProjects, recentPosts, hasSession, userBadges, initialLayout, initialCols, initialOrder, initialColCount,
 }: Props) {
   const [layout,     setLayout]     = useState<SectionConfig[]>(initialLayout.length ? initialLayout : DEFAULT_SECTIONS)
   const [editMode,   setEditMode]   = useState(false)
   const [selected,   setSelected]   = useState<string | null>(null)
   const [saving,     setSaving]     = useState(false)
   const [saved,      setSaved]      = useState(false)
+  const [colCount,   setColCount]   = useState<1 | 2 | 3>(initialColCount)
   const [cols,       setCols]       = useState<[number, number, number]>(initialCols)
   const [panelOrder, setPanelOrder] = useState<string[]>(
     initialOrder.length === 5 ? initialOrder : [...DEFAULT_ORDER]
   )
-  const gridRef = useRef<HTMLDivElement>(null)
+  const gridRef = useRef<HTMLDivElement>(null) // kept for dnd-kit compat, col template applied via style prop
 
   const [bio1, setBio1] = useState(initBio1)
   const [bio2, setBio2] = useState(initBio2)
@@ -198,12 +200,9 @@ export default function HomepageSections({
   const handleColChange = (colIdx: 0 | 1 | 2, fr: number) =>
     setCols(prev => { const n: [number, number, number] = [...prev]; n[colIdx] = fr; return n })
 
-  useEffect(() => {
-    if (!gridRef.current) return
-    gridRef.current.style.setProperty('--cg-c1', `${cols[0]}fr`)
-    gridRef.current.style.setProperty('--cg-c2', `${cols[1]}fr`)
-    gridRef.current.style.setProperty('--cg-c3', `${cols[2]}fr`)
-  }, [cols])
+  const gridTemplate = colCount === 1 ? '1fr'
+    : colCount === 2 ? `${cols[0]}fr ${cols[1]}fr`
+    : `${cols[0]}fr ${cols[1]}fr ${cols[2]}fr`
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
@@ -221,7 +220,7 @@ export default function HomepageSections({
       fetch('/api/admin/layout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sections: layout, cols, order: panelOrder }),
+        body: JSON.stringify({ sections: layout, cols, order: panelOrder, col_count: colCount }),
       }),
       fetch('/api/admin/homepage', {
         method: 'POST',
@@ -463,15 +462,30 @@ export default function HomepageSections({
           marginBottom: 16, borderRadius: 8,
           boxShadow: '0 4px 20px rgba(200,155,60,0.4)',
         }}>
-          <span style={{ fontSize: 8, fontWeight: 700, color: '#000' }}>
-            ✏️ EDIT MODE — Drag panels to reorder · Sliders to resize · ↩ Cols to reset
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 8, fontWeight: 700, color: '#000' }}>
+              ✏️ EDIT MODE — Drag to reorder · Sliders to resize
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ fontSize: 6, color: '#000', fontWeight: 700 }}>Columns:</span>
+              {([1, 2, 3] as const).map(n => (
+                <button key={n} onClick={() => setColCount(n)} style={{
+                  padding: '5px 10px', borderRadius: 4, cursor: 'pointer', border: 'none',
+                  background: colCount === n ? '#000' : 'rgba(0,0,0,0.2)',
+                  color: colCount === n ? '#c89b3c' : '#000',
+                  fontSize: 7, fontWeight: 700,
+                }}>
+                  {n}
+                </button>
+              ))}
+            </div>
+          </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={() => setCols([1, 1, 1.5])} style={{
+            <button onClick={() => { setCols([1, 1, 1.5]); setColCount(3) }} style={{
               padding: '7px 14px', borderRadius: 6, cursor: 'pointer',
               background: 'rgba(0,0,0,0.25)', color: '#000', fontSize: 7, fontWeight: 700, border: 'none',
             }}>
-              ↩ Cols
+              ↩ Reset
             </button>
             <button onClick={save} disabled={saving} style={{
               padding: '7px 14px', borderRadius: 6, cursor: saving ? 'wait' : 'pointer',
@@ -595,11 +609,11 @@ export default function HomepageSections({
       {/* ── Sections grid ────────────────────────────────────── */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={visibleOrder} strategy={rectSortingStrategy}>
-          <div className="content-grid" ref={gridRef} style={{ position: 'relative' }}>
+          <div className="content-grid" ref={gridRef} style={{ position: 'relative', '--cg-template': gridTemplate } as React.CSSProperties}>
 
             {visibleOrder.map((secId, idx) => {
               const s = sec(secId)
-              const colIdx = (idx % 3) as 0 | 1 | 2
+              const colIdx = (idx % colCount) as 0 | 1 | 2
               return (
                 <div key={secId} style={{ overflow: 'visible' }}>
                   <SectionWrap
