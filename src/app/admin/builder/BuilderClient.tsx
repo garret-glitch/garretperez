@@ -8,6 +8,7 @@ import BlockLibraryDrawer from './BlockLibraryDrawer'
 import StylesPanel from './StylesPanel'
 import type { PageBlock, BlockType, BlockLiveData, BlockStyles } from '@/types/builder'
 import { getDefaultConfig, getDefaultStyles } from '@/lib/block-defaults'
+import { EditorProvider } from '@/components/builder/EditorContext'
 
 interface Props {
   initialBlocks: PageBlock[]
@@ -100,6 +101,7 @@ export default function BuilderClient({ initialBlocks, liveData, showMigrate }: 
   const selectedBlock = state.blocks.find(b => b.id === state.selectedId) ?? null
 
   return (
+    <EditorProvider>
     <div style={{ paddingTop: 87 }}>
       <BuilderToolbar
         isDirty={state.isDirty}
@@ -163,5 +165,6 @@ export default function BuilderClient({ initialBlocks, liveData, showMigrate }: 
         />
       )}
     </div>
+    </EditorProvider>
   )
 }

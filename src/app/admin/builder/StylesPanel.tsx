@@ -2,6 +2,9 @@
 import type { PageBlock, BlockStyles } from '@/types/builder'
 import { HexColorPicker } from 'react-colorful'
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
+
+const TiptapToolbar = dynamic(() => import('@/components/builder/TiptapToolbar'), { ssr: false, loading: () => null })
 
 const FONTS = [
   { label: 'Cinzel (RPG Serif)',       value: "'Cinzel', serif" },
@@ -79,6 +82,14 @@ export default function StylesPanel({ block, onStyleChange, onSpanChange, onDele
         <span style={{ fontSize: 8, color: 'var(--gold)', fontWeight: 700 }}>Panel Settings</span>
         <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-3)', fontSize: 14 }}>✕</button>
       </div>
+
+      {/* Text formatting toolbar — only for text blocks */}
+      {block.type === 'text' && (
+        <div style={{ ...SECTION, paddingBottom: 10 }}>
+          <label style={LBL}>Text Formatting</label>
+          <TiptapToolbar />
+        </div>
+      )}
 
       {/* Block actions */}
       <div style={{ display: 'flex', gap: 5, marginBottom: 14 }}>
