@@ -155,25 +155,6 @@ function SectionWrap({ id, heading, editMode, selected, onSelect, onResize, minH
   )
 }
 
-/* ─── Column drag handle ─────────────────────────────────────── */
-interface ColHandleProps { leftPct: number; onDragStart: (e: React.MouseEvent) => void }
-function ColHandle({ leftPct, onDragStart }: ColHandleProps) {
-  return (
-    <div onMouseDown={onDragStart} onClick={e => e.stopPropagation()} title="Drag to resize columns"
-      style={{
-        position: 'absolute', left: `calc(${leftPct}% - 8px)`,
-        top: '4%', bottom: '4%', width: 16, zIndex: 30,
-        cursor: 'ew-resize', borderRadius: 8, border: '1px solid var(--gold)',
-        background: 'rgba(200,155,60,0.38)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        userSelect: 'none',
-      }}
-    >
-      <span style={{ fontSize: 8, color: 'var(--gold)', writingMode: 'vertical-lr', letterSpacing: 1 }}>⋮⋮</span>
-    </div>
-  )
-}
-
 /* ─── Main component ─────────────────────────────────────────── */
 export default function HomepageSections({
   isAdmin, bio1: initBio1, bio2: initBio2, bio3: initBio3,
@@ -216,26 +197,6 @@ export default function HomepageSections({
   const handleResize   = (id: string, h: number) => update(id, { minHeight: h })
   const handleColChange = (colIdx: 0 | 1 | 2, fr: number) =>
     setCols(prev => { const n: [number, number, number] = [...prev]; n[colIdx] = fr; return n })
-
-  const startColDrag = (e: React.MouseEvent, boundary: 0 | 1) => {
-    e.preventDefault(); e.stopPropagation()
-    const startX = e.clientX
-    const containerW = gridRef.current?.offsetWidth ?? 600
-    const [c0, c1, c2] = cols
-    const total = c0 + c1 + c2
-    const onMove = (ev: MouseEvent) => {
-      const d = ((ev.clientX - startX) / containerW) * total
-      if (boundary === 0) setCols([Math.max(0.3, c0 + d), Math.max(0.3, c1 - d), c2])
-      else                setCols([c0, Math.max(0.3, c1 + d), Math.max(0.3, c2 - d)])
-    }
-    const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp) }
-    document.addEventListener('mousemove', onMove)
-    document.addEventListener('mouseup', onUp)
-  }
-
-  const colTotal = cols[0] + cols[1] + cols[2]
-  const b0Pct = (cols[0] / colTotal) * 100
-  const b1Pct = ((cols[0] + cols[1]) / colTotal) * 100
 
   useEffect(() => {
     if (!gridRef.current) return
@@ -659,13 +620,6 @@ export default function HomepageSections({
               )
             })}
 
-            {/* Column width drag handles */}
-            {editMode && (
-              <>
-                <ColHandle leftPct={b0Pct} onDragStart={e => startColDrag(e, 0)} />
-                <ColHandle leftPct={b1Pct} onDragStart={e => startColDrag(e, 1)} />
-              </>
-            )}
 
           </div>
         </SortableContext>
