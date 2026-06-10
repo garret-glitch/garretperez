@@ -5,6 +5,7 @@ import AccountShield from '@/components/AccountShield'
 import HomepageBlockRenderer from '@/components/HomepageBlockRenderer'
 import type { PageBlock } from '@/types/builder'
 import { migrateExistingSections } from '@/lib/builder-migration'
+import AdminFloatingBar from '@/components/AdminFloatingBar'
 
 
 export const dynamic = 'force-dynamic'
@@ -263,6 +264,8 @@ export default async function Home() {
         contactEmail={contactEmail}
         contactLinkedin={contactLinkedin}
       />
+
+      <AdminFloatingBar isAdmin={session?.user?.role === 'ADMIN'} />
 
     </div>
   )
