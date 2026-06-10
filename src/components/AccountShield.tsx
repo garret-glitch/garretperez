@@ -116,9 +116,44 @@ export default function AccountShield({ username, level, xp, xpPercent, isLogged
             </>
           ) : (
             <>
-              <div style={{ marginTop: '14%', fontSize: 28 }}>⚔️</div>
-              <div style={{ marginTop: '5%', fontSize: 'clamp(6px, 1.5vw, 7px)', color: '#c8a870', textAlign: 'center', maxWidth: '65%', lineHeight: 1.9 }}>
-                Join to earn<br />XP &amp; post
+              {/* Locked avatar */}
+              <div style={{
+                marginTop: '5%', width: '27%', aspectRatio: '1',
+                borderRadius: 14,
+                background: 'rgba(200,155,60,0.07)',
+                border: '2px dashed rgba(200,155,60,0.35)',
+                color: 'rgba(200,155,60,0.4)',
+                fontSize: 'clamp(14px, 3.5vw, 18px)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>🔒</div>
+
+              {/* Claim headline */}
+              <div style={{
+                marginTop: '4%',
+                fontFamily: "'Cinzel', serif",
+                fontSize: 'clamp(7px, 1.8vw, 9px)',
+                color: '#e8d080', fontWeight: 700,
+                textAlign: 'center', lineHeight: 1.5,
+                letterSpacing: '0.04em',
+              }}>
+                Claim Your<br />Character
+              </div>
+
+              {/* Locked XP bar */}
+              <div style={{ marginTop: '4%', width: '54%' }}>
+                <div style={{ height: 6, background: 'rgba(200,155,60,0.08)', border: '1px dashed rgba(200,155,60,0.25)', borderRadius: 3, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: '0%' }} />
+                </div>
+                <div style={{ marginTop: 3, fontSize: 'clamp(5px, 1.2vw, 6px)', color: 'rgba(200,155,60,0.3)', textAlign: 'center', letterSpacing: '0.05em' }}>
+                  — XP —
+                </div>
+              </div>
+
+              {/* Perks list */}
+              <div style={{ marginTop: '5%', display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'center' }}>
+                {['⚡ Earn XP just by browsing', '⚔ Level up your profile', '💬 Post in communities'].map(line => (
+                  <div key={line} style={{ fontSize: 'clamp(4.5px, 1.1vw, 5.5px)', color: '#907040', textAlign: 'center' }}>{line}</div>
+                ))}
               </div>
             </>
           )}
@@ -192,21 +227,26 @@ export default function AccountShield({ username, level, xp, xpPercent, isLogged
             ⛨ Logout
           </button>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            {/* Primary CTA — big gold Join button */}
+            <Link href="/register" style={{
+              display: 'block', textAlign: 'center', padding: '11px 0',
+              background: 'linear-gradient(135deg, #c89b3c 0%, #9a7228 100%)',
+              color: '#120c00',
+              fontFamily: "'Press Start 2P', monospace",
+              fontSize: 7, fontWeight: 700,
+              letterSpacing: '0.03em',
+              textDecoration: 'none',
+              boxShadow: '0 3px 16px rgba(200,155,60,0.45)',
+            }}>🛡 Create Account</Link>
+            {/* Secondary — login */}
             <Link href="/login" style={{
               display: 'block', textAlign: 'center', padding: '7px 0',
-              background: 'linear-gradient(180deg, #4a2e10 0%, #2e1a06 100%)',
-              border: '1.5px solid rgba(200,155,60,0.35)',
-              borderRadius: 6, color: '#e8d090', fontSize: 7,
+              background: 'transparent',
+              border: '1px solid rgba(200,155,60,0.35)',
+              color: '#c89b3c', fontSize: 7,
               letterSpacing: '0.05em', textDecoration: 'none',
-            }}>Login</Link>
-            <Link href="/register" style={{
-              display: 'block', textAlign: 'center', padding: '7px 0',
-              background: 'linear-gradient(180deg, #3a2410 0%, #1a1006 100%)',
-              border: '1.5px solid rgba(200,155,60,0.25)',
-              borderRadius: 6, color: '#b8a070', fontSize: 7,
-              letterSpacing: '0.05em', textDecoration: 'none',
-            }}>Join Free</Link>
+            }}>Already a member? Login</Link>
           </div>
         )}
       </div>
