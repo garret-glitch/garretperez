@@ -30,7 +30,6 @@ function mkStar(ball: Pt): Pt {
 export default function SidebarFunGame() {
   const cvs = useRef<HTMLCanvasElement>(null)
   const pathname = usePathname()
-  const [score, setScore] = useState(0)
   const [lives, setLives] = useState(3)
   const [phase, setPhase] = useState<'play' | 'dead'>('play')
 
@@ -187,7 +186,7 @@ export default function SidebarFunGame() {
           stars[i] = mkStar(ball); ns++
         }
       }
-      if (ns !== s.score) { s.score = ns; setScore(ns) }
+      if (ns !== s.score) { s.score = ns }
 
       draw()
       s.raf = requestAnimationFrame(frameRef.current)
@@ -204,7 +203,7 @@ export default function SidebarFunGame() {
     s.rb = { x: 28, y: 28, vx: -1.3, vy: 1.5 }
     s.stars = Array.from({ length: STAR_CNT }, () => mkStar(s.ball))
     s.score = 0; s.lives = 3; s.iframes = 0; s.tick = 0; s.phase = 'play'
-    setScore(0); setLives(3); setPhase('play')
+    setLives(3); setPhase('play')
     s.raf = requestAnimationFrame(frameRef.current)
   }, [])
 
