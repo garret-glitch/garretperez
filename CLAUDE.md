@@ -20,6 +20,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Neon PostgreSQL** (free tier at neon.tech) — DATABASE_URL in `.env.local`
 - **bcryptjs** — password hashing
 - **`gray-matter`** + **`next-mdx-remote/rsc`** — static MDX blog posts
+- **`@dnd-kit/core` + `@dnd-kit/sortable` + `@dnd-kit/utilities`** — drag-and-drop (builder canvas + About Me bubble reorder)
+- **`react-colorful`** — color picker in builder Styles panel
+- **`@tiptap/react` + `@tiptap/starter-kit` + extensions** — rich text editor in Text blocks
 
 ## Environment variables (required locally)
 
@@ -47,18 +50,33 @@ Vercel auto-deploys from `main` via GitHub integration. Project: `garretperez` u
 
 ```
 prisma/
-  schema.prisma         # User, UserSkill, Post, Recipe, SiteSetting + NextAuth tables
+  schema.prisma         # User, UserSkill, Post, Recipe, SiteSetting, PageBlock + NextAuth tables
 public/
   resume.docx           # Garret's resume — served as static file
 src/
   auth.ts               # NextAuth config — credentials provider, JWT, role in token
   types/
     next-auth.d.ts      # Session type: user.id + user.role
+    builder.ts          # All builder types: BlockType, AnyBlockConfig, AboutBubble, BlockStyles,
+                        #   PageBlock, BlockLiveData, BuilderState, BuilderAction
   app/
     layout.tsx          # Root layout — SiteHeader + flex(SkillsPanel + main). No ContactHeader/Footer.
-    page.tsx            # Home dashboard — hero, About Me, Projects, Quest Log, Achievements, Activity, Feed
+    page.tsx            # Home dashboard — hero + AccountShield + HomepageBlockRenderer
+                        #   Auto-migrates PageBlock records on first visit if table is empty
     resume/page.tsx     # Resume page — experience, skills bars, download .docx
     admin/page.tsx      # Admin dashboard (ADMIN role only) — settings, users, posts, announcements tabs
+    admin/builder/      # Visual page builder (Canva/Notion-style)
+      page.tsx          # Server component — fetches PageBlock[], live data, renders BuilderClient
+      layout.tsx        # Full-width layout override (no sidebar padding)
+      BuilderClient.tsx # 'use client' — owns useReducer(builderReducer), keyboard shortcuts (Ctrl+Z/Y/S)
+      builderReducer.ts # All state mutations + undo/redo history stack (past/future PageBlock[][])
+      BuilderToolbar.tsx  # Fixed top bar: Save, Undo, Redo, Add Block, Preview, Migrate
+      BuilderCanvas.tsx   # DndContext + SortableContext grid canvas (3-col)
+      SortableBlock.tsx   # useSortable wrapper + selection ring + action bar per block
+      BlockLibraryDrawer.tsx # Left slide-in panel — 13 block types organised by category
+      StylesPanel.tsx     # Right drawer — ColSpan, Dimensions, Padding, Background, Border,
+                          #   Typography, Effects; react-colorful color picker
+    admin/layout/page.tsx # Redirects to /admin/builder
     quest-board/page.tsx  # Quest board — all active quests
     privacy/page.tsx    # Privacy policy — data collected, retention, age requirement (13+), deletion contact
     (auth)/
@@ -89,6 +107,11 @@ src/
         ban-user/route.ts           # Ban/unban user — ADMIN only
         delete-post/route.ts        # Delete post — ADMIN only
         adjust-xp/route.ts          # Manually adjust user XP — ADMIN only
+        builder/
+          blocks/route.ts   # GET/POST/PUT/DELETE individual PageBlock records
+          save/route.ts     # Bulk-save: deletes removed blocks, upserts all incoming blocks
+          migrate/route.ts  # One-time POST: seeds PageBlock rows from legacy SiteSetting blobs
+          reset/route.ts    # POST: deletes all home PageBlock rows then re-migrates — ADMIN only
   components/
     SiteHeader.tsx      # Ultra-slim sticky nav — "GP" logo, Quests, Resume links, Admin link (role-based), AuthButton
     AuthButton.tsx      # Login/Logout toggle (client component)
@@ -101,6 +124,25 @@ src/
     RecipeForm.tsx      # Create recipe form (client component, calls /api/recipes)
     PostCard.tsx        # Post preview card
     ProjectCard.tsx     # Project card
+    HomepageBlockRenderer.tsx  # 'use client' — maps PageBlock[] → BlockRenderer (read-only public view)
+    AdminFloatingBar.tsx       # Fixed bottom-right gear button (admin only) — quick links to builder + admin
+    builder/
+      BlockRenderer.tsx        # switch(block.type) dispatcher → renders correct block component
+      blocks/
+        AboutBlock.tsx         # Parchment scroll — bubbles[] mini-editor in edit mode (see About Me section)
+        ProjectsListBlock.tsx  # Project cards with progress bars
+        CommunityFeedBlock.tsx # Community posts feed
+        AchievementsBlock.tsx  # Badge emoji showcase
+        XpGuideBlock.tsx       # XP earning guide (static)
+        HeadingBlock.tsx       # Editable heading (h1–h4); input in edit, heading tag in read
+        TextBlock.tsx          # Tiptap rich-text editor in edit, dangerouslySetInnerHTML in read
+        TiptapEditor.tsx       # Full Tiptap toolbar (bold/italic/underline/lists/align/link); lazy-loaded ssr:false
+        ImageBlock.tsx         # File upload → base64 data URL stored in config.src
+        ButtonBlock.tsx        # CTA with label/href/variant editable
+        DividerBlock.tsx       # <hr> with configurable style/thickness/color/width
+        QuestListBlock.tsx     # Active quests from liveData.quests
+        SkillCardBlock.tsx     # Skill channel link card
+        ContactCardBlock.tsx   # Phone/email/LinkedIn/resume from liveData
   lib/
     prisma.ts           # Singleton PrismaClient
     xp.ts               # XP/level calculation: xpToLevel(), xpProgress(), constants
@@ -108,6 +150,8 @@ src/
     badges.ts           # BADGE_META — badge types, icons, labels
     posts.ts            # Reads content/posts/, parses MDX frontmatter
     trivia-questions.ts # Wine trivia questions (static data)
+    block-defaults.ts   # BLOCK_META, getDefaultConfig(type), getDefaultStyles(type), applyStylesToElement(styles)
+    builder-migration.ts  # migrateExistingSections() — maps old SiteSetting blobs → PageBlock rows
 content/
   posts/                # Blog posts as .mdx files — add here to publish
 ```
@@ -143,14 +187,84 @@ Level formula (in `src/lib/xp.ts`): `Math.min(99, Math.floor(Math.pow(xp / 100, 
 - All users have `role: USER` by default. Admin has `role: ADMIN`.
 - Admin-gated API routes check `session.user.role !== 'ADMIN'` and return 403.
 - Role flows: DB → `authorize()` return → JWT `token.role` → `session.user.role`.
-- Use `(prisma as any).modelName` for models added after initial Prisma client generation (PostUpvote, UserBadge, SkillVisit, Announcement, SiteSetting).
+- Use `(prisma as any).modelName` for models added after initial Prisma client generation (PostUpvote, UserBadge, SkillVisit, Announcement, SiteSetting, PageBlock).
+
+## Homepage rendering pipeline
+
+The homepage no longer uses hardcoded sections. Content is stored as `PageBlock` DB records and rendered via `HomepageBlockRenderer`:
+
+```
+page.tsx (server) → prisma.pageBlock.findMany({pageSlug:'home'}) → HomepageBlockRenderer → BlockRenderer
+```
+
+- On first visit after deploy, if the `PageBlock` table is empty, `page.tsx` auto-calls `migrateExistingSections()` to seed from legacy `SiteSetting` blobs.
+- The hero panel and `AccountShield` at the top of `page.tsx` are **not** part of the block system and stay hardcoded.
+- To reset the homepage back to defaults: POST `/api/admin/builder/reset` (admin only).
+
+## Visual page builder (`/admin/builder`)
+
+The builder is a full-screen Canva/Notion-style editor accessible from the admin sidebar ("Builder") or the floating ⚙ gear button on the homepage (admin only).
+
+### Block types (13 total)
+
+| Type | Description | Default ColSpan |
+|---|---|---|
+| `about` | Bio with editable bubble array | 2 |
+| `projects-list` | Project cards | 1 |
+| `community-feed` | Recent posts | 1 |
+| `achievements` | Badge showcase | 1 |
+| `xp-guide` | How to earn XP | 1 |
+| `heading` | H1–H4 heading | 2 |
+| `text` | Tiptap rich text | 2 |
+| `image` | Image with upload | 1 |
+| `button` | CTA button | 1 |
+| `divider` | Horizontal rule | 2 |
+| `quest-list` | Active quests | 1 |
+| `skill-card` | Skill channel link | 1 |
+| `contact-card` | Phone/email/LinkedIn | 1 |
+
+### Builder keyboard shortcuts
+- `Ctrl+Z` — undo
+- `Ctrl+Y` — redo
+- `Ctrl+S` — save
+
+### Block toolbar (per-block, shown when selected)
+- `⠿ type` — drag handle (drag to reorder)
+- `⧉` — duplicate
+- `👁/🚫` — toggle visibility
+- `💬+` — insert community-feed block below
+- `💬✕` — delete block (only shown when block type is community-feed)
+- `🖼+` — insert image block below
+- `🖼✕` — delete block (only shown when block type is image)
+- `🗑` — delete block
+
+### About Me block — bubble editor
+The About Me block stores content as an array of bubbles (not hardcoded bio1/bio2/bio3):
+
+```typescript
+// AboutBlockConfig
+{
+  headingText: string
+  headingIcon: string
+  bubbles: Array<{ id: string; content: string }>
+}
+```
+
+In edit mode each bubble has: drag handle (dnd-kit, independent DndContext), textarea, ↑↓ move buttons, duplicate, delete. "+ Add Bubble" appends a new bubble and auto-focuses it. Cannot delete the last remaining bubble. Old `bio1/bio2/bio3` DB records are auto-normalised to `bubbles[]` at read time.
+
+### Two render paths sharing one BlockRenderer
+```
+PUBLIC:  page.tsx → HomepageBlockRenderer → BlockRenderer (isEditing=false)
+BUILDER: /admin/builder → BuilderClient → BuilderCanvas → SortableBlock → BlockRenderer (isEditing=true)
+```
 
 ## Homepage hero layout
 
-The hero (`src/app/page.tsx`) has three columns:
-1. **Left** — Profile photo (112×112, base64 from DB `SiteSetting` key `'headshot'`, falls back to `'GP'`)
-2. **Center** — Name, Level badge, title, location, Members/Posts stat chips, XP bar, current quest
-3. **Right** — Contact label, phone, email, LinkedIn, Resume button
+The hero (`src/app/page.tsx`) has two side-by-side panels:
+1. **Hero panel** — Profile photo + Name, Level badge, title, location, Members/Posts chips, XP bar
+2. **AccountShield** — Logged-in user's level, XP, shield colour picker
+
+Contact info (phone, email, LinkedIn, Resume) is rendered inside the hero panel on the right side at desktop, as an icon row at mobile.
 
 ## Visual conventions (current theme)
 
@@ -183,6 +297,7 @@ Key CSS classes (all in `globals.css`):
 - `.post-card` — community post card
 - `.body-text` — Inter font override (use on all body/paragraph text, NOT headings)
 - `.guild-channel` — sidebar channel row with left-border hover
+- `.scroll-roll` / `.scroll-parchment` — parchment scroll wrapper used by the About Me block
 
 Two fonts: **Press Start 2P** for all headings/labels (default), **Inter** for body text (apply `.body-text` class).
 
@@ -198,6 +313,10 @@ npm run dev
 npx prisma db push
 ```
 
+**Edit homepage content:** Log in as admin → click the ⚙ gear button (bottom-right) → Edit Page. Or go directly to `/admin/builder`.
+
+**Reset homepage to defaults:** POST `/api/admin/builder/reset` (admin only) — deletes all home `PageBlock` rows and re-migrates from `SiteSetting` data.
+
 **Add a blog post:** Create `content/posts/your-slug.mdx`:
 ```
 ---
@@ -208,13 +327,20 @@ description: One-line summary shown in the post list.
 Your content here.
 ```
 
-**Add a project:** Edit the `PROJECTS` array in `src/app/page.tsx`.
+**Add a project:** Use the Projects block in the builder, or directly edit the `project` DB table via admin.
 
-**Add a quest:** Edit the `QUESTS` array in `src/app/page.tsx`.
+**Add a quest:** Use the Quest List block in the builder, or go to `/admin/quests`.
 
 **Add a trivia question:** Edit `src/lib/trivia-questions.ts` — follow the existing `TriviaQuestion` shape.
 
 **Update profile photo:** Log in as admin → `/admin` → Settings tab → upload photo (max 2 MB, stored as base64 in `SiteSetting` DB table).
+
+**Add a new block type:**
+1. Add the type string to `BlockType` in `src/types/builder.ts`
+2. Add a config interface and include it in `AnyBlockConfig`
+3. Add metadata to `BLOCK_META` and defaults to `getDefaultConfig`/`getDefaultStyles` in `src/lib/block-defaults.ts`
+4. Create `src/components/builder/blocks/YourBlock.tsx`
+5. Add a `case` to `src/components/builder/BlockRenderer.tsx`
 
 **Deploy:** `git push` — Vercel auto-deploys from `main` via GitHub. Build command: `prisma generate && next build` (set in Vercel project settings).
 
@@ -234,7 +360,11 @@ Vercel is configured with both `garretperez.com` and `www.garretperez.com` as al
 ## Known gotchas
 
 - **Windows EPERM on `prisma generate`**: Dev server locks `query_engine-windows.dll.node`. Stop the dev server before running `npm run build` locally. Vercel builds are unaffected.
-- **`(prisma as any)` casts**: Required for models added after the initial Prisma client snapshot (PostUpvote, UserBadge, SkillVisit, Announcement, SiteSetting). Run `npx prisma generate` after any schema change.
+- **`(prisma as any)` casts**: Required for models added after the initial Prisma client snapshot (PostUpvote, UserBadge, SkillVisit, Announcement, SiteSetting, PageBlock). Run `npx prisma generate` after any schema change.
 - **Admin credentials**: NEVER hardcode in source. Use `SETUP_ADMIN_USERNAME` / `SETUP_ADMIN_PASSWORD` env vars and visit `/api/setup` once to create the account.
 - **netlify.toml exists** in the repo but is unused — the site deploys to Vercel, not Netlify. Do not add Netlify-specific build config.
 - **Unescaped entities in JSX**: Apostrophes inside JSX text (e.g. `I'm`) must be escaped as `&apos;` or the ESLint `react/no-unescaped-entities` rule will fail the build. Always use `&apos;` for `'` and `&quot;` for `"` in JSX text nodes.
+- **Tiptap SSR**: TiptapEditor must be loaded with `dynamic(() => import(...), { ssr: false })` — it is browser-only.
+- **Nested DndContext**: The About Me bubble editor uses its own `DndContext` (independent of the builder canvas DndContext). This is intentional and supported by @dnd-kit.
+- **AboutBlockConfig legacy format**: Old DB records may have `bio1/bio2/bio3` fields instead of `bubbles[]`. The `normalizeCfg()` function in `AboutBlock.tsx` handles this at read time — never strip the optional legacy fields from the type.
+- **`@tiptap/extension-text-style`** exports `TextStyle` as a named export, not default. Import as `import { TextStyle } from '@tiptap/extension-text-style'`.
