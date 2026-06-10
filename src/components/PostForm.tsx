@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { emitXpGained } from '@/components/XpToast'
 
 export default function PostForm({ skillEnum }: { skillEnum: string }) {
   const router = useRouter()
@@ -21,10 +22,13 @@ export default function PostForm({ skillEnum }: { skillEnum: string }) {
     })
 
     if (res.ok) {
+      const data = await res.json()
+      const xp = data.xpAwarded ?? 50
+      emitXpGained(xp)
       setTitle('')
       setBody('')
       setStatus('success')
-      setMsg('+50 XP earned!')
+      setMsg(`+${xp} XP earned!`)
       router.refresh()
       setTimeout(() => { setStatus('idle'); setMsg('') }, 4000)
     } else if (res.status === 401) {

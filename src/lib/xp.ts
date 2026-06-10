@@ -14,6 +14,7 @@ export const XP_DEFAULTS = {
   PROJECT_UPDATE: 25,
   MILESTONE:     100,
   TIME_SPENT:     10,
+  UPVOTE_GIVEN:    5,
 } as const
 
 export type XpEventType = keyof typeof XP_DEFAULTS
@@ -34,6 +35,7 @@ export const XP_LABELS: Record<XpEventType, string> = {
   PROJECT_UPDATE: 'Update Project',
   MILESTONE:      'Complete Milestone',
   TIME_SPENT:     '5 Min on Site',
+  UPVOTE_GIVEN:   'Give an Upvote',
 }
 
 // Per-day COUNT limits for high-frequency events (undefined = no count limit)

@@ -2,15 +2,20 @@
 import { useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { emitXpGained } from '@/components/XpToast'
 
 const GAME_PATHS = /^\/skills\/fun\/(wine-trivia|matching|snake|breakout|whack-a-mole|pong)$/
 
-function fire(eventType: string, eventKey: string) {
-  fetch('/api/xp/award', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ eventType, eventKey }),
-  }).catch(() => {})
+async function fire(eventType: string, eventKey: string) {
+  try {
+    const r = await fetch('/api/xp/award', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ eventType, eventKey }),
+    })
+    const d = await r.json()
+    if (d.awarded && d.amount > 0) emitXpGained(d.amount)
+  } catch {}
 }
 
 export default function XpTracker() {
@@ -24,20 +29,17 @@ export default function XpTracker() {
     if (!session?.user?.id) return
     const prev = prevPath.current
     prevPath.current = pathname
-    // Skip initial load (no real navigation happened)
     if (!prev || prev === pathname) return
 
     if (GAME_PATHS.test(pathname)) {
-      // Entering a specific mini-game page = starting a game (max 3/day)
       fire('MINIGAME_PLAY', pathname)
     } else if (!pathname.startsWith('/skills/')) {
-      // Main tab clicks: home, quests, resume, blog, admin, etc.
       fire('TAB_CLICK', pathname)
     }
-    // Skill page visits (SKILL_OPEN) handled by SkillVisitTracker in each skill page
+    // Skill page visits handled by SkillVisitTracker
   }, [pathname, session?.user?.id])
 
-  // 5-minute time-spent XP — fires once per session after being on the site for 5 minutes
+  // 5-minute time-spent XP
   useEffect(() => {
     if (!session?.user?.id) return
     timerRef.current = setTimeout(() => {

@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { emitXpGained } from '@/components/XpToast'
 
 export default function RecipeForm() {
   const router = useRouter()
@@ -28,12 +29,15 @@ export default function RecipeForm() {
     })
 
     if (res.ok) {
+      const data = await res.json()
+      const xp = data.xpAwarded ?? 50
+      emitXpGained(xp)
       setTitle('')
       setDescription('')
       setIngredients('')
       setInstructions('')
       setStatus('success')
-      setMsg('+10 Cooking XP earned!')
+      setMsg(`+${xp} Cooking XP earned!`)
       router.refresh()
       setTimeout(() => { setStatus('idle'); setMsg('') }, 4000)
     } else if (res.status === 401) {
@@ -47,7 +51,7 @@ export default function RecipeForm() {
 
   return (
     <form onSubmit={handleSubmit} className="osrs-panel rounded-xl space-y-3">
-      <h3 className="text-[9px] text-[#1a1a1a] font-bold">🍳 Add Recipe (+10 Cooking XP)</h3>
+      <h3 className="text-[9px] text-[#1a1a1a] font-bold">🍳 Add Recipe (+50 Cooking XP)</h3>
       <input
         className="osrs-input"
         placeholder="Recipe name"

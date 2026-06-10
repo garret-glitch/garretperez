@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import GameLeaderboard from '@/components/GameLeaderboard'
+import { emitXpGained } from '@/components/XpToast'
 
 const PAIRS = ['🍷', '🍺', '🍸', '🍹', '🥂', '🍾', '🫗', '🧀']
 
@@ -98,8 +99,12 @@ export default function MatchingGamePage() {
         if (!hasAwardedXp.current) {
           hasAwardedXp.current = true
           const r = await fetch('/api/minigame/win', { method: 'POST' })
-          if (r.ok) setXpMsg('+20 Fun XP earned!')
-          else if (r.status === 401) setXpMsg('Login to save your XP!')
+          if (r.ok) {
+            const d = await r.json()
+            const xp = d.xpAwarded ?? 25
+            emitXpGained(xp)
+            setXpMsg(`+${xp} Fun XP earned!`)
+          } else if (r.status === 401) setXpMsg('Login to save your XP!')
         }
       }
     } else {

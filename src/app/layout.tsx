@@ -12,6 +12,7 @@ import SiteHeader from '@/components/SiteHeader'
 import SessionProvider from '@/components/SessionProvider'
 import AdminFloatingBar from '@/components/AdminFloatingBar'
 import XpTracker from '@/components/XpTracker'
+import XpToast from '@/components/XpToast'
 
 export const metadata: Metadata = {
   title: 'Garret Perez',
@@ -30,6 +31,7 @@ export default async function RootLayout({
       <body>
         <SessionProvider session={session}>
           <XpTracker />
+          <XpToast />
           <AdminFloatingBar isAdmin={session?.user?.role === 'ADMIN'} />
           <div className="flex flex-col min-h-screen" style={{
             background: 'var(--bg-page)',

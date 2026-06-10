@@ -3,6 +3,7 @@ import { signIn } from 'next-auth/react'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { emitXpGained } from '@/components/XpToast'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -26,7 +27,11 @@ export default function LoginPage() {
       setError('Invalid username or password.')
       setLoading(false)
     } else {
-      await fetch('/api/daily-login', { method: 'POST' })
+      const loginRes = await fetch('/api/daily-login', { method: 'POST' })
+      if (loginRes.ok) {
+        const d = await loginRes.json()
+        if (d.xpAwarded > 0) emitXpGained(d.xpAwarded)
+      }
       router.push('/')
       router.refresh()
     }
