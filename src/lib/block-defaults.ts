@@ -21,9 +21,11 @@ export function getDefaultConfig(type: BlockType): AnyBlockConfig {
     case 'about':
       return {
         headingText: 'About Me', headingIcon: '📜',
-        bio1: 'Sales professional based in Houston, TX.',
-        bio2: 'Builder, gardener, fisherman, and father.',
-        bio3: 'This site is my personal hub.',
+        bubbles: [
+          { id: 'b0', content: 'Sales professional based in Houston, TX.' },
+          { id: 'b1', content: 'Builder, gardener, fisherman, and father.' },
+          { id: 'b2', content: 'This site is my personal hub.' },
+        ],
       }
     case 'projects-list':
       return { heading: 'My Projects', icon: '⚒️', maxItems: 3, showViewAll: true }

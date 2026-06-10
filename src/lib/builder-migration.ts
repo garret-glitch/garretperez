@@ -58,7 +58,11 @@ export async function migrateExistingSections(): Promise<number> {
         config = {
           headingText: old?.heading ?? 'About Me',
           headingIcon: old?.icon ?? '📜',
-          bio1, bio2, bio3,
+          bubbles: [
+            { id: 'b0', content: bio1 || 'Sales professional based in Houston, TX.' },
+            { id: 'b1', content: bio2 || 'Builder, gardener, fisherman, and father.' },
+            { id: 'b2', content: bio3 || 'This site is my personal hub.' },
+          ],
         }
       } else if (meta.type === 'projects-list') {
         config = { heading: old?.heading ?? 'My Projects', icon: old?.icon ?? '⚒️', maxItems: 3, showViewAll: true }

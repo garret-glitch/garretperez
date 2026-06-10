@@ -15,12 +15,19 @@ export type BlockType =
   | 'contact-card'
 
 // ─── Per-type config shapes ───────────────────────────────────────────────────
+export interface AboutBubble {
+  id: string
+  content: string
+}
+
 export interface AboutBlockConfig {
   headingText: string
   headingIcon: string
-  bio1: string
-  bio2: string
-  bio3: string
+  bubbles: AboutBubble[]
+  // legacy fields — kept so old DB records still parse
+  bio1?: string
+  bio2?: string
+  bio3?: string
 }
 
 export interface ProjectsListBlockConfig {
