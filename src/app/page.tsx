@@ -308,21 +308,21 @@ export default async function Home() {
             {/* Gold divider — symmetric fade */}
             <div style={{ height: 1, background: 'linear-gradient(90deg, transparent 0%, rgba(200,155,60,0.5) 25%, rgba(200,155,60,0.5) 75%, transparent 100%)' }} />
 
-            {/* Stats — 3 equal columns, big numbers */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+            {/* Stats — 1 per row, label left / number right */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {([
                 { value: totalUsers,       label: 'Members' },
                 { value: totalPosts,        label: 'Posts' },
                 { value: garretTotalLevel,  label: 'Level' },
               ] as const).map(stat => (
                 <div key={stat.label} style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  padding: '14px 8px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '14px 18px',
                   background: 'rgba(200,155,60,0.07)',
                   border: '1px solid rgba(200,155,60,0.22)',
                 }}>
-                  <span className="body-text" style={{ fontSize: 26, fontWeight: 700, color: '#c89b3c', lineHeight: 1, marginBottom: 7 }}>{stat.value}</span>
-                  <span style={{ fontSize: 8, color: '#7a6040', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: "'Press Start 2P', monospace" }}>{stat.label}</span>
+                  <span style={{ fontSize: 9, color: '#7a6040', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: "'Press Start 2P', monospace" }}>{stat.label}</span>
+                  <span className="body-text" style={{ fontSize: 28, fontWeight: 700, color: '#c89b3c', lineHeight: 1 }}>{stat.value}</span>
                 </div>
               ))}
             </div>
@@ -344,8 +344,8 @@ export default async function Home() {
             {/* Gold divider */}
             <div style={{ height: 1, background: 'linear-gradient(90deg, transparent 0%, rgba(200,155,60,0.4) 25%, rgba(200,155,60,0.4) 75%, transparent 100%)' }} />
 
-            {/* Contact — 2×2 grid with full values */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            {/* Contact — 1 per row */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
 
               <a href={`tel:${contactPhone.replace(/\D/g, '')}`}
                 style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 14px', background: 'rgba(200,155,60,0.08)', border: '1px solid rgba(200,155,60,0.22)', textDecoration: 'none', borderRadius: 3 }}>
@@ -449,8 +449,8 @@ export default async function Home() {
               </div>
             </div>
 
-            {/* 2-col on mobile, 3-col on sm+ */}
-            <div className="grid grid-cols-2 sm:grid-cols-3" style={{ gap: 8 }}>
+            {/* 1-col on mobile, 2-col on sm+, 3-col on md+ */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3" style={{ gap: 8 }}>
               {CHANNELS.map(ch => (
                 <Link key={ch.href} href={ch.href} className="community-card">
                   <div style={{
