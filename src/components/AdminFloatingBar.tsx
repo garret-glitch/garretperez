@@ -1,5 +1,4 @@
 'use client'
-import { useState } from 'react'
 import Link from 'next/link'
 
 interface Props {
@@ -15,87 +14,84 @@ const LINKS = [
 ]
 
 export default function AdminFloatingBar({ isAdmin }: Props) {
-  const [open, setOpen] = useState(false)
-
   if (!isAdmin) return null
 
   return (
     <div style={{
-      position: 'fixed',
-      bottom: 24,
-      right: 24,
-      zIndex: 9999,
+      position: 'sticky',
+      top: 32, // sits just below the SiteHeader (which is ~32px tall)
+      zIndex: 800,
+      width: '100%',
       display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'flex-end',
-      gap: 8,
-      pointerEvents: 'none',
+      alignItems: 'center',
+      gap: 0,
+      background: 'linear-gradient(90deg, #1a120400, #1a1204ee 8%, #1a1204ee 92%, #1a120400)',
+      borderTop: '1px solid rgba(200,155,60,0.35)',
+      borderBottom: '1px solid rgba(200,155,60,0.35)',
+      padding: '0 12px',
+      backdropFilter: 'blur(6px)',
     }}>
-      {/* Expanded links */}
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 6,
-        alignItems: 'flex-end',
-        transition: 'all 0.2s ease',
-        opacity: open ? 1 : 0,
-        transform: open ? 'translateY(0)' : 'translateY(12px)',
-        pointerEvents: open ? 'auto' : 'none',
+      {/* Admin badge */}
+      <span style={{
+        fontSize: 6,
+        color: 'rgba(200,155,60,0.55)',
+        letterSpacing: '0.12em',
+        textTransform: 'uppercase',
+        paddingRight: 12,
+        borderRight: '1px solid rgba(200,155,60,0.2)',
+        marginRight: 4,
+        whiteSpace: 'nowrap',
       }}>
-        {LINKS.map(link => (
+        ⚔ Admin
+      </span>
+
+      {/* Nav links */}
+      <div style={{ display: 'flex', alignItems: 'center', flex: 1, flexWrap: 'wrap' }}>
+        {LINKS.map((link, i) => (
           <Link
             key={link.href}
             href={link.href}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 8,
-              padding: '7px 14px 7px 10px',
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--border-lit)',
-              color: 'var(--gold)',
-              fontSize: 8,
+              gap: 5,
+              padding: '6px 10px',
+              color: i === 0 ? 'var(--gold)' : 'var(--text-2)',
+              fontSize: 7,
               textDecoration: 'none',
-              letterSpacing: '0.05em',
+              letterSpacing: '0.04em',
               whiteSpace: 'nowrap',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.6)',
-              transition: 'background 0.15s',
+              borderRight: '1px solid rgba(200,155,60,0.1)',
+              transition: 'color 0.15s, background 0.15s',
+              fontWeight: i === 0 ? 700 : 400,
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = '#1e1e2e')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg-elevated)')}
+            onMouseEnter={e => {
+              e.currentTarget.style.color = 'var(--gold)'
+              e.currentTarget.style.background = 'rgba(200,155,60,0.08)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.color = i === 0 ? 'var(--gold)' : 'var(--text-2)'
+              e.currentTarget.style.background = 'transparent'
+            }}
           >
-            <span style={{ fontSize: 14 }}>{link.icon}</span>
+            <span style={{ fontSize: 12 }}>{link.icon}</span>
             {link.label}
           </Link>
         ))}
       </div>
 
-      {/* Toggle button */}
-      <button
-        onClick={() => setOpen(o => !o)}
-        title={open ? 'Close admin toolbar' : 'Admin toolbar'}
-        style={{
-          pointerEvents: 'auto',
-          width: 44,
-          height: 44,
-          borderRadius: '50%',
-          background: open
-            ? 'linear-gradient(135deg, #c89b3c, #a07828)'
-            : 'linear-gradient(135deg, #1a1a28, #13131c)',
-          border: '2px solid var(--border-lit)',
-          color: open ? '#000' : 'var(--gold)',
-          fontSize: 18,
-          cursor: 'pointer',
-          boxShadow: '0 4px 20px rgba(200,155,60,0.35)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'all 0.2s ease',
-          transform: open ? 'rotate(45deg)' : 'rotate(0deg)',
-        }}
-      >
-        ⚙
-      </button>
+      {/* Live indicator */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, paddingLeft: 8 }}>
+        <span style={{
+          width: 6, height: 6, borderRadius: '50%',
+          background: '#4caf50',
+          boxShadow: '0 0 6px #4caf50',
+          flexShrink: 0,
+        }} />
+        <span style={{ fontSize: 6, color: 'rgba(200,155,60,0.5)', whiteSpace: 'nowrap' }}>
+          Live
+        </span>
+      </div>
     </div>
   )
 }
