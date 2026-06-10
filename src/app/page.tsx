@@ -5,7 +5,6 @@ import AccountShield from '@/components/AccountShield'
 import HomepageBlockRenderer from '@/components/HomepageBlockRenderer'
 import type { PageBlock } from '@/types/builder'
 import { migrateExistingSections } from '@/lib/builder-migration'
-import Link from 'next/link'
 import { Phone, Mail, FileText } from 'lucide-react'
 
 
@@ -27,7 +26,6 @@ export default async function Home() {
   let garretTotalLevel = 9
   let garretXpBar = { currentXp: 0, neededXp: 100, percent: 0 }
   let garretTotalXpRaw = 0
-  const garretSkillLevels: Record<string, number> = {}
   let dbProjects: Array<{ id: string; icon: string; title: string; desc: string; progress: number; href: string; updated: string }> = []
   let currentUserXp = 0
   let currentUserLevel = 1
@@ -77,17 +75,33 @@ export default async function Home() {
       } catch { /* migration failed silently */ }
     }
 
+    // Auto-add communities block if not yet present
+    if (homeBlocks.length > 0 && !homeBlocks.some((b: PageBlock) => b.type === 'communities')) {
+      try {
+        await (prisma as any).pageBlock.create({
+          data: {
+            pageSlug: 'home', type: 'communities', order: 1000,
+            colSpan: 2, colStart: 1, visible: true,
+            config: JSON.stringify({ heading: 'Communities' }),
+            styles: JSON.stringify({}),
+          }
+        })
+        const withComm = await (prisma as any).pageBlock.findMany({
+          where: { pageSlug: 'home', visible: true },
+          orderBy: { order: 'asc' },
+        })
+        homeBlocks = parseBlocks(withComm)
+      } catch {}
+    }
+
     const adminUser = await prisma.user.findFirst({
       where: { role: 'ADMIN' },
-      select: { skills: { select: { xp: true, skill: true } } },
+      select: { skills: { select: { xp: true } } },
     })
     if (adminUser?.skills?.length) {
       garretTotalLevel = adminUser.skills.reduce((s: number, sk: { xp: number }) => s + xpToLevel(sk.xp), 0)
       garretTotalXpRaw = adminUser.skills.reduce((s: number, sk: { xp: number }) => s + sk.xp, 0)
       garretXpBar = xpProgress(garretTotalXpRaw)
-      for (const sk of adminUser.skills as { xp: number; skill: string }[]) {
-        garretSkillLevels[sk.skill] = xpToLevel(sk.xp)
-      }
     }
 
     recentPosts = await (prisma as any).post.findMany({
@@ -273,7 +287,7 @@ export default async function Home() {
           </div>
 
           {/* ── MOBILE: premium centered layout ──────────────────── */}
-          <div className="sm:hidden flex flex-col" style={{ gap: 20 }}>
+          <div className="sm:hidden flex flex-col" style={{ gap: 16 }}>
 
             {/* Photo — centered focal point */}
             <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -309,7 +323,7 @@ export default async function Home() {
             <div style={{ height: 1, background: 'linear-gradient(90deg, transparent 0%, rgba(200,155,60,0.5) 25%, rgba(200,155,60,0.5) 75%, transparent 100%)' }} />
 
             {/* Stats — 1 per row, label left / number right */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {([
                 { value: totalUsers,       label: 'Members' },
                 { value: totalPosts,        label: 'Posts' },
@@ -317,12 +331,12 @@ export default async function Home() {
               ] as const).map(stat => (
                 <div key={stat.label} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '14px 18px',
+                  padding: '10px 14px',
                   background: 'rgba(200,155,60,0.07)',
                   border: '1px solid rgba(200,155,60,0.22)',
                 }}>
-                  <span style={{ fontSize: 9, color: '#7a6040', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: "'Press Start 2P', monospace" }}>{stat.label}</span>
-                  <span className="body-text" style={{ fontSize: 28, fontWeight: 700, color: '#c89b3c', lineHeight: 1 }}>{stat.value}</span>
+                  <span style={{ fontSize: 8, color: '#7a6040', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: "'Press Start 2P', monospace" }}>{stat.label}</span>
+                  <span className="body-text" style={{ fontSize: 20, fontWeight: 700, color: '#c89b3c', lineHeight: 1 }}>{stat.value}</span>
                 </div>
               ))}
             </div>
@@ -345,49 +359,49 @@ export default async function Home() {
             <div style={{ height: 1, background: 'linear-gradient(90deg, transparent 0%, rgba(200,155,60,0.4) 25%, rgba(200,155,60,0.4) 75%, transparent 100%)' }} />
 
             {/* Contact — 1 per row */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
 
               <a href={`tel:${contactPhone.replace(/\D/g, '')}`}
-                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 14px', background: 'rgba(200,155,60,0.08)', border: '1px solid rgba(200,155,60,0.22)', textDecoration: 'none', borderRadius: 3 }}>
-                <div style={{ width: 38, height: 38, flexShrink: 0, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(200,155,60,0.15)', border: '1px solid rgba(200,155,60,0.35)' }}>
-                  <Phone size={16} color="#c89b3c" strokeWidth={1.7} />
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'rgba(200,155,60,0.08)', border: '1px solid rgba(200,155,60,0.22)', textDecoration: 'none', borderRadius: 3 }}>
+                <div style={{ width: 34, height: 34, flexShrink: 0, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(200,155,60,0.15)', border: '1px solid rgba(200,155,60,0.35)' }}>
+                  <Phone size={14} color="#c89b3c" strokeWidth={1.7} />
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 8, color: '#6a5030', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3, fontFamily: "'Press Start 2P', monospace" }}>Phone</div>
+                  <div style={{ fontSize: 7, color: '#6a5030', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2, fontFamily: "'Press Start 2P', monospace" }}>Phone</div>
                   <div className="body-text" style={{ fontSize: 11, color: '#f0dc90', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{contactPhone}</div>
                 </div>
               </a>
 
               <a href={`mailto:${contactEmail}`}
-                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 14px', background: 'rgba(60,110,200,0.08)', border: '1px solid rgba(60,110,200,0.22)', textDecoration: 'none', borderRadius: 3 }}>
-                <div style={{ width: 38, height: 38, flexShrink: 0, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(60,110,200,0.15)', border: '1px solid rgba(60,110,200,0.35)' }}>
-                  <Mail size={16} color="#7090c8" strokeWidth={1.7} />
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'rgba(60,110,200,0.08)', border: '1px solid rgba(60,110,200,0.22)', textDecoration: 'none', borderRadius: 3 }}>
+                <div style={{ width: 34, height: 34, flexShrink: 0, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(60,110,200,0.15)', border: '1px solid rgba(60,110,200,0.35)' }}>
+                  <Mail size={14} color="#7090c8" strokeWidth={1.7} />
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 8, color: '#6a5030', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3, fontFamily: "'Press Start 2P', monospace" }}>Email</div>
+                  <div style={{ fontSize: 7, color: '#6a5030', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2, fontFamily: "'Press Start 2P', monospace" }}>Email</div>
                   <div className="body-text" style={{ fontSize: 10, color: '#f0dc90', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{contactEmail}</div>
                 </div>
               </a>
 
               <a href={`https://www.linkedin.com/in/${contactLinkedin}`} target="_blank" rel="noopener noreferrer"
-                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 14px', background: 'rgba(0,90,200,0.08)', border: '1px solid rgba(0,90,200,0.22)', textDecoration: 'none', borderRadius: 3 }}>
-                <div style={{ width: 38, height: 38, flexShrink: 0, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,90,200,0.15)', border: '1px solid rgba(0,90,200,0.35)' }}>
-                  <span style={{ fontFamily: 'Georgia, serif', fontWeight: 900, color: '#4a88d0', fontSize: 16, lineHeight: 1, userSelect: 'none' }}>in</span>
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'rgba(0,90,200,0.08)', border: '1px solid rgba(0,90,200,0.22)', textDecoration: 'none', borderRadius: 3 }}>
+                <div style={{ width: 34, height: 34, flexShrink: 0, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,90,200,0.15)', border: '1px solid rgba(0,90,200,0.35)' }}>
+                  <span style={{ fontFamily: 'Georgia, serif', fontWeight: 900, color: '#4a88d0', fontSize: 14, lineHeight: 1, userSelect: 'none' }}>in</span>
                 </div>
                 <div>
-                  <div style={{ fontSize: 8, color: '#6a5030', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3, fontFamily: "'Press Start 2P', monospace" }}>LinkedIn</div>
-                  <div className="body-text" style={{ fontSize: 11, color: '#f0dc90', fontWeight: 700 }}>/{contactLinkedin}</div>
+                  <div style={{ fontSize: 7, color: '#6a5030', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2, fontFamily: "'Press Start 2P', monospace" }}>LinkedIn</div>
+                  <div className="body-text" style={{ fontSize: 10, color: '#f0dc90', fontWeight: 700 }}>/{contactLinkedin}</div>
                 </div>
               </a>
 
               <a href="/resume"
-                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 14px', background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.28)', textDecoration: 'none', borderRadius: 3 }}>
-                <div style={{ width: 38, height: 38, flexShrink: 0, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(200,155,60,0.2)', border: '1px solid rgba(200,155,60,0.4)' }}>
-                  <FileText size={16} color="#c89b3c" strokeWidth={1.7} />
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.28)', textDecoration: 'none', borderRadius: 3 }}>
+                <div style={{ width: 34, height: 34, flexShrink: 0, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(200,155,60,0.2)', border: '1px solid rgba(200,155,60,0.4)' }}>
+                  <FileText size={14} color="#c89b3c" strokeWidth={1.7} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 8, color: '#6a5030', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3, fontFamily: "'Press Start 2P', monospace" }}>Resume</div>
-                  <div className="body-text" style={{ fontSize: 11, color: '#f0dc90', fontWeight: 700 }}>View / Download</div>
+                  <div style={{ fontSize: 7, color: '#6a5030', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2, fontFamily: "'Press Start 2P', monospace" }}>Resume</div>
+                  <div className="body-text" style={{ fontSize: 10, color: '#f0dc90', fontWeight: 700 }}>View / Download</div>
                 </div>
               </a>
             </div>
@@ -419,60 +433,6 @@ export default async function Home() {
         quests={quests}
       />
 
-      {/* ── Communities section ────────────────────────────────── */}
-      {(() => {
-        const CHANNELS = [
-          { icon: '❤️', label: 'Health',      href: '/skills/health',    dbEnum: 'HEALTH',    bg: '#5a1414' },
-          { icon: '⚒️', label: 'Projects',    href: '/skills/projects',  dbEnum: 'PROJECTS',  bg: '#382e0e' },
-          { icon: '💼', label: 'Business',    href: '/skills/business',  dbEnum: 'BUSINESS',  bg: '#1c2e10' },
-          { icon: '👥', label: 'Community',   href: '/skills/community', dbEnum: 'COMMUNITY', bg: '#181e4a' },
-          { icon: '🎣', label: 'Fishing',     href: '/skills/fishing',   dbEnum: 'FISHING',   bg: '#0e2c48' },
-          { icon: '🍳', label: 'Food & Wine', href: '/skills/food',      dbEnum: 'FOOD',      bg: '#4e2006' },
-          { icon: '🌱', label: 'Gardening',   href: '/skills/gardening', dbEnum: 'GARDENING', bg: '#0e3810' },
-          { icon: '🗺️', label: 'Travel',      href: '/skills/travel',    dbEnum: 'TRAVEL',    bg: '#382808' },
-          { icon: '🎮', label: 'Games',       href: '/skills/fun',       dbEnum: 'FUN',       bg: '#320c4a' },
-          { icon: '⚔️', label: 'Quests',      href: '/quests',           dbEnum: '',          bg: '#2a1a06' },
-        ]
-        return (
-          <div className="rp-card">
-            {/* Header */}
-            <div className="flex items-center gap-3" style={{ marginBottom: 18 }}>
-              <div style={{
-                width: 38, height: 38, borderRadius: 10, flexShrink: 0,
-                background: 'linear-gradient(135deg, #3a2008 0%, #1a0c04 100%)',
-                border: '2px solid rgba(200,155,60,0.4)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
-              }}>⚔️</div>
-              <div>
-                <div style={{ fontSize: 9, color: 'var(--gold)', fontWeight: 700, lineHeight: 1, marginBottom: 4 }}>Communities</div>
-                <div className="body-text" style={{ fontSize: 10, color: 'var(--text-2)' }}>Post, earn XP, and level up your skills</div>
-              </div>
-            </div>
-
-            {/* 1-col on mobile, 2-col on sm+, 3-col on md+ */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3" style={{ gap: 8 }}>
-              {CHANNELS.map(ch => (
-                <Link key={ch.href} href={ch.href} className="community-card">
-                  <div style={{
-                    width: 40, height: 40, flexShrink: 0,
-                    background: ch.bg, borderRadius: 10,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 18, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)',
-                  }}>{ch.icon}</div>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 8, fontWeight: 700, color: 'var(--text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.35, marginBottom: 3 }}>
-                      {ch.label}
-                    </div>
-                    <div style={{ fontSize: 7, color: 'var(--text-3)', fontFamily: "'Press Start 2P', monospace" }}>
-                      {ch.dbEnum ? `Lv ${garretSkillLevels[ch.dbEnum] ?? 1}` : 'Active'}
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )
-      })()}
 
     </div>
   )

@@ -12,6 +12,7 @@ import DividerBlock from './blocks/DividerBlock'
 import QuestListBlock from './blocks/QuestListBlock'
 import SkillCardBlock from './blocks/SkillCardBlock'
 import ContactCardBlock from './blocks/ContactCardBlock'
+import CommunitiesBlock from './blocks/CommunitiesBlock'
 
 interface Props {
   block: PageBlock
@@ -36,6 +37,7 @@ export default function BlockRenderer({ block, isEditing = false, liveData = {},
     case 'quest-list':     return <QuestListBlock      {...sharedProps} />
     case 'skill-card':     return <SkillCardBlock      {...sharedProps} />
     case 'contact-card':   return <ContactCardBlock    {...sharedProps} />
+    case 'communities':    return <CommunitiesBlock    {...sharedProps} />
     default:               return <div style={{ padding: 12, color: 'var(--text-3)', fontSize: 8 }}>Unknown block: {block.type}</div>
   }
 }

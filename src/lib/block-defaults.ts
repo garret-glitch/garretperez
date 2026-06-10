@@ -14,6 +14,7 @@ export const BLOCK_META: Record<BlockType, { label: string; icon: string; descri
   'quest-list':     { label: 'Quest List',      icon: '⚔️', description: 'Active quests' },
   'skill-card':     { label: 'Skill Card',      icon: '🎯', description: 'Skill level + XP bar' },
   'contact-card':   { label: 'Contact Card',    icon: '📇', description: 'Phone, email, LinkedIn' },
+  'communities':    { label: 'Communities',     icon: '⚔️', description: 'All skill channel links' },
 }
 
 export function getDefaultConfig(type: BlockType): AnyBlockConfig {
@@ -51,6 +52,8 @@ export function getDefaultConfig(type: BlockType): AnyBlockConfig {
       return { skillKey: 'PROJECTS', showXp: true, showLevel: true }
     case 'contact-card':
       return { showPhone: true, showEmail: true, showLinkedin: true, showResume: true, variant: 'full' }
+    case 'communities':
+      return { heading: 'Communities' }
   }
 }
 

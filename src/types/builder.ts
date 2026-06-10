@@ -13,6 +13,7 @@ export type BlockType =
   | 'quest-list'
   | 'skill-card'
   | 'contact-card'
+  | 'communities'
 
 // ─── Per-type config shapes ───────────────────────────────────────────────────
 export interface AboutBubble {
@@ -110,6 +111,10 @@ export interface ContactCardBlockConfig {
   variant: 'full' | 'compact' | 'icons-only'
 }
 
+export interface CommunitiesBlockConfig {
+  heading: string
+}
+
 export type AnyBlockConfig =
   | AboutBlockConfig
   | ProjectsListBlockConfig
@@ -124,6 +129,7 @@ export type AnyBlockConfig =
   | QuestListBlockConfig
   | SkillCardBlockConfig
   | ContactCardBlockConfig
+  | CommunitiesBlockConfig
 
 // ─── Styles (applies to every block type) ────────────────────────────────────
 export interface BlockStyles {

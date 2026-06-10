@@ -4,7 +4,7 @@ import { BLOCK_META } from '@/lib/block-defaults'
 
 const CATEGORIES = [
   { label: 'Content', types: ['heading', 'text', 'image', 'button', 'divider'] as BlockType[] },
-  { label: 'Dynamic', types: ['about', 'projects-list', 'community-feed', 'achievements', 'xp-guide', 'quest-list'] as BlockType[] },
+  { label: 'Dynamic', types: ['about', 'projects-list', 'community-feed', 'achievements', 'xp-guide', 'quest-list', 'communities'] as BlockType[] },
   { label: 'Components', types: ['skill-card', 'contact-card'] as BlockType[] },
 ]
 
