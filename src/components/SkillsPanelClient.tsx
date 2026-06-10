@@ -12,13 +12,14 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import {
   Heart, Hammer, Briefcase, Users, Fish, Wine, Leaf, Compass, Gamepad2,
-  GripVertical, Home,
+  GripVertical, Home, Scroll,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 export type ChanKey =
   | 'HEALTH' | 'PROJECTS' | 'BUSINESS' | 'COMMUNITY'
   | 'FISHING' | 'FOOD' | 'GARDENING' | 'TRAVEL' | 'FUN'
+  | 'QUESTS'
 
 const CHAN: Record<ChanKey, { label: string; Icon: LucideIcon; bg: string; href: string }> = {
   HEALTH:    { label: 'Health',      Icon: Heart,     bg: '#5a1414', href: '/skills/health' },
@@ -30,11 +31,12 @@ const CHAN: Record<ChanKey, { label: string; Icon: LucideIcon; bg: string; href:
   GARDENING: { label: 'Gardening',   Icon: Leaf,      bg: '#0e3810', href: '/skills/gardening' },
   TRAVEL:    { label: 'Adventure',   Icon: Compass,   bg: '#382808', href: '/skills/travel' },
   FUN:       { label: 'Games',       Icon: Gamepad2,  bg: '#320c4a', href: '/skills/fun' },
+  QUESTS:    { label: 'Quests',      Icon: Scroll,    bg: '#2a1a06', href: '/quests' },
 }
 
 export const DEFAULT_CHAN_ORDER: ChanKey[] = [
   'HEALTH', 'PROJECTS', 'BUSINESS', 'COMMUNITY',
-  'FISHING', 'FOOD', 'GARDENING', 'TRAVEL', 'FUN',
+  'FISHING', 'FOOD', 'GARDENING', 'TRAVEL', 'FUN', 'QUESTS',
 ]
 
 // ── Single draggable channel row ──────────────────────────────────────────────
@@ -109,20 +111,22 @@ function ChannelRow({
           {cfg.label}
         </span>
 
-        {/* Level badge */}
-        <span style={{
-          flexShrink: 0,
-          background: 'rgba(200,155,60,0.13)',
-          border: '1px solid rgba(200,155,60,0.32)',
-          borderRadius: 4,
-          padding: '2px 5px',
-          fontSize: 5.5,
-          fontFamily: "'Press Start 2P', monospace",
-          color: '#c89b3c',
-          letterSpacing: '0.03em',
-        }}>
-          LVL {level}
-        </span>
+        {/* Level badge — hidden for non-skill channels like Quests */}
+        {id !== 'QUESTS' && (
+          <span style={{
+            flexShrink: 0,
+            background: 'rgba(200,155,60,0.13)',
+            border: '1px solid rgba(200,155,60,0.32)',
+            borderRadius: 4,
+            padding: '2px 5px',
+            fontSize: 5.5,
+            fontFamily: "'Press Start 2P', monospace",
+            color: '#c89b3c',
+            letterSpacing: '0.03em',
+          }}>
+            LVL {level}
+          </span>
+        )}
 
         {/* Post count — admin only */}
         {isAdmin && postCount > 0 && (
