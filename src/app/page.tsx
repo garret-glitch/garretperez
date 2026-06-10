@@ -222,26 +222,6 @@ export default async function Home() {
                 Login and use the site to earn XP.
               </p>
 
-              {/* XP example chips */}
-              <div className="flex flex-wrap gap-1.5">
-                {[
-                  { icon: '🌅', text: '+10 Daily Login' },
-                  { icon: '💬', text: '+5 Visit Community' },
-                  { icon: '🎮', text: '+25 Game Win' },
-                  { icon: '📝', text: '+50 Post' },
-                ].map(e => (
-                  <span key={e.text} className="body-text" style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 4,
-                    fontSize: 7, color: '#78b838',
-                    background: 'rgba(80,160,40,0.08)',
-                    border: '1px solid rgba(80,160,40,0.2)',
-                    padding: '2px 7px',
-                  }}>
-                    {e.icon} {e.text}
-                  </span>
-                ))}
-              </div>
-
               {/* Mobile contact icons */}
               <div className="sm:hidden flex items-center justify-around gap-2 mt-4">
                 {[
