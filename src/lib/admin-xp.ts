@@ -10,8 +10,9 @@ export async function mirrorXpToAdmin(skill: SkillType, xp: number, excludeUserI
   })
   if (!admin || admin.id === excludeUserId) return
 
-  await prisma.userSkill.update({
+  await prisma.userSkill.upsert({
     where: { userId_skill: { userId: admin.id, skill } },
-    data: { xp: { increment: xp } },
+    create: { userId: admin.id, skill, xp },
+    update: { xp: { increment: xp } },
   })
 }

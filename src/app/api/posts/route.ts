@@ -35,9 +35,10 @@ export async function POST(req: Request) {
           ...(imageUrl ? { imageUrl } : {}),
         },
       }),
-      prisma.userSkill.update({
+      prisma.userSkill.upsert({
         where: { userId_skill: { userId: session.user.id, skill: skill as SkillType } },
-        data: { xp: { increment: xpAmount } },
+        create: { userId: session.user.id, skill: skill as SkillType, xp: xpAmount },
+        update: { xp: { increment: xpAmount } },
       }),
     ])
 

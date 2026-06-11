@@ -30,9 +30,10 @@ export async function POST(req: Request) {
       },
     })
 
-    await prisma.userSkill.update({
+    await prisma.userSkill.upsert({
       where: { userId_skill: { userId: session.user.id, skill: post.skill } },
-      data: { xp: { increment: xpAmount } },
+      create: { userId: session.user.id, skill: post.skill, xp: xpAmount },
+      update: { xp: { increment: xpAmount } },
     })
 
     await mirrorXpToAdmin(post.skill, xpAmount, session.user.id)
