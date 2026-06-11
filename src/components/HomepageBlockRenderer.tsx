@@ -12,13 +12,11 @@ export default function HomepageBlockRenderer({ blocks, ...liveData }: Props) {
   if (!renderBlocks.length) return null
 
   return (
-    <div
-      className="content-grid"
-      style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}
-    >
+    <div className="content-grid">
       {renderBlocks.map(block => (
         <div
           key={block.id}
+          className={`mobile-block-${block.type}`}
           style={{
             gridColumn: block.colSpan === 3 ? '1 / -1' : `span ${block.colSpan}`,
             overflow: 'visible',

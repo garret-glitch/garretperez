@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { xpToLevel, xpProgress } from '@/lib/xp'
 import AccountShield from '@/components/AccountShield'
 import HomepageBlockRenderer from '@/components/HomepageBlockRenderer'
+import SkillsPanel from '@/components/SkillsPanel'
 import type { PageBlock, HeroBlockConfig } from '@/types/builder'
 import { migrateExistingSections } from '@/lib/builder-migration'
 import { Phone, Mail, FileText } from 'lucide-react'
@@ -438,6 +439,10 @@ export default async function Home() {
         quests={quests}
       />
 
+      {/* ─── Mobile-only: full skills panel at bottom ────────── */}
+      <div className="md:hidden mobile-skills-panel">
+        <SkillsPanel />
+      </div>
 
     </div>
   )

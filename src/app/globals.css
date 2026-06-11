@@ -507,7 +507,7 @@ a { color: inherit; text-decoration: none; }
 }
 @media (min-width: 768px) {
   .content-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, 1fr);
     align-items: start;
   }
 }
@@ -683,6 +683,30 @@ a { color: inherit; text-decoration: none; }
 
   /* Make Inter body text comfortably readable */
   .body-text { font-size: 16px; line-height: 1.75; }
+
+  /* ─── Mobile homepage block ordering ──────────────────────── */
+  /* Force single column regardless of colSpan */
+  .content-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .content-grid > div {
+    grid-column: span 1 !important;
+    order: 99;
+  }
+  /* Named order — hero row stays above, then blocks in desired sequence */
+  .content-grid > .mobile-block-about          { order: 1; }
+  .content-grid > .mobile-block-projects-list  { order: 2; }
+  .content-grid > .mobile-block-xp-guide       { order: 3; }
+  .content-grid > .mobile-block-community-feed { order: 4; }
+  .content-grid > .mobile-block-achievements   { order: 5; }
+
+  /* ─── Mobile skills panel — full width override ─────────── */
+  .mobile-skills-panel aside {
+    width: 100% !important;
+    flex: none !important;
+    border-right: none !important;
+    border-top: 2px solid #5a3818;
+  }
 }
 
 /* Scrollbar */
