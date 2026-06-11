@@ -276,15 +276,14 @@ export default async function Home() {
 
               {/* Resume — focal CTA */}
               <a href="/resume"
-                className="flex items-center justify-center gap-3 hover:brightness-110 transition-all"
+                className="body-text flex items-center justify-center gap-3 hover:brightness-110 transition-all"
                 style={{
                   background: 'linear-gradient(135deg, #1e1608 0%, #2a1e0c 100%)',
-                  color: '#e8c060',
+                  color: '#f5e8c0',
                   border: '1.5px solid rgba(200,155,60,0.6)',
-                  fontFamily: "'Press Start 2P', monospace",
-                  fontSize: 9, fontWeight: 700,
+                  fontSize: 14, fontWeight: 700,
                   padding: '15px', marginTop: 12,
-                  textDecoration: 'none', letterSpacing: '0.04em',
+                  textDecoration: 'none', letterSpacing: '0.02em',
                   boxShadow: '0 0 18px rgba(200,155,60,0.25)',
                   display: 'flex',
                 }}>
@@ -412,8 +411,8 @@ export default async function Home() {
               {/* Resume — focal CTA */}
               <a href="/resume"
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '15px', background: 'linear-gradient(135deg, #1e1608 0%, #2a1e0c 100%)', border: '1.5px solid rgba(200,155,60,0.6)', textDecoration: 'none', boxShadow: '0 0 18px rgba(200,155,60,0.25)', marginTop: 2 }}>
-                <FileText size={17} color="#e8c060" strokeWidth={2.2} />
-                <span style={{ fontSize: 9, color: '#e8c060', fontFamily: "'Press Start 2P', monospace", fontWeight: 700, letterSpacing: '0.04em' }}>View Resume</span>
+                <FileText size={17} color="#f5e8c0" strokeWidth={2.2} />
+                <span className="body-text" style={{ fontSize: 14, color: '#f5e8c0', fontWeight: 700, letterSpacing: '0.02em' }}>View Resume</span>
               </a>
             </div>
           </div>
