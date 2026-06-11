@@ -1,5 +1,6 @@
 // ─── Block type registry ─────────────────────────────────────────────────────
 export type BlockType =
+  | 'hero'
   | 'about'
   | 'projects-list'
   | 'community-feed'
@@ -16,6 +17,14 @@ export type BlockType =
   | 'communities'
 
 // ─── Per-type config shapes ───────────────────────────────────────────────────
+export interface HeroBlockConfig {
+  heroTitle: string
+  heroLocation: string
+  contactPhone: string
+  contactEmail: string
+  contactLinkedin: string
+}
+
 export interface AboutBubble {
   id: string
   content: string
@@ -116,6 +125,7 @@ export interface CommunitiesBlockConfig {
 }
 
 export type AnyBlockConfig =
+  | HeroBlockConfig
   | AboutBlockConfig
   | ProjectsListBlockConfig
   | CommunityFeedBlockConfig
@@ -186,6 +196,12 @@ export interface BlockLiveData {
   contactEmail?: string
   contactLinkedin?: string
   quests?: Array<{ id: string; icon: string; title: string; description: string; xp: number; skill: string; href: string }>
+  // Hero-specific live data (used in builder preview)
+  heroHeadshot?: string
+  heroTotalMembers?: number
+  heroTotalPosts?: number
+  heroGarretLevel?: number
+  heroGarretXpBar?: { currentXp: number; neededXp: number; percent: number }
 }
 
 // ─── Builder UI state ─────────────────────────────────────────────────────────

@@ -7,14 +7,16 @@ interface Props extends BlockLiveData {
 }
 
 export default function HomepageBlockRenderer({ blocks, ...liveData }: Props) {
-  if (!blocks.length) return null
+  // Hero blocks are rendered by page.tsx (alongside AccountShield), not here
+  const renderBlocks = blocks.filter(b => b.type !== 'hero')
+  if (!renderBlocks.length) return null
 
   return (
     <div
       className="content-grid"
       style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}
     >
-      {blocks.map(block => (
+      {renderBlocks.map(block => (
         <div
           key={block.id}
           style={{

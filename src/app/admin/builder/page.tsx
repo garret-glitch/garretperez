@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import BuilderClient from './BuilderClient'
 import type { PageBlock, BlockLiveData } from '@/types/builder'
+import { xpToLevel, xpProgress } from '@/lib/xp'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,6 +49,15 @@ export default async function BuilderPage() {
     orderBy: { order: 'asc' },
   })
 
+  const totalMembers = await prisma.user.count()
+  const totalPosts = await prisma.post.count()
+  const adminUser = await prisma.user.findFirst({
+    where: { role: 'ADMIN' },
+    select: { skills: { select: { xp: true } } },
+  })
+  const garretTotalXp = adminUser?.skills?.reduce((s: number, sk: { xp: number }) => s + sk.xp, 0) ?? 0
+  const garretTotalLevel = adminUser?.skills?.reduce((s: number, sk: { xp: number }) => s + xpToLevel(sk.xp), 0) ?? 9
+
   const liveData: BlockLiveData = {
     dbProjects,
     recentPosts: recentPosts.map((p: { createdAt: Date } & Record<string, unknown>) => ({ ...p, createdAt: p.createdAt.toISOString() })),
@@ -57,6 +67,11 @@ export default async function BuilderPage() {
     contactEmail: settingsMap.contact_email ?? 'gis.owner@gmail.com',
     contactLinkedin: settingsMap.contact_linkedin ?? 'garretperez',
     quests,
+    heroHeadshot: settingsMap.headshot ?? '',
+    heroTotalMembers: totalMembers,
+    heroTotalPosts: totalPosts,
+    heroGarretLevel: garretTotalLevel,
+    heroGarretXpBar: xpProgress(garretTotalXp),
   }
 
   return (

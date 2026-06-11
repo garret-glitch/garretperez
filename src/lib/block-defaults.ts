@@ -1,6 +1,7 @@
 import type { BlockType, AnyBlockConfig, BlockStyles } from '@/types/builder'
 
 export const BLOCK_META: Record<BlockType, { label: string; icon: string; description: string }> = {
+  'hero':           { label: 'Hero Panel',      icon: '🏠', description: 'Profile hero at top of page' },
   'about':          { label: 'About Me',       icon: '📜', description: 'Bio paragraphs about Garret' },
   'projects-list':  { label: 'Projects',        icon: '⚒️', description: 'Showcase active projects' },
   'community-feed': { label: 'Community Feed',  icon: '💬', description: 'Recent community posts' },
@@ -19,6 +20,14 @@ export const BLOCK_META: Record<BlockType, { label: string; icon: string; descri
 
 export function getDefaultConfig(type: BlockType): AnyBlockConfig {
   switch (type) {
+    case 'hero':
+      return {
+        heroTitle: 'Sales Supervisor · Builder · Family Man',
+        heroLocation: 'Houston, TX',
+        contactPhone: '(346) 604-1635',
+        contactEmail: 'gis.owner@gmail.com',
+        contactLinkedin: 'garretperez',
+      }
     case 'about':
       return {
         headingText: 'About Me', headingIcon: '📜',

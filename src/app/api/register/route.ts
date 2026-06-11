@@ -39,6 +39,18 @@ export async function POST(req: Request) {
       },
     })
 
+    // Award Garret XP for each new member joining
+    try {
+      const randomSkill = ALL_SKILLS[Math.floor(Math.random() * ALL_SKILLS.length)]
+      const admin = await prisma.user.findFirst({ where: { role: 'ADMIN' }, select: { id: true } })
+      if (admin) {
+        await prisma.userSkill.update({
+          where: { userId_skill: { userId: admin.id, skill: randomSkill } },
+          data: { xp: { increment: 25 } },
+        })
+      }
+    } catch { /* non-critical */ }
+
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Register error:', error)

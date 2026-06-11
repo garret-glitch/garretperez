@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { xpToLevel, xpProgress } from '@/lib/xp'
 import AccountShield from '@/components/AccountShield'
 import HomepageBlockRenderer from '@/components/HomepageBlockRenderer'
-import type { PageBlock } from '@/types/builder'
+import type { PageBlock, HeroBlockConfig } from '@/types/builder'
 import { migrateExistingSections } from '@/lib/builder-migration'
 import { Phone, Mail, FileText } from 'lucide-react'
 
@@ -73,6 +73,17 @@ export default async function Home() {
         })
         homeBlocks = parseBlocks(seeded)
       } catch { /* migration failed silently */ }
+    }
+
+    // If a hero block exists, its config overrides SiteSetting text fields
+    const heroBlock = homeBlocks.find(b => b.type === 'hero')
+    if (heroBlock) {
+      const hcfg = heroBlock.config as HeroBlockConfig
+      if (hcfg.heroTitle)       heroTitle       = hcfg.heroTitle
+      if (hcfg.heroLocation)    heroLocation    = hcfg.heroLocation
+      if (hcfg.contactPhone)    contactPhone    = hcfg.contactPhone
+      if (hcfg.contactEmail)    contactEmail    = hcfg.contactEmail
+      if (hcfg.contactLinkedin) contactLinkedin = hcfg.contactLinkedin
     }
 
 
@@ -206,7 +217,7 @@ export default async function Home() {
                   </div>
                 </div>
               </div>
-              <p className="body-text" style={{ fontSize: 7, color: 'var(--text-3)' }}>Earn XP by using the site.</p>
+              <p className="body-text" style={{ fontSize: 7, color: 'var(--text-3)' }}>Level grows as the community interacts.</p>
             </div>
 
             {/* Col 3 — Contact */}
@@ -334,7 +345,7 @@ export default async function Home() {
                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '45%', background: 'rgba(255,255,255,0.12)' }} />
                 </div>
               </div>
-              <p className="body-text" style={{ fontSize: 9, color: 'var(--text-3)', marginTop: 8, textAlign: 'center' }}>Earn XP by using the site.</p>
+              <p className="body-text" style={{ fontSize: 9, color: 'var(--text-3)', marginTop: 8, textAlign: 'center' }}>Level grows as the community interacts.</p>
             </div>
 
             {/* Gold divider */}

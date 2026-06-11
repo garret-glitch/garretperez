@@ -1,4 +1,5 @@
 import type { PageBlock, AnyBlockConfig, BlockLiveData } from '@/types/builder'
+import HeroBlock from './blocks/HeroBlock'
 import AboutBlock from './blocks/AboutBlock'
 import ProjectsListBlock from './blocks/ProjectsListBlock'
 import CommunityFeedBlock from './blocks/CommunityFeedBlock'
@@ -24,6 +25,7 @@ interface Props {
 export default function BlockRenderer({ block, isEditing = false, liveData = {}, onConfigChange }: Props) {
   const sharedProps = { block, isEditing, liveData, onConfigChange: onConfigChange as never }
   switch (block.type) {
+    case 'hero':           return <HeroBlock           {...sharedProps} />
     case 'about':          return <AboutBlock          {...sharedProps} />
     case 'projects-list':  return <ProjectsListBlock   {...sharedProps} />
     case 'community-feed': return <CommunityFeedBlock  {...sharedProps} />
