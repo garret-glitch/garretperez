@@ -73,6 +73,7 @@ const WINES = [
     id: 'matua',
     name: 'Matua Sauvignon Blanc',
     image: 'https://www.kenswineguide.com/images_wine/Matua-2023-Sauvignon-Blanc.gif',
+    noMask: true,
     origin: 'Marlborough, New Zealand',
     varietal: '100% Sauvignon Blanc',
     abv: '13%',
@@ -300,8 +301,10 @@ export default async function FoodPage() {
                     height: 210, width: 'auto', maxWidth: 140,
                     objectFit: 'contain', display: 'block',
                     filter: 'drop-shadow(0 12px 28px rgba(0,0,0,0.75)) drop-shadow(0 4px 8px rgba(0,0,0,0.5))',
-                    maskImage: 'radial-gradient(ellipse 46% 88% at 50% 48%, black 18%, transparent 68%)',
-                    WebkitMaskImage: 'radial-gradient(ellipse 46% 88% at 50% 48%, black 18%, transparent 68%)',
+                    ...(wine.noMask ? {} : {
+                      maskImage: 'radial-gradient(ellipse 46% 88% at 50% 48%, black 18%, transparent 68%)',
+                      WebkitMaskImage: 'radial-gradient(ellipse 46% 88% at 50% 48%, black 18%, transparent 68%)',
+                    }),
                     position: 'relative', zIndex: 1,
                   }}
                 />
