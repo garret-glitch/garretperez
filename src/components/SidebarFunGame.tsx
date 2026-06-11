@@ -9,15 +9,15 @@ const FRICTION = 0.994, MAX_SPD = 4.5, THRUST = 0.22, STAR_CNT = 3
 const IFRAME_DUR = 70
 
 const GAMES = [
-  { icon: '✦', label: 'Lumina', href: '/game' },
-  { icon: '🍷', label: 'Wine',   href: '/skills/fun/wine-trivia' },
-  { icon: '🃏', label: 'Cards',  href: '/skills/fun/matching' },
-  { icon: '🔵', label: 'Drag',   href: '/skills/fun/dragball' },
-  { icon: '⚽', label: 'Ball',   href: '/skills/fun/ballgame' },
-  { icon: '🐍', label: 'Snake',  href: '/skills/fun/snake' },
-  { icon: '🧱', label: 'Break',  href: '/skills/fun/breakout' },
-  { icon: '🦔', label: 'Mole',   href: '/skills/fun/whack-a-mole' },
-  { icon: '🏓', label: 'Pong',   href: '/skills/fun/pong' },
+  { icon: '✦',  label: 'Lumina', href: '/game',                    bg: 'linear-gradient(135deg,#2a1a4a,#1a1230)', glow: '#9060ff' },
+  { icon: '🍷', label: 'Wine',   href: '/skills/fun/wine-trivia',  bg: 'linear-gradient(135deg,#3a1020,#1a0810)', glow: '#c03050' },
+  { icon: '🃏', label: 'Cards',  href: '/skills/fun/matching',     bg: 'linear-gradient(135deg,#0a2a2a,#051818)', glow: '#30a090' },
+  { icon: '🔵', label: 'Drag',   href: '/skills/fun/dragball',     bg: 'linear-gradient(135deg,#0a1a38,#050e20)', glow: '#4090e0' },
+  { icon: '⚽', label: 'Ball',   href: '/skills/fun/ballgame',     bg: 'linear-gradient(135deg,#2a1a08,#180e04)', glow: '#c07830' },
+  { icon: '🐍', label: 'Snake',  href: '/skills/fun/snake',        bg: 'linear-gradient(135deg,#0a2a10,#051808)', glow: '#30a050' },
+  { icon: '🧱', label: 'Break',  href: '/skills/fun/breakout',     bg: 'linear-gradient(135deg,#1a1a0a,#0e0e04)', glow: '#c0a030' },
+  { icon: '🦔', label: 'Mole',   href: '/skills/fun/whack-a-mole', bg: 'linear-gradient(135deg,#2a1808,#180e04)', glow: '#b06830' },
+  { icon: '🏓', label: 'Pong',   href: '/skills/fun/pong',         bg: 'linear-gradient(135deg,#181828,#0e0e18)', glow: '#8080c0' },
 ]
 
 type Pt = { x: number; y: number }
@@ -272,24 +272,36 @@ export default function SidebarFunGame() {
         </div>
       </div>
 
-      {/* Game tabs — active route highlighted as "▶ playing" */}
-      <div className="px-2 pb-2 grid grid-cols-3 gap-1 shrink-0">
-        {GAMES.map(gm => {
-          const active = pathname === gm.href
-          return (
-            <Link key={gm.href} href={gm.href}
-              className="flex flex-col items-center gap-0.5 py-1.5 rounded transition-opacity hover:opacity-80"
-              style={{
-                background: active ? 'rgba(200,155,60,0.18)' : 'var(--bg-elevated)',
-                border: `1px solid ${active ? 'var(--gold)' : 'var(--border)'}`,
-              }}>
-              <span className="text-sm leading-none">{gm.icon}</span>
-              <span className="text-[5px]" style={{ color: active ? 'var(--gold)' : 'var(--text-3)' }}>
-                {active ? '▶ playing' : gm.label}
-              </span>
-            </Link>
-          )
-        })}
+      {/* Game tabs */}
+      <div className="px-2 pb-2 shrink-0">
+        <div className="text-[5px] px-0.5 pb-1.5 tracking-widest uppercase" style={{ color: 'var(--text-3)' }}>Games</div>
+        <div className="grid grid-cols-3 gap-1.5">
+          {GAMES.map(gm => {
+            const active = pathname === gm.href
+            return (
+              <Link key={gm.href} href={gm.href}
+                className="flex flex-col items-center gap-1 py-2 rounded-lg transition-all duration-150"
+                style={{
+                  background: active ? gm.bg.replace('135deg,', '135deg,').replace(')', ', rgba(255,255,255,0.04))') : gm.bg,
+                  border: `1px solid ${active ? gm.glow : 'rgba(255,255,255,0.06)'}`,
+                  boxShadow: active ? `0 0 10px ${gm.glow}55, inset 0 1px 0 rgba(255,255,255,0.08)` : 'inset 0 1px 0 rgba(255,255,255,0.04)',
+                  transform: active ? 'scale(1.04)' : 'scale(1)',
+                }}>
+                <span style={{ fontSize: 16, lineHeight: 1, filter: active ? `drop-shadow(0 0 4px ${gm.glow})` : 'none' }}>
+                  {gm.icon}
+                </span>
+                <span style={{
+                  fontSize: '5.5px',
+                  letterSpacing: '0.03em',
+                  color: active ? '#fff' : 'rgba(160,152,128,0.7)',
+                  fontWeight: active ? 600 : 400,
+                }}>
+                  {gm.label}
+                </span>
+              </Link>
+            )
+          })}
+        </div>
       </div>
 
       {/* Cool Items + Cool People — under Games & Entertainment */}
