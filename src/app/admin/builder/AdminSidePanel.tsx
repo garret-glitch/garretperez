@@ -438,7 +438,7 @@ function SettingsTab() {
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    if (file.size > 2 * 1024 * 1024) { flash('Photo must be under 2 MB.', false); return }
+    if (file.size > 4 * 1024 * 1024) { flash('Photo must be under 4 MB.', false); return }
     const reader = new FileReader()
     reader.onload = () => setPhotoPreview(reader.result as string)
     reader.readAsDataURL(file)

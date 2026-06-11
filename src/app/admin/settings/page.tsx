@@ -27,8 +27,8 @@ export default function AdminSettingsPage() {
   function handlePhotoFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    if (file.size > 2 * 1024 * 1024) {
-      showMsg('Photo must be under 2 MB.', 'err')
+    if (file.size > 4 * 1024 * 1024) {
+      showMsg('Photo must be under 4 MB.', 'err')
       return
     }
     const reader = new FileReader()
@@ -109,7 +109,7 @@ export default function AdminSettingsPage() {
       <div className="osrs-panel-dark rounded-xl space-y-3">
         <h2 className="text-[9px] font-bold" style={{ color: 'var(--text-1)' }}>Profile Photo</h2>
         <p className="text-[7px]" style={{ color: 'var(--text-2)' }}>
-          This photo appears on your homepage hero. Max 2 MB, JPG or PNG.
+          This photo appears on your homepage hero. Max 4 MB, JPG or PNG.
         </p>
         <div className="flex items-start gap-4">
           <div

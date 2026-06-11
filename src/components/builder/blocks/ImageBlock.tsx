@@ -60,7 +60,7 @@ export default function ImageBlock({ block, isEditing, onConfigChange }: Props) 
           }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>🖼️</div>
           <p style={{ fontSize: 8, color: 'var(--text-2)' }}>Click to upload image</p>
-          <p style={{ fontSize: 7, color: 'var(--text-3)', marginTop: 4 }}>PNG, JPG, GIF up to 2MB</p>
+          <p style={{ fontSize: 7, color: 'var(--text-3)', marginTop: 4 }}>PNG, JPG, GIF up to 4MB</p>
         </div>
       ) : null}
       {isEditing && (

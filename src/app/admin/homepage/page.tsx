@@ -111,8 +111,8 @@ export default function AdminHomepagePage() {
   function handlePhotoFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    if (file.size > 2 * 1024 * 1024) {
-      showMsg('Photo must be under 2 MB.', 'err')
+    if (file.size > 4 * 1024 * 1024) {
+      showMsg('Photo must be under 4 MB.', 'err')
       return
     }
     const reader = new FileReader()
@@ -188,7 +188,7 @@ export default function AdminHomepagePage() {
           </div>
           <div className="flex-1 space-y-2">
             <p className="text-[7px]" style={{ color: 'var(--text-2)' }}>
-              Upload a photo under 2 MB (JPG or PNG). Displays on your homepage hero.
+              Upload a photo under 4 MB (JPG or PNG). Displays on your homepage hero.
             </p>
             <label className="osrs-btn text-[7px] cursor-pointer inline-block">
               📁 Choose Photo
