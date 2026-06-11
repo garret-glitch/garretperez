@@ -16,21 +16,21 @@ interface Tick {
 const REFRESH_MS = 30_000
 
 const S = {
-  card:     '#14110d',
-  elevated: '#1c1610',
-  border:   'rgba(200,155,60,0.2)',
+  card:     '#1a1612',
+  elevated: '#201c16',
+  border:   'rgba(200,155,60,0.28)',
   gold:     '#c89b3c',
-  goldDim:  '#7a5a20',
+  goldDim:  '#a07838',
   text1:    '#f0e8d8',
-  text2:    '#b8986c',
-  text3:    '#7a5e3c',
-  text4:    '#4a3820',
+  text2:    '#c8a878',
+  text3:    '#9a7a50',
+  text4:    '#6a5030',
   up:       '#5abf72',
-  upBorder: 'rgba(60,175,90,0.3)',
-  upBg:     'rgba(50,140,70,0.04)',
+  upBorder: 'rgba(60,175,90,0.5)',
+  upBg:     'rgba(50,140,70,0.14)',
   down:     '#d46060',
-  downBorder:'rgba(190,60,60,0.3)',
-  downBg:   'rgba(160,40,40,0.05)',
+  downBorder:'rgba(190,60,60,0.5)',
+  downBg:   'rgba(160,40,40,0.14)',
 }
 
 function fmtPrice(price: number | null, key: string): string {
