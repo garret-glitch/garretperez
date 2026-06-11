@@ -7,6 +7,7 @@ import Link from 'next/link'
 import WineFavoriteButton from './WineFavoriteButton'
 import FoodRecipeForm from './FoodRecipeForm'
 import FoodPostForm from './FoodPostForm'
+import WineIdentifier from './WineIdentifier'
 
 export const dynamic = 'force-dynamic'
 
@@ -279,6 +280,22 @@ export default async function FoodPage() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* ── AI WINE IDENTIFIER ───────────────────────────────── */}
+      <div>
+        {/* Section header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
+          <div style={{ height: 1, flex: 1, background: 'rgba(200,155,60,0.15)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 16 }}>📸</span>
+            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: S.gold, letterSpacing: '0.1em' }}>
+              WINE IDENTIFIER
+            </span>
+          </div>
+          <div style={{ height: 1, flex: 1, background: 'rgba(200,155,60,0.15)' }} />
+        </div>
+        <WineIdentifier />
       </div>
 
       {/* ── RECIPE FORM ──────────────────────────────────────── */}
