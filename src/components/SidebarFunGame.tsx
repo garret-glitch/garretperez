@@ -9,6 +9,7 @@ const FRICTION = 0.994, MAX_SPD = 4.5, THRUST = 0.22, STAR_CNT = 3
 const IFRAME_DUR = 70
 
 const GAMES = [
+  { icon: '✦', label: 'Lumina', href: '/game' },
   { icon: '🍷', label: 'Wine',   href: '/skills/fun/wine-trivia' },
   { icon: '🃏', label: 'Cards',  href: '/skills/fun/matching' },
   { icon: '🔵', label: 'Drag',   href: '/skills/fun/dragball' },
