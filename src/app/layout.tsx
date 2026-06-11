@@ -9,6 +9,7 @@ export const viewport: Viewport = {
 import { auth } from '@/auth'
 import SkillsPanel from '@/components/SkillsPanel'
 import SiteHeader from '@/components/SiteHeader'
+import Footer from '@/components/Footer'
 import SessionProvider from '@/components/SessionProvider'
 import AdminFloatingBar from '@/components/AdminFloatingBar'
 import XpTracker from '@/components/XpTracker'
@@ -48,6 +49,7 @@ export default async function RootLayout({
                 {children}
               </main>
             </div>
+            <Footer />
           </div>
         </SessionProvider>
       </body>

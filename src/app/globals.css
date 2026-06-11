@@ -878,3 +878,8 @@ a { color: inherit; text-decoration: none; }
   box-shadow: 0 2px 14px rgba(74, 40, 8, 0.45);
   white-space: nowrap;
 }
+
+/* Footer link hover */
+.footer-link:hover {
+  color: #c89b3c !important;
+}
