@@ -31,7 +31,7 @@ export function getDefaultConfig(type: BlockType): AnyBlockConfig {
     case 'projects-list':
       return { heading: 'My Projects', icon: '⚒️', maxItems: 3, showViewAll: true }
     case 'community-feed':
-      return { heading: 'Community Feed', icon: '💬', maxItems: 8 }
+      return { heading: 'Community Feed', icon: '💬', maxItems: 2 }
     case 'achievements':
       return { heading: 'Achievements', icon: '🏆' }
     case 'xp-guide':
