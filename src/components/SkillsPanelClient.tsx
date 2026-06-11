@@ -41,10 +41,11 @@ export const DEFAULT_CHAN_ORDER: ChanKey[] = [
 
 // ── Single draggable channel row ──────────────────────────────────────────────
 function ChannelRow({
-  id, level, postCount, isAdmin, pathname,
+  id, level, communityLevel, postCount, isAdmin, pathname,
 }: {
   id: ChanKey
   level: number
+  communityLevel: number
   postCount: number
   isAdmin: boolean
   pathname: string
@@ -104,14 +105,19 @@ function ChannelRow({
           <cfg.Icon size={18} color="#dcc898" strokeWidth={1.6} />
         </span>
 
-        {/* Label */}
-        <span style={{
-          flex: 1, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
-          {cfg.label}
+        {/* Label + community level sub-label */}
+        <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 1 }}>
+          <span style={{ fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {cfg.label}
+          </span>
+          {id !== 'QUESTS' && communityLevel > 1 && (
+            <span style={{ fontSize: 8, color: '#6a5030', fontFamily: "'Press Start 2P', monospace", letterSpacing: '0.02em' }}>
+              ⚔ CL.{communityLevel}
+            </span>
+          )}
         </span>
 
-        {/* Level badge — hidden for non-skill channels like Quests */}
+        {/* Garret skill level badge — hidden for non-skill channels */}
         {id !== 'QUESTS' && (
           <span style={{
             flexShrink: 0,
@@ -143,12 +149,13 @@ function ChannelRow({
 interface Props {
   initialOrder: ChanKey[]
   levels: Record<string, number>
+  communityLevels: Record<string, number>
   postCounts: Record<string, number>
   isAdmin: boolean
 }
 
 export default function SkillsPanelClient({
-  initialOrder, levels, postCounts, isAdmin,
+  initialOrder, levels, communityLevels, postCounts, isAdmin,
 }: Props) {
   const [order, setOrder] = useState<ChanKey[]>(initialOrder)
   const pathname = usePathname()
@@ -209,6 +216,7 @@ export default function SkillsPanelClient({
               key={key}
               id={key}
               level={levels[key] ?? 1}
+              communityLevel={communityLevels[key] ?? 1}
               postCount={postCounts[key] ?? 0}
               isAdmin={isAdmin}
               pathname={pathname}

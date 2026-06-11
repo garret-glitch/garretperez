@@ -1,6 +1,7 @@
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { xpToLevel } from '@/lib/xp'
+import { getCommunityXpAll } from '@/lib/community-xp'
 import Link from 'next/link'
 import SidebarFunGame from './SidebarFunGame'
 import SkillsPanelClient, { DEFAULT_CHAN_ORDER, type ChanKey } from './SkillsPanelClient'
@@ -11,25 +12,27 @@ export default async function SkillsPanel() {
 
   const postCounts: Record<string, number> = {}
   const adminSkillLevels: Record<string, number> = {}
+  const communityLevels: Record<string, number> = {}
   let channelOrder: ChanKey[] = DEFAULT_CHAN_ORDER
 
   try {
-    const rows = await prisma.post.groupBy({ by: ['skill'], _count: { id: true } })
-    for (const r of rows) postCounts[r.skill] = r._count.id
+    const [postRows, adminUser, communityXpMap, orderSetting] = await Promise.all([
+      prisma.post.groupBy({ by: ['skill'], _count: { id: true } }),
+      prisma.user.findFirst({
+        where: { role: 'ADMIN' },
+        select: { skills: { select: { skill: true, xp: true } } },
+      }),
+      getCommunityXpAll(),
+      (prisma as any).siteSetting.findUnique({ where: { key: 'skills:order' } }),
+    ])
 
-    const adminUser = await prisma.user.findFirst({
-      where: { role: 'ADMIN' },
-      select: { skills: { select: { skill: true, xp: true } } },
-    })
+    for (const r of postRows) postCounts[r.skill] = r._count.id
     if (adminUser?.skills) {
-      for (const sk of adminUser.skills) {
-        adminSkillLevels[sk.skill] = xpToLevel(sk.xp)
-      }
+      for (const sk of adminUser.skills) adminSkillLevels[sk.skill] = xpToLevel(sk.xp)
     }
-
-    const orderSetting = await (prisma as any).siteSetting.findUnique({
-      where: { key: 'skills:order' },
-    })
+    for (const [skill, xp] of Object.entries(communityXpMap)) {
+      communityLevels[skill] = xpToLevel(xp as number)
+    }
     if (orderSetting?.value) {
       try {
         const parsed = JSON.parse(orderSetting.value)
@@ -63,6 +66,7 @@ export default async function SkillsPanel() {
           <SkillsPanelClient
             initialOrder={channelOrder}
             levels={adminSkillLevels}
+            communityLevels={communityLevels}
             postCounts={isAdmin ? postCounts : {}}
             isAdmin={isAdmin}
           />
