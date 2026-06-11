@@ -44,8 +44,14 @@ export default function AccountShield({ username, level, xp, xpPercent, isLogged
 
   return (
     <div
-      className="sm:shrink-0 mx-auto sm:mx-0 shield-separator"
-      style={{ width: 240, background: 'transparent', display: 'flex', flexDirection: 'column' }}
+      className="sm:shrink-0 mx-auto sm:mx-0"
+      style={{
+        width: 240,
+        background: 'linear-gradient(160deg, #181410 0%, #201c14 55%, #181410 100%)',
+        border: '2px solid rgba(200,155,60,0.42)',
+        boxShadow: '0 6px 36px rgba(0,0,0,0.65), inset 0 0 0 1px rgba(200,155,60,0.08)',
+        display: 'flex', flexDirection: 'column',
+      }}
     >
 
       {/* ── Banner ─────────────────────────────────────────── */}
