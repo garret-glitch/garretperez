@@ -57,6 +57,69 @@ export default async function FoodPage() {
         )}
       </div>
 
+      {/* ── Featured Wine ───────────────────────────────── */}
+      <div className="osrs-panel-dark rounded-xl" style={{ padding: '14px 16px' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+          <span style={{ fontSize: 14 }}>🍷</span>
+          <span style={{ fontSize: 7, color: '#c89b3c', fontFamily: "'Press Start 2P', monospace", textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+            Featured Wine
+          </span>
+        </div>
+
+        {/* Bottle + Info */}
+        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+          <img
+            src="https://www.wolfexpressliquor.com/cdn/shop/files/50-LLANOESTACADOSWEETREDWINE750ML-Photoroom_d157d2f8-9c0d-4949-ae77-cce948e82bc8.jpg"
+            alt="Llano Estacado Sweet Red Wine"
+            style={{ width: 72, flexShrink: 0, objectFit: 'contain', display: 'block' }}
+          />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#f0d898', fontFamily: 'Inter, sans-serif', marginBottom: 3 }}>
+              Llano Estacado Sweet Red
+            </div>
+            <div style={{ fontSize: 9, color: '#9a7848', fontFamily: 'Inter, sans-serif', marginBottom: 8 }}>
+              Texas · Syrah, Merlot &amp; Cabernet Blend · 12.4% ABV
+            </div>
+            <p className="body-text" style={{ fontSize: 11, color: '#c8b890', lineHeight: 1.7, margin: 0 }}>
+              Alluring blackberry and cherry aromas lead into a medium-sweet palate with soft, round tannins and a hint of mint in the finish.
+              Rich plum in the glass, smooth on the palate — an approachable Texas red that bridges sweet whites and dry reds without compromise.
+              Under $11 and consistently one of the best values in the Lone Star state.
+            </p>
+          </div>
+        </div>
+
+        {/* Pairings */}
+        <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(200,155,60,0.2)' }}>
+          <div style={{ fontSize: 6.5, color: '#c89b3c', fontFamily: "'Press Start 2P', monospace", textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 9 }}>
+            Pairs Well With
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {[
+              '🦃 Turkey & Chicken',
+              '🥩 Brisket & Beef',
+              '🍕 Italian',
+              '🌶️ Tex-Mex',
+              '🧀 Cheese Boards',
+              '🍫 Dark Chocolate',
+            ].map(pair => (
+              <span
+                key={pair}
+                className="body-text"
+                style={{
+                  fontSize: 11, color: '#b09060',
+                  background: 'rgba(200,155,60,0.07)',
+                  border: '1px solid rgba(200,155,60,0.22)',
+                  padding: '4px 10px',
+                }}
+              >
+                {pair}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {session?.user ? (
         <RecipeForm />
       ) : (
