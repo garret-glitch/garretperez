@@ -145,7 +145,8 @@ export default function AccountShield({ username, level, xp, xpPercent, isLogged
       {/* ── Content ────────────────────────────────────────── */}
       <div style={{
         padding: '18px 18px 16px',
-        flex: 1, display: 'flex', flexDirection: 'column', gap: 14,
+        ...(isLoggedIn ? { flex: 1 } : {}),
+        display: 'flex', flexDirection: 'column', gap: 14,
       }}>
 
         {isLoggedIn ? (
@@ -186,56 +187,25 @@ export default function AccountShield({ username, level, xp, xpPercent, isLogged
                 <div style={{ height: '100%', width: `${xpPercent}%`, background: 'linear-gradient(90deg, #8a5c10, #c89b3c)', transition: 'width 0.6s ease' }} />
               </div>
             </div>
+
+            {/* Divider */}
+            <div style={{ height: 1, background: 'rgba(200,155,60,0.12)', flexShrink: 0 }} />
+
+            <button
+              onClick={() => signOut({ callbackUrl: '/' })}
+              style={{
+                width: '100%', padding: '10px 0',
+                background: 'transparent',
+                border: '1px solid rgba(200,155,60,0.28)',
+                color: '#8a7050', fontSize: 12, cursor: 'pointer',
+                fontFamily: 'Inter, sans-serif', fontWeight: 600,
+                letterSpacing: '0.01em',
+                transition: 'border-color 0.15s, color 0.15s',
+              }}
+            >
+              Sign Out
+            </button>
           </>
-        ) : (
-          <>
-            {/* Pitch */}
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#e8d080', marginBottom: 6, fontFamily: "'Cinzel', serif", letterSpacing: '0.03em' }}>
-                Join the Community
-              </div>
-              <div style={{ fontSize: 12, color: '#8a7050', fontFamily: 'Inter, sans-serif', lineHeight: 1.65 }}>
-                Earn XP, level up, and build your profile as you explore.
-              </div>
-            </div>
-
-            {/* Perks */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {[
-                { icon: '⚡', text: 'Earn XP by posting & playing' },
-                { icon: '⚔', text: 'Customize your banner theme'  },
-                { icon: '📊', text: 'Track your level & progress'  },
-              ].map(item => (
-                <div key={item.text} style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
-                  <span style={{ fontSize: 12, flexShrink: 0, marginTop: 1 }}>{item.icon}</span>
-                  <span style={{ fontSize: 11, color: '#9a8060', fontFamily: 'Inter, sans-serif', lineHeight: 1.5 }}>
-                    {item.text}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-
-        {/* Divider */}
-        <div style={{ height: 1, background: 'rgba(200,155,60,0.12)', flexShrink: 0 }} />
-
-        {/* Buttons */}
-        {isLoggedIn ? (
-          <button
-            onClick={() => signOut({ callbackUrl: '/' })}
-            style={{
-              width: '100%', padding: '10px 0',
-              background: 'transparent',
-              border: '1px solid rgba(200,155,60,0.28)',
-              color: '#8a7050', fontSize: 12, cursor: 'pointer',
-              fontFamily: 'Inter, sans-serif', fontWeight: 600,
-              letterSpacing: '0.01em',
-              transition: 'border-color 0.15s, color 0.15s',
-            }}
-          >
-            Sign Out
-          </button>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <Link href="/register" className="body-text" style={{
