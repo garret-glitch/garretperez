@@ -216,14 +216,9 @@ export default async function Home() {
                     <span style={{ fontSize: 12, lineHeight: 1 }}>⚡</span>
                     <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 6.5, color: '#e8c060', letterSpacing: '0.03em' }}>Help Me Level Up</span>
                   </div>
-                  <p className="body-text" style={{ fontSize: 10, color: 'var(--text-2)', lineHeight: 1.55, margin: '0 0 8px' }}>
+                  <p className="body-text" style={{ fontSize: 10, color: 'var(--text-2)', lineHeight: 1.55, margin: 0 }}>
                     Post, add recipes, play games &amp; log in daily — we both gain XP!
                   </p>
-                  {!session?.user && (
-                    <a href="/register" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: 'linear-gradient(135deg, #c89b3c 0%, #9a7228 100%)', color: '#120c00', fontFamily: "'Press Start 2P', monospace", fontSize: 6, fontWeight: 700, textDecoration: 'none', boxShadow: '0 2px 12px rgba(200,155,60,0.35)' }}>
-                      🛡 Join the Guild
-                    </a>
-                  )}
                 </div>
               </div>
 
@@ -357,9 +352,6 @@ export default async function Home() {
               <p className="body-text" style={{ fontSize: 11, color: 'var(--text-2)', lineHeight: 1.55, margin: '0 0 10px' }}>
                 Post, add recipes, play games &amp; log in daily — we both gain XP!
               </p>
-              {!session?.user && (
-                <a href="/register" style={{ display: 'inline-block', padding: '6px 14px', background: 'linear-gradient(135deg, #c89b3c, #9a7228)', color: '#120c00', fontFamily: "'Press Start 2P', monospace", fontSize: 6, fontWeight: 700, textDecoration: 'none' }}>🛡 Join the Guild</a>
-              )}
             </div>
 
             {/* XP bar */}
