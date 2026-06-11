@@ -170,34 +170,46 @@ export default async function Home() {
             {/* Col 2 — Identity + Stats + XP */}
             <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
 
-              {/* Name / title / location */}
-              <div style={{ marginBottom: 16 }}>
-                <h1 style={{
-                  fontFamily: "'Cinzel', serif",
-                  fontSize: 30, fontWeight: 700, lineHeight: 1.1,
-                  color: 'var(--text-1)',
-                  textShadow: '0 0 24px rgba(200,155,60,0.45), 1px 2px 4px rgba(0,0,0,0.9)',
-                  letterSpacing: '0.04em', marginBottom: 7,
-                }}>Garret Perez</h1>
+              {/* Name / level badge / title / location */}
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                  <h1 style={{
+                    fontFamily: "'Cinzel', serif",
+                    fontSize: 30, fontWeight: 700, lineHeight: 1.1,
+                    color: 'var(--text-1)',
+                    textShadow: '0 0 28px rgba(200,155,60,0.5), 1px 2px 4px rgba(0,0,0,0.9)',
+                    letterSpacing: '0.04em', margin: 0,
+                  }}>Garret Perez</h1>
+                  <div style={{
+                    padding: '3px 9px',
+                    background: 'rgba(200,155,60,0.15)',
+                    border: '1px solid rgba(200,155,60,0.45)',
+                    boxShadow: '0 0 10px rgba(200,155,60,0.2)',
+                    flexShrink: 0,
+                  }}>
+                    <span style={{ fontSize: 6, color: '#c89b3c', fontFamily: "'Press Start 2P', monospace", letterSpacing: '0.06em' }}>LVL {garretTotalLevel}</span>
+                  </div>
+                </div>
                 <div className="body-text" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)', marginBottom: 4 }}>{heroTitle}</div>
                 <div className="body-text" style={{ fontSize: 12, color: 'var(--text-2)' }}>📍 {heroLocation}</div>
               </div>
 
               {/* Divider */}
-              <div style={{ height: 1, background: 'linear-gradient(90deg, rgba(200,155,60,0.35) 0%, transparent 100%)', marginBottom: 16 }} />
+              <div style={{ height: 1, background: 'linear-gradient(90deg, rgba(200,155,60,0.35) 0%, transparent 100%)', marginBottom: 14 }} />
 
-              {/* Stats — vertical-stack chips */}
-              <div style={{ display: 'flex', gap: 10, marginBottom: 18 }}>
+              {/* Stats chips */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
                 {([
-                  { value: totalUsers,       label: 'Members' },
-                  { value: totalPosts,        label: 'Posts' },
-                  { value: garretTotalLevel,  label: 'Level' },
+                  { value: totalUsers,      label: 'Members', highlight: false },
+                  { value: totalPosts,      label: 'Posts',   highlight: false },
+                  { value: garretTotalLevel, label: 'Level',  highlight: true  },
                 ] as const).map(stat => (
                   <div key={stat.label} style={{
                     display: 'flex', flexDirection: 'column', alignItems: 'center',
-                    padding: '10px 20px',
-                    background: 'rgba(200,155,60,0.07)',
-                    border: '1px solid rgba(200,155,60,0.22)',
+                    padding: '10px 18px',
+                    background: stat.highlight ? 'rgba(200,155,60,0.13)' : 'rgba(200,155,60,0.07)',
+                    border: `1px solid rgba(200,155,60,${stat.highlight ? '0.45' : '0.22'})`,
+                    boxShadow: stat.highlight ? '0 0 12px rgba(200,155,60,0.18)' : 'none',
                   }}>
                     <span className="body-text" style={{ fontSize: 22, fontWeight: 700, color: '#c89b3c', lineHeight: 1, marginBottom: 5 }}>{stat.value}</span>
                     <span style={{ fontSize: 5.5, color: '#7a6040', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: "'Press Start 2P', monospace" }}>{stat.label}</span>
@@ -205,19 +217,18 @@ export default async function Home() {
                 ))}
               </div>
 
-              {/* XP bar — full-width, premium */}
-              <div style={{ marginBottom: 6 }}>
+              {/* XP bar */}
+              <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <span style={{ fontSize: 5.5, color: '#6a5030', textTransform: 'uppercase', letterSpacing: '0.14em', fontFamily: "'Press Start 2P', monospace" }}>XP Progress</span>
+                  <span style={{ fontSize: 5.5, color: '#8a6838', textTransform: 'uppercase', letterSpacing: '0.14em', fontFamily: "'Press Start 2P', monospace" }}>⚡ Community Level</span>
                   <span className="body-text" style={{ fontSize: 8, color: 'var(--text-3)' }}>{garretXpBar.currentXp} / {garretXpBar.neededXp} XP</span>
                 </div>
-                <div style={{ height: 10, background: '#a88040', border: '1px solid rgba(200,155,60,0.3)', overflow: 'hidden', position: 'relative' }}>
-                  <div style={{ height: '100%', width: `${garretXpBar.percent}%`, background: 'linear-gradient(90deg, #2a5a18, #3a7a22)', position: 'relative' }}>
-                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '45%', background: 'rgba(255,255,255,0.12)' }} />
+                <div style={{ height: 10, background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(200,155,60,0.3)', overflow: 'hidden', position: 'relative' }}>
+                  <div style={{ height: '100%', width: `${garretXpBar.percent}%`, background: 'linear-gradient(90deg, #2a5a18, #4a9a28)', position: 'relative', transition: 'width 0.6s ease' }}>
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '45%', background: 'rgba(255,255,255,0.15)' }} />
                   </div>
                 </div>
               </div>
-              <p className="body-text" style={{ fontSize: 7, color: 'var(--text-3)' }}>Level grows as the community interacts.</p>
             </div>
 
             {/* Col 3 — Contact */}
@@ -279,6 +290,47 @@ export default async function Home() {
             </div>
           </div>
 
+          {/* ── CTA strip — desktop only, sits below 3-col grid ── */}
+          <div className="hidden sm:block" style={{
+            marginTop: 20,
+            borderTop: '1px solid rgba(200,155,60,0.2)',
+            paddingTop: 16,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+              {/* Left — headline + description */}
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+                  <span style={{ fontSize: 16, lineHeight: 1 }}>⚡</span>
+                  <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 8, color: '#e8c060', letterSpacing: '0.04em' }}>
+                    Help Me Level Up
+                  </span>
+                </div>
+                <p className="body-text" style={{ fontSize: 11, color: 'var(--text-2)', lineHeight: 1.55, margin: 0 }}>
+                  Every post, recipe, mini-game win, and daily login on this site earns me XP.
+                  The more you use it, the higher my level climbs.
+                </p>
+              </div>
+
+              {/* Right — action buttons */}
+              <div style={{ display: 'flex', gap: 7, flexShrink: 0, flexWrap: 'wrap' }}>
+                <a href="/skills/community" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 13px', background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.3)', color: '#d4a84a', fontFamily: "'Press Start 2P', monospace", fontSize: 6.5, textDecoration: 'none', letterSpacing: '0.02em' }}>
+                  ✍️ Post
+                </a>
+                <a href="/skills/fun" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 13px', background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.3)', color: '#d4a84a', fontFamily: "'Press Start 2P', monospace", fontSize: 6.5, textDecoration: 'none', letterSpacing: '0.02em' }}>
+                  🎮 Play
+                </a>
+                <a href="/skills/food" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 13px', background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.3)', color: '#d4a84a', fontFamily: "'Press Start 2P', monospace", fontSize: 6.5, textDecoration: 'none', letterSpacing: '0.02em' }}>
+                  🍳 Recipe
+                </a>
+                {!session?.user && (
+                  <a href="/register" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 16px', background: 'linear-gradient(135deg, #c89b3c 0%, #9a7228 100%)', color: '#120c00', fontFamily: "'Press Start 2P', monospace", fontSize: 6.5, fontWeight: 700, textDecoration: 'none', boxShadow: '0 2px 16px rgba(200,155,60,0.4)', letterSpacing: '0.02em' }}>
+                    🛡 Join the Guild
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* ── MOBILE: premium centered layout ──────────────────── */}
           <div className="sm:hidden flex flex-col" style={{ gap: 16 }}>
 
@@ -299,15 +351,18 @@ export default async function Home() {
               </div>
             </div>
 
-            {/* Name + title + location — centered */}
+            {/* Name + level badge + title + location — centered */}
             <div style={{ textAlign: 'center' }}>
               <h1 style={{
                 fontFamily: "'Cinzel', serif",
                 fontSize: 26, fontWeight: 700, lineHeight: 1.15,
                 color: 'var(--text-1)',
                 textShadow: '0 0 20px rgba(200,155,60,0.45), 1px 1px 3px rgba(0,0,0,0.9)',
-                letterSpacing: '0.04em', marginBottom: 8,
+                letterSpacing: '0.04em', marginBottom: 7,
               }}>Garret Perez</h1>
+              <div style={{ display: 'inline-block', padding: '3px 10px', background: 'rgba(200,155,60,0.15)', border: '1px solid rgba(200,155,60,0.45)', boxShadow: '0 0 10px rgba(200,155,60,0.2)', marginBottom: 7 }}>
+                <span style={{ fontSize: 6.5, color: '#c89b3c', fontFamily: "'Press Start 2P', monospace" }}>LVL {garretTotalLevel}</span>
+              </div>
               <div className="body-text" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)', marginBottom: 5, lineHeight: 1.4 }}>{heroTitle}</div>
               <div className="body-text" style={{ fontSize: 12, color: 'var(--text-2)' }}>📍 {heroLocation}</div>
             </div>
@@ -334,18 +389,36 @@ export default async function Home() {
               ))}
             </div>
 
-            {/* XP bar — full width, 12px, premium */}
+            {/* XP bar */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <span style={{ fontSize: 8, color: '#6a5030', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: "'Press Start 2P', monospace" }}>XP Progress</span>
+                <span style={{ fontSize: 7, color: '#8a6838', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: "'Press Start 2P', monospace" }}>⚡ Community Level</span>
                 <span className="body-text" style={{ fontSize: 9, color: 'var(--text-3)' }}>{garretXpBar.currentXp} / {garretXpBar.neededXp} XP</span>
               </div>
-              <div style={{ height: 12, background: '#a88040', border: '1px solid rgba(200,155,60,0.3)', overflow: 'hidden', position: 'relative' }}>
-                <div style={{ height: '100%', width: `${garretXpBar.percent}%`, background: 'linear-gradient(90deg, #2a5a18, #3a7a22)', position: 'relative' }}>
-                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '45%', background: 'rgba(255,255,255,0.12)' }} />
+              <div style={{ height: 12, background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(200,155,60,0.3)', overflow: 'hidden', position: 'relative' }}>
+                <div style={{ height: '100%', width: `${garretXpBar.percent}%`, background: 'linear-gradient(90deg, #2a5a18, #4a9a28)', position: 'relative' }}>
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '45%', background: 'rgba(255,255,255,0.15)' }} />
                 </div>
               </div>
-              <p className="body-text" style={{ fontSize: 9, color: 'var(--text-3)', marginTop: 8, textAlign: 'center' }}>Level grows as the community interacts.</p>
+            </div>
+
+            {/* Mobile CTA */}
+            <div style={{ padding: '14px 16px', background: 'rgba(200,155,60,0.06)', border: '1px solid rgba(200,155,60,0.22)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7 }}>
+                <span style={{ fontSize: 14 }}>⚡</span>
+                <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: '#e8c060' }}>Help Me Level Up</span>
+              </div>
+              <p className="body-text" style={{ fontSize: 11, color: 'var(--text-2)', lineHeight: 1.55, margin: '0 0 10px' }}>
+                Your posts, recipes, games, and daily logins all earn me XP.
+              </p>
+              <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+                <a href="/skills/community" style={{ padding: '6px 12px', background: 'rgba(200,155,60,0.12)', border: '1px solid rgba(200,155,60,0.3)', color: '#d4a84a', fontFamily: "'Press Start 2P', monospace", fontSize: 6, textDecoration: 'none' }}>✍️ Post</a>
+                <a href="/skills/fun"       style={{ padding: '6px 12px', background: 'rgba(200,155,60,0.12)', border: '1px solid rgba(200,155,60,0.3)', color: '#d4a84a', fontFamily: "'Press Start 2P', monospace", fontSize: 6, textDecoration: 'none' }}>🎮 Play</a>
+                <a href="/skills/food"      style={{ padding: '6px 12px', background: 'rgba(200,155,60,0.12)', border: '1px solid rgba(200,155,60,0.3)', color: '#d4a84a', fontFamily: "'Press Start 2P', monospace", fontSize: 6, textDecoration: 'none' }}>🍳 Recipe</a>
+                {!session?.user && (
+                  <a href="/register" style={{ padding: '6px 14px', background: 'linear-gradient(135deg, #c89b3c, #9a7228)', color: '#120c00', fontFamily: "'Press Start 2P', monospace", fontSize: 6, fontWeight: 700, textDecoration: 'none' }}>🛡 Join</a>
+                )}
+              </div>
             </div>
 
             {/* Gold divider */}
