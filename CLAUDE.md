@@ -63,7 +63,7 @@ src/
     layout.tsx          # Root layout — SiteHeader + flex(SkillsPanel + main). No ContactHeader/Footer.
     page.tsx            # Home dashboard — hero + AccountShield + HomepageBlockRenderer
                         #   Auto-migrates PageBlock records on first visit if table is empty
-    resume/page.tsx     # Resume page — experience, skills bars, download .docx
+    resume/page.tsx     # Resume page — experience, skills bars (no numbers/%), other skills tags, download .docx
     admin/page.tsx      # Admin dashboard (ADMIN role only) — settings, users, posts, announcements tabs
     admin/builder/      # Visual page builder (Canva/Notion-style)
       page.tsx          # Server component — fetches PageBlock[], live data, renders BuilderClient
@@ -260,11 +260,16 @@ BUILDER: /admin/builder → BuilderClient → BuilderCanvas → SortableBlock �
 
 ## Homepage hero layout
 
-The hero (`src/app/page.tsx`) has two side-by-side panels:
-1. **Hero panel** — Profile photo + Name, Level badge, title, location, Members/Posts chips, XP bar
-2. **AccountShield** — Logged-in user's level, XP, shield colour picker
+The hero (`src/app/page.tsx`) has two side-by-side **separate cards** with a 20px gap between them (flex row, `gap: 20`). They do not share a border or background — each has its own `.hero-panel` / AccountShield styling.
 
-Contact info (phone, email, LinkedIn, Resume) is rendered inside the hero panel on the right side at desktop, as an icon row at mobile.
+1. **Hero panel** (`.hero-panel`) — Profile photo + Name, Level badge, title, location, Members/Posts chips, XP bar + inline CTA ("Interacting with the website I gain XP — you can gain XP too!")
+2. **AccountShield** (`src/components/AccountShield.tsx`) — Two states:
+   - **Logged in:** avatar initials, username, Level + XP stats, XP progress bar, theme picker (✏ button), Sign Out
+   - **Logged out:** "Your Character Awaits" banner + Create Account / Log In buttons only (no pitch text or perk bullets)
+
+Contact info (phone, email, LinkedIn, Resume) is rendered inside the hero panel on the right side at desktop, as stacked rows at mobile.
+
+**CSS:** `.hero-row` class was removed; the flex wrapper in `page.tsx` is now an unstyled div with `gap: 20`. `.shield-separator` class was removed. `.hero-panel` CSS in `globals.css` provides the card border/shadow.
 
 ## Visual conventions (current theme)
 
