@@ -17,7 +17,8 @@ export default async function BuilderPage() {
     orderBy: { order: 'asc' },
   })
 
-  const blocks: PageBlock[] = rawBlocks.map((b: { id: string; pageSlug: string; type: string; order: number; colSpan: number; colStart: number; visible: boolean; config: string; styles: string }) => ({
+  type RawBlock = { id: string; pageSlug: string; type: string; order: number; colSpan: number; colStart: number; visible: boolean; config: string; styles: string }
+  const parseBlocks = (rows: RawBlock[]): PageBlock[] => rows.map(b => ({
     ...b,
     type: b.type as PageBlock['type'],
     colSpan: b.colSpan as 1 | 2 | 3,
@@ -26,10 +27,41 @@ export default async function BuilderPage() {
     styles: (() => { try { return JSON.parse(b.styles) } catch { return {} } })(),
   }))
 
+  let blocks: PageBlock[] = parseBlocks(rawBlocks)
+
   // Live data for dynamic blocks
   const allSettings = await (prisma as any).siteSetting.findMany()
   const settingsMap: Record<string, string> = {}
   for (const s of allSettings) settingsMap[s.key] = s.value
+
+  // Auto-create the hero block if it doesn't exist yet
+  if (!blocks.some(b => b.type === 'hero')) {
+    try {
+      await (prisma as any).pageBlock.create({
+        data: {
+          pageSlug: 'home',
+          type: 'hero',
+          order: -1,
+          colSpan: 3,
+          colStart: 1,
+          visible: true,
+          config: JSON.stringify({
+            heroTitle:       settingsMap.hero_title       ?? 'Sales Supervisor · Builder · Family Man',
+            heroLocation:    settingsMap.hero_location    ?? 'Houston, TX',
+            contactPhone:    settingsMap.contact_phone    ?? '(346) 604-1635',
+            contactEmail:    settingsMap.contact_email    ?? 'gis.owner@gmail.com',
+            contactLinkedin: settingsMap.contact_linkedin ?? 'garretperez',
+          }),
+          styles: JSON.stringify({}),
+        },
+      })
+      const refreshed = await (prisma as any).pageBlock.findMany({
+        where: { pageSlug: 'home' },
+        orderBy: { order: 'asc' },
+      })
+      blocks = parseBlocks(refreshed)
+    } catch { /* already exists or race condition */ }
+  }
 
   const recentPosts = await (prisma as any).post.findMany({
     orderBy: { createdAt: 'desc' }, take: 8,
