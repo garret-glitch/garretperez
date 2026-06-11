@@ -63,7 +63,8 @@ export default async function BuilderPage() {
     } catch { /* already exists or race condition */ }
   }
 
-  let recentPosts: Record<string, unknown>[] = []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let recentPosts: any[] = []
   try {
     recentPosts = await (prisma as any).post.findMany({
       orderBy: { createdAt: 'desc' }, take: 8,
@@ -75,14 +76,16 @@ export default async function BuilderPage() {
     })
   } catch { /* relation tables may not exist yet */ }
 
-  let dbProjects: Record<string, unknown>[] = []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let dbProjects: any[] = []
   try {
     dbProjects = await (prisma as any).project.findMany({
       orderBy: [{ order: 'asc' }, { createdAt: 'asc' }], take: 3,
     })
   } catch { /* project table may not exist yet */ }
 
-  let quests: Record<string, unknown>[] = []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let quests: any[] = []
   try {
     quests = await (prisma as any).quest.findMany({
       where: { active: true },
@@ -101,7 +104,8 @@ export default async function BuilderPage() {
 
   const liveData: BlockLiveData = {
     dbProjects,
-    recentPosts: recentPosts.map((p: { createdAt: Date } & Record<string, unknown>) => ({ ...p, createdAt: p.createdAt.toISOString() })),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recentPosts: recentPosts.map((p: any) => ({ ...p, createdAt: p.createdAt?.toISOString?.() ?? p.createdAt })),
     hasSession: true,
     userBadges: [],
     contactPhone: settingsMap.contact_phone ?? '(346) 604-1635',
