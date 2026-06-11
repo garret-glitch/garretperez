@@ -180,15 +180,6 @@ export default async function Home() {
                     textShadow: '0 0 28px rgba(200,155,60,0.5), 1px 2px 4px rgba(0,0,0,0.9)',
                     letterSpacing: '0.04em', margin: 0,
                   }}>Garret Perez</h1>
-                  <div style={{
-                    padding: '3px 9px',
-                    background: 'rgba(200,155,60,0.15)',
-                    border: '1px solid rgba(200,155,60,0.45)',
-                    boxShadow: '0 0 10px rgba(200,155,60,0.2)',
-                    flexShrink: 0,
-                  }}>
-                    <span style={{ fontSize: 6, color: '#c89b3c', fontFamily: "'Press Start 2P', monospace", letterSpacing: '0.06em' }}>LVL {garretTotalLevel}</span>
-                  </div>
                 </div>
                 <div className="body-text" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)', marginBottom: 4 }}>{heroTitle}</div>
                 <div className="body-text" style={{ fontSize: 12, color: 'var(--text-2)' }}>📍 {heroLocation}</div>
@@ -226,7 +217,7 @@ export default async function Home() {
                     <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 6.5, color: '#e8c060', letterSpacing: '0.03em' }}>Help Me Level Up</span>
                   </div>
                   <p className="body-text" style={{ fontSize: 10, color: 'var(--text-2)', lineHeight: 1.55, margin: '0 0 8px' }}>
-                    Your interactions with my website gain everyone XP.
+                    Post, add recipes, play games &amp; log in daily — we both gain XP!
                   </p>
                   {!session?.user && (
                     <a href="/register" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: 'linear-gradient(135deg, #c89b3c 0%, #9a7228 100%)', color: '#120c00', fontFamily: "'Press Start 2P', monospace", fontSize: 6, fontWeight: 700, textDecoration: 'none', boxShadow: '0 2px 12px rgba(200,155,60,0.35)' }}>
@@ -239,7 +230,7 @@ export default async function Home() {
               {/* XP bar */}
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <span style={{ fontSize: 5.5, color: '#8a6838', textTransform: 'uppercase', letterSpacing: '0.14em', fontFamily: "'Press Start 2P', monospace" }}>⚡ Community Level</span>
+                  <span style={{ fontSize: 5.5, color: '#8a6838', textTransform: 'uppercase', letterSpacing: '0.14em', fontFamily: "'Press Start 2P', monospace" }}>⚡ Level</span>
                   <span className="body-text" style={{ fontSize: 8, color: 'var(--text-3)' }}>{garretXpBar.currentXp} / {garretXpBar.neededXp} XP</span>
                 </div>
                 <div style={{ height: 10, background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(200,155,60,0.3)', overflow: 'hidden', position: 'relative' }}>
@@ -331,9 +322,6 @@ export default async function Home() {
                 textShadow: '0 0 20px rgba(200,155,60,0.45), 1px 1px 3px rgba(0,0,0,0.9)',
                 letterSpacing: '0.04em', marginBottom: 7,
               }}>Garret Perez</h1>
-              <div style={{ display: 'inline-block', padding: '3px 10px', background: 'rgba(200,155,60,0.15)', border: '1px solid rgba(200,155,60,0.45)', boxShadow: '0 0 10px rgba(200,155,60,0.2)', marginBottom: 7 }}>
-                <span style={{ fontSize: 6.5, color: '#c89b3c', fontFamily: "'Press Start 2P', monospace" }}>LVL {garretTotalLevel}</span>
-              </div>
               <div className="body-text" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)', marginBottom: 5, lineHeight: 1.4 }}>{heroTitle}</div>
               <div className="body-text" style={{ fontSize: 12, color: 'var(--text-2)' }}>📍 {heroLocation}</div>
             </div>
@@ -367,7 +355,7 @@ export default async function Home() {
                 <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: '#e8c060' }}>Help Me Level Up</span>
               </div>
               <p className="body-text" style={{ fontSize: 11, color: 'var(--text-2)', lineHeight: 1.55, margin: '0 0 10px' }}>
-                Your interactions with my website gain everyone XP.
+                Post, add recipes, play games &amp; log in daily — we both gain XP!
               </p>
               {!session?.user && (
                 <a href="/register" style={{ display: 'inline-block', padding: '6px 14px', background: 'linear-gradient(135deg, #c89b3c, #9a7228)', color: '#120c00', fontFamily: "'Press Start 2P', monospace", fontSize: 6, fontWeight: 700, textDecoration: 'none' }}>🛡 Join the Guild</a>
@@ -377,7 +365,7 @@ export default async function Home() {
             {/* XP bar */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <span style={{ fontSize: 7, color: '#8a6838', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: "'Press Start 2P', monospace" }}>⚡ Community Level</span>
+                <span style={{ fontSize: 7, color: '#8a6838', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: "'Press Start 2P', monospace" }}>⚡ Level</span>
                 <span className="body-text" style={{ fontSize: 9, color: 'var(--text-3)' }}>{garretXpBar.currentXp} / {garretXpBar.neededXp} XP</span>
               </div>
               <div style={{ height: 12, background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(200,155,60,0.3)', overflow: 'hidden', position: 'relative' }}>
