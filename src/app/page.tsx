@@ -140,7 +140,7 @@ export default async function Home() {
       <div className="hero-row flex flex-col sm:flex-row items-stretch">
 
         {/* ── Hero panel — unified dashboard ──────────────────── */}
-        <div className="hero-panel flex-1 min-w-0" style={{ border: 'none', boxShadow: 'none', background: 'transparent' }}>
+        <div className="hero-panel flex-1 min-w-0" style={{ border: 'none', boxShadow: 'none', background: 'transparent', overflow: 'visible' }}>
 
           {/* ── DESKTOP: 3-col grid ─────────────────────────────── */}
           <div className="hidden sm:grid" style={{
@@ -168,7 +168,7 @@ export default async function Home() {
             </div>
 
             {/* Col 2 — Identity + Stats + XP */}
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative', zIndex: 1 }}>
 
               {/* Name / level badge / title / location */}
               <div style={{ marginBottom: 14 }}>

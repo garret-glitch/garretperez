@@ -587,8 +587,8 @@ export default function AdminSidePanel() {
     }}>
       {/* Inner: sticky so the UI stays visible while the page scrolls */}
       <div style={{
-        position: 'sticky', top: 87,
-        height: 'calc(100vh - 87px)',
+        position: 'sticky', top: 52,
+        height: 'calc(100vh - 90px)',
         display: 'flex', flexDirection: 'column',
         overflow: 'hidden',
       }}>

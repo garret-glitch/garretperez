@@ -29,25 +29,26 @@ export default function Footer() {
 
         {/* Right: links */}
         <nav style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-          {[
+          {([
             { href: '/privacy', label: 'Privacy Policy' },
             { href: '/terms',   label: 'Terms of Service' },
-            { href: 'mailto:garret.p92@gmail.com', label: 'Contact' },
-          ].map(({ href, label }) => (
+          ] as const).map(({ href, label }) => (
             <Link
               key={href}
               href={href}
-              style={{
-                fontFamily: 'Inter, sans-serif',
-                fontSize: 11,
-                color: '#6a5030',
-                textDecoration: 'none',
-              }}
+              style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#6a5030', textDecoration: 'none' }}
               className="footer-link"
             >
               {label}
             </Link>
           ))}
+          <a
+            href="mailto:garret.p92@gmail.com"
+            style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#6a5030', textDecoration: 'none' }}
+            className="footer-link"
+          >
+            Contact
+          </a>
         </nav>
       </div>
     </footer>

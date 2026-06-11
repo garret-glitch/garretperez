@@ -126,7 +126,7 @@ export default function BuilderClient({ initialBlocks, liveData, showMigrate }: 
       />
 
       {/* Main row: sidebar + canvas, starts below the fixed toolbar */}
-      <div style={{ display: 'flex', paddingTop: 87, minHeight: '100vh', alignItems: 'stretch' }}>
+      <div style={{ display: 'flex', paddingTop: 52, minHeight: '100vh', alignItems: 'stretch' }}>
         <AdminSidePanel />
 
         {/* Canvas area */}

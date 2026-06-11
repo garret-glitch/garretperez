@@ -1,7 +1,7 @@
 import Link from 'next/link'
 
 export const metadata = {
-  title: 'Privacy Policy · Garret&apos;s World',
+  title: "Privacy Policy · Garret's World",
 }
 
 export default function PrivacyPage() {

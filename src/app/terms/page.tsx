@@ -1,7 +1,7 @@
 import Link from 'next/link'
 
 export const metadata = {
-  title: 'Terms of Service · Garret&apos;s World',
+  title: "Terms of Service · Garret's World",
 }
 
 export default function TermsPage() {
