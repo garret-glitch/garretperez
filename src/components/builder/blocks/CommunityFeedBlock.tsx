@@ -20,9 +20,9 @@ export default function CommunityFeedBlock({ block, isEditing, liveData }: Props
   const posts = (liveData.recentPosts ?? []).slice(0, cfg.maxItems)
 
   return (
-    <>
-      <div className="scroll-roll" />
-      <div className="scroll-parchment" style={{ ...style, overflowY: 'auto', maxHeight: 'calc(100vh - 260px)' }}>
+    <div style={{ height: '524px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div className="scroll-roll" style={{ flexShrink: 0 }} />
+      <div className="scroll-parchment" style={{ ...style, overflowY: 'auto', flex: 1, minHeight: 0 }}>
         <h2 className="mb-4 flex items-center gap-2" style={{ fontSize: hPx, color: '#3a1e06' }}>
           <span>{cfg.icon}</span> {cfg.heading}
           <span className="ml-auto text-[6px]" style={{ color: '#8a6030' }}>All Communities</span>
@@ -72,7 +72,7 @@ export default function CommunityFeedBlock({ block, isEditing, liveData }: Props
           </div>
         )}
       </div>
-      <div className="scroll-roll" />
-    </>
+      <div className="scroll-roll" style={{ flexShrink: 0 }} />
+    </div>
   )
 }
