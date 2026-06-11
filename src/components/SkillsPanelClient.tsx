@@ -110,7 +110,7 @@ function ChannelRow({
           <span style={{ fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {cfg.label}
           </span>
-          {id !== 'QUESTS' && communityLevel > 1 && (
+          {id !== 'QUESTS' && (
             <span style={{ fontSize: 8, color: '#6a5030', fontFamily: "'Press Start 2P', monospace", letterSpacing: '0.02em' }}>
               ⚔ CL.{communityLevel}
             </span>
