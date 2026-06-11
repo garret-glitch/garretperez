@@ -10,98 +10,101 @@ interface Props {
   isLoggedIn: boolean
 }
 
-function toRgb(hex: string) {
-  return `${parseInt(hex.slice(1, 3), 16)}, ${parseInt(hex.slice(3, 5), 16)}, ${parseInt(hex.slice(5, 7), 16)}`
+function StatChip({ value, label, highlight }: { value: string | number; label: string; highlight?: boolean }) {
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      padding: '8px 16px',
+      background: highlight ? 'rgba(200,155,60,0.13)' : 'rgba(200,155,60,0.07)',
+      border: `1px solid rgba(200,155,60,${highlight ? '0.45' : '0.22'})`,
+      boxShadow: highlight ? '0 0 10px rgba(200,155,60,0.15)' : 'none',
+    }}>
+      <span className="body-text" style={{ fontSize: 17, fontWeight: 700, color: '#c89b3c', lineHeight: 1, marginBottom: 5 }}>
+        {value}
+      </span>
+      <span style={{ fontSize: 5.5, color: '#7a6040', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: "'Press Start 2P', monospace" }}>
+        {label}
+      </span>
+    </div>
+  )
 }
 
 export default function SkillHeroBar({ skill, communityXp, memberCount, postCount, isLoggedIn }: Props) {
-  const rgb = toRgb(skill.color)
   const p = xpProgress(communityXp)
 
   return (
-    <div style={{
-      background: `linear-gradient(180deg, rgba(${rgb}, 0.07) 0%, #0c0a08 60%)`,
-      borderTop: `3px solid rgba(${rgb}, 0.75)`,
-      borderLeft: `1px solid rgba(${rgb}, 0.15)`,
-      borderRight: `1px solid rgba(${rgb}, 0.15)`,
-      borderBottom: `1px solid rgba(${rgb}, 0.15)`,
-      padding: '28px 26px 24px',
-    }}>
-      <div className="flex flex-col sm:flex-row gap-6 sm:items-start">
+    <div className="hero-panel">
+      <div className="flex flex-col sm:flex-row gap-5 sm:items-center">
 
-        {/* ── LEFT: identity + stats + CTA ── */}
+        {/* ── LEFT: icon + identity + stats ── */}
         <div style={{ flex: 1, minWidth: 0 }}>
 
-          {/* Icon + title row */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 16 }}>
+          {/* Icon + title */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 14 }}>
+
+            {/* Skill icon — matches the sidebar SkillCell exactly */}
             <div style={{
-              width: 62, height: 62, flexShrink: 0,
-              background: `rgba(${rgb}, 0.1)`,
-              border: `1px solid rgba(${rgb}, 0.28)`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 30,
+              width: 76, height: 76, flexShrink: 0,
+              background: skill.color,
+              border: '2px solid rgba(200,155,60,0.35)',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              gap: 5,
             }}>
-              {skill.icon}
+              <span style={{ fontSize: 30, lineHeight: 1 }}>{skill.icon}</span>
+              <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 4.5, color: '#e8d8b0', letterSpacing: '0.04em', textAlign: 'center', lineHeight: 1.4, padding: '0 4px' }}>
+                {skill.label}
+              </span>
             </div>
 
+            {/* Title + badge + description */}
             <div style={{ minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 7, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
                 <h1 style={{
-                  fontFamily: "'Press Start 2P', monospace",
-                  fontSize: 13, color: '#ede0c0', letterSpacing: '0.04em', margin: 0,
+                  fontFamily: "'Cinzel', serif",
+                  fontSize: 21, fontWeight: 700, color: 'var(--text-1)',
+                  margin: 0, letterSpacing: '0.03em', lineHeight: 1.2,
                 }}>
                   {skill.label}
                 </h1>
                 <span style={{
-                  fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 600,
-                  color: '#6a5838', letterSpacing: '0.14em', textTransform: 'uppercase',
-                  border: '1px solid #2e2418', padding: '2px 9px',
+                  fontSize: 5.5, fontFamily: "'Press Start 2P', monospace",
+                  color: '#7a6040', letterSpacing: '0.14em',
+                  border: '1px solid rgba(200,155,60,0.22)', padding: '2px 8px',
                 }}>
-                  Guild Channel
+                  GUILD CHANNEL
                 </span>
               </div>
-              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#6a5a40', margin: 0, lineHeight: 1.6 }}>
+              <p className="body-text" style={{ fontSize: 12, color: 'var(--text-2)', margin: 0, lineHeight: 1.6 }}>
                 {skill.description}
               </p>
             </div>
           </div>
 
-          {/* Stats — inline, no boxes */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: isLoggedIn ? 0 : 18 }}>
-            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#5a4a30' }}>
-              👥 <span style={{ color: '#a08858', fontWeight: 600 }}>{memberCount}</span> members
-            </span>
-            {postCount !== undefined && (
-              <>
-                <span style={{ color: '#2e2418', fontSize: 16, lineHeight: 1 }}>·</span>
-                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#5a4a30' }}>
-                  📜 <span style={{ color: '#a08858', fontWeight: 600 }}>{postCount}</span> posts
-                </span>
-              </>
-            )}
-            <span style={{ color: '#2e2418', fontSize: 16, lineHeight: 1 }}>·</span>
-            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#8a7040', fontWeight: 600, letterSpacing: '0.03em' }}>
-              +50 XP per post
-            </span>
+          {/* Gold divider — matches homepage style */}
+          <div style={{ height: 1, background: 'linear-gradient(90deg, rgba(200,155,60,0.35) 0%, transparent 75%)', marginBottom: 14 }} />
+
+          {/* Stat chips — same pattern as homepage Members/Posts/Level chips */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: isLoggedIn ? 0 : 16 }}>
+            <StatChip value={memberCount} label="Members" />
+            {postCount !== undefined && <StatChip value={postCount} label="Posts" />}
+            <StatChip value="+50 XP" label="Per Post" highlight />
           </div>
 
-          {/* Login CTA for guests */}
+          {/* Login CTA — only shown to guests */}
           {!isLoggedIn && (
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <Link href="/login" style={{
-                padding: '8px 20px', background: 'transparent',
-                border: '1px solid #2e2418', color: '#a08858',
+                padding: '9px 20px', background: 'transparent',
+                border: '1px solid rgba(200,155,60,0.4)', color: '#c89b3c',
                 fontSize: 13, fontWeight: 600, textDecoration: 'none', fontFamily: 'Inter, sans-serif',
-                letterSpacing: '0.02em',
               }}>
                 Log In
               </Link>
               <Link href="/register" style={{
-                padding: '8px 20px',
+                padding: '9px 20px',
                 background: 'linear-gradient(135deg, #c89b3c 0%, #9a7428 100%)',
                 color: '#0a0600', fontSize: 13, fontWeight: 700,
                 textDecoration: 'none', fontFamily: 'Inter, sans-serif',
-                letterSpacing: '0.02em',
               }}>
                 🛡 Join &amp; Earn XP
               </Link>
@@ -109,40 +112,33 @@ export default function SkillHeroBar({ skill, communityXp, memberCount, postCoun
           )}
         </div>
 
-        {/* ── RIGHT: community level ── */}
-        <div style={{
-          flexShrink: 0, width: 172,
-          borderLeft: `1px solid rgba(${rgb}, 0.14)`,
-          paddingLeft: 22,
-        }}>
+        {/* ── RIGHT: community level — highlighted chip matching homepage ── */}
+        <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, minWidth: 140 }}>
           <div style={{
-            fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 600,
-            color: '#4a3a24', letterSpacing: '0.14em', textTransform: 'uppercase',
-            marginBottom: 10,
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            padding: '16px 28px', width: '100%',
+            background: 'rgba(200,155,60,0.13)',
+            border: '1px solid rgba(200,155,60,0.45)',
+            boxShadow: '0 0 12px rgba(200,155,60,0.18)',
           }}>
-            Community
-          </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginBottom: 10 }}>
-            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 44, fontWeight: 800, color: '#c89b3c', lineHeight: 1 }}>
+            <span className="body-text" style={{ fontSize: 38, fontWeight: 800, color: '#c89b3c', lineHeight: 1, marginBottom: 6 }}>
               {p.level}
             </span>
-            <span style={{
-              fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 600,
-              color: '#6a5030', letterSpacing: '0.1em', textTransform: 'uppercase',
-            }}>
-              lvl
+            <span style={{ fontSize: 6, fontFamily: "'Press Start 2P', monospace", color: '#7a6040', letterSpacing: '0.14em' }}>
+              COMMUNITY
             </span>
           </div>
-          {/* Progress bar */}
-          <div style={{ height: 3, background: '#1e1a14', marginBottom: 10, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${p.percent}%`, background: 'linear-gradient(90deg, #7a5010, #c89b3c)' }} />
-          </div>
-          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#4a3a24', lineHeight: 1.9 }}>
-            <div style={{ color: '#6a5030' }}>{communityXp.toLocaleString()} XP</div>
-            <div>{p.percent}% to level {p.level + 1}</div>
-            {memberCount > 0 && (
-              <div>{memberCount} contributor{memberCount === 1 ? '' : 's'}</div>
-            )}
+
+          {/* XP progress bar — matches homepage bar style */}
+          <div style={{ width: '100%' }}>
+            <div style={{ height: 8, background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(200,155,60,0.28)', overflow: 'hidden', position: 'relative' }}>
+              <div style={{ height: '100%', width: `${p.percent}%`, background: 'linear-gradient(90deg, #2a5a18, #4a9a28)', position: 'relative' }}>
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '45%', background: 'rgba(255,255,255,0.15)' }} />
+              </div>
+            </div>
+            <div className="body-text" style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 5, textAlign: 'center' }}>
+              {communityXp.toLocaleString()} XP · {p.percent}% to Lv {p.level + 1}
+            </div>
           </div>
         </div>
 
