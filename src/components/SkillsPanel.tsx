@@ -1,7 +1,6 @@
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { xpToLevel } from '@/lib/xp'
-import { BADGE_META } from '@/lib/badges'
 import Link from 'next/link'
 import SidebarFunGame from './SidebarFunGame'
 import SkillsPanelClient, { DEFAULT_CHAN_ORDER, type ChanKey } from './SkillsPanelClient'
@@ -10,7 +9,6 @@ export default async function SkillsPanel() {
   const session = await auth()
   const isAdmin = session?.user?.role === 'ADMIN'
 
-  let userBadges: string[] = []
   const postCounts: Record<string, number> = {}
   const adminSkillLevels: Record<string, number> = {}
   let channelOrder: ChanKey[] = DEFAULT_CHAN_ORDER
@@ -39,19 +37,12 @@ export default async function SkillsPanel() {
       } catch { /* use default */ }
     }
 
-    if (session?.user?.id) {
-      const badges = await (prisma as any).userBadge.findMany({
-        where: { userId: session.user.id },
-        select: { badge: true },
-      })
-      userBadges = badges.map((b: { badge: string }) => b.badge)
-    }
   } catch { /* DB not ready */ }
 
   return (
     <aside
-      className="w-[240px] shrink-0 flex flex-col border-r"
-      style={{ borderColor: '#5a3818', background: '#1a0e06', minHeight: '100vh' }}
+      className="w-[240px] flex-1 flex flex-col border-r"
+      style={{ borderColor: '#5a3818', background: '#1a0e06' }}
     >
       <div className="castle-battlements" />
 
@@ -79,16 +70,6 @@ export default async function SkillsPanel() {
         <SidebarFunGame />
       </div>
 
-      {session?.user && userBadges.length > 0 && (
-        <div className="px-3 py-2 border-t shrink-0" style={{ borderColor: '#5a3818' }}>
-          <div className="flex flex-wrap gap-1">
-            {userBadges.map(b => {
-              const m = BADGE_META[b]
-              return m ? <span key={b} title={m.label} className="text-sm cursor-default">{m.icon}</span> : null
-            })}
-          </div>
-        </div>
-      )}
     </aside>
   )
 }

@@ -40,7 +40,7 @@ export default async function RootLayout({
             <SiteHeader />
             <div className="flex flex-1 min-h-0">
               {/* Sidebar — hidden on mobile, shown on md+ */}
-              <div className="hidden md:block md:shrink-0">
+              <div className="hidden md:flex md:flex-col md:shrink-0 md:self-stretch">
                 <SkillsPanel />
               </div>
 

@@ -12,8 +12,7 @@ const OLD_TO_NEW: Record<string, { type: BlockType; colSpan: 1 | 2 | 3; order: n
   about:    { type: 'about',          colSpan: 2, order: 0 },
   projects: { type: 'projects-list',  colSpan: 1, order: 1 },
   feed:     { type: 'community-feed', colSpan: 1, order: 2 },
-  achieve:  { type: 'achievements',   colSpan: 1, order: 3 },
-  xp:       { type: 'xp-guide',       colSpan: 1, order: 4 },
+  xp:       { type: 'xp-guide',       colSpan: 1, order: 3 },
 }
 
 const PADDING_TO_PX: Record<string, number> = {
@@ -26,7 +25,7 @@ export async function migrateExistingSections(): Promise<number> {
   for (const s of settings) map[s.key] = s.value
 
   let sections: OldSectionConfig[] = []
-  let order: string[] = ['about', 'projects', 'feed', 'achieve', 'xp']
+  let order: string[] = ['about', 'projects', 'feed', 'xp']
   const bio1 = map.bio_1 ?? ''
   const bio2 = map.bio_2 ?? ''
   const bio3 = map.bio_3 ?? ''
@@ -68,8 +67,6 @@ export async function migrateExistingSections(): Promise<number> {
         config = { heading: old?.heading ?? 'My Projects', icon: old?.icon ?? '⚒️', maxItems: 3, showViewAll: true }
       } else if (meta.type === 'community-feed') {
         config = { heading: old?.heading ?? 'Community Feed', icon: old?.icon ?? '💬', maxItems: 8 }
-      } else if (meta.type === 'achievements') {
-        config = { heading: old?.heading ?? 'Achievements', icon: old?.icon ?? '🏆' }
       } else {
         config = { heading: old?.heading ?? 'How to Earn XP', icon: old?.icon ?? '⚡' }
       }
