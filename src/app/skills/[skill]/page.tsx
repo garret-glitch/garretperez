@@ -29,7 +29,7 @@ export default async function SkillPage({ params }: Props) {
   let communityXp = 0
   let communityMemberCount = 0
   let posts: Array<{
-    id: string; title: string; body: string; createdAt: Date
+    id: string; title: string; body: string; imageUrl?: string | null; createdAt: Date
     user: { username: string }
     replies: Array<{ id: string; body: string; createdAt: Date; user: { username: string } }>
     upvotes: Array<{ userId: string }>
@@ -179,7 +179,22 @@ export default async function SkillPage({ params }: Props) {
               ? post.upvotes.some((u: { userId: string }) => u.userId === session.user!.id)
               : false
             return (
-              <div key={post.id} className="osrs-panel-dark rounded-xl">
+              <div key={post.id} className="osrs-panel-dark rounded-xl" style={{ overflow: 'hidden' }}>
+                {/* Event banner image */}
+                {post.imageUrl && (
+                  <div style={{ position: 'relative', width: '100%', maxHeight: 320, overflow: 'hidden' }}>
+                    <img
+                      src={post.imageUrl}
+                      alt={post.title}
+                      style={{ width: '100%', height: '100%', maxHeight: 320, objectFit: 'cover', display: 'block' }}
+                    />
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      background: 'linear-gradient(to bottom, transparent 40%, rgba(13,11,9,0.92) 100%)',
+                    }} />
+                  </div>
+                )}
+                <div style={{ padding: post.imageUrl ? '14px 16px 0' : undefined }}>
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <h3 className="text-[10px] text-[#c8c8c8] font-bold">{post.title}</h3>
@@ -196,6 +211,7 @@ export default async function SkillPage({ params }: Props) {
                 <p className="text-[9px] text-[#d8d8d8] mt-2 leading-relaxed whitespace-pre-wrap">
                   {post.body}
                 </p>
+                </div>
 
                 {/* Replies */}
                 {post.replies.length > 0 && (
