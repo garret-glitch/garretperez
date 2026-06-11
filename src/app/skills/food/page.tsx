@@ -1,12 +1,84 @@
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import XpBar from '@/components/XpBar'
-import RecipeForm from '@/components/RecipeForm'
-import PostForm from '@/components/PostForm'
+import { xpProgress } from '@/lib/xp'
 import Link from 'next/link'
+import WineFavoriteButton from './WineFavoriteButton'
+import FoodRecipeForm from './FoodRecipeForm'
+import FoodPostForm from './FoodPostForm'
 
 export const dynamic = 'force-dynamic'
 
+/* ── Design tokens ─────────────────────────────────────────── */
+const S = {
+  bg:       '#0e0a08',
+  card:     '#16120e',
+  cardAlt:  '#13100c',
+  elevated: '#1c1610',
+  borderDim:'rgba(200,155,60,0.12)',
+  border:   'rgba(200,155,60,0.24)',
+  borderLit:'rgba(200,155,60,0.55)',
+  gold:     '#c89b3c',
+  goldDim:  '#7a5a20',
+  wine:     '#7a1428',
+  text1:    '#f0e8d8',
+  text2:    '#b8986c',
+  text3:    '#7a5e3c',
+  text4:    '#4a3820',
+}
+
+/* ── Wine data ─────────────────────────────────────────────── */
+const WINES = [
+  {
+    id: 'llano',
+    name: 'Llano Estacado Sweet Red',
+    image: 'https://www.wolfexpressliquor.com/cdn/shop/files/50-LLANOESTACADOSWEETREDWINE750ML-Photoroom_d157d2f8-9c0d-4949-ae77-cce948e82bc8.jpg',
+    origin: 'Texas',
+    varietal: 'Syrah, Merlot & Cab',
+    abv: '12.4%',
+    tag: 'SWEET RED',
+    tagColor: 'rgba(180,40,60,0.65)',
+    notes: 'Blackberry and cherry aromas with soft tannins and a hint of mint. Medium-sweet, smooth finish. Best value Texas red under $11.',
+    pairings: ['🦃 Turkey', '🥩 Brisket', '🌶️ Tex-Mex', '🧀 Cheese', '🍫 Chocolate'],
+  },
+  {
+    id: 'stella',
+    name: 'Stella Rosa Black',
+    image: 'https://wineonsale.com/cdn/shop/products/Stella_Rosa_Black_bottle_1_1024x.jpg?v=1606254236',
+    origin: 'Piedmont, Italy',
+    varietal: 'Semi-Sweet Sparkling',
+    abv: '5%',
+    tag: 'SPARKLING',
+    tagColor: 'rgba(80,60,180,0.65)',
+    notes: 'Ripe blackberry, blueberry, and raspberry with lush floral aromatics. Naturally sparkling, smooth sweetness — best served well chilled.',
+    pairings: ['🍫 Chocolate', '🧀 Manchego', '🍓 Berries', '🍰 Cheesecake', '🌭 Bratwurst'],
+  },
+  {
+    id: 'juggernaut',
+    name: 'Juggernaut Cabernet Sauvignon',
+    image: 'https://wineonsale.com/cdn/shop/products/Juggernaut_Hillside_Cabernet_Sauvignon_2018_bottle_1024x.png?v=1605128623',
+    origin: 'California',
+    varietal: '100% Cabernet Sauvignon',
+    abv: '14.5%',
+    tag: 'BOLD RED',
+    tagColor: 'rgba(140,20,40,0.7)',
+    notes: 'Blackberry, huckleberry, and toasted oak on the nose. Spiced plum, dark chocolate, velvety tannins and a long satisfying finish.',
+    pairings: ['🥩 Ribeye', '🍖 Lamb', '🧀 Aged Cheddar', '🍝 Bolognese', '🍔 Burgers'],
+  },
+  {
+    id: 'matua',
+    name: 'Matua Sauvignon Blanc',
+    image: 'https://www.kenswineguide.com/images_wine/Matua-2023-Sauvignon-Blanc.gif',
+    origin: 'Marlborough, New Zealand',
+    varietal: '100% Sauvignon Blanc',
+    abv: '13%',
+    tag: 'CRISP WHITE',
+    tagColor: 'rgba(60,140,80,0.65)',
+    notes: 'Vibrant passion fruit, lemon citrus, and gooseberry on the nose. Crisp green melon, lime zest, and cut grass with a clean zesty finish.',
+    pairings: ['🦞 Seafood', '🐟 Grilled Fish', '🥗 Fresh Salads', '🧀 Goat Cheese', '🌿 Herb Dishes'],
+  },
+]
+
+/* ── Page ──────────────────────────────────────────────────── */
 export default async function FoodPage() {
   const session = await auth()
 
@@ -16,7 +88,10 @@ export default async function FoodPage() {
     ingredients: string; instructions: string
     createdAt: Date; user: { username: string }
   }> = []
-  let posts: Array<{ id: string; title: string; body: string; createdAt: Date; user: { username: string } }> = []
+  let posts: Array<{
+    id: string; title: string; body: string
+    createdAt: Date; user: { username: string }
+  }> = []
 
   try {
     if (session?.user?.id) {
@@ -26,204 +101,399 @@ export default async function FoodPage() {
       userXp = userSkill?.xp ?? 0
     }
     recipes = await prisma.recipe.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 20,
+      orderBy: { createdAt: 'desc' }, take: 20,
       include: { user: { select: { username: true } } },
     })
     posts = await prisma.post.findMany({
       where: { skill: 'FOOD' },
-      orderBy: { createdAt: 'desc' },
-      take: 10,
+      orderBy: { createdAt: 'desc' }, take: 10,
       include: { user: { select: { username: true } } },
     })
-  } catch {
-    // DB not configured
-  }
+  } catch { /* DB not configured */ }
+
+  const xp = xpProgress(userXp)
 
   return (
-    <div className="space-y-4">
-      <div className="osrs-panel rounded-xl">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-2xl">🍷</span>
-          <h1 className="text-[14px] text-[#1a1a1a] font-bold">Food &amp; Wine</h1>
-        </div>
-        <p className="text-[8px] text-[#3d3d3d]">
-          Share recipes, wine picks and food tips. Add a recipe → +50 XP!
-        </p>
-        {session?.user && (
-          <div className="mt-3">
-            <XpBar xp={userXp} skillName="Food & Wine" />
-          </div>
-        )}
-      </div>
+    <div style={{ color: S.text1, fontFamily: 'Inter, sans-serif', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-      {/* ── Featured Wines ──────────────────────────────── */}
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
-          <span style={{ fontSize: 15 }}>🍷</span>
-          <span style={{ fontSize: 7, color: '#c89b3c', fontFamily: "'Press Start 2P', monospace", textTransform: 'uppercase', letterSpacing: '0.12em' }}>
-            Featured Wines
-          </span>
-        </div>
-
-        <div className="grid sm:grid-cols-2 gap-3">
-
-          {/* Llano Estacado Sweet Red */}
-          <div className="osrs-panel-dark rounded-xl" style={{ padding: '12px 14px' }}>
-            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 10 }}>
-              <img src="https://www.wolfexpressliquor.com/cdn/shop/files/50-LLANOESTACADOSWEETREDWINE750ML-Photoroom_d157d2f8-9c0d-4949-ae77-cce948e82bc8.jpg" alt="Llano Estacado Sweet Red" style={{ width: 58, flexShrink: 0, objectFit: 'contain' }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#f0d898', fontFamily: 'Inter, sans-serif', marginBottom: 2 }}>Llano Estacado Sweet Red</div>
-                <div style={{ fontSize: 9, color: '#9a7848', fontFamily: 'Inter, sans-serif', marginBottom: 6 }}>Texas · Syrah, Merlot &amp; Cab · 12.4% ABV</div>
-                <p className="body-text" style={{ fontSize: 10, color: '#c8b890', lineHeight: 1.65, margin: 0 }}>
-                  Blackberry and cherry aromas with soft tannins and a hint of mint. Medium-sweet, smooth finish. Best value Texas red under $11.
-                </p>
-              </div>
-            </div>
-            <div style={{ borderTop: '1px solid rgba(200,155,60,0.18)', paddingTop: 8 }}>
-              <div style={{ fontSize: 6, color: '#c89b3c', fontFamily: "'Press Start 2P', monospace", letterSpacing: '0.12em', marginBottom: 6 }}>PAIRS WITH</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                {['🦃 Turkey', '🥩 Brisket', '🌶️ Tex-Mex', '🧀 Cheese', '🍫 Chocolate'].map(p => (
-                  <span key={p} className="body-text" style={{ fontSize: 10, color: '#b09060', background: 'rgba(200,155,60,0.07)', border: '1px solid rgba(200,155,60,0.2)', padding: '3px 8px' }}>{p}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Stella Rosa Black */}
-          <div className="osrs-panel-dark rounded-xl" style={{ padding: '12px 14px' }}>
-            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 10 }}>
-              <img src="https://wineonsale.com/cdn/shop/products/Stella_Rosa_Black_bottle_1_1024x.jpg?v=1606254236" alt="Stella Rosa Black" style={{ width: 58, flexShrink: 0, objectFit: 'contain' }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#f0d898', fontFamily: 'Inter, sans-serif', marginBottom: 2 }}>Stella Rosa Black</div>
-                <div style={{ fontSize: 9, color: '#9a7848', fontFamily: 'Inter, sans-serif', marginBottom: 6 }}>Piedmont, Italy · Semi-Sweet Sparkling · 5% ABV</div>
-                <p className="body-text" style={{ fontSize: 10, color: '#c8b890', lineHeight: 1.65, margin: 0 }}>
-                  Ripe blackberry, blueberry, and raspberry with lush floral aromatics. Naturally sparkling, smooth sweetness — best served well chilled.
-                </p>
-              </div>
-            </div>
-            <div style={{ borderTop: '1px solid rgba(200,155,60,0.18)', paddingTop: 8 }}>
-              <div style={{ fontSize: 6, color: '#c89b3c', fontFamily: "'Press Start 2P', monospace", letterSpacing: '0.12em', marginBottom: 6 }}>PAIRS WITH</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                {['🍫 Chocolate', '🧀 Manchego', '🍓 Berries', '🍰 Cheesecake', '🍕 Bratwurst'].map(p => (
-                  <span key={p} className="body-text" style={{ fontSize: 10, color: '#b09060', background: 'rgba(200,155,60,0.07)', border: '1px solid rgba(200,155,60,0.2)', padding: '3px 8px' }}>{p}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Juggernaut Cabernet Sauvignon */}
-          <div className="osrs-panel-dark rounded-xl" style={{ padding: '12px 14px' }}>
-            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 10 }}>
-              <img src="https://wineonsale.com/cdn/shop/products/Juggernaut_Hillside_Cabernet_Sauvignon_2018_bottle_1024x.png?v=1605128623" alt="Juggernaut Cabernet Sauvignon" style={{ width: 58, flexShrink: 0, objectFit: 'contain' }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#f0d898', fontFamily: 'Inter, sans-serif', marginBottom: 2 }}>Juggernaut Cabernet Sauvignon</div>
-                <div style={{ fontSize: 9, color: '#9a7848', fontFamily: 'Inter, sans-serif', marginBottom: 6 }}>California · 100% Cabernet Sauvignon · 14.5% ABV</div>
-                <p className="body-text" style={{ fontSize: 10, color: '#c8b890', lineHeight: 1.65, margin: 0 }}>
-                  Blackberry, huckleberry, and toasted oak on the nose. Spiced plum, black currant, and dark chocolate on the palate with velvety tannins and a long finish.
-                </p>
-              </div>
-            </div>
-            <div style={{ borderTop: '1px solid rgba(200,155,60,0.18)', paddingTop: 8 }}>
-              <div style={{ fontSize: 6, color: '#c89b3c', fontFamily: "'Press Start 2P', monospace", letterSpacing: '0.12em', marginBottom: 6 }}>PAIRS WITH</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                {['🥩 Ribeye', '🍖 Lamb', '🧀 Aged Cheddar', '🍝 Bolognese', '🍔 Burgers'].map(p => (
-                  <span key={p} className="body-text" style={{ fontSize: 10, color: '#b09060', background: 'rgba(200,155,60,0.07)', border: '1px solid rgba(200,155,60,0.2)', padding: '3px 8px' }}>{p}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Matua Sauvignon Blanc */}
-          <div className="osrs-panel-dark rounded-xl" style={{ padding: '12px 14px' }}>
-            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 10 }}>
-              <img src="https://www.kenswineguide.com/images_wine/Matua-2023-Sauvignon-Blanc.gif" alt="Matua Sauvignon Blanc" style={{ width: 58, flexShrink: 0, objectFit: 'contain' }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#f0d898', fontFamily: 'Inter, sans-serif', marginBottom: 2 }}>Matua Sauvignon Blanc</div>
-                <div style={{ fontSize: 9, color: '#9a7848', fontFamily: 'Inter, sans-serif', marginBottom: 6 }}>Marlborough, New Zealand · 100% Sauvignon Blanc · 13% ABV</div>
-                <p className="body-text" style={{ fontSize: 10, color: '#c8b890', lineHeight: 1.65, margin: 0 }}>
-                  Vibrant passion fruit, lemon citrus, and gooseberry on the nose. Crisp green melon, lime zest, and cut grass on the palate with a clean, zesty finish.
-                </p>
-              </div>
-            </div>
-            <div style={{ borderTop: '1px solid rgba(200,155,60,0.18)', paddingTop: 8 }}>
-              <div style={{ fontSize: 6, color: '#c89b3c', fontFamily: "'Press Start 2P', monospace", letterSpacing: '0.12em', marginBottom: 6 }}>PAIRS WITH</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                {['🦞 Seafood', '🐟 Grilled Fish', '🥗 Fresh Salads', '🧀 Goat Cheese', '🌿 Herb Dishes'].map(p => (
-                  <span key={p} className="body-text" style={{ fontSize: 10, color: '#b09060', background: 'rgba(200,155,60,0.07)', border: '1px solid rgba(200,155,60,0.2)', padding: '3px 8px' }}>{p}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      {session?.user ? (
-        <RecipeForm />
-      ) : (
-        <div className="osrs-panel-dark rounded-xl text-[8px] text-[#d8d8d8] text-center py-3">
-          <Link href="/login" className="text-[#a0bcd0] hover:underline">Login</Link>
-          {' '}to add recipes and earn XP!
-        </div>
-      )}
-
-      {recipes.length > 0 && (
-        <div>
-          <h2 className="text-[10px] text-[#c0c0c0] mb-2">📜 Recipes</h2>
-          <div className="space-y-3">
-            {recipes.map(recipe => {
-              let ingredients: string[] = []
-              try {
-                ingredients = JSON.parse(recipe.ingredients)
-              } catch {
-                ingredients = recipe.ingredients.split('\n').filter(Boolean)
-              }
-              return (
-                <div key={recipe.id} className="osrs-panel-dark rounded-xl">
-                  <h3 className="text-[10px] text-[#c8c8c8] font-bold">{recipe.title}</h3>
-                  <p className="text-[7px] text-[#909090]">
-                    by {recipe.user.username} · {new Date(recipe.createdAt).toLocaleDateString()}
+      {/* ── HERO HEADER ──────────────────────────────────────── */}
+      <div style={{
+        background: 'linear-gradient(160deg, #181410 0%, #201c14 55%, #181410 100%)',
+        border: `2px solid rgba(200,155,60,0.38)`,
+        padding: '28px 26px',
+        position: 'relative', overflow: 'hidden',
+      }}>
+        <div style={{ position: 'absolute', inset: 5, border: '1px solid rgba(200,155,60,0.09)', pointerEvents: 'none' }} />
+        <div style={{ position: 'relative' }}>
+          <div className="flex flex-col sm:flex-row sm:items-start gap-6">
+            {/* Left: title + subtitle + XP bar */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10 }}>
+                <div style={{
+                  width: 52, height: 52, flexShrink: 0,
+                  background: 'rgba(200,155,60,0.08)', border: '2px solid rgba(200,155,60,0.35)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26,
+                }}>🍷</div>
+                <div>
+                  <h1 style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 14, color: '#f0d898', letterSpacing: '0.06em', marginBottom: 5 }}>
+                    Food &amp; Wine
+                  </h1>
+                  <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: S.text3, margin: 0 }}>
+                    Share recipes, wine picks &amp; food tips. Add a recipe → +50 XP!
                   </p>
-                  {recipe.description && (
-                    <p className="text-[8px] text-[#d8d8d8] mt-1">{recipe.description}</p>
-                  )}
-                  <div className="mt-2">
-                    <p className="text-[7px] text-[#b8b8b8] font-bold">Ingredients:</p>
-                    <ul className="text-[7px] text-[#d8d8d8] list-disc list-inside mt-1 space-y-0.5">
-                      {ingredients.map((ing, i) => <li key={i}>{ing}</li>)}
-                    </ul>
+                </div>
+              </div>
+
+              {/* XP bar (full-width, shown for everyone as a teaser; only meaningful for logged-in users) */}
+              {session?.user ? (
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+                    <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: S.goldDim, letterSpacing: '0.1em' }}>
+                      FOOD &amp; WINE XP
+                    </span>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: S.text2 }}>
+                      {xp.currentXp.toLocaleString()} / {xp.neededXp.toLocaleString()} XP
+                    </span>
                   </div>
-                  <div className="mt-2">
-                    <p className="text-[7px] text-[#b8b8b8] font-bold">Instructions:</p>
-                    <p className="text-[7px] text-[#d8d8d8] mt-1 whitespace-pre-wrap leading-relaxed">
-                      {recipe.instructions}
-                    </p>
+                  <div style={{ height: 10, background: 'rgba(0,0,0,0.4)', border: `1px solid rgba(200,155,60,0.2)`, overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%', width: `${xp.percent}%`,
+                      background: 'linear-gradient(90deg, #8a5c10, #c89b3c)',
+                      transition: 'width 0.8s ease',
+                    }} />
+                  </div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: S.text4, marginTop: 4 }}>
+                    {xp.percent}% to Level {xp.level + 1}
                   </div>
                 </div>
-              )
-            })}
+              ) : (
+                <div style={{ marginTop: 12, display: 'flex', gap: 10 }}>
+                  <Link href="/login" style={{
+                    padding: '9px 18px', background: 'transparent',
+                    border: `1px solid rgba(200,155,60,0.35)`, color: S.gold,
+                    fontSize: 13, fontWeight: 600, textDecoration: 'none',
+                    fontFamily: 'Inter, sans-serif',
+                  }}>Log In</Link>
+                  <Link href="/register" style={{
+                    padding: '9px 18px',
+                    background: 'linear-gradient(135deg, #c89b3c 0%, #a07828 100%)',
+                    color: '#0a0600', fontSize: 13, fontWeight: 700,
+                    textDecoration: 'none', fontFamily: 'Inter, sans-serif',
+                  }}>🛡 Join &amp; Earn XP</Link>
+                </div>
+              )}
+            </div>
+
+            {/* Right: Level card (logged-in only) */}
+            {session?.user && (
+              <div style={{
+                flexShrink: 0, width: 200,
+                background: S.card, border: `1px solid rgba(200,155,60,0.28)`,
+                padding: '18px 20px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+              }}>
+                <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: S.goldDim, letterSpacing: '0.12em', marginBottom: 12 }}>
+                  FOOD &amp; WINE
+                </div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 14 }}>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 36, fontWeight: 800, color: S.gold, lineHeight: 1 }}>
+                    {xp.level}
+                  </span>
+                  <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 8, color: S.goldDim, letterSpacing: '0.08em' }}>
+                    LVL
+                  </span>
+                </div>
+                <div style={{ height: 5, background: 'rgba(200,155,60,0.1)', border: `1px solid rgba(200,155,60,0.18)`, overflow: 'hidden', marginBottom: 8 }}>
+                  <div style={{ height: '100%', width: `${xp.percent}%`, background: 'linear-gradient(90deg, #8a5c10, #c89b3c)' }} />
+                </div>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: S.text3 }}>
+                  {userXp.toLocaleString()} total XP
+                </div>
+              </div>
+            )}
           </div>
+        </div>
+      </div>
+
+      {/* ── FEATURED WINES ───────────────────────────────────── */}
+      <div>
+        {/* Section header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
+          <div style={{ height: 1, flex: 1, background: 'rgba(200,155,60,0.15)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 16 }}>🍷</span>
+            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: S.gold, letterSpacing: '0.1em' }}>
+              FEATURED WINES
+            </span>
+          </div>
+          <div style={{ height: 1, flex: 1, background: 'rgba(200,155,60,0.15)' }} />
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-5">
+          {WINES.map(wine => (
+            <div
+              key={wine.id}
+              className="wine-card"
+              style={{
+                background: S.card, border: `1px solid ${S.border}`,
+                borderRadius: 14, overflow: 'hidden',
+                boxShadow: `0 2px 12px rgba(0,0,0,0.5)`,
+              }}
+            >
+              {/* Card top: image area */}
+              <div style={{
+                background: `radial-gradient(ellipse at center 50%, rgba(200,155,60,0.07) 0%, transparent 70%), ${S.cardAlt}`,
+                padding: '28px 24px 20px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0,
+                position: 'relative',
+              }}>
+                {/* Wine type tag */}
+                <div style={{
+                  position: 'absolute', top: 14, left: 16,
+                  background: wine.tagColor, color: '#f0e8d8',
+                  fontFamily: "'Press Start 2P', monospace", fontSize: 7,
+                  padding: '4px 9px', letterSpacing: '0.08em',
+                }}>
+                  {wine.tag}
+                </div>
+                {/* Favorite button */}
+                <div style={{ position: 'absolute', top: 10, right: 12 }}>
+                  <WineFavoriteButton label={wine.name} />
+                </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={wine.image}
+                  alt={wine.name}
+                  style={{
+                    height: 110, width: 'auto', maxWidth: 90,
+                    objectFit: 'contain', display: 'block',
+                    filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.6))',
+                  }}
+                />
+              </div>
+
+              {/* Card body */}
+              <div style={{ padding: '20px 22px 22px' }}>
+                {/* Name */}
+                <h3 style={{ fontFamily: 'Inter, sans-serif', fontSize: 18, fontWeight: 700, color: S.text1, marginBottom: 8, lineHeight: 1.3 }}>
+                  {wine.name}
+                </h3>
+
+                {/* Meta row */}
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14, alignItems: 'center' }}>
+                  {[wine.origin, wine.varietal].map(t => (
+                    <span key={t} style={{
+                      fontFamily: 'Inter, sans-serif', fontSize: 12, color: S.text3,
+                      background: 'rgba(200,155,60,0.06)', border: `1px solid rgba(200,155,60,0.14)`,
+                      padding: '3px 9px',
+                    }}>{t}</span>
+                  ))}
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: S.goldDim, fontWeight: 600 }}>
+                    {wine.abv} ABV
+                  </span>
+                </div>
+
+                {/* Tasting notes */}
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: S.text2, lineHeight: 1.72, marginBottom: 18 }}>
+                  {wine.notes}
+                </p>
+
+                {/* Pairings */}
+                <div style={{ borderTop: `1px solid ${S.borderDim}`, paddingTop: 16 }}>
+                  <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: S.goldDim, letterSpacing: '0.12em', marginBottom: 10 }}>
+                    PAIRS WITH
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                    {wine.pairings.map(p => (
+                      <span
+                        key={p}
+                        className="food-pill"
+                        style={{
+                          fontFamily: 'Inter, sans-serif', fontSize: 13, color: S.text2,
+                          background: 'rgba(200,155,60,0.07)', border: `1px solid rgba(200,155,60,0.2)`,
+                          padding: '5px 11px', borderRadius: 20,
+                        }}
+                      >
+                        {p}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── RECIPE FORM ──────────────────────────────────────── */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
+          <div style={{ height: 1, flex: 1, background: 'rgba(200,155,60,0.15)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 16 }}>🍴</span>
+            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: S.gold, letterSpacing: '0.1em' }}>
+              COMMUNITY RECIPES
+            </span>
+          </div>
+          <div style={{ height: 1, flex: 1, background: 'rgba(200,155,60,0.15)' }} />
+        </div>
+
+        {session?.user ? (
+          <FoodRecipeForm />
+        ) : (
+          <div style={{
+            background: S.card, border: `1px solid ${S.border}`,
+            padding: '28px', textAlign: 'center',
+          }}>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>🍴</div>
+            <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 17, fontWeight: 600, color: S.text1, marginBottom: 8 }}>
+              Share your favorite recipes
+            </div>
+            <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: S.text3, marginBottom: 20 }}>
+              Log in to add recipes and earn +50 Food &amp; Wine XP per recipe.
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <Link href="/login" style={{
+                padding: '11px 22px', background: 'transparent',
+                border: `1px solid rgba(200,155,60,0.35)`, color: S.gold,
+                fontSize: 14, fontWeight: 600, textDecoration: 'none', fontFamily: 'Inter, sans-serif',
+              }}>Log In</Link>
+              <Link href="/register" style={{
+                padding: '11px 22px', background: 'linear-gradient(135deg, #c89b3c 0%, #a07828 100%)',
+                color: '#0a0600', fontSize: 14, fontWeight: 700, textDecoration: 'none', fontFamily: 'Inter, sans-serif',
+              }}>🛡 Create Account</Link>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── RECIPE CARDS ─────────────────────────────────────── */}
+      {recipes.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {recipes.map(recipe => {
+            let ingredients: string[] = []
+            try { ingredients = JSON.parse(recipe.ingredients) }
+            catch { ingredients = recipe.ingredients.split('\n').filter(Boolean) }
+            return (
+              <div
+                key={recipe.id}
+                className="recipe-card"
+                style={{
+                  background: S.card, border: `1px solid rgba(200,155,60,0.18)`,
+                  borderLeft: `3px solid rgba(130,20,48,0.6)`,
+                  borderRadius: 10, padding: '22px 24px',
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.35)',
+                }}
+              >
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h3 style={{ fontFamily: 'Inter, sans-serif', fontSize: 17, fontWeight: 700, color: S.text1, marginBottom: 4, lineHeight: 1.3 }}>
+                      {recipe.title}
+                    </h3>
+                    {recipe.description && (
+                      <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: S.text3, fontStyle: 'italic', marginBottom: 4 }}>
+                        {recipe.description}
+                      </p>
+                    )}
+                    <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: S.text4 }}>
+                      by {recipe.user.username} · {new Date(recipe.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </div>
+                  </div>
+                  <div style={{
+                    background: 'rgba(200,155,60,0.08)', border: `1px solid rgba(200,155,60,0.2)`,
+                    padding: '6px 12px', flexShrink: 0,
+                    fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: S.goldDim,
+                    letterSpacing: '0.06em',
+                  }}>
+                    🍴 RECIPE
+                  </div>
+                </div>
+
+                <div style={{ borderTop: `1px solid ${S.borderDim}`, paddingTop: 16 }}>
+                  <div className="food-form-grid" style={{ gap: 20 }}>
+                    {/* Ingredients */}
+                    <div>
+                      <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: S.goldDim, letterSpacing: '0.1em', marginBottom: 10 }}>
+                        INGREDIENTS
+                      </div>
+                      <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 5 }}>
+                        {ingredients.map((ing, i) => (
+                          <li key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                            <span style={{ color: S.gold, fontSize: 10, marginTop: 3, flexShrink: 0 }}>◆</span>
+                            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: S.text2, lineHeight: 1.5 }}>{ing}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    {/* Instructions */}
+                    <div>
+                      <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: S.goldDim, letterSpacing: '0.1em', marginBottom: 10 }}>
+                        INSTRUCTIONS
+                      </div>
+                      <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: S.text2, lineHeight: 1.75, whiteSpace: 'pre-wrap', margin: 0 }}>
+                        {recipe.instructions}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
 
+      {/* ── FOOD DISCUSSIONS ─────────────────────────────────── */}
       <div>
-        <h2 className="text-[10px] text-[#c0c0c0] mb-2">💬 Food Discussions</h2>
-        {session?.user && <PostForm skillEnum="FOOD" />}
-        {!session?.user && posts.length === 0 && (
-          <div className="osrs-panel rounded-xl text-[8px] text-[#3d3d3d] text-center py-4">
-            No food discussions yet.
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
+          <div style={{ height: 1, flex: 1, background: 'rgba(200,155,60,0.15)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 16 }}>💬</span>
+            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: S.gold, letterSpacing: '0.1em' }}>
+              FOOD DISCUSSIONS
+            </span>
+          </div>
+          <div style={{ height: 1, flex: 1, background: 'rgba(200,155,60,0.15)' }} />
+        </div>
+
+        {session?.user && (
+          <div style={{ marginBottom: 16 }}>
+            <FoodPostForm />
           </div>
         )}
+
+        {posts.length === 0 && !session?.user && (
+          <div style={{
+            background: S.card, border: `1px solid ${S.borderDim}`,
+            padding: '28px', textAlign: 'center',
+            fontFamily: 'Inter, sans-serif', fontSize: 14, color: S.text4,
+          }}>
+            No food discussions yet —{' '}
+            <Link href="/login" style={{ color: S.gold, textDecoration: 'underline' }}>log in</Link>
+            {' '}to start one!
+          </div>
+        )}
+
         {posts.length > 0 && (
-          <div className="space-y-3 mt-3">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {posts.map(post => (
-              <div key={post.id} className="osrs-panel-dark rounded-xl">
-                <h3 className="text-[10px] text-[#c8c8c8] font-bold">{post.title}</h3>
-                <p className="text-[7px] text-[#909090]">
-                  by {post.user.username} · {new Date(post.createdAt).toLocaleDateString()}
-                </p>
-                <p className="text-[9px] text-[#d8d8d8] mt-2 whitespace-pre-wrap leading-relaxed">
+              <div
+                key={post.id}
+                className="food-post-card"
+                style={{
+                  background: S.card, border: `1px solid rgba(200,155,60,0.16)`,
+                  borderRadius: 8, padding: '18px 20px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
+                  <h3 style={{ fontFamily: 'Inter, sans-serif', fontSize: 15, fontWeight: 700, color: S.text1 }}>
+                    {post.title}
+                  </h3>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: S.text4, whiteSpace: 'nowrap' }}>
+                    by {post.user.username} · {new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </span>
+                </div>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: S.text2, lineHeight: 1.7, whiteSpace: 'pre-wrap', margin: 0 }}>
                   {post.body}
                 </p>
               </div>
@@ -231,6 +501,7 @@ export default async function FoodPage() {
           </div>
         )}
       </div>
+
     </div>
   )
 }
