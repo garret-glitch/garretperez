@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic'
 const GAMES = [
   { icon: '✦', title: 'Lumina',      desc: 'Flow puzzle game',      href: '/game',                    xp: 'Featured', featured: true },
   { icon: '⚽', title: 'Ball Game',   desc: 'Keep the ball alive',   href: '/skills/fun/ballgame',     xp: 'High Score' },
+  { icon: '🔵', title: 'Drag Ball',   desc: 'Steer · dodge · collect', href: '/skills/fun/dragball',     xp: 'High Score' },
   { icon: '🍷', title: 'Wine Trivia', desc: '10-question quiz',      href: '/skills/fun/wine-trivia',  xp: '+25 XP (7+/10)' },
   { icon: '🃏', title: 'Matching',    desc: 'Memory card game',      href: '/skills/fun/matching',     xp: '+25 XP' },
   { icon: '🐍', title: 'Snake',       desc: 'Collect 10 coins',      href: '/skills/fun/snake',        xp: '+25 XP' },

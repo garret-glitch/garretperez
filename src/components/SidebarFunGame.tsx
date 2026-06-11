@@ -11,6 +11,8 @@ const IFRAME_DUR = 70
 const GAMES = [
   { icon: '🍷', label: 'Wine',   href: '/skills/fun/wine-trivia' },
   { icon: '🃏', label: 'Cards',  href: '/skills/fun/matching' },
+  { icon: '🔵', label: 'Drag',   href: '/skills/fun/dragball' },
+  { icon: '⚽', label: 'Ball',   href: '/skills/fun/ballgame' },
   { icon: '🐍', label: 'Snake',  href: '/skills/fun/snake' },
   { icon: '🧱', label: 'Break',  href: '/skills/fun/breakout' },
   { icon: '🦔', label: 'Mole',   href: '/skills/fun/whack-a-mole' },
