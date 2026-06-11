@@ -1,7 +1,8 @@
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { getCommunityXpForSkill } from '@/lib/community-xp'
-import CommunityLevelCard from '@/components/CommunityLevelCard'
+import { getSkillBySlug } from '@/lib/skills'
+import SkillHeroBar from '@/components/SkillHeroBar'
 import UpvoteButton from '@/components/UpvoteButton'
 import SkillVisitTracker from '@/components/SkillVisitTracker'
 import Link from 'next/link'
@@ -50,7 +51,6 @@ export default async function FishingPage() {
     replies: Array<{ id: string; body: string; createdAt: Date; user: { username: string } }>
     upvotes: Array<{ userId: string }>
   }> = []
-  let totalMembers = 0
   let gear: GearItem[] = DEFAULT_GEAR
 
   try {
@@ -70,7 +70,6 @@ export default async function FishingPage() {
         upvotes: { select: { userId: true } },
       },
     })
-    totalMembers = await prisma.user.count()
     const gearSetting = await (prisma as any).siteSetting.findUnique({ where: { key: 'fishing_gear' } })
     if (gearSetting?.value) {
       try { gear = JSON.parse(gearSetting.value) } catch { /* use default */ }
@@ -86,59 +85,13 @@ export default async function FishingPage() {
     <div style={{ fontFamily: 'Inter, sans-serif', color: '#e8e6e0' }}>
       {session?.user && <SkillVisitTracker skill={'FISHING' as SkillType} />}
 
-      {/* ── Channel Banner ──────────────────────────────────── */}
-      <div style={{
-        background: 'linear-gradient(160deg, #181410 0%, #201c14 55%, #181410 100%)',
-        border: '2px solid rgba(200,155,60,0.38)',
-        borderBottom: '2px solid rgba(200,155,60,0.45)',
-        padding: '22px 20px 18px',
-        position: 'relative',
-        overflow: 'hidden',
-      }}>
-        <div style={{ position: 'absolute', inset: 4, border: '1px solid rgba(200,155,60,0.1)', pointerEvents: 'none' }} />
-        <div style={{ position: 'relative' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
-            <div style={{
-              width: 54, height: 54, flexShrink: 0,
-              background: 'rgba(200,155,60,0.08)', border: '2px solid rgba(200,155,60,0.35)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26,
-            }}>🎣</div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 5, flexWrap: 'wrap' }}>
-                <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 14, color: '#f0d898', letterSpacing: '0.06em' }}>
-                  Fishing
-                </span>
-                <span style={{
-                  fontSize: 8, fontFamily: "'Press Start 2P', monospace", color: '#8a6830',
-                  background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.28)',
-                  padding: '3px 8px', letterSpacing: '0.1em',
-                }}>GUILD CHANNEL</span>
-              </div>
-              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#8a7050', margin: 0, lineHeight: 1.5 }}>
-                Fishing trips, outdoor adventures &amp; tips from the water.
-              </p>
-            </div>
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center', marginBottom: session?.user ? 14 : 0 }}>
-            <span style={{ fontSize: 12, color: '#6a5030' }}>
-              <span style={{ color: '#a08048', fontWeight: 600 }}>👥 {totalMembers}</span>{' '}members
-            </span>
-            <span style={{ width: 1, height: 12, background: 'rgba(200,155,60,0.2)', display: 'inline-block' }} />
-            <span style={{ fontSize: 12, color: '#6a5030' }}>
-              <span style={{ color: '#a08048', fontWeight: 600 }}>🎣 {totalPosts}</span>{' '}posts
-            </span>
-            {session?.user && (
-              <>
-                <span style={{ width: 1, height: 12, background: 'rgba(200,155,60,0.2)', display: 'inline-block' }} />
-                <span style={{ fontSize: 12, color: '#60aa60', fontWeight: 600 }}>● Online</span>
-              </>
-            )}
-          </div>
-          <div className="flex flex-col sm:flex-row sm:items-start gap-4" style={{ marginTop: 10 }}>
-            <CommunityLevelCard xp={communityXp} memberCount={communityMemberCount} />
-          </div>
-        </div>
-      </div>
+      <SkillHeroBar
+        skill={getSkillBySlug('fishing')!}
+        communityXp={communityXp}
+        memberCount={communityMemberCount}
+        postCount={totalPosts}
+        isLoggedIn={!!session?.user}
+      />
 
       {/* ── Tackle Box ──────────────────────────────────────── */}
       <div style={{

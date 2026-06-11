@@ -3,7 +3,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { getSkillBySlug } from '@/lib/skills'
 import { getCommunityXpForSkill } from '@/lib/community-xp'
-import CommunityLevelCard from '@/components/CommunityLevelCard'
+import SkillHeroBar from '@/components/SkillHeroBar'
 import { SkillType } from '@prisma/client'
 import PostForm from '@/components/PostForm'
 import ReplyForm from '@/components/ReplyForm'
@@ -62,61 +62,13 @@ export default async function SkillPage({ params }: Props) {
       {/* Award visit XP once per day */}
       {session?.user && <SkillVisitTracker skill={skillMeta.dbEnum} />}
 
-      {/* ── Hero banner ─────────────────────────────────── */}
-      <div style={{
-        background: 'linear-gradient(160deg, #181410 0%, #201c14 55%, #181410 100%)',
-        border: '2px solid rgba(200,155,60,0.38)',
-        padding: '24px 22px',
-        position: 'relative', overflow: 'hidden',
-      }}>
-        <div style={{ position: 'absolute', inset: 4, border: '1px solid rgba(200,155,60,0.09)', pointerEvents: 'none' }} />
-        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-          {/* Top row: icon + title + cards */}
-          <div className="flex flex-col sm:flex-row sm:items-start gap-5">
-            {/* Left */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-                <div style={{
-                  width: 48, height: 48, flexShrink: 0,
-                  background: 'rgba(200,155,60,0.08)', border: '2px solid rgba(200,155,60,0.3)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26,
-                }}>{skillMeta.icon}</div>
-                <div>
-                  <h1 style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 13, color: '#f0d898', letterSpacing: '0.06em', marginBottom: 4 }}>
-                    {skillMeta.label}
-                  </h1>
-                  {skillMeta.description && (
-                    <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#7a5e3c', margin: 0 }}>
-                      {skillMeta.description}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {!session?.user && (
-                <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-                  <Link href="/login" style={{
-                    padding: '9px 18px', background: 'transparent',
-                    border: '1px solid rgba(200,155,60,0.35)', color: '#c89b3c',
-                    fontSize: 13, fontWeight: 600, textDecoration: 'none', fontFamily: 'Inter, sans-serif',
-                  }}>Log In</Link>
-                  <Link href="/register" style={{
-                    padding: '9px 18px', background: 'linear-gradient(135deg, #c89b3c 0%, #a07828 100%)',
-                    color: '#0a0600', fontSize: 13, fontWeight: 700,
-                    textDecoration: 'none', fontFamily: 'Inter, sans-serif',
-                  }}>🛡 Join &amp; Earn XP</Link>
-                </div>
-              )}
-            </div>
-
-            {/* Right: level cards */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flexShrink: 0 }}>
-              <CommunityLevelCard xp={communityXp} memberCount={communityMemberCount} />
-            </div>
-          </div>
-        </div>
-      </div>
+      <SkillHeroBar
+        skill={skillMeta}
+        communityXp={communityXp}
+        memberCount={communityMemberCount}
+        postCount={posts.length}
+        isLoggedIn={!!session?.user}
+      />
 
       {session?.user ? (
         <PostForm skillEnum={skillMeta.dbEnum} />
