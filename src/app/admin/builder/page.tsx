@@ -63,23 +63,32 @@ export default async function BuilderPage() {
     } catch { /* already exists or race condition */ }
   }
 
-  const recentPosts = await (prisma as any).post.findMany({
-    orderBy: { createdAt: 'desc' }, take: 8,
-    include: {
-      user: { select: { username: true } },
-      upvotes: { select: { userId: true } },
-      replies: { select: { id: true } },
-    },
-  })
+  let recentPosts: Record<string, unknown>[] = []
+  try {
+    recentPosts = await (prisma as any).post.findMany({
+      orderBy: { createdAt: 'desc' }, take: 8,
+      include: {
+        user: { select: { username: true } },
+        upvotes: { select: { userId: true } },
+        replies: { select: { id: true } },
+      },
+    })
+  } catch { /* relation tables may not exist yet */ }
 
-  const dbProjects = await (prisma as any).project.findMany({
-    orderBy: [{ order: 'asc' }, { createdAt: 'asc' }], take: 3,
-  })
+  let dbProjects: Record<string, unknown>[] = []
+  try {
+    dbProjects = await (prisma as any).project.findMany({
+      orderBy: [{ order: 'asc' }, { createdAt: 'asc' }], take: 3,
+    })
+  } catch { /* project table may not exist yet */ }
 
-  const quests = await (prisma as any).quest.findMany({
-    where: { active: true },
-    orderBy: { order: 'asc' },
-  })
+  let quests: Record<string, unknown>[] = []
+  try {
+    quests = await (prisma as any).quest.findMany({
+      where: { active: true },
+      orderBy: { order: 'asc' },
+    })
+  } catch { /* quest table may not exist yet */ }
 
   const totalMembers = await prisma.user.count()
   const totalPosts = await prisma.post.count()
