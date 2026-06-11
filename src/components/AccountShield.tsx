@@ -45,12 +45,10 @@ export default function AccountShield({ username, xp, xpPercent, isLoggedIn, ini
 
   return (
     <div
-      className="sm:shrink-0 mx-auto sm:mx-0"
+      className="sm:shrink-0 mx-auto sm:mx-0 shield-separator"
       style={{
         width: 240,
-        background: 'linear-gradient(180deg, #1a1508 0%, #0e0c06 100%)',
-        border: '2px solid rgba(200,155,60,0.55)',
-        boxShadow: '0 0 0 1px rgba(200,155,60,0.12), 0 8px 40px rgba(0,0,0,0.7)',
+        background: 'transparent',
         padding: '16px 16px 14px',
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         position: 'relative',

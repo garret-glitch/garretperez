@@ -137,10 +137,10 @@ export default async function Home() {
     <div className="space-y-5 fade-in">
 
       {/* ─── HERO + ACCOUNT ROW ───────────────────────────── */}
-      <div className="flex flex-col sm:flex-row gap-4 items-stretch">
+      <div className="hero-row flex flex-col sm:flex-row items-stretch">
 
         {/* ── Hero panel — unified dashboard ──────────────────── */}
-        <div className="hero-panel flex-1 min-w-0">
+        <div className="hero-panel flex-1 min-w-0" style={{ border: 'none', boxShadow: 'none', background: 'transparent' }}>
 
           {/* ── DESKTOP: 3-col grid ─────────────────────────────── */}
           <div className="hidden sm:grid" style={{
