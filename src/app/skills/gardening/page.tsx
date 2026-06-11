@@ -8,17 +8,15 @@ import GardeningPostForm from './GardeningPostForm'
 export const dynamic = 'force-dynamic'
 
 const S = {
-  card:     '#13160f',
-  border:   'rgba(80,160,90,0.24)',
-  borderDim:'rgba(80,160,90,0.12)',
-  green:    '#4da85e',
-  greenDim: '#2d6b3a',
+  card:     '#16120e',
+  border:   'rgba(200,155,60,0.24)',
+  borderDim:'rgba(200,155,60,0.12)',
   gold:     '#c89b3c',
   goldDim:  '#7a5a20',
-  text1:    '#eef0e8',
-  text2:    '#a8b89a',
-  text3:    '#6a8060',
-  text4:    '#3a5040',
+  text1:    '#f0e8d8',
+  text2:    '#b8986c',
+  text3:    '#7a5e3c',
+  text4:    '#4a3820',
 }
 
 export default async function GardeningPage() {
@@ -53,26 +51,26 @@ export default async function GardeningPage() {
 
       {/* ── HERO HEADER ─────────────────────────────────────── */}
       <div style={{
-        background: 'linear-gradient(160deg, #0f1409 0%, #161e0f 55%, #0f1409 100%)',
-        border: `2px solid rgba(80,160,90,0.35)`,
+        background: 'linear-gradient(160deg, #181410 0%, #201c14 55%, #181410 100%)',
+        border: `2px solid rgba(200,155,60,0.38)`,
         padding: '28px 26px',
         position: 'relative', overflow: 'hidden',
         borderRadius: 4,
       }}>
         {/* double-border inner glow */}
-        <div style={{ position: 'absolute', inset: 5, border: '1px solid rgba(80,160,90,0.08)', pointerEvents: 'none', borderRadius: 2 }} />
+        <div style={{ position: 'absolute', inset: 5, border: '1px solid rgba(200,155,60,0.09)', pointerEvents: 'none' }} />
         <div style={{ position: 'relative' }}>
           <div className="flex flex-col sm:flex-row sm:items-start gap-6">
             {/* Left */}
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10 }}>
                 <div style={{
-                  width: 52, height: 52, flexShrink: 0, borderRadius: 12,
-                  background: 'rgba(80,160,90,0.1)', border: '2px solid rgba(80,160,90,0.35)',
+                  width: 52, height: 52, flexShrink: 0,
+                  background: 'rgba(200,155,60,0.08)', border: '2px solid rgba(200,155,60,0.35)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28,
                 }}>🌱</div>
                 <div>
-                  <h1 style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 14, color: '#b8e8b0', letterSpacing: '0.06em', marginBottom: 5 }}>
+                  <h1 style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 14, color: '#f0d898', letterSpacing: '0.06em', marginBottom: 5 }}>
                     Gardening
                   </h1>
                   <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: S.text3, margin: 0 }}>
@@ -84,15 +82,15 @@ export default async function GardeningPage() {
               {session?.user ? (
                 <div style={{ marginTop: 8 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-                    <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: S.greenDim, letterSpacing: '0.1em' }}>
+                    <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: S.goldDim, letterSpacing: '0.1em' }}>
                       GARDENING XP
                     </span>
                     <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: S.text2 }}>
                       {xp.currentXp.toLocaleString()} / {xp.neededXp.toLocaleString()} XP
                     </span>
                   </div>
-                  <div style={{ height: 10, background: 'rgba(0,0,0,0.4)', border: `1px solid rgba(80,160,90,0.2)`, overflow: 'hidden', borderRadius: 4 }}>
-                    <div style={{ height: '100%', width: `${xp.percent}%`, background: 'linear-gradient(90deg, #1a6b2a, #4da85e)', transition: 'width 0.8s ease' }} />
+                  <div style={{ height: 10, background: 'rgba(0,0,0,0.4)', border: `1px solid rgba(200,155,60,0.2)`, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${xp.percent}%`, background: 'linear-gradient(90deg, #8a5c10, #c89b3c)', transition: 'width 0.8s ease' }} />
                   </div>
                   <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: S.text4, marginTop: 4 }}>
                     {xp.percent}% to Level {xp.level + 1}
@@ -100,11 +98,11 @@ export default async function GardeningPage() {
                 </div>
               ) : (
                 <div style={{ marginTop: 12, display: 'flex', gap: 10 }}>
-                  <Link href="/login" style={{ padding: '9px 18px', background: 'transparent', border: `1px solid rgba(80,160,90,0.35)`, color: S.green, fontSize: 13, fontWeight: 600, textDecoration: 'none', fontFamily: 'Inter, sans-serif', borderRadius: 6 }}>
+                  <Link href="/login" style={{ padding: '9px 18px', background: 'transparent', border: `1px solid rgba(200,155,60,0.35)`, color: S.gold, fontSize: 13, fontWeight: 600, textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>
                     Log In
                   </Link>
-                  <Link href="/register" style={{ padding: '9px 18px', background: 'linear-gradient(135deg, #3d8b57 0%, #2d6b42 100%)', color: '#e8f0e4', fontSize: 13, fontWeight: 700, textDecoration: 'none', fontFamily: 'Inter, sans-serif', borderRadius: 6 }}>
-                    🌱 Join &amp; Earn XP
+                  <Link href="/register" style={{ padding: '9px 18px', background: 'linear-gradient(135deg, #c89b3c 0%, #a07828 100%)', color: '#0a0600', fontSize: 13, fontWeight: 700, textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>
+                    🛡 Join &amp; Earn XP
                   </Link>
                 </div>
               )}
@@ -113,23 +111,23 @@ export default async function GardeningPage() {
             {/* Right: Level card */}
             {session?.user && (
               <div style={{
-                flexShrink: 0, width: 200, borderRadius: 12,
-                background: S.card, border: `1px solid rgba(80,160,90,0.28)`,
+                flexShrink: 0, width: 200,
+                background: S.card, border: `1px solid rgba(200,155,60,0.28)`,
                 padding: '18px 20px', boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
               }}>
-                <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: S.greenDim, letterSpacing: '0.12em', marginBottom: 12 }}>
+                <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: S.goldDim, letterSpacing: '0.12em', marginBottom: 12 }}>
                   GARDENING SKILL
                 </div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 14 }}>
-                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 36, fontWeight: 800, color: S.green, lineHeight: 1 }}>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 36, fontWeight: 800, color: S.gold, lineHeight: 1 }}>
                     {xp.level}
                   </span>
-                  <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 8, color: S.greenDim, letterSpacing: '0.08em' }}>
+                  <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 8, color: S.goldDim, letterSpacing: '0.08em' }}>
                     LVL
                   </span>
                 </div>
-                <div style={{ height: 5, background: 'rgba(80,160,90,0.1)', border: `1px solid rgba(80,160,90,0.18)`, overflow: 'hidden', marginBottom: 8, borderRadius: 3 }}>
-                  <div style={{ height: '100%', width: `${xp.percent}%`, background: 'linear-gradient(90deg, #1a6b2a, #4da85e)' }} />
+                <div style={{ height: 5, background: 'rgba(200,155,60,0.1)', border: `1px solid rgba(200,155,60,0.18)`, overflow: 'hidden', marginBottom: 8 }}>
+                  <div style={{ height: '100%', width: `${xp.percent}%`, background: 'linear-gradient(90deg, #8a5c10, #c89b3c)' }} />
                 </div>
                 <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: S.text3 }}>
                   {userXp.toLocaleString()} total XP
@@ -143,14 +141,14 @@ export default async function GardeningPage() {
       {/* ── MY GARDEN ───────────────────────────────────────── */}
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
-          <div style={{ height: 1, flex: 1, background: 'rgba(80,160,90,0.15)' }} />
+          <div style={{ height: 1, flex: 1, background: 'rgba(200,155,60,0.15)' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 16 }}>🪴</span>
-            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: S.green, letterSpacing: '0.1em' }}>
+            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: S.gold, letterSpacing: '0.1em' }}>
               THE GARDEN
             </span>
           </div>
-          <div style={{ height: 1, flex: 1, background: 'rgba(80,160,90,0.15)' }} />
+          <div style={{ height: 1, flex: 1, background: 'rgba(200,155,60,0.15)' }} />
         </div>
 
         <GardenGrid initial={plants} userId={session?.user?.id ?? null} />
@@ -159,14 +157,14 @@ export default async function GardeningPage() {
       {/* ── GARDEN JOURNAL ──────────────────────────────────── */}
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
-          <div style={{ height: 1, flex: 1, background: 'rgba(80,160,90,0.15)' }} />
+          <div style={{ height: 1, flex: 1, background: 'rgba(200,155,60,0.15)' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 16 }}>📖</span>
-            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: S.green, letterSpacing: '0.1em' }}>
+            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: S.gold, letterSpacing: '0.1em' }}>
               GARDEN JOURNAL
             </span>
           </div>
-          <div style={{ height: 1, flex: 1, background: 'rgba(80,160,90,0.15)' }} />
+          <div style={{ height: 1, flex: 1, background: 'rgba(200,155,60,0.15)' }} />
         </div>
 
         {session?.user ? (
@@ -180,7 +178,7 @@ export default async function GardeningPage() {
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12,
           }}>
             <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: S.text3 }}>
-              <Link href="/login" style={{ color: S.green, textDecoration: 'underline' }}>Log in</Link>
+              <Link href="/login" style={{ color: S.gold, textDecoration: 'underline' }}>Log in</Link>
               {' '}to share tips and earn +50 XP per post.
             </span>
           </div>
@@ -203,7 +201,7 @@ export default async function GardeningPage() {
                 style={{
                   background: S.card,
                   border: `1px solid rgba(80,160,90,0.16)`,
-                  borderLeft: `3px solid rgba(60,140,70,0.5)`,
+                  borderLeft: `3px solid rgba(200,155,60,0.45)`,
                   borderRadius: '0 10px 10px 0',
                   padding: '16px 20px',
                 }}

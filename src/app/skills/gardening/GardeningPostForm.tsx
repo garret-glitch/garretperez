@@ -4,13 +4,13 @@ import { useRouter } from 'next/navigation'
 import { emitXpGained } from '@/components/XpToast'
 
 const S = {
-  card:    '#13160f',
-  elevated:'#1a1e14',
-  border:  'rgba(80,160,90,0.2)',
-  green:   '#4da85e',
-  text1:   '#eef0e8',
-  text3:   '#6a8060',
-  muted:   '#2a3828',
+  card:    '#16120e',
+  elevated:'#1c1610',
+  border:  'rgba(200,155,60,0.2)',
+  gold:    '#c89b3c',
+  text1:   '#f0e8d8',
+  text3:   '#7a5e3c',
+  muted:   '#4a3820',
 }
 
 export default function GardeningPostForm() {
@@ -46,9 +46,9 @@ export default function GardeningPostForm() {
 
   const base: React.CSSProperties = {
     display: 'block', width: '100%', background: S.elevated,
-    border: `1px solid rgba(80,160,90,0.2)`, color: S.text1,
+    border: `1px solid rgba(200,155,60,0.2)`, color: S.text1,
     padding: '12px 16px', fontFamily: 'Inter, sans-serif', fontSize: 15,
-    outline: 'none', lineHeight: 1.55, borderRadius: 8,
+    outline: 'none', lineHeight: 1.55,
   }
 
   if (!open) {
@@ -59,27 +59,24 @@ export default function GardeningPostForm() {
           onClick={() => setOpen(true)}
           onKeyDown={e => e.key === 'Enter' && setOpen(true)}
           style={{
-            flex: 1, background: S.card, border: `1px solid rgba(80,160,90,0.15)`,
-            padding: '14px 18px', cursor: 'text', borderRadius: 10,
+            flex: 1, background: S.card, border: `1px solid rgba(200,155,60,0.14)`,
+            padding: '14px 18px', cursor: 'text',
             color: S.muted, fontFamily: 'Inter, sans-serif', fontSize: 15,
           }}
         >
           Share a gardening tip, question, or update…
         </div>
-        {msg && <span style={{ fontSize: 13, color: S.green, fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>{msg}</span>}
+        {msg && <span style={{ fontSize: 13, color: '#60a060', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>{msg}</span>}
       </div>
     )
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{
-      background: S.card, border: `1px solid rgba(80,160,90,0.25)`,
-      padding: '20px 22px', borderRadius: 12,
-    }}>
+    <form onSubmit={handleSubmit} style={{ background: S.card, border: `1px solid ${S.border}`, padding: '20px 22px' }}>
       <input
         autoFocus value={title}
         onChange={e => setTitle(e.target.value)}
-        placeholder="What's growing?"
+        placeholder="What&apos;s growing?"
         maxLength={120}
         className="plant-input"
         style={{ ...base, marginBottom: 10 }}
@@ -94,32 +91,28 @@ export default function GardeningPostForm() {
       />
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
         {msg && (
-          <span style={{ marginRight: 'auto', fontFamily: 'Inter, sans-serif', fontSize: 13, color: status === 'error' ? '#c04040' : S.green }}>
+          <span style={{ marginRight: 'auto', fontFamily: 'Inter, sans-serif', fontSize: 13, color: status === 'error' ? '#c04040' : '#60a060' }}>
             {msg}
           </span>
         )}
-        <button
-          type="button"
-          onClick={() => { setOpen(false); setTitle(''); setBody('') }}
+        <button type="button" onClick={() => { setOpen(false); setTitle(''); setBody('') }}
           style={{
             padding: '10px 18px', background: 'transparent',
-            border: `1px solid rgba(80,160,90,0.22)`, color: S.text3,
-            fontFamily: 'Inter, sans-serif', fontSize: 14, cursor: 'pointer', borderRadius: 8,
-          }}
-        >
+            border: `1px solid rgba(200,155,60,0.22)`, color: S.text3,
+            fontFamily: 'Inter, sans-serif', fontSize: 14, cursor: 'pointer',
+          }}>
           Cancel
         </button>
-        <button
-          type="submit"
+        <button type="submit"
           disabled={status === 'submitting' || !title.trim() || !body.trim()}
           style={{
-            padding: '10px 22px', borderRadius: 8,
-            background: !title.trim() || !body.trim() ? 'rgba(60,140,70,0.2)' : 'linear-gradient(135deg, #3d8b57, #2d6b42)',
-            border: 'none', color: !title.trim() || !body.trim() ? 'rgba(150,220,160,0.3)' : '#e8f0e4',
+            padding: '10px 22px',
+            background: 'linear-gradient(135deg, #c89b3c, #a07828)',
+            border: 'none', color: '#0a0600',
             fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 700,
             cursor: !title.trim() || !body.trim() ? 'not-allowed' : 'pointer',
-          }}
-        >
+            opacity: !title.trim() || !body.trim() ? 0.5 : 1,
+          }}>
           Post (+50 XP)
         </button>
       </div>
