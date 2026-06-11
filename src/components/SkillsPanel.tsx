@@ -65,7 +65,6 @@ export default async function SkillsPanel() {
         <div className="py-2 shrink-0">
           <SkillsPanelClient
             initialOrder={channelOrder}
-            levels={adminSkillLevels}
             communityLevels={communityLevels}
             postCounts={isAdmin ? postCounts : {}}
             isAdmin={isAdmin}
