@@ -97,17 +97,20 @@ export default async function Home() {
       garretXpBar = xpProgress(garretTotalXpRaw)
     }
 
-    recentPosts = await (prisma as any).post.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 8,
-      include: {
-        user: { select: { username: true } },
-        upvotes: { select: { userId: true } },
-        replies: { select: { id: true } },
-      },
-    })
     totalPosts = await prisma.post.count()
     totalUsers = await prisma.user.count()
+
+    try {
+      recentPosts = await (prisma as any).post.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 8,
+        include: {
+          user: { select: { username: true } },
+          upvotes: { select: { userId: true } },
+          replies: { select: { id: true } },
+        },
+      })
+    } catch { /* relation tables may not exist yet */ }
 
     dbProjects = await (prisma as any).project.findMany({
       orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
