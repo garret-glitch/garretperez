@@ -220,7 +220,7 @@ export default async function Home() {
                     <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 6.5, color: '#e8c060', letterSpacing: '0.03em' }}>Help Me Level Up</span>
                   </div>
                   <p className="body-text" style={{ fontSize: 10, color: 'var(--text-2)', lineHeight: 1.55, margin: 0 }}>
-                    Post, add recipes, play games &amp; log in daily — we both gain XP!
+                    Interacting with the website I gain XP — you can gain XP too!
                   </p>
                 </div>
               </div>
@@ -353,7 +353,7 @@ export default async function Home() {
                 <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: '#e8c060' }}>Help Me Level Up</span>
               </div>
               <p className="body-text" style={{ fontSize: 11, color: 'var(--text-2)', lineHeight: 1.55, margin: '0 0 10px' }}>
-                Post, add recipes, play games &amp; log in daily — we both gain XP!
+                Interacting with the website I gain XP — you can gain XP too!
               </p>
             </div>
 
