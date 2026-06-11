@@ -91,7 +91,7 @@ export default function ResumePage() {
               <div key={s.skill}>
                 <div className="flex justify-between mb-1">
                   <span className="body-text text-[11px]" style={{ color: 'var(--text-2)' }}>{s.skill}</span>
-                  <span className="text-[7px]" style={{ color: 'var(--gold)' }}>{s.pct}%</span>
+                  <span className="text-[7px]" style={{ color: 'var(--gold)' }}>{s.pct}</span>
                 </div>
                 <div className="prog-bar">
                   <div className="prog-bar-fill" style={{ width: `${s.pct}%` }} />
