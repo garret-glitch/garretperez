@@ -144,98 +144,122 @@ export default async function Home() {
 
           {/* ── DESKTOP: 3-col grid ─────────────────────────────── */}
           <div className="hidden sm:grid" style={{
-            gridTemplateColumns: '200px 1fr 250px',
-            gap: 28,
-            minHeight: 210,
+            gridTemplateColumns: '192px 1fr 245px',
+            gap: 24,
             alignItems: 'stretch',
           }}>
 
-            {/* Col 1 — Photo */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {/* Col 1 — Photo + nameplate */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              {/* Photo frame */}
               <div style={{
-                width: 200, height: 200, flexShrink: 0,
-                border: '3px solid #c89b3c',
-                boxShadow: '0 0 0 5px rgba(200,155,60,0.1), 0 10px 40px rgba(0,0,0,0.7)',
-                overflow: 'hidden',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: 'var(--bg-page)', color: 'var(--gold)',
-                fontSize: 38, fontWeight: 700,
+                width: 192, flexShrink: 0,
+                border: '2px solid rgba(200,155,60,0.6)',
+                boxShadow: '0 0 0 4px rgba(200,155,60,0.08), 0 0 0 5px rgba(200,155,60,0.22), 0 14px 44px rgba(0,0,0,0.8)',
+                overflow: 'hidden', position: 'relative',
+                background: 'var(--bg-page)',
               }}>
                 {headshot
-                  ? <img src={headshot} alt="Garret Perez" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  : 'GP'}
+                  ? <img src={headshot} alt="Garret Perez" style={{ width: '100%', display: 'block', objectFit: 'cover' }} />
+                  : <div style={{ height: 192, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontSize: 38, fontWeight: 700 }}>GP</div>}
+                {/* Corner accents */}
+                <div style={{ position: 'absolute', top: 4, left: 4, width: 14, height: 14, borderTop: '2px solid #c89b3c', borderLeft: '2px solid #c89b3c', opacity: 0.8 }} />
+                <div style={{ position: 'absolute', top: 4, right: 4, width: 14, height: 14, borderTop: '2px solid #c89b3c', borderRight: '2px solid #c89b3c', opacity: 0.8 }} />
+                <div style={{ position: 'absolute', bottom: 4, left: 4, width: 14, height: 14, borderBottom: '2px solid #c89b3c', borderLeft: '2px solid #c89b3c', opacity: 0.8 }} />
+                <div style={{ position: 'absolute', bottom: 4, right: 4, width: 14, height: 14, borderBottom: '2px solid #c89b3c', borderRight: '2px solid #c89b3c', opacity: 0.8 }} />
+              </div>
+              {/* Name plate */}
+              <div style={{
+                width: 192,
+                padding: '7px 0',
+                background: 'rgba(200,155,60,0.1)',
+                border: '1px solid rgba(200,155,60,0.35)',
+                borderTop: '1px solid rgba(200,155,60,0.5)',
+                textAlign: 'center',
+              }}>
+                <span style={{ fontSize: 5.5, color: '#c89b3c', textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: "'Press Start 2P', monospace" }}>◆ Guild Admin ◆</span>
               </div>
             </div>
 
             {/* Col 2 — Identity + Stats + XP */}
             <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
 
-              {/* Name / level badge / title / location */}
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                  <h1 style={{
-                    fontFamily: "'Cinzel', serif",
-                    fontSize: 30, fontWeight: 700, lineHeight: 1.1,
-                    color: 'var(--text-1)',
-                    textShadow: '0 0 28px rgba(200,155,60,0.5), 1px 2px 4px rgba(0,0,0,0.9)',
-                    letterSpacing: '0.04em', margin: 0,
-                  }}>Garret Perez</h1>
+              {/* Name + title badge + location */}
+              <div style={{ marginBottom: 16 }}>
+                <h1 style={{
+                  fontFamily: "'Cinzel', serif",
+                  fontSize: 32, fontWeight: 700, lineHeight: 1.1,
+                  color: '#f0d898',
+                  textShadow: '0 0 32px rgba(200,155,60,0.55), 1px 2px 5px rgba(0,0,0,0.95)',
+                  letterSpacing: '0.04em', margin: '0 0 9px',
+                }}>Garret Perez</h1>
+                {/* Role badge */}
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '4px 10px', marginBottom: 7,
+                  background: 'rgba(200,155,60,0.07)',
+                  border: '1px solid rgba(200,155,60,0.28)',
+                }}>
+                  <span style={{ fontSize: 9, color: '#a07828', lineHeight: 1 }}>◈</span>
+                  <span className="body-text" style={{ fontSize: 11, fontWeight: 600, color: '#c8a060' }}>{heroTitle}</span>
                 </div>
-                <div className="body-text" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)', marginBottom: 4 }}>{heroTitle}</div>
-                <div className="body-text" style={{ fontSize: 12, color: 'var(--text-2)' }}>📍 {heroLocation}</div>
+                <div className="body-text" style={{ fontSize: 12, color: '#8a7050' }}>📍 {heroLocation}</div>
               </div>
 
               {/* Divider */}
-              <div style={{ height: 1, background: 'linear-gradient(90deg, rgba(200,155,60,0.35) 0%, transparent 100%)', marginBottom: 14 }} />
+              <div style={{ height: 1, background: 'linear-gradient(90deg, rgba(200,155,60,0.45) 0%, rgba(200,155,60,0.08) 100%)', marginBottom: 16 }} />
 
-              {/* Stats chips + inline CTA */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                {/* Chips */}
-                <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                  {([
-                    { value: totalUsers,       label: 'Members', highlight: false },
-                    { value: totalPosts,       label: 'Posts',   highlight: false },
-                    { value: garretTotalLevel, label: 'Level',   highlight: true  },
-                  ] as const).map(stat => (
-                    <div key={stat.label} style={{
-                      display: 'flex', flexDirection: 'column', alignItems: 'center',
-                      padding: '10px 18px',
-                      background: stat.highlight ? 'rgba(200,155,60,0.13)' : 'rgba(200,155,60,0.07)',
-                      border: `1px solid rgba(200,155,60,${stat.highlight ? '0.45' : '0.22'})`,
-                      boxShadow: stat.highlight ? '0 0 12px rgba(200,155,60,0.18)' : 'none',
-                    }}>
-                      <span className="body-text" style={{ fontSize: 22, fontWeight: 700, color: '#c89b3c', lineHeight: 1, marginBottom: 5 }}>{stat.value}</span>
-                      <span style={{ fontSize: 5.5, color: '#7a6040', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: "'Press Start 2P', monospace" }}>{stat.label}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* CTA — to the right of Level chip */}
-                <div style={{ borderLeft: '1px solid rgba(200,155,60,0.2)', paddingLeft: 12, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
-                    <span style={{ fontSize: 12, lineHeight: 1 }}>⚡</span>
-                    <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 6.5, color: '#e8c060', letterSpacing: '0.03em' }}>Help Me Level Up</span>
+              {/* Stats chips — full width row with icons */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                {([
+                  { value: totalUsers,       label: 'Members', icon: '👥', highlight: false },
+                  { value: totalPosts,       label: 'Posts',   icon: '📝', highlight: false },
+                  { value: garretTotalLevel, label: 'Level',   icon: '⚡', highlight: true  },
+                ] as const).map(stat => (
+                  <div key={stat.label} style={{
+                    flex: 1,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center',
+                    padding: '10px 6px',
+                    background: stat.highlight ? 'rgba(200,155,60,0.14)' : 'rgba(200,155,60,0.06)',
+                    border: `1px solid rgba(200,155,60,${stat.highlight ? '0.45' : '0.2'})`,
+                    boxShadow: stat.highlight ? 'inset 0 1px 0 rgba(200,155,60,0.25)' : 'none',
+                  }}>
+                    <span style={{ fontSize: 11, marginBottom: 4, lineHeight: 1 }}>{stat.icon}</span>
+                    <span className="body-text" style={{ fontSize: 20, fontWeight: 700, color: stat.highlight ? '#ffd060' : '#c89b3c', lineHeight: 1, marginBottom: 4 }}>{stat.value}</span>
+                    <span style={{ fontSize: 5, color: '#7a6040', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: "'Press Start 2P', monospace" }}>{stat.label}</span>
                   </div>
-                  <p className="body-text" style={{ fontSize: 10, color: 'var(--text-2)', lineHeight: 1.55, margin: '0 0 8px' }}>
-                    Post, add recipes, play games &amp; log in daily — we both gain XP!
-                  </p>
-                  {!session?.user && (
-                    <a href="/register" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: 'linear-gradient(135deg, #c89b3c 0%, #9a7228 100%)', color: '#120c00', fontFamily: "'Press Start 2P', monospace", fontSize: 6, fontWeight: 700, textDecoration: 'none', boxShadow: '0 2px 12px rgba(200,155,60,0.35)' }}>
-                      🛡 Join the Guild
-                    </a>
-                  )}
-                </div>
+                ))}
               </div>
 
-              {/* XP bar */}
+              {/* CTA — full-width block below stats */}
+              <div style={{
+                padding: '11px 14px', marginBottom: 16,
+                background: 'rgba(200,155,60,0.05)',
+                borderLeft: '3px solid rgba(200,155,60,0.55)',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                  <span style={{ fontSize: 12, lineHeight: 1 }}>⚡</span>
+                  <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 6.5, color: '#e8c060', letterSpacing: '0.03em' }}>Help Me Level Up</span>
+                </div>
+                <p className="body-text" style={{ fontSize: 10.5, color: '#a09070', lineHeight: 1.55, margin: '0 0 9px' }}>
+                  Post, add recipes, play games &amp; log in daily — we both gain XP!
+                </p>
+                {!session?.user && (
+                  <a href="/register" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: 'linear-gradient(135deg, #c89b3c 0%, #9a7228 100%)', color: '#120c00', fontFamily: "'Press Start 2P', monospace", fontSize: 6, fontWeight: 700, textDecoration: 'none', boxShadow: '0 2px 12px rgba(200,155,60,0.35)' }}>
+                    🛡 Join the Guild
+                  </a>
+                )}
+              </div>
+
+              {/* XP bar — gold gradient */}
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <span style={{ fontSize: 5.5, color: '#8a6838', textTransform: 'uppercase', letterSpacing: '0.14em', fontFamily: "'Press Start 2P', monospace" }}>⚡ Level</span>
-                  <span className="body-text" style={{ fontSize: 8, color: 'var(--text-3)' }}>{garretXpBar.currentXp} / {garretXpBar.neededXp} XP</span>
+                  <span style={{ fontSize: 5.5, color: '#8a6838', textTransform: 'uppercase', letterSpacing: '0.14em', fontFamily: "'Press Start 2P', monospace" }}>⚡ Level Progress</span>
+                  <span className="body-text" style={{ fontSize: 8, color: '#7a5828' }}>{garretXpBar.currentXp} / {garretXpBar.neededXp} XP</span>
                 </div>
-                <div style={{ height: 10, background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(200,155,60,0.3)', overflow: 'hidden', position: 'relative' }}>
-                  <div style={{ height: '100%', width: `${garretXpBar.percent}%`, background: 'linear-gradient(90deg, #2a5a18, #4a9a28)', position: 'relative', transition: 'width 0.6s ease' }}>
-                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '45%', background: 'rgba(255,255,255,0.15)' }} />
+                <div style={{ height: 10, background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(200,155,60,0.25)', overflow: 'hidden', position: 'relative' }}>
+                  <div style={{ height: '100%', width: `${garretXpBar.percent}%`, background: 'linear-gradient(90deg, #8a5c10, #c89b3c)', position: 'relative', transition: 'width 0.6s ease' }}>
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '40%', background: 'rgba(255,255,255,0.12)' }} />
                   </div>
                 </div>
               </div>
@@ -243,32 +267,32 @@ export default async function Home() {
 
             {/* Col 3 — Contact */}
             <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
 
-                <a href={`tel:${contactPhone.replace(/\D/g, '')}`} style={{ textDecoration: 'none', display: 'block', padding: '10px 14px', background: 'rgba(200,155,60,0.09)', borderLeft: '3px solid #c89b3c' }}
+                <a href={`tel:${contactPhone.replace(/\D/g, '')}`} style={{ textDecoration: 'none', display: 'block', padding: '11px 14px', background: 'rgba(200,155,60,0.08)', borderLeft: '3px solid #c89b3c' }}
                   className="hover:brightness-110 transition-all">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
                     <Phone size={11} color="#c89b3c" strokeWidth={2} />
-                    <span style={{ fontSize: 7, color: '#9a7848', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Phone</span>
+                    <span style={{ fontSize: 6, color: '#9a7848', textTransform: 'uppercase', letterSpacing: '0.15em', fontFamily: "'Press Start 2P', monospace" }}>Phone</span>
                   </div>
                   <div className="body-text" style={{ fontSize: 17, color: '#f8edb0', fontWeight: 700, letterSpacing: '0.01em' }}>{contactPhone}</div>
                 </a>
 
-                <a href={`mailto:${contactEmail}`} style={{ textDecoration: 'none', display: 'block', padding: '10px 14px', background: 'rgba(60,110,200,0.1)', borderLeft: '3px solid #7090c8' }}
+                <a href={`mailto:${contactEmail}`} style={{ textDecoration: 'none', display: 'block', padding: '11px 14px', background: 'rgba(60,110,200,0.09)', borderLeft: '3px solid #7090c8' }}
                   className="hover:brightness-110 transition-all">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
                     <Mail size={11} color="#7090c8" strokeWidth={2} />
-                    <span style={{ fontSize: 7, color: '#9a7848', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Email</span>
+                    <span style={{ fontSize: 6, color: '#9a7848', textTransform: 'uppercase', letterSpacing: '0.15em', fontFamily: "'Press Start 2P', monospace" }}>Email</span>
                   </div>
                   <div className="body-text" style={{ fontSize: 14, color: '#f8edb0', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{contactEmail}</div>
                 </a>
 
                 <a href={`https://www.linkedin.com/in/${contactLinkedin}`} target="_blank" rel="noopener noreferrer"
-                  style={{ textDecoration: 'none', display: 'block', padding: '10px 14px', background: 'rgba(0,90,200,0.1)', borderLeft: '3px solid #4a88d0' }}
+                  style={{ textDecoration: 'none', display: 'block', padding: '11px 14px', background: 'rgba(0,90,200,0.09)', borderLeft: '3px solid #4a88d0' }}
                   className="hover:brightness-110 transition-all">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
                     <span style={{ fontFamily: 'Georgia, serif', fontWeight: 900, color: '#6098d8', fontSize: 11, lineHeight: 1, userSelect: 'none' }}>in</span>
-                    <span style={{ fontSize: 7, color: '#9a7848', textTransform: 'uppercase', letterSpacing: '0.12em' }}>LinkedIn</span>
+                    <span style={{ fontSize: 6, color: '#9a7848', textTransform: 'uppercase', letterSpacing: '0.15em', fontFamily: "'Press Start 2P', monospace" }}>LinkedIn</span>
                   </div>
                   <div className="body-text" style={{ fontSize: 15, color: '#f8edb0', fontWeight: 700 }}>in/{contactLinkedin}</div>
                 </a>
@@ -282,9 +306,9 @@ export default async function Home() {
                   color: '#0e0800',
                   fontFamily: "'Press Start 2P', monospace",
                   fontSize: 9, fontWeight: 700,
-                  padding: '15px', marginTop: 12,
+                  padding: '16px', marginTop: 14,
                   textDecoration: 'none', letterSpacing: '0.04em',
-                  boxShadow: '0 0 0 1px rgba(200,155,60,0.6), 0 6px 32px rgba(200,155,60,0.6)',
+                  boxShadow: '0 0 0 1px rgba(200,155,60,0.55), 0 8px 36px rgba(200,155,60,0.55)',
                   display: 'flex',
                 }}>
                 <FileText size={17} strokeWidth={2.2} />
@@ -313,17 +337,26 @@ export default async function Home() {
               </div>
             </div>
 
-            {/* Name + level badge + title + location — centered */}
+            {/* Name + title badge + location — centered */}
             <div style={{ textAlign: 'center' }}>
               <h1 style={{
                 fontFamily: "'Cinzel', serif",
                 fontSize: 26, fontWeight: 700, lineHeight: 1.15,
-                color: 'var(--text-1)',
+                color: '#f0d898',
                 textShadow: '0 0 20px rgba(200,155,60,0.45), 1px 1px 3px rgba(0,0,0,0.9)',
-                letterSpacing: '0.04em', marginBottom: 7,
+                letterSpacing: '0.04em', marginBottom: 8,
               }}>Garret Perez</h1>
-              <div className="body-text" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)', marginBottom: 5, lineHeight: 1.4 }}>{heroTitle}</div>
-              <div className="body-text" style={{ fontSize: 12, color: 'var(--text-2)' }}>📍 {heroLocation}</div>
+              {/* Role badge */}
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '4px 12px', marginBottom: 7,
+                background: 'rgba(200,155,60,0.07)',
+                border: '1px solid rgba(200,155,60,0.28)',
+              }}>
+                <span style={{ fontSize: 9, color: '#a07828', lineHeight: 1 }}>◈</span>
+                <span className="body-text" style={{ fontSize: 11, fontWeight: 600, color: '#c8a060' }}>{heroTitle}</span>
+              </div>
+              <div className="body-text" style={{ fontSize: 12, color: '#8a7050' }}>📍 {heroLocation}</div>
             </div>
 
             {/* Gold divider — symmetric fade */}
@@ -332,9 +365,9 @@ export default async function Home() {
             {/* Stats — 1 per row, label left / number right */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {([
-                { value: totalUsers,       label: 'Members' },
-                { value: totalPosts,        label: 'Posts' },
-                { value: garretTotalLevel,  label: 'Level' },
+                { value: totalUsers,       label: 'Members', icon: '👥' },
+                { value: totalPosts,       label: 'Posts',   icon: '📝' },
+                { value: garretTotalLevel, label: 'Level',   icon: '⚡' },
               ] as const).map(stat => (
                 <div key={stat.label} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -342,7 +375,10 @@ export default async function Home() {
                   background: 'rgba(200,155,60,0.07)',
                   border: '1px solid rgba(200,155,60,0.22)',
                 }}>
-                  <span style={{ fontSize: 8, color: '#7a6040', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: "'Press Start 2P', monospace" }}>{stat.label}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <span style={{ fontSize: 12 }}>{stat.icon}</span>
+                    <span style={{ fontSize: 7.5, color: '#7a6040', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: "'Press Start 2P', monospace" }}>{stat.label}</span>
+                  </div>
                   <span className="body-text" style={{ fontSize: 20, fontWeight: 700, color: '#c89b3c', lineHeight: 1 }}>{stat.value}</span>
                 </div>
               ))}
@@ -369,8 +405,8 @@ export default async function Home() {
                 <span className="body-text" style={{ fontSize: 9, color: 'var(--text-3)' }}>{garretXpBar.currentXp} / {garretXpBar.neededXp} XP</span>
               </div>
               <div style={{ height: 12, background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(200,155,60,0.3)', overflow: 'hidden', position: 'relative' }}>
-                <div style={{ height: '100%', width: `${garretXpBar.percent}%`, background: 'linear-gradient(90deg, #2a5a18, #4a9a28)', position: 'relative' }}>
-                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '45%', background: 'rgba(255,255,255,0.15)' }} />
+                <div style={{ height: '100%', width: `${garretXpBar.percent}%`, background: 'linear-gradient(90deg, #8a5c10, #c89b3c)', position: 'relative' }}>
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '45%', background: 'rgba(255,255,255,0.12)' }} />
                 </div>
               </div>
             </div>
