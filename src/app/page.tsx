@@ -197,24 +197,43 @@ export default async function Home() {
               {/* Divider */}
               <div style={{ height: 1, background: 'linear-gradient(90deg, rgba(200,155,60,0.35) 0%, transparent 100%)', marginBottom: 14 }} />
 
-              {/* Stats chips */}
-              <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-                {([
-                  { value: totalUsers,      label: 'Members', highlight: false },
-                  { value: totalPosts,      label: 'Posts',   highlight: false },
-                  { value: garretTotalLevel, label: 'Level',  highlight: true  },
-                ] as const).map(stat => (
-                  <div key={stat.label} style={{
-                    display: 'flex', flexDirection: 'column', alignItems: 'center',
-                    padding: '10px 18px',
-                    background: stat.highlight ? 'rgba(200,155,60,0.13)' : 'rgba(200,155,60,0.07)',
-                    border: `1px solid rgba(200,155,60,${stat.highlight ? '0.45' : '0.22'})`,
-                    boxShadow: stat.highlight ? '0 0 12px rgba(200,155,60,0.18)' : 'none',
-                  }}>
-                    <span className="body-text" style={{ fontSize: 22, fontWeight: 700, color: '#c89b3c', lineHeight: 1, marginBottom: 5 }}>{stat.value}</span>
-                    <span style={{ fontSize: 5.5, color: '#7a6040', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: "'Press Start 2P', monospace" }}>{stat.label}</span>
+              {/* Stats chips + inline CTA */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                {/* Chips */}
+                <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                  {([
+                    { value: totalUsers,       label: 'Members', highlight: false },
+                    { value: totalPosts,       label: 'Posts',   highlight: false },
+                    { value: garretTotalLevel, label: 'Level',   highlight: true  },
+                  ] as const).map(stat => (
+                    <div key={stat.label} style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center',
+                      padding: '10px 18px',
+                      background: stat.highlight ? 'rgba(200,155,60,0.13)' : 'rgba(200,155,60,0.07)',
+                      border: `1px solid rgba(200,155,60,${stat.highlight ? '0.45' : '0.22'})`,
+                      boxShadow: stat.highlight ? '0 0 12px rgba(200,155,60,0.18)' : 'none',
+                    }}>
+                      <span className="body-text" style={{ fontSize: 22, fontWeight: 700, color: '#c89b3c', lineHeight: 1, marginBottom: 5 }}>{stat.value}</span>
+                      <span style={{ fontSize: 5.5, color: '#7a6040', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: "'Press Start 2P', monospace" }}>{stat.label}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* CTA — to the right of Level chip */}
+                <div style={{ borderLeft: '1px solid rgba(200,155,60,0.2)', paddingLeft: 12, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
+                    <span style={{ fontSize: 12, lineHeight: 1 }}>⚡</span>
+                    <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 6.5, color: '#e8c060', letterSpacing: '0.03em' }}>Help Me Level Up</span>
                   </div>
-                ))}
+                  <p className="body-text" style={{ fontSize: 10, color: 'var(--text-2)', lineHeight: 1.55, margin: '0 0 8px' }}>
+                    Your posts, recipes, games &amp; daily logins all earn me XP.
+                  </p>
+                  {!session?.user && (
+                    <a href="/register" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: 'linear-gradient(135deg, #c89b3c 0%, #9a7228 100%)', color: '#120c00', fontFamily: "'Press Start 2P', monospace", fontSize: 6, fontWeight: 700, textDecoration: 'none', boxShadow: '0 2px 12px rgba(200,155,60,0.35)' }}>
+                      🛡 Join the Guild
+                    </a>
+                  )}
+                </div>
               </div>
 
               {/* XP bar */}
@@ -290,36 +309,6 @@ export default async function Home() {
             </div>
           </div>
 
-          {/* ── CTA strip — desktop only, sits below 3-col grid ── */}
-          <div className="hidden sm:block" style={{
-            marginTop: 20,
-            borderTop: '1px solid rgba(200,155,60,0.2)',
-            paddingTop: 16,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-              {/* Left — headline + description */}
-              <div style={{ minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
-                  <span style={{ fontSize: 16, lineHeight: 1 }}>⚡</span>
-                  <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 8, color: '#e8c060', letterSpacing: '0.04em' }}>
-                    Help Me Level Up
-                  </span>
-                </div>
-                <p className="body-text" style={{ fontSize: 11, color: 'var(--text-2)', lineHeight: 1.55, margin: 0 }}>
-                  Every post, recipe, mini-game win, and daily login on this site earns me XP.
-                  The more you use it, the higher my level climbs.
-                </p>
-              </div>
-
-              {/* Right — join button for guests */}
-              {!session?.user && (
-                <a href="/register" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 16px', background: 'linear-gradient(135deg, #c89b3c 0%, #9a7228 100%)', color: '#120c00', fontFamily: "'Press Start 2P', monospace", fontSize: 6.5, fontWeight: 700, textDecoration: 'none', boxShadow: '0 2px 16px rgba(200,155,60,0.4)', letterSpacing: '0.02em', flexShrink: 0 }}>
-                  🛡 Join the Guild
-                </a>
-              )}
-            </div>
-          </div>
-
           {/* ── MOBILE: premium centered layout ──────────────────── */}
           <div className="sm:hidden flex flex-col" style={{ gap: 16 }}>
 
@@ -378,20 +367,7 @@ export default async function Home() {
               ))}
             </div>
 
-            {/* XP bar */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <span style={{ fontSize: 7, color: '#8a6838', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: "'Press Start 2P', monospace" }}>⚡ Community Level</span>
-                <span className="body-text" style={{ fontSize: 9, color: 'var(--text-3)' }}>{garretXpBar.currentXp} / {garretXpBar.neededXp} XP</span>
-              </div>
-              <div style={{ height: 12, background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(200,155,60,0.3)', overflow: 'hidden', position: 'relative' }}>
-                <div style={{ height: '100%', width: `${garretXpBar.percent}%`, background: 'linear-gradient(90deg, #2a5a18, #4a9a28)', position: 'relative' }}>
-                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '45%', background: 'rgba(255,255,255,0.15)' }} />
-                </div>
-              </div>
-            </div>
-
-            {/* Mobile CTA */}
+            {/* Mobile CTA — above XP bar */}
             <div style={{ padding: '14px 16px', background: 'rgba(200,155,60,0.06)', border: '1px solid rgba(200,155,60,0.22)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7 }}>
                 <span style={{ fontSize: 14 }}>⚡</span>
@@ -403,6 +379,19 @@ export default async function Home() {
               {!session?.user && (
                 <a href="/register" style={{ display: 'inline-block', padding: '6px 14px', background: 'linear-gradient(135deg, #c89b3c, #9a7228)', color: '#120c00', fontFamily: "'Press Start 2P', monospace", fontSize: 6, fontWeight: 700, textDecoration: 'none' }}>🛡 Join the Guild</a>
               )}
+            </div>
+
+            {/* XP bar */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <span style={{ fontSize: 7, color: '#8a6838', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: "'Press Start 2P', monospace" }}>⚡ Community Level</span>
+                <span className="body-text" style={{ fontSize: 9, color: 'var(--text-3)' }}>{garretXpBar.currentXp} / {garretXpBar.neededXp} XP</span>
+              </div>
+              <div style={{ height: 12, background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(200,155,60,0.3)', overflow: 'hidden', position: 'relative' }}>
+                <div style={{ height: '100%', width: `${garretXpBar.percent}%`, background: 'linear-gradient(90deg, #2a5a18, #4a9a28)', position: 'relative' }}>
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '45%', background: 'rgba(255,255,255,0.15)' }} />
+                </div>
+              </div>
             </div>
 
             {/* Gold divider */}
