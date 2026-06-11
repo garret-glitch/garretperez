@@ -259,9 +259,9 @@ export default async function FoodPage() {
               <div style={{
                 position: 'relative', overflow: 'hidden',
                 background: `
-                  radial-gradient(ellipse 60% 80% at 50% 80%, ${wine.glowColor ?? 'rgba(120,20,40,0.35)'} 0%, transparent 70%),
-                  radial-gradient(ellipse 80% 60% at 50% 30%, rgba(200,155,60,0.08) 0%, transparent 65%),
-                  linear-gradient(180deg, #3a2614 0%, #1e1208 55%, #0a0806 100%)
+                  radial-gradient(ellipse 60% 80% at 50% 80%, ${wine.glowColor ?? 'rgba(120,20,40,0.22)'} 0%, transparent 70%),
+                  radial-gradient(ellipse 80% 60% at 50% 30%, rgba(200,155,60,0.06) 0%, transparent 65%),
+                  linear-gradient(180deg, #0c0a08 0%, #14100c 60%, #0e0b09 100%)
                 `,
                 minHeight: 280,
                 display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
@@ -299,8 +299,9 @@ export default async function FoodPage() {
                   style={{
                     height: 210, width: 'auto', maxWidth: 140,
                     objectFit: 'contain', display: 'block',
-                    filter: 'brightness(1.6) saturate(1.3) contrast(1.1) drop-shadow(0 14px 30px rgba(0,0,0,0.9)) drop-shadow(0 4px 10px rgba(0,0,0,0.7))',
-                    mixBlendMode: 'multiply',
+                    filter: 'drop-shadow(0 12px 28px rgba(0,0,0,0.75)) drop-shadow(0 4px 8px rgba(0,0,0,0.5))',
+                    maskImage: 'radial-gradient(ellipse 46% 88% at 50% 48%, black 18%, transparent 68%)',
+                    WebkitMaskImage: 'radial-gradient(ellipse 46% 88% at 50% 48%, black 18%, transparent 68%)',
                     position: 'relative', zIndex: 1,
                   }}
                 />
