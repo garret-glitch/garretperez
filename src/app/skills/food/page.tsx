@@ -1,6 +1,5 @@
 ﻿import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { xpProgress } from '@/lib/xp'
 import { getCommunityXpForSkill } from '@/lib/community-xp'
 import CommunityLevelCard from '@/components/CommunityLevelCard'
 import Link from 'next/link'
@@ -89,7 +88,6 @@ const WINES = [
 export default async function FoodPage() {
   const session = await auth()
 
-  let userXp = 0
   let communityXp = 0
   let communityMemberCount = 0
   let recipes: Array<{
@@ -106,12 +104,6 @@ export default async function FoodPage() {
     const communityData = await getCommunityXpForSkill('FOOD')
     communityXp = communityData.xp
     communityMemberCount = communityData.memberCount
-    if (session?.user?.id) {
-      const userSkill = await prisma.userSkill.findUnique({
-        where: { userId_skill: { userId: session.user.id, skill: 'FOOD' } },
-      })
-      userXp = userSkill?.xp ?? 0
-    }
     recipes = await prisma.recipe.findMany({
       orderBy: { createdAt: 'desc' }, take: 20,
       include: { user: { select: { username: true } } },
@@ -122,8 +114,6 @@ export default async function FoodPage() {
       include: { user: { select: { username: true } } },
     })
   } catch { /* DB not configured */ }
-
-  const xp = xpProgress(userXp)
 
   return (
     <div style={{ color: S.text1, fontFamily: 'Inter, sans-serif', display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -156,29 +146,7 @@ export default async function FoodPage() {
                 </div>
               </div>
 
-              {/* XP bar (full-width, shown for everyone as a teaser; only meaningful for logged-in users) */}
-              {session?.user ? (
-                <div style={{ marginTop: 8 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-                    <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: S.goldDim, letterSpacing: '0.1em' }}>
-                      FOOD &amp; WINE XP
-                    </span>
-                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: S.text2 }}>
-                      {xp.currentXp.toLocaleString()} / {xp.neededXp.toLocaleString()} XP
-                    </span>
-                  </div>
-                  <div style={{ height: 10, background: 'rgba(0,0,0,0.4)', border: `1px solid rgba(200,155,60,0.2)`, overflow: 'hidden' }}>
-                    <div style={{
-                      height: '100%', width: `${xp.percent}%`,
-                      background: 'linear-gradient(90deg, #8a5c10, #c89b3c)',
-                      transition: 'width 0.8s ease',
-                    }} />
-                  </div>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: S.text4, marginTop: 4 }}>
-                    {xp.percent}% to Level {xp.level + 1}
-                  </div>
-                </div>
-              ) : (
+              {!session?.user && (
                 <div style={{ marginTop: 12, display: 'flex', gap: 10 }}>
                   <Link href="/login" style={{
                     padding: '9px 18px', background: 'transparent',
@@ -198,32 +166,6 @@ export default async function FoodPage() {
 
             {/* Right: stat cards */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flexShrink: 0 }}>
-              {session?.user && (
-                <div style={{
-                  width: 200,
-                  background: S.card, border: `1px solid rgba(200,155,60,0.28)`,
-                  padding: '18px 20px',
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-                }}>
-                  <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: S.goldDim, letterSpacing: '0.12em', marginBottom: 12 }}>
-                    MY SKILL
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 14 }}>
-                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 36, fontWeight: 800, color: S.gold, lineHeight: 1 }}>
-                      {xp.level}
-                    </span>
-                    <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 8, color: S.goldDim, letterSpacing: '0.08em' }}>
-                      LVL
-                    </span>
-                  </div>
-                  <div style={{ height: 5, background: 'rgba(200,155,60,0.1)', border: `1px solid rgba(200,155,60,0.18)`, overflow: 'hidden', marginBottom: 8 }}>
-                    <div style={{ height: '100%', width: `${xp.percent}%`, background: 'linear-gradient(90deg, #8a5c10, #c89b3c)' }} />
-                  </div>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: S.text3 }}>
-                    {userXp.toLocaleString()} total XP
-                  </div>
-                </div>
-              )}
               <CommunityLevelCard xp={communityXp} memberCount={communityMemberCount} />
             </div>
           </div>

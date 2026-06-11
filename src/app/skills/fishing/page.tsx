@@ -2,7 +2,6 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { getCommunityXpForSkill } from '@/lib/community-xp'
 import CommunityLevelCard from '@/components/CommunityLevelCard'
-import XpBar from '@/components/XpBar'
 import UpvoteButton from '@/components/UpvoteButton'
 import SkillVisitTracker from '@/components/SkillVisitTracker'
 import Link from 'next/link'
@@ -43,7 +42,6 @@ function timeAgo(date: Date) {
 export default async function FishingPage() {
   const session = await auth()
 
-  let userXp = 0
   let communityXp = 0
   let communityMemberCount = 0
   let posts: Array<{
@@ -59,12 +57,6 @@ export default async function FishingPage() {
     const communityData = await getCommunityXpForSkill('FISHING' as SkillType)
     communityXp = communityData.xp
     communityMemberCount = communityData.memberCount
-    if (session?.user?.id) {
-      const userSkill = await prisma.userSkill.findUnique({
-        where: { userId_skill: { userId: session.user.id, skill: 'FISHING' as SkillType } },
-      })
-      userXp = userSkill?.xp ?? 0
-    }
     posts = await (prisma as any).post.findMany({
       where: { skill: 'FISHING' },
       orderBy: { createdAt: 'desc' },
@@ -142,12 +134,7 @@ export default async function FishingPage() {
               </>
             )}
           </div>
-          <div className="flex flex-col sm:flex-row sm:items-start gap-4" style={{ marginTop: session?.user ? 10 : 0 }}>
-            {session?.user && (
-              <div style={{ flex: 1, maxWidth: 320 }}>
-                <XpBar xp={userXp} skillName="Fishing" />
-              </div>
-            )}
+          <div className="flex flex-col sm:flex-row sm:items-start gap-4" style={{ marginTop: 10 }}>
             <CommunityLevelCard xp={communityXp} memberCount={communityMemberCount} />
           </div>
         </div>

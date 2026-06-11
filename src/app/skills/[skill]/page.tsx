@@ -2,11 +2,9 @@ import { notFound } from 'next/navigation'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { getSkillBySlug } from '@/lib/skills'
-import { xpProgress } from '@/lib/xp'
 import { getCommunityXpForSkill } from '@/lib/community-xp'
 import CommunityLevelCard from '@/components/CommunityLevelCard'
 import { SkillType } from '@prisma/client'
-import XpBar from '@/components/XpBar'
 import PostForm from '@/components/PostForm'
 import ReplyForm from '@/components/ReplyForm'
 import SkillVisitTracker from '@/components/SkillVisitTracker'
@@ -25,7 +23,6 @@ export default async function SkillPage({ params }: Props) {
 
   const session = await auth()
 
-  let userXp = 0
   let communityXp = 0
   let communityMemberCount = 0
   let posts: Array<{
@@ -56,17 +53,9 @@ export default async function SkillPage({ params }: Props) {
     communityMemberCount = communityData.memberCount
     posts = postRows
 
-    if (session?.user?.id) {
-      const userSkill = await prisma.userSkill.findUnique({
-        where: { userId_skill: { userId: session.user.id, skill: skillMeta.dbEnum as SkillType } },
-      })
-      userXp = userSkill?.xp ?? 0
-    }
-  } catch {
+    } catch {
     // DB not configured
   }
-
-  const xp = xpProgress(userXp)
 
   return (
     <div className="space-y-4">
@@ -105,9 +94,7 @@ export default async function SkillPage({ params }: Props) {
                 </div>
               </div>
 
-              {session?.user ? (
-                <XpBar xp={userXp} skillName={skillMeta.label} />
-              ) : (
+              {!session?.user && (
                 <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
                   <Link href="/login" style={{
                     padding: '9px 18px', background: 'transparent',
@@ -125,31 +112,6 @@ export default async function SkillPage({ params }: Props) {
 
             {/* Right: level cards */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flexShrink: 0 }}>
-              {session?.user && (
-                <div style={{
-                  width: 190,
-                  background: '#16120e', border: '1px solid rgba(200,155,60,0.28)',
-                  padding: '16px 18px', boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-                }}>
-                  <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: '#7a5a20', letterSpacing: '0.12em', marginBottom: 10 }}>
-                    MY SKILL
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 12 }}>
-                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 32, fontWeight: 800, color: '#c89b3c', lineHeight: 1 }}>
-                      {xp.level}
-                    </span>
-                    <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 8, color: '#7a5a20', letterSpacing: '0.08em' }}>
-                      LVL
-                    </span>
-                  </div>
-                  <div style={{ height: 5, background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.18)', overflow: 'hidden', marginBottom: 6 }}>
-                    <div style={{ height: '100%', width: `${xp.percent}%`, background: 'linear-gradient(90deg, #8a5c10, #c89b3c)' }} />
-                  </div>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#7a5e3c' }}>
-                    {userXp.toLocaleString()} total XP
-                  </div>
-                </div>
-              )}
               <CommunityLevelCard xp={communityXp} memberCount={communityMemberCount} />
             </div>
           </div>
