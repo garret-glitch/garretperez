@@ -3,11 +3,11 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 const C = {
-  elevated: '#16243a',
-  border:   'rgba(42,122,170,0.22)',
+  elevated: '#1a1a28',
+  border:   'rgba(200,155,60,0.2)',
   text1:    '#e8e6e0',
-  text2:    '#8a9ab0',
-  text3:    '#506070',
+  text2:    '#a09880',
+  text3:    '#605848',
 }
 
 export default function FishingReplyForm({ postId }: { postId: string }) {
@@ -45,16 +45,15 @@ export default function FishingReplyForm({ postId }: { postId: string }) {
           onClick={() => setOpen(true)}
           style={{
             background: 'none', border: 'none', padding: '3px 0',
-            color: C.text3, fontFamily: 'Inter, sans-serif', fontSize: 13,
-            cursor: 'pointer',
+            color: C.text3, fontFamily: 'Inter, sans-serif', fontSize: 13, cursor: 'pointer',
           }}
-          onMouseOver={e => { e.currentTarget.style.color = '#4a9aba' }}
+          onMouseOver={e => { e.currentTarget.style.color = '#c89b3c' }}
           onMouseOut={e => { e.currentTarget.style.color = C.text3 }}
         >
           💬 Reply
         </button>
         {msg && (
-          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: status === 'error' ? '#cc6060' : '#60c080' }}>
+          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: status === 'error' ? '#cc6060' : '#60aa60' }}>
             {msg}
           </span>
         )}
@@ -73,7 +72,7 @@ export default function FishingReplyForm({ postId }: { postId: string }) {
         disabled={status === 'submitting'}
         style={{
           flex: 1, background: C.elevated, border: `1px solid ${C.border}`,
-          borderRadius: 3, color: C.text1, padding: '8px 12px',
+          color: C.text1, padding: '8px 12px',
           fontFamily: 'Inter, sans-serif', fontSize: 13,
           resize: 'none', outline: 'none', lineHeight: 1.55,
         }}
@@ -83,9 +82,9 @@ export default function FishingReplyForm({ postId }: { postId: string }) {
           type="submit"
           disabled={status === 'submitting' || !body.trim()}
           style={{
-            padding: '6px 14px', borderRadius: 3,
+            padding: '6px 14px',
             background: 'linear-gradient(135deg, #c89b3c, #a07828)',
-            border: 'none', color: '#0a0800',
+            border: 'none', color: '#0a0600',
             fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 700,
             cursor: !body.trim() ? 'not-allowed' : 'pointer',
             opacity: !body.trim() ? 0.5 : 1,
@@ -97,8 +96,8 @@ export default function FishingReplyForm({ postId }: { postId: string }) {
           type="button"
           onClick={() => { setOpen(false); setBody('') }}
           style={{
-            padding: '6px 14px', borderRadius: 3,
-            background: 'transparent', border: `1px solid rgba(42,122,170,0.3)`,
+            padding: '6px 14px', background: 'transparent',
+            border: `1px solid rgba(200,155,60,0.25)`,
             color: C.text2, fontFamily: 'Inter, sans-serif', fontSize: 12, cursor: 'pointer',
           }}
         >

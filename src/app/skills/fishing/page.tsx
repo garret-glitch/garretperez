@@ -5,7 +5,7 @@ import UpvoteButton from '@/components/UpvoteButton'
 import SkillVisitTracker from '@/components/SkillVisitTracker'
 import Link from 'next/link'
 import type { SkillType } from '@prisma/client'
-import FishingPostForm, { getAvatarColor } from './FishingPostForm'
+import FishingPostForm, { getAvatarColor, getAvatarBorder } from './FishingPostForm'
 import FishingReplyForm from './FishingReplyForm'
 
 export const dynamic = 'force-dynamic'
@@ -64,29 +64,29 @@ export default async function FishingPage() {
 
       {/* ── Channel Banner ──────────────────────────────────── */}
       <div style={{
-        background: 'linear-gradient(160deg, #051018 0%, #091828 55%, #061420 100%)',
-        border: '1px solid rgba(42,122,170,0.32)',
-        borderBottom: '2px solid rgba(42,122,170,0.4)',
-        padding: '24px 20px 18px',
+        background: 'linear-gradient(160deg, #181410 0%, #201c14 55%, #181410 100%)',
+        border: '2px solid rgba(200,155,60,0.38)',
+        borderBottom: '2px solid rgba(200,155,60,0.45)',
+        padding: '22px 20px 18px',
         position: 'relative',
         overflow: 'hidden',
       }}>
-        {/* Subtle horizontal water-line texture */}
+        {/* Inner hairline — classic double-border */}
         <div style={{
-          position: 'absolute', inset: 0, opacity: 0.04,
-          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(42,122,170,0.9) 10px, rgba(42,122,170,0.9) 11px)',
+          position: 'absolute', inset: 4,
+          border: '1px solid rgba(200,155,60,0.1)',
           pointerEvents: 'none',
         }} />
 
         <div style={{ position: 'relative' }}>
           {/* Title row */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
             <div style={{
-              width: 56, height: 56, flexShrink: 0,
-              background: 'rgba(42,122,170,0.15)',
-              border: '2px solid rgba(42,122,170,0.4)',
+              width: 54, height: 54, flexShrink: 0,
+              background: 'rgba(200,155,60,0.08)',
+              border: '2px solid rgba(200,155,60,0.35)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 28,
+              fontSize: 26,
             }}>
               🎣
             </div>
@@ -94,20 +94,20 @@ export default async function FishingPage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 5, flexWrap: 'wrap' }}>
                 <span style={{
                   fontFamily: "'Press Start 2P', monospace",
-                  fontSize: 14, color: '#e8e0c8', letterSpacing: '0.06em',
+                  fontSize: 14, color: '#f0d898', letterSpacing: '0.06em',
                 }}>
                   Fishing
                 </span>
                 <span style={{
-                  fontSize: 9, fontFamily: "'Press Start 2P', monospace",
-                  color: '#4a9aba', background: 'rgba(42,122,170,0.15)',
-                  border: '1px solid rgba(42,122,170,0.3)',
-                  padding: '3px 8px', letterSpacing: '0.08em',
+                  fontSize: 8, fontFamily: "'Press Start 2P', monospace",
+                  color: '#8a6830', background: 'rgba(200,155,60,0.1)',
+                  border: '1px solid rgba(200,155,60,0.28)',
+                  padding: '3px 8px', letterSpacing: '0.1em',
                 }}>
-                  CHANNEL
+                  GUILD CHANNEL
                 </span>
               </div>
-              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#6a8898', margin: 0, lineHeight: 1.5 }}>
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#8a7050', margin: 0, lineHeight: 1.5 }}>
                 Fishing trips, outdoor adventures &amp; tips from the water.
               </p>
             </div>
@@ -115,17 +115,17 @@ export default async function FishingPage() {
 
           {/* Stats chips */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center', marginBottom: session?.user ? 14 : 0 }}>
-            <span style={{ fontSize: 12, color: '#6a8898' }}>
-              <span style={{ color: '#8aa8c0', fontWeight: 600 }}>👥 {totalMembers}</span>{' '}members
+            <span style={{ fontSize: 12, color: '#6a5030', fontFamily: 'Inter, sans-serif' }}>
+              <span style={{ color: '#a08048', fontWeight: 600 }}>👥 {totalMembers}</span>{' '}members
             </span>
-            <span style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.1)', display: 'inline-block' }} />
-            <span style={{ fontSize: 12, color: '#6a8898' }}>
-              <span style={{ color: '#8aa8c0', fontWeight: 600 }}>🎣 {totalPosts}</span>{' '}posts
+            <span style={{ width: 1, height: 12, background: 'rgba(200,155,60,0.2)', display: 'inline-block' }} />
+            <span style={{ fontSize: 12, color: '#6a5030', fontFamily: 'Inter, sans-serif' }}>
+              <span style={{ color: '#a08048', fontWeight: 600 }}>🎣 {totalPosts}</span>{' '}posts
             </span>
             {session?.user && (
               <>
-                <span style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.1)', display: 'inline-block' }} />
-                <span style={{ fontSize: 12, color: '#50b870', fontWeight: 600 }}>● Online</span>
+                <span style={{ width: 1, height: 12, background: 'rgba(200,155,60,0.2)', display: 'inline-block' }} />
+                <span style={{ fontSize: 12, color: '#60aa60', fontWeight: 600, fontFamily: 'Inter, sans-serif' }}>● Online</span>
               </>
             )}
           </div>
@@ -141,42 +141,45 @@ export default async function FishingPage() {
 
       {/* ── Feed area ───────────────────────────────────────── */}
       <div style={{
-        background: '#080f18',
-        border: '1px solid rgba(42,122,170,0.18)',
+        background: '#0d0d14',
+        border: '2px solid rgba(200,155,60,0.22)',
         borderTop: 'none',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
       }}>
 
         {/* Post form or login CTA */}
-        <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(42,122,170,0.12)' }}>
+        <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(200,155,60,0.1)' }}>
           {session?.user ? (
             <FishingPostForm username={session.user.name ?? 'User'} />
           ) : (
             <div style={{
-              background: '#111c2a', border: '1px solid rgba(42,122,170,0.2)',
-              padding: '16px 20px', borderRadius: 4,
+              background: '#13131c', border: '1px solid rgba(200,155,60,0.18)',
+              padding: '16px 20px',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               gap: 16, flexWrap: 'wrap',
             }}>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#e8e6e0', marginBottom: 4 }}>
-                  Join the conversation
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#e8e6e0', marginBottom: 4, fontFamily: 'Inter, sans-serif' }}>
+                  Join the Guild
                 </div>
-                <div style={{ fontSize: 13, color: '#6a8898' }}>
+                <div style={{ fontSize: 13, color: '#7a6040', fontFamily: 'Inter, sans-serif' }}>
                   Share your catches, tips, and fishing spots with the community.
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <Link href="/login" style={{
-                  display: 'inline-block', padding: '9px 18px', borderRadius: 3,
-                  background: 'transparent', border: '1px solid rgba(42,122,170,0.4)',
-                  color: '#4a9aba', fontSize: 13, fontWeight: 600, textDecoration: 'none',
+                  display: 'inline-block', padding: '9px 18px',
+                  background: 'transparent', border: '1px solid rgba(200,155,60,0.35)',
+                  color: '#c89b3c', fontSize: 13, fontWeight: 600,
+                  textDecoration: 'none', fontFamily: 'Inter, sans-serif',
                 }}>
                   Log In
                 </Link>
                 <Link href="/register" style={{
-                  display: 'inline-block', padding: '9px 18px', borderRadius: 3,
+                  display: 'inline-block', padding: '9px 18px',
                   background: 'linear-gradient(135deg, #c89b3c 0%, #a07828 100%)',
-                  color: '#0a0600', fontSize: 13, fontWeight: 700, textDecoration: 'none',
+                  color: '#0a0600', fontSize: 13, fontWeight: 700,
+                  textDecoration: 'none', fontFamily: 'Inter, sans-serif',
                 }}>
                   🛡 Join
                 </Link>
@@ -189,7 +192,7 @@ export default async function FishingPage() {
         {posts.length === 0 ? (
           <div style={{
             textAlign: 'center', padding: '60px 20px',
-            fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: '#304050',
+            fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: '#3a2e20',
           }}>
             No catches yet — be the first to post! 🎣
           </div>
@@ -205,8 +208,8 @@ export default async function FishingPage() {
                   key={post.id}
                   style={{
                     padding: '18px 18px 14px',
-                    background: idx % 2 !== 0 ? 'rgba(255,255,255,0.016)' : 'transparent',
-                    borderBottom: '1px solid rgba(42,122,170,0.09)',
+                    background: idx % 2 !== 0 ? 'rgba(200,155,60,0.025)' : 'transparent',
+                    borderBottom: '1px solid rgba(200,155,60,0.07)',
                   }}
                 >
                   <div style={{ display: 'flex', gap: 14 }}>
@@ -214,10 +217,10 @@ export default async function FishingPage() {
                     <div style={{
                       width: 42, height: 42, borderRadius: '50%', flexShrink: 0,
                       background: getAvatarColor(post.user.username),
+                      border: `2px solid ${getAvatarBorder(post.user.username)}`,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 14, fontWeight: 700, color: '#e8e0d0',
+                      fontSize: 14, fontWeight: 700, color: '#d8c890',
                       fontFamily: 'Inter, sans-serif',
-                      border: '2px solid rgba(255,255,255,0.07)',
                     }}>
                       {post.user.username.slice(0, 2).toUpperCase()}
                     </div>
@@ -227,29 +230,36 @@ export default async function FishingPage() {
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 5, flexWrap: 'wrap' }}>
                         <Link href={`/profile/${post.user.username}`} style={{
                           fontSize: 14, fontWeight: 700, color: '#c89b3c', textDecoration: 'none',
+                          fontFamily: 'Inter, sans-serif',
                         }}>
                           {post.user.username}
                         </Link>
-                        <span style={{ fontSize: 11, color: '#384858' }}>
+                        <span style={{ fontSize: 11, color: '#3e3020', fontFamily: 'Inter, sans-serif' }}>
                           {timeAgo(new Date(post.createdAt))}
                         </span>
                       </div>
 
                       {/* Title */}
-                      <div style={{ fontSize: 15, fontWeight: 600, color: '#e8e6e0', marginBottom: 6, lineHeight: 1.45 }}>
+                      <div style={{
+                        fontSize: 15, fontWeight: 600, color: '#e8e6e0', marginBottom: 6, lineHeight: 1.45,
+                        fontFamily: 'Inter, sans-serif',
+                      }}>
                         {post.title}
                       </div>
 
                       {/* Body */}
-                      <div style={{ fontSize: 14, color: '#b8c0ca', lineHeight: 1.7, marginBottom: 12, whiteSpace: 'pre-wrap' }}>
+                      <div style={{
+                        fontSize: 14, color: '#a09880', lineHeight: 1.7, marginBottom: 12,
+                        whiteSpace: 'pre-wrap', fontFamily: 'Inter, sans-serif',
+                      }}>
                         {post.body}
                       </div>
 
-                      {/* Reactions */}
+                      {/* Reactions row */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: post.replies.length > 0 || session?.user ? 10 : 0 }}>
                         <UpvoteButton postId={post.id} count={upvoteCount} upvoted={hasUpvoted} />
                         {post.replies.length > 0 && (
-                          <span style={{ fontSize: 12, color: '#384858' }}>
+                          <span style={{ fontSize: 12, color: '#4a3820', fontFamily: 'Inter, sans-serif' }}>
                             💬 {post.replies.length} {post.replies.length === 1 ? 'reply' : 'replies'}
                           </span>
                         )}
@@ -257,31 +267,32 @@ export default async function FishingPage() {
 
                       {/* Reply thread */}
                       {post.replies.length > 0 && (
-                        <div style={{ paddingLeft: 14, borderLeft: '2px solid rgba(42,122,170,0.22)', marginBottom: 8 }}>
+                        <div style={{ paddingLeft: 14, borderLeft: '2px solid rgba(200,155,60,0.2)', marginBottom: 8 }}>
                           {post.replies.map(reply => (
                             <div key={reply.id} style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
                               <div style={{
                                 width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
                                 background: getAvatarColor(reply.user.username),
+                                border: `1.5px solid ${getAvatarBorder(reply.user.username)}`,
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: 9, fontWeight: 700, color: '#e8e0d0',
+                                fontSize: 9, fontWeight: 700, color: '#d8c890',
                                 fontFamily: 'Inter, sans-serif',
-                                border: '1.5px solid rgba(255,255,255,0.06)',
                               }}>
                                 {reply.user.username.slice(0, 2).toUpperCase()}
                               </div>
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginBottom: 2 }}>
                                   <Link href={`/profile/${reply.user.username}`} style={{
-                                    fontSize: 12, fontWeight: 600, color: '#c89b3c', textDecoration: 'none',
+                                    fontSize: 12, fontWeight: 600, color: '#c89b3c',
+                                    textDecoration: 'none', fontFamily: 'Inter, sans-serif',
                                   }}>
                                     {reply.user.username}
                                   </Link>
-                                  <span style={{ fontSize: 10, color: '#303840' }}>
+                                  <span style={{ fontSize: 10, color: '#322418', fontFamily: 'Inter, sans-serif' }}>
                                     {timeAgo(new Date(reply.createdAt))}
                                   </span>
                                 </div>
-                                <div style={{ fontSize: 13, color: '#909aaa', lineHeight: 1.6 }}>
+                                <div style={{ fontSize: 13, color: '#7a6848', lineHeight: 1.6, fontFamily: 'Inter, sans-serif' }}>
                                   {reply.body}
                                 </div>
                               </div>
