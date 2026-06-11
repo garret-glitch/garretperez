@@ -1,17 +1,16 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { emitXpGained } from '@/components/XpToast'
 
 const C = {
-  card:    '#13131c',
-  elevated:'#1a1a28',
-  border:  'rgba(200,155,60,0.2)',
-  borderLit:'rgba(200,155,60,0.45)',
-  gold:    '#c89b3c',
-  text1:   '#e8e6e0',
-  text2:   '#a09880',
-  text3:   '#605848',
+  card:     '#13131c',
+  elevated: '#1a1a28',
+  border:   'rgba(200,155,60,0.2)',
+  gold:     '#c89b3c',
+  text1:    '#e8e6e0',
+  text2:    '#a09880',
+  text3:    '#605848',
 }
 
 export function getAvatarColor(name: string) {
@@ -20,17 +19,62 @@ export function getAvatarColor(name: string) {
 }
 
 export function getAvatarBorder(name: string) {
-  const cols = ['rgba(200,155,60,0.5)', 'rgba(120,100,200,0.5)', 'rgba(60,160,80,0.5)', 'rgba(200,60,60,0.5)', 'rgba(140,80,220,0.5)', 'rgba(80,160,60,0.5)']
+  const cols = [
+    'rgba(200,155,60,0.5)', 'rgba(120,100,200,0.5)', 'rgba(60,160,80,0.5)',
+    'rgba(200,60,60,0.5)',  'rgba(140,80,220,0.5)',  'rgba(80,160,60,0.5)',
+  ]
   return cols[name.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % cols.length]
 }
 
+async function compressImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = e => {
+      const img = new Image()
+      img.onload = () => {
+        const MAX = 1200
+        const scale = Math.min(1, MAX / Math.max(img.width, img.height))
+        const canvas = document.createElement('canvas')
+        canvas.width  = Math.round(img.width  * scale)
+        canvas.height = Math.round(img.height * scale)
+        const ctx = canvas.getContext('2d')!
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        resolve(canvas.toDataURL('image/jpeg', 0.78))
+      }
+      img.onerror = reject
+      img.src = e.target?.result as string
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
 export default function FishingPostForm({ username }: { username: string }) {
-  const router = useRouter()
-  const [open, setOpen] = useState(false)
-  const [title, setTitle] = useState('')
-  const [body, setBody] = useState('')
-  const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle')
-  const [msg, setMsg] = useState('')
+  const router   = useRouter()
+  const fileRef  = useRef<HTMLInputElement>(null)
+  const [open,     setOpen]     = useState(false)
+  const [title,    setTitle]    = useState('')
+  const [body,     setBody]     = useState('')
+  const [imgSrc,   setImgSrc]   = useState<string | null>(null)
+  const [imgLoading, setImgLoading] = useState(false)
+  const [status,   setStatus]   = useState<'idle' | 'submitting' | 'success' | 'error'>('idle')
+  const [msg,      setMsg]      = useState('')
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) { setMsg('Please select an image file.'); return }
+    if (file.size > 10 * 1024 * 1024) { setMsg('Image must be under 10 MB.'); return }
+    setImgLoading(true)
+    try {
+      const compressed = await compressImage(file)
+      setImgSrc(compressed)
+    } catch {
+      setMsg('Could not load image.')
+    }
+    setImgLoading(false)
+    e.target.value = ''
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -39,12 +83,17 @@ export default function FishingPostForm({ username }: { username: string }) {
     const res = await fetch('/api/posts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ skill: 'FISHING', title: title.trim(), body: body.trim() }),
+      body: JSON.stringify({
+        skill: 'FISHING',
+        title: title.trim(),
+        body:  body.trim(),
+        ...(imgSrc ? { imageUrl: imgSrc } : {}),
+      }),
     })
     if (res.ok) {
       const data = await res.json()
       emitXpGained(data.xpAwarded ?? 50)
-      setTitle(''); setBody(''); setOpen(false)
+      setTitle(''); setBody(''); setImgSrc(null); setOpen(false)
       setStatus('success'); setMsg(`+${data.xpAwarded ?? 50} XP earned!`)
       router.refresh()
       setTimeout(() => { setStatus('idle'); setMsg('') }, 4000)
@@ -55,22 +104,35 @@ export default function FishingPostForm({ username }: { username: string }) {
     }
   }
 
+  const avColor  = getAvatarColor(username)
+  const avBorder = getAvatarBorder(username)
+
+  const Avatar = (
+    <div style={{
+      width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
+      background: avColor, border: `2px solid ${avBorder}`,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: 13, fontWeight: 700, color: '#d8c890', fontFamily: 'Inter, sans-serif',
+    }}>
+      {username.slice(0, 2).toUpperCase()}
+    </div>
+  )
+
   return (
     <div style={{ background: C.card, border: `1px solid ${C.border}`, padding: '14px 16px' }}>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={handleFile}
+      />
+
       {!open ? (
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <div style={{
-            width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
-            background: getAvatarColor(username),
-            border: `2px solid ${getAvatarBorder(username)}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 13, fontWeight: 700, color: '#d8c890', fontFamily: 'Inter, sans-serif',
-          }}>
-            {username.slice(0, 2).toUpperCase()}
-          </div>
+          {Avatar}
           <div
-            role="button"
-            tabIndex={0}
+            role="button" tabIndex={0}
             onClick={() => setOpen(true)}
             onKeyDown={e => e.key === 'Enter' && setOpen(true)}
             style={{
@@ -90,15 +152,7 @@ export default function FishingPostForm({ username }: { username: string }) {
       ) : (
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 10 }}>
-            <div style={{
-              width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
-              background: getAvatarColor(username),
-              border: `2px solid ${getAvatarBorder(username)}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 13, fontWeight: 700, color: '#d8c890', fontFamily: 'Inter, sans-serif',
-            }}>
-              {username.slice(0, 2).toUpperCase()}
-            </div>
+            {Avatar}
             <div style={{ flex: 1 }}>
               <input
                 autoFocus
@@ -125,17 +179,62 @@ export default function FishingPostForm({ username }: { username: string }) {
                   resize: 'vertical', outline: 'none', lineHeight: 1.65,
                 }}
               />
+
+              {/* Image preview */}
+              {imgSrc && (
+                <div style={{ position: 'relative', marginTop: 8, display: 'inline-block', maxWidth: '100%' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={imgSrc}
+                    alt="Preview"
+                    style={{ maxWidth: '100%', maxHeight: 260, display: 'block', border: `1px solid ${C.border}` }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setImgSrc(null)}
+                    style={{
+                      position: 'absolute', top: 6, right: 6,
+                      width: 26, height: 26, borderRadius: '50%',
+                      background: 'rgba(0,0,0,0.7)', border: 'none',
+                      color: '#e8e6e0', fontSize: 13, cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center', paddingLeft: 50 }}>
+
+          {/* Toolbar + actions */}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', paddingLeft: 50 }}>
+            {/* Photo attach button */}
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={imgLoading}
+              title="Attach photo"
+              style={{
+                padding: '7px 14px', background: 'transparent',
+                border: `1px solid rgba(200,155,60,0.25)`, color: C.text3,
+                fontFamily: 'Inter, sans-serif', fontSize: 13, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}
+            >
+              📷{imgLoading ? ' Loading...' : imgSrc ? ' Change' : ' Photo'}
+            </button>
+
+            <div style={{ flex: 1 }} />
+
             {msg && (
-              <span style={{ marginRight: 'auto', fontFamily: 'Inter, sans-serif', fontSize: 13, color: status === 'error' ? '#cc6060' : '#60aa60' }}>
+              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: status === 'error' ? '#cc6060' : '#60aa60' }}>
                 {msg}
               </span>
             )}
             <button
               type="button"
-              onClick={() => { setOpen(false); setTitle(''); setBody('') }}
+              onClick={() => { setOpen(false); setTitle(''); setBody(''); setImgSrc(null) }}
               style={{
                 padding: '8px 16px', background: 'transparent',
                 border: `1px solid rgba(200,155,60,0.25)`, color: C.text2,

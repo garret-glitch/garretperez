@@ -14,7 +14,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { skill, title, body } = await req.json()
+    const { skill, title, body, imageUrl } = await req.json()
 
     if (!skill || !title?.trim() || !body?.trim()) {
       return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 })
@@ -32,6 +32,7 @@ export async function POST(req: Request) {
           skill: skill as SkillType,
           title: title.trim().slice(0, 120),
           body: body.trim(),
+          ...(imageUrl ? { imageUrl } : {}),
         },
       }),
       prisma.userSkill.update({

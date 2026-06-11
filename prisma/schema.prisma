@@ -116,6 +116,7 @@ model Post {
   skill     SkillType
   title     String
   body      String       @db.Text
+  imageUrl  String?      @db.Text
   createdAt DateTime     @default(now())
   user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   replies   PostReply[]
