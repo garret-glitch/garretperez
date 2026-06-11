@@ -36,7 +36,8 @@ const WINES = [
     varietal: 'Syrah, Merlot & Cab',
     abv: '12.4%',
     tag: 'SWEET RED',
-    tagColor: 'rgba(180,40,60,0.65)',
+    tagColor: 'rgba(180,40,60,0.7)',
+    glowColor: 'rgba(160,30,50,0.28)',
     notes: 'Blackberry and cherry aromas with soft tannins and a hint of mint. Medium-sweet, smooth finish. Best value Texas red under $11.',
     pairings: ['🦃 Turkey', '🥩 Brisket', '🌶️ Tex-Mex', '🧀 Cheese', '🍫 Chocolate'],
   },
@@ -48,7 +49,8 @@ const WINES = [
     varietal: 'Semi-Sweet Sparkling',
     abv: '5%',
     tag: 'SPARKLING',
-    tagColor: 'rgba(80,60,180,0.65)',
+    tagColor: 'rgba(80,60,180,0.7)',
+    glowColor: 'rgba(60,40,160,0.25)',
     notes: 'Ripe blackberry, blueberry, and raspberry with lush floral aromatics. Naturally sparkling, smooth sweetness — best served well chilled.',
     pairings: ['🍫 Chocolate', '🧀 Manchego', '🍓 Berries', '🍰 Cheesecake', '🌭 Bratwurst'],
   },
@@ -60,7 +62,8 @@ const WINES = [
     varietal: '100% Cabernet Sauvignon',
     abv: '14.5%',
     tag: 'BOLD RED',
-    tagColor: 'rgba(140,20,40,0.7)',
+    tagColor: 'rgba(140,20,40,0.75)',
+    glowColor: 'rgba(120,10,30,0.32)',
     notes: 'Blackberry, huckleberry, and toasted oak on the nose. Spiced plum, dark chocolate, velvety tannins and a long satisfying finish.',
     pairings: ['🥩 Ribeye', '🍖 Lamb', '🧀 Aged Cheddar', '🍝 Bolognese', '🍔 Burgers'],
   },
@@ -72,7 +75,8 @@ const WINES = [
     varietal: '100% Sauvignon Blanc',
     abv: '13%',
     tag: 'CRISP WHITE',
-    tagColor: 'rgba(60,140,80,0.65)',
+    tagColor: 'rgba(50,130,70,0.7)',
+    glowColor: 'rgba(40,100,50,0.2)',
     notes: 'Vibrant passion fruit, lemon citrus, and gooseberry on the nose. Crisp green melon, lime zest, and cut grass with a clean zesty finish.',
     pairings: ['🦞 Seafood', '🐟 Grilled Fish', '🥗 Fresh Salads', '🧀 Goat Cheese', '🌿 Herb Dishes'],
   },
@@ -229,78 +233,118 @@ export default async function FoodPage() {
           <div style={{ height: 1, flex: 1, background: 'rgba(200,155,60,0.15)' }} />
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-5">
+        <div className="grid sm:grid-cols-2 gap-6">
           {WINES.map(wine => (
             <div
               key={wine.id}
               className="wine-card"
               style={{
-                background: S.card, border: `1px solid ${S.border}`,
-                borderRadius: 14, overflow: 'hidden',
-                boxShadow: `0 2px 12px rgba(0,0,0,0.5)`,
+                background: S.card,
+                border: `2px solid rgba(200,155,60,0.28)`,
+                borderRadius: 16, overflow: 'hidden',
+                boxShadow: `0 4px 24px rgba(0,0,0,0.6), inset 0 1px 0 rgba(200,155,60,0.06)`,
               }}
             >
-              {/* Card top: image area */}
+              {/* ── Bottle stage ── */}
               <div style={{
-                background: `radial-gradient(ellipse at center 50%, rgba(200,155,60,0.07) 0%, transparent 70%), ${S.cardAlt}`,
-                padding: '28px 24px 20px',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0,
-                position: 'relative',
+                position: 'relative', overflow: 'hidden',
+                background: `
+                  radial-gradient(ellipse 60% 80% at 50% 80%, ${wine.glowColor ?? 'rgba(120,20,40,0.22)'} 0%, transparent 70%),
+                  radial-gradient(ellipse 80% 60% at 50% 30%, rgba(200,155,60,0.06) 0%, transparent 65%),
+                  linear-gradient(180deg, #0c0a08 0%, #14100c 60%, #0e0b09 100%)
+                `,
+                minHeight: 280,
+                display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+                paddingBottom: 24,
               }}>
-                {/* Wine type tag */}
+                {/* Gold accent line at top */}
                 <div style={{
-                  position: 'absolute', top: 14, left: 16,
-                  background: wine.tagColor, color: '#f0e8d8',
+                  position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+                  background: `linear-gradient(90deg, transparent, rgba(200,155,60,0.5) 40%, rgba(200,155,60,0.5) 60%, transparent)`,
+                }} />
+
+                {/* Wine type tag — top left */}
+                <div style={{
+                  position: 'absolute', top: 16, left: 18,
+                  background: wine.tagColor, backdropFilter: 'blur(4px)',
+                  color: '#f0e8d8',
                   fontFamily: "'Press Start 2P', monospace", fontSize: 7,
-                  padding: '4px 9px', letterSpacing: '0.08em',
+                  padding: '5px 10px', letterSpacing: '0.08em',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
                 }}>
                   {wine.tag}
                 </div>
-                {/* Favorite button */}
+
+                {/* Favorite — top right */}
                 <div style={{ position: 'absolute', top: 10, right: 12 }}>
                   <WineFavoriteButton label={wine.name} />
                 </div>
+
+                {/* Bottle image — the hero */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={wine.image}
                   alt={wine.name}
+                  className="wine-bottle"
                   style={{
-                    height: 110, width: 'auto', maxWidth: 90,
+                    height: 210, width: 'auto', maxWidth: 140,
                     objectFit: 'contain', display: 'block',
-                    filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.6))',
+                    filter: 'drop-shadow(0 12px 28px rgba(0,0,0,0.75)) drop-shadow(0 4px 8px rgba(0,0,0,0.5))',
+                    position: 'relative', zIndex: 1,
                   }}
                 />
+
+                {/* Subtle floor reflection */}
+                <div style={{
+                  position: 'absolute', bottom: 0, left: 0, right: 0, height: 60,
+                  background: 'linear-gradient(to top, rgba(0,0,0,0.35), transparent)',
+                  pointerEvents: 'none',
+                }} />
               </div>
 
-              {/* Card body */}
-              <div style={{ padding: '20px 22px 22px' }}>
+              {/* ── Card body ── */}
+              <div style={{ padding: '22px 24px 26px' }}>
                 {/* Name */}
-                <h3 style={{ fontFamily: 'Inter, sans-serif', fontSize: 18, fontWeight: 700, color: S.text1, marginBottom: 8, lineHeight: 1.3 }}>
+                <h3 style={{
+                  fontFamily: 'Inter, sans-serif', fontSize: 20, fontWeight: 800,
+                  color: S.text1, marginBottom: 10, lineHeight: 1.25,
+                  letterSpacing: '-0.02em',
+                }}>
                   {wine.name}
                 </h3>
 
-                {/* Meta row */}
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14, alignItems: 'center' }}>
+                {/* Meta pills */}
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16, alignItems: 'center' }}>
                   {[wine.origin, wine.varietal].map(t => (
                     <span key={t} style={{
                       fontFamily: 'Inter, sans-serif', fontSize: 12, color: S.text3,
-                      background: 'rgba(200,155,60,0.06)', border: `1px solid rgba(200,155,60,0.14)`,
-                      padding: '3px 9px',
+                      background: 'rgba(200,155,60,0.07)', border: `1px solid rgba(200,155,60,0.16)`,
+                      padding: '4px 10px', borderRadius: 4,
                     }}>{t}</span>
                   ))}
-                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: S.goldDim, fontWeight: 600 }}>
+                  <span style={{
+                    fontFamily: 'Inter, sans-serif', fontSize: 12, color: S.gold,
+                    fontWeight: 700, background: 'rgba(200,155,60,0.1)',
+                    border: '1px solid rgba(200,155,60,0.25)', padding: '4px 10px', borderRadius: 4,
+                  }}>
                     {wine.abv} ABV
                   </span>
                 </div>
 
                 {/* Tasting notes */}
-                <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: S.text2, lineHeight: 1.72, marginBottom: 18 }}>
+                <p style={{
+                  fontFamily: 'Inter, sans-serif', fontSize: 14, color: S.text2,
+                  lineHeight: 1.78, marginBottom: 20,
+                }}>
                   {wine.notes}
                 </p>
 
                 {/* Pairings */}
-                <div style={{ borderTop: `1px solid ${S.borderDim}`, paddingTop: 16 }}>
-                  <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: S.goldDim, letterSpacing: '0.12em', marginBottom: 10 }}>
+                <div style={{ borderTop: `1px solid rgba(200,155,60,0.1)`, paddingTop: 18 }}>
+                  <div style={{
+                    fontFamily: "'Press Start 2P', monospace", fontSize: 7,
+                    color: S.goldDim, letterSpacing: '0.14em', marginBottom: 12,
+                  }}>
                     PAIRS WITH
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
@@ -311,7 +355,7 @@ export default async function FoodPage() {
                         style={{
                           fontFamily: 'Inter, sans-serif', fontSize: 13, color: S.text2,
                           background: 'rgba(200,155,60,0.07)', border: `1px solid rgba(200,155,60,0.2)`,
-                          padding: '5px 11px', borderRadius: 20,
+                          padding: '5px 12px', borderRadius: 20,
                         }}
                       >
                         {p}
