@@ -53,7 +53,7 @@ export default async function FunPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {GAMES.map(g => (
           <Link key={g.href} href={g.href}
             className="flex flex-col items-center gap-2 py-4 px-2 rounded-xl transition-all duration-150 hover:scale-105 hover:brightness-110"

@@ -142,7 +142,7 @@ export default async function FoodPage() {
           <div style={{ height: 1, flex: 1, background: 'rgba(200,155,60,0.15)' }} />
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {WINES.map(wine => (
             <div
               key={wine.id}

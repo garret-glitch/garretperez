@@ -129,6 +129,11 @@ export default function SnakePage() {
   useEffect(() => { render() }, [render])
   useEffect(() => () => { const t = st.current.timer; if (t) clearTimeout(t) }, [])
 
+  function changeDir(nd: Dir) {
+    const s = st.current; if (!s.alive || nd === OPP[s.dir]) return
+    s.nextDir = nd
+  }
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const s = st.current; if (!s.alive) return
@@ -169,7 +174,8 @@ export default function SnakePage() {
               style={{ background: 'rgba(7,7,15,0.88)' }}>
               <div className="text-4xl mb-4">🐍</div>
               <button onClick={start} className="osrs-btn text-[8px] px-8 py-2">▶ Play Snake</button>
-              <p className="mt-3 text-[6px]" style={{ color: 'var(--text-3)' }}>WASD or Arrow Keys · Collect 10 coins to win</p>
+              <p className="mt-3 text-[6px] hidden sm:block" style={{ color: 'var(--text-3)' }}>WASD or Arrow Keys · Collect 10 coins to win</p>
+              <p className="mt-3 text-[6px] sm:hidden" style={{ color: 'var(--text-3)' }}>Use the D-pad · Collect 10 coins to win</p>
             </div>
           )}
           {phase === 'dead' && (
@@ -194,7 +200,28 @@ export default function SnakePage() {
         </div>
 
         {phase === 'play' && (
-          <p className="mt-2 text-center text-[6px]" style={{ color: 'var(--text-3)' }}>WASD or Arrow Keys to steer</p>
+          <p className="mt-2 text-center text-[6px] hidden sm:block" style={{ color: 'var(--text-3)' }}>WASD or Arrow Keys to steer</p>
+        )}
+
+        {/* Mobile D-pad — only shown on small screens */}
+        {(phase === 'play' || phase === 'idle') && (
+          <div className="sm:hidden mt-4 flex flex-col items-center gap-1" style={{ userSelect: 'none' }}>
+            <button onPointerDown={() => changeDir('U')}
+              className="w-14 h-14 text-xl rounded border-2 flex items-center justify-center"
+              style={{ background: 'var(--bg-elevated)', borderColor: 'var(--border)', color: 'var(--gold)', fontSize: 22 }}>↑</button>
+            <div className="flex gap-1">
+              <button onPointerDown={() => changeDir('L')}
+                className="w-14 h-14 text-xl rounded border-2 flex items-center justify-center"
+                style={{ background: 'var(--bg-elevated)', borderColor: 'var(--border)', color: 'var(--gold)', fontSize: 22 }}>←</button>
+              <div className="w-14 h-14 rounded" style={{ background: 'var(--bg-elevated)', opacity: 0.3 }} />
+              <button onPointerDown={() => changeDir('R')}
+                className="w-14 h-14 text-xl rounded border-2 flex items-center justify-center"
+                style={{ background: 'var(--bg-elevated)', borderColor: 'var(--border)', color: 'var(--gold)', fontSize: 22 }}>→</button>
+            </div>
+            <button onPointerDown={() => changeDir('D')}
+              className="w-14 h-14 text-xl rounded border-2 flex items-center justify-center"
+              style={{ background: 'var(--bg-elevated)', borderColor: 'var(--border)', color: 'var(--gold)', fontSize: 22 }}>↓</button>
+          </div>
         )}
       </div>
 

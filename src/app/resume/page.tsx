@@ -75,7 +75,7 @@ export default function ResumePage() {
       </div>
 
       {/* Skills */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="rp-card">
           <h2 className="text-[9px] mb-3 flex items-center gap-2" style={{ color: 'var(--text-1)' }}>
             <span style={{ color: 'var(--gold)' }}>⚡</span> Professional Skills

@@ -152,13 +152,13 @@ export default function MatchingGamePage() {
         </div>
         <p className="text-[7px] mb-3" style={{ color: 'var(--text-2)' }}>Match all pairs to earn +25 Fun XP!</p>
 
-        <div className="grid grid-cols-4 gap-1.5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {cards.map(card => (
             <button
               key={card.id}
               onClick={() => handleClick(card.id)}
               className={`
-                h-14 text-2xl border-2 transition-all rounded
+                h-20 sm:h-14 text-3xl sm:text-2xl border-2 transition-all rounded
                 ${card.isMatched
                   ? 'border-green-700 bg-green-900 opacity-50 cursor-default'
                   : card.isFlipped

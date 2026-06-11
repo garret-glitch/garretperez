@@ -664,13 +664,17 @@ a { color: inherit; text-decoration: none; }
   img, video, table, pre { max-width: 100%; }
 
   .hero-panel { padding: 16px; }
-  .rp-card    { padding: 14px; }
+  .rp-card    { padding: 14px 12px; }
 
-  /* Tap-friendly buttons */
+  /* Tap-friendly buttons — all interactive elements get larger hit area */
   .osrs-btn {
-    padding: 10px 16px;
-    min-height: 40px;
+    padding: 12px 18px;
+    min-height: 44px;
+    font-size: 10px !important;
   }
+
+  /* Ensure canvas games never overflow viewport */
+  canvas { max-width: 100%; }
 
   /* Bump tiny sizes even further on mobile */
   .text-\[5px\]    { font-size: 11px !important; }
@@ -707,6 +711,16 @@ a { color: inherit; text-decoration: none; }
     border-right: none !important;
     border-top: 2px solid #5a3818;
   }
+
+  /* ─── Wine card — full width on smallest screens ─────────── */
+  .wine-card { min-height: unset !important; }
+  .wine-card img { height: 130px !important; }
+
+  /* ─── Skill hero bar — compact on mobile ─────────────────── */
+  .skill-hero-bar { padding: 14px 12px !important; }
+
+  /* ─── Food form grids ─────────────────────────────────────── */
+  .food-form-grid, .plant-form-grid { grid-template-columns: 1fr !important; }
 }
 
 /* Scrollbar */
