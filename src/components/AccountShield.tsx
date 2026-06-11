@@ -99,11 +99,6 @@ export default function AccountShield({ username, level, xp, xpPercent, isLogged
                 {username}
               </div>
 
-              {/* Level */}
-              <div style={{ marginTop: '1.5%', fontSize: 'clamp(7px, 1.8vw, 9px)', color: '#c89b3c' }}>
-                ⚔ Lv {level}
-              </div>
-
               {/* XP bar */}
               <div style={{ marginTop: '3%', width: '54%' }}>
                 <div style={{ height: 7, background: 'rgba(200,155,60,0.15)', borderRadius: 3, overflow: 'hidden', border: '1px solid rgba(200,155,60,0.3)' }}>
