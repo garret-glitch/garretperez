@@ -24,7 +24,7 @@ interface Props {
   initColor?: string
 }
 
-export default function AccountShield({ username, level, xp, xpPercent, isLoggedIn, initColor = '#1a0e06' }: Props) {
+export default function AccountShield({ username, xp, xpPercent, isLoggedIn, initColor = '#1a0e06' }: Props) {
   const [color, setColor]     = useState(initColor)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving]   = useState(false)
