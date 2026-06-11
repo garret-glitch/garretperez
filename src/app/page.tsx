@@ -256,54 +256,56 @@ export default async function Home() {
               borderLeft: '1px solid rgba(200,155,60,0.2)',
               paddingLeft: 22,
             }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                 <a href={`tel:${contactPhone.replace(/\D/g, '')}`}
-                  className="flex items-center gap-3 rounded transition-colors hover:bg-white/[0.04]"
-                  style={{ textDecoration: 'none', padding: '9px 8px', margin: '0 -8px' }}>
-                  <div style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(200,155,60,0.12)', border: '1px solid rgba(200,155,60,0.28)' }}>
-                    <Phone size={15} color="#c89b3c" strokeWidth={1.7} />
+                  className="flex items-center gap-3 rounded transition-colors hover:bg-white/[0.06]"
+                  style={{ textDecoration: 'none', padding: '8px 10px', margin: '0 -10px' }}>
+                  <div style={{ width: 40, height: 40, flexShrink: 0, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(200,155,60,0.15)', border: '1px solid rgba(200,155,60,0.4)' }}>
+                    <Phone size={17} color="#c89b3c" strokeWidth={1.7} />
                   </div>
                   <div>
-                    <div style={{ fontSize: 5.5, color: '#6a5030', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 2 }}>Phone</div>
-                    <div className="body-text" style={{ fontSize: 10, color: '#f0dc90', fontWeight: 700 }}>{contactPhone}</div>
+                    <div style={{ fontSize: 7, color: '#9a7848', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 }}>Phone</div>
+                    <div className="body-text" style={{ fontSize: 12, color: '#f5e4a0', fontWeight: 700 }}>{contactPhone}</div>
                   </div>
                 </a>
                 <a href={`mailto:${contactEmail}`}
-                  className="flex items-center gap-3 rounded transition-colors hover:bg-white/[0.04]"
-                  style={{ textDecoration: 'none', padding: '9px 8px', margin: '0 -8px' }}>
-                  <div style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(60,110,200,0.12)', border: '1px solid rgba(60,110,200,0.28)' }}>
-                    <Mail size={15} color="#7090c8" strokeWidth={1.7} />
+                  className="flex items-center gap-3 rounded transition-colors hover:bg-white/[0.06]"
+                  style={{ textDecoration: 'none', padding: '8px 10px', margin: '0 -10px' }}>
+                  <div style={{ width: 40, height: 40, flexShrink: 0, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(60,110,200,0.18)', border: '1px solid rgba(60,110,200,0.4)' }}>
+                    <Mail size={17} color="#7090c8" strokeWidth={1.7} />
                   </div>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 5.5, color: '#6a5030', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 2 }}>Email</div>
-                    <div className="body-text" style={{ fontSize: 8.5, color: '#f0dc90', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 148 }}>{contactEmail}</div>
+                    <div style={{ fontSize: 7, color: '#9a7848', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 }}>Email</div>
+                    <div className="body-text" style={{ fontSize: 11, color: '#f5e4a0', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 148 }}>{contactEmail}</div>
                   </div>
                 </a>
                 <a href={`https://www.linkedin.com/in/${contactLinkedin}`} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-3 rounded transition-colors hover:bg-white/[0.04]"
-                  style={{ textDecoration: 'none', padding: '9px 8px', margin: '0 -8px' }}>
-                  <div style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,90,200,0.14)', border: '1px solid rgba(0,90,200,0.3)' }}>
-                    <span style={{ fontFamily: 'Georgia, serif', fontWeight: 900, color: '#4a88d0', fontSize: 15, lineHeight: 1, userSelect: 'none' }}>in</span>
+                  className="flex items-center gap-3 rounded transition-colors hover:bg-white/[0.06]"
+                  style={{ textDecoration: 'none', padding: '8px 10px', margin: '0 -10px' }}>
+                  <div style={{ width: 40, height: 40, flexShrink: 0, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,90,200,0.2)', border: '1px solid rgba(0,90,200,0.42)' }}>
+                    <span style={{ fontFamily: 'Georgia, serif', fontWeight: 900, color: '#6098d8', fontSize: 17, lineHeight: 1, userSelect: 'none' }}>in</span>
                   </div>
                   <div>
-                    <div style={{ fontSize: 5.5, color: '#6a5030', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 2 }}>LinkedIn</div>
-                    <div className="body-text" style={{ fontSize: 8.5, color: '#f0dc90', fontWeight: 700 }}>in/{contactLinkedin}</div>
+                    <div style={{ fontSize: 7, color: '#9a7848', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 }}>LinkedIn</div>
+                    <div className="body-text" style={{ fontSize: 11, color: '#f5e4a0', fontWeight: 700 }}>in/{contactLinkedin}</div>
                   </div>
                 </a>
               </div>
+
+              {/* Resume — focal CTA */}
               <a href="/resume"
-                className="flex items-center justify-center gap-2 transition-opacity hover:opacity-85"
+                className="flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
                 style={{
-                  background: 'linear-gradient(135deg, #c89b3c 0%, #9a7228 100%)',
-                  color: '#120c00',
+                  background: 'linear-gradient(135deg, #d4a840 0%, #a87830 100%)',
+                  color: '#0e0800',
                   fontFamily: "'Press Start 2P', monospace",
-                  fontSize: 6.5, fontWeight: 700,
-                  padding: '10px 14px', marginTop: 16,
-                  textDecoration: 'none', letterSpacing: '0.03em',
-                  boxShadow: '0 3px 18px rgba(200,155,60,0.42)',
+                  fontSize: 8, fontWeight: 700,
+                  padding: '13px 14px', marginTop: 14,
+                  textDecoration: 'none', letterSpacing: '0.04em',
+                  boxShadow: '0 0 0 1px rgba(200,155,60,0.5), 0 4px 28px rgba(200,155,60,0.55)',
                   display: 'flex',
                 }}>
-                <FileText size={12} strokeWidth={2.2} />
+                <FileText size={15} strokeWidth={2.2} />
                 View Resume
               </a>
             </div>
@@ -401,46 +403,44 @@ export default async function Home() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
 
               <a href={`tel:${contactPhone.replace(/\D/g, '')}`}
-                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'rgba(200,155,60,0.08)', border: '1px solid rgba(200,155,60,0.22)', textDecoration: 'none', borderRadius: 3 }}>
-                <div style={{ width: 34, height: 34, flexShrink: 0, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(200,155,60,0.15)', border: '1px solid rgba(200,155,60,0.35)' }}>
-                  <Phone size={14} color="#c89b3c" strokeWidth={1.7} />
+                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.3)', textDecoration: 'none' }}>
+                <div style={{ width: 38, height: 38, flexShrink: 0, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(200,155,60,0.18)', border: '1px solid rgba(200,155,60,0.45)' }}>
+                  <Phone size={16} color="#c89b3c" strokeWidth={1.7} />
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 7, color: '#6a5030', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2, fontFamily: "'Press Start 2P', monospace" }}>Phone</div>
-                  <div className="body-text" style={{ fontSize: 11, color: '#f0dc90', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{contactPhone}</div>
+                  <div style={{ fontSize: 7.5, color: '#9a7848', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3, fontFamily: "'Press Start 2P', monospace" }}>Phone</div>
+                  <div className="body-text" style={{ fontSize: 13, color: '#f5e4a0', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{contactPhone}</div>
                 </div>
               </a>
 
               <a href={`mailto:${contactEmail}`}
-                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'rgba(60,110,200,0.08)', border: '1px solid rgba(60,110,200,0.22)', textDecoration: 'none', borderRadius: 3 }}>
-                <div style={{ width: 34, height: 34, flexShrink: 0, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(60,110,200,0.15)', border: '1px solid rgba(60,110,200,0.35)' }}>
-                  <Mail size={14} color="#7090c8" strokeWidth={1.7} />
+                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', background: 'rgba(60,110,200,0.1)', border: '1px solid rgba(60,110,200,0.3)', textDecoration: 'none' }}>
+                <div style={{ width: 38, height: 38, flexShrink: 0, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(60,110,200,0.2)', border: '1px solid rgba(60,110,200,0.42)' }}>
+                  <Mail size={16} color="#7090c8" strokeWidth={1.7} />
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 7, color: '#6a5030', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2, fontFamily: "'Press Start 2P', monospace" }}>Email</div>
-                  <div className="body-text" style={{ fontSize: 10, color: '#f0dc90', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{contactEmail}</div>
+                  <div style={{ fontSize: 7.5, color: '#9a7848', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3, fontFamily: "'Press Start 2P', monospace" }}>Email</div>
+                  <div className="body-text" style={{ fontSize: 12, color: '#f5e4a0', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{contactEmail}</div>
                 </div>
               </a>
 
               <a href={`https://www.linkedin.com/in/${contactLinkedin}`} target="_blank" rel="noopener noreferrer"
-                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'rgba(0,90,200,0.08)', border: '1px solid rgba(0,90,200,0.22)', textDecoration: 'none', borderRadius: 3 }}>
-                <div style={{ width: 34, height: 34, flexShrink: 0, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,90,200,0.15)', border: '1px solid rgba(0,90,200,0.35)' }}>
-                  <span style={{ fontFamily: 'Georgia, serif', fontWeight: 900, color: '#4a88d0', fontSize: 14, lineHeight: 1, userSelect: 'none' }}>in</span>
+                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', background: 'rgba(0,90,200,0.1)', border: '1px solid rgba(0,90,200,0.3)', textDecoration: 'none' }}>
+                <div style={{ width: 38, height: 38, flexShrink: 0, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,90,200,0.2)', border: '1px solid rgba(0,90,200,0.42)' }}>
+                  <span style={{ fontFamily: 'Georgia, serif', fontWeight: 900, color: '#6098d8', fontSize: 16, lineHeight: 1, userSelect: 'none' }}>in</span>
                 </div>
                 <div>
-                  <div style={{ fontSize: 7, color: '#6a5030', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2, fontFamily: "'Press Start 2P', monospace" }}>LinkedIn</div>
-                  <div className="body-text" style={{ fontSize: 10, color: '#f0dc90', fontWeight: 700 }}>/{contactLinkedin}</div>
+                  <div style={{ fontSize: 7.5, color: '#9a7848', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3, fontFamily: "'Press Start 2P', monospace" }}>LinkedIn</div>
+                  <div className="body-text" style={{ fontSize: 12, color: '#f5e4a0', fontWeight: 700 }}>/{contactLinkedin}</div>
                 </div>
               </a>
 
+              {/* Resume — focal CTA */}
               <a href="/resume"
-                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.28)', textDecoration: 'none', borderRadius: 3 }}>
-                <div style={{ width: 34, height: 34, flexShrink: 0, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(200,155,60,0.2)', border: '1px solid rgba(200,155,60,0.4)' }}>
-                  <FileText size={14} color="#c89b3c" strokeWidth={1.7} />
-                </div>
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '14px', background: 'linear-gradient(135deg, #d4a840 0%, #a87830 100%)', textDecoration: 'none', boxShadow: '0 0 0 1px rgba(200,155,60,0.5), 0 4px 24px rgba(200,155,60,0.5)', marginTop: 2 }}>
+                <FileText size={17} color="#0e0800" strokeWidth={2.2} />
                 <div>
-                  <div style={{ fontSize: 7, color: '#6a5030', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2, fontFamily: "'Press Start 2P', monospace" }}>Resume</div>
-                  <div className="body-text" style={{ fontSize: 10, color: '#f0dc90', fontWeight: 700 }}>View / Download</div>
+                  <div style={{ fontSize: 8, color: '#0e0800', fontFamily: "'Press Start 2P', monospace", fontWeight: 700, letterSpacing: '0.04em' }}>View Resume</div>
                 </div>
               </a>
             </div>
