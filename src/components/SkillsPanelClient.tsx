@@ -97,16 +97,16 @@ function ChannelRow({
       >
         {/* Icon box */}
         <span style={{
-          flexShrink: 0, width: 32, height: 32,
+          flexShrink: 0, width: 34, height: 34,
           background: cfg.bg, borderRadius: 8,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <cfg.Icon size={16} color="#dcc898" strokeWidth={1.6} />
+          <cfg.Icon size={18} color="#dcc898" strokeWidth={1.6} />
         </span>
 
         {/* Label */}
         <span style={{
-          flex: 1, fontSize: 9, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          flex: 1, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {cfg.label}
         </span>
@@ -119,7 +119,7 @@ function ChannelRow({
             border: '1px solid rgba(200,155,60,0.32)',
             borderRadius: 4,
             padding: '2px 6px',
-            fontSize: 7,
+            fontSize: 9,
             fontFamily: "'Press Start 2P', monospace",
             color: '#c89b3c',
             letterSpacing: '0.03em',
@@ -130,7 +130,7 @@ function ChannelRow({
 
         {/* Post count — admin only */}
         {isAdmin && postCount > 0 && (
-          <span style={{ flexShrink: 0, fontSize: 7, color: '#6a5030', marginLeft: 4 }}>
+          <span style={{ flexShrink: 0, fontSize: 8, color: '#6a5030', marginLeft: 4 }}>
             {postCount}
           </span>
         )}
@@ -186,14 +186,14 @@ export default function SkillsPanelClient({
           color: isHome ? '#f0d898' : undefined,
         }}
       >
-        <span style={{ flexShrink: 0, width: 32, height: 32, background: '#241a08', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Home size={16} color="#dcc898" strokeWidth={1.6} />
+        <span style={{ flexShrink: 0, width: 34, height: 34, background: '#241a08', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Home size={18} color="#dcc898" strokeWidth={1.6} />
         </span>
-        <span style={{ fontSize: 9 }}>Home</span>
+        <span style={{ fontSize: 11 }}>Home</span>
       </Link>
 
       {/* Section label */}
-      <div style={{ padding: '10px 14px 6px', fontSize: 7, color: '#a07848', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: "'Press Start 2P', monospace" }}>
+      <div style={{ padding: '10px 14px 6px', fontSize: 9, color: '#a07848', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: "'Press Start 2P', monospace" }}>
         ⚔ Communities
       </div>
 

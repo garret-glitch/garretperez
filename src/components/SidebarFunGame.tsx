@@ -248,12 +248,12 @@ export default function SidebarFunGame() {
           </div>
           {phase === 'dead' ? (
             <button onClick={restart}
-              className="text-[8px] px-2 py-0.5 rounded hover:opacity-80 transition-opacity"
+              className="text-[10px] px-2 py-0.5 rounded hover:opacity-80 transition-opacity"
               style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--gold)' }}>
               ↺ Restart
             </button>
           ) : (
-            <span className="text-[7px]" style={{ color: 'var(--text-3)' }}>drag · dodge 🔴 · collect ⭐</span>
+            <span className="text-[9px]" style={{ color: 'var(--text-3)' }}>drag · dodge 🔴 · collect ⭐</span>
           )}
         </div>
       </div>
@@ -266,14 +266,14 @@ export default function SidebarFunGame() {
           style={{ borderLeft: '3px solid transparent' }}>
           <span className="shrink-0 flex items-center justify-center text-base"
             style={{ width: 32, height: 32, background: '#1a3a5a', borderRadius: 8 }}>💎</span>
-          <div className="text-[9px] truncate" style={{ color: '#f0d898' }}>Cool Items</div>
+          <div className="text-[11px] truncate" style={{ color: '#f0d898' }}>Cool Items</div>
         </Link>
         <Link href="/skills/cool-people"
           className="flex items-center gap-2.5 px-3 py-2.5 hover:opacity-80 transition-opacity"
           style={{ borderLeft: '3px solid transparent' }}>
           <span className="shrink-0 flex items-center justify-center text-base"
             style={{ width: 32, height: 32, background: '#4a1a5a', borderRadius: 8 }}>🌟</span>
-          <div className="text-[9px] truncate" style={{ color: '#f0d898' }}>Cool People</div>
+          <div className="text-[11px] truncate" style={{ color: '#f0d898' }}>Cool People</div>
         </Link>
       </div>
 

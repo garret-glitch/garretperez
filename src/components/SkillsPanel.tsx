@@ -50,7 +50,7 @@ export default async function SkillsPanel() {
         <div className="px-3 py-1.5 border-b shrink-0" style={{ borderColor: '#5a3818' }}>
           <Link
             href="/admin"
-            className="flex items-center justify-center gap-1 w-full py-1.5 rounded-lg text-[8px] transition-opacity hover:opacity-80"
+            className="flex items-center justify-center gap-1 w-full py-1.5 rounded-lg text-[10px] transition-opacity hover:opacity-80"
             style={{ background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.3)', color: '#c89b3c' }}
           >
             ⚙ Admin Panel
