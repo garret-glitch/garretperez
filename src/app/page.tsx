@@ -276,15 +276,16 @@ export default async function Home() {
 
               {/* Resume — focal CTA */}
               <a href="/resume"
-                className="flex items-center justify-center gap-3 hover:opacity-90 transition-opacity"
+                className="flex items-center justify-center gap-3 hover:brightness-110 transition-all"
                 style={{
-                  background: 'linear-gradient(135deg, #d4a840 0%, #a87830 100%)',
-                  color: '#0e0800',
+                  background: 'linear-gradient(135deg, #1e1608 0%, #2a1e0c 100%)',
+                  color: '#e8c060',
+                  border: '1.5px solid rgba(200,155,60,0.6)',
                   fontFamily: "'Press Start 2P', monospace",
                   fontSize: 9, fontWeight: 700,
                   padding: '15px', marginTop: 12,
                   textDecoration: 'none', letterSpacing: '0.04em',
-                  boxShadow: '0 0 0 1px rgba(200,155,60,0.6), 0 6px 32px rgba(200,155,60,0.6)',
+                  boxShadow: '0 0 18px rgba(200,155,60,0.25)',
                   display: 'flex',
                 }}>
                 <FileText size={17} strokeWidth={2.2} />
@@ -410,9 +411,9 @@ export default async function Home() {
 
               {/* Resume — focal CTA */}
               <a href="/resume"
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '15px', background: 'linear-gradient(135deg, #d4a840 0%, #a87830 100%)', textDecoration: 'none', boxShadow: '0 0 0 1px rgba(200,155,60,0.6), 0 6px 28px rgba(200,155,60,0.55)', marginTop: 2 }}>
-                <FileText size={17} color="#0e0800" strokeWidth={2.2} />
-                <span style={{ fontSize: 9, color: '#0e0800', fontFamily: "'Press Start 2P', monospace", fontWeight: 700, letterSpacing: '0.04em' }}>View Resume</span>
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '15px', background: 'linear-gradient(135deg, #1e1608 0%, #2a1e0c 100%)', border: '1.5px solid rgba(200,155,60,0.6)', textDecoration: 'none', boxShadow: '0 0 18px rgba(200,155,60,0.25)', marginTop: 2 }}>
+                <FileText size={17} color="#e8c060" strokeWidth={2.2} />
+                <span style={{ fontSize: 9, color: '#e8c060', fontFamily: "'Press Start 2P', monospace", fontWeight: 700, letterSpacing: '0.04em' }}>View Resume</span>
               </a>
             </div>
           </div>
