@@ -311,23 +311,12 @@ export default async function Home() {
                 </p>
               </div>
 
-              {/* Right — action buttons */}
-              <div style={{ display: 'flex', gap: 7, flexShrink: 0, flexWrap: 'wrap' }}>
-                <a href="/skills/community" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 13px', background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.3)', color: '#d4a84a', fontFamily: "'Press Start 2P', monospace", fontSize: 6.5, textDecoration: 'none', letterSpacing: '0.02em' }}>
-                  ✍️ Post
+              {/* Right — join button for guests */}
+              {!session?.user && (
+                <a href="/register" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 16px', background: 'linear-gradient(135deg, #c89b3c 0%, #9a7228 100%)', color: '#120c00', fontFamily: "'Press Start 2P', monospace", fontSize: 6.5, fontWeight: 700, textDecoration: 'none', boxShadow: '0 2px 16px rgba(200,155,60,0.4)', letterSpacing: '0.02em', flexShrink: 0 }}>
+                  🛡 Join the Guild
                 </a>
-                <a href="/skills/fun" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 13px', background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.3)', color: '#d4a84a', fontFamily: "'Press Start 2P', monospace", fontSize: 6.5, textDecoration: 'none', letterSpacing: '0.02em' }}>
-                  🎮 Play
-                </a>
-                <a href="/skills/food" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 13px', background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.3)', color: '#d4a84a', fontFamily: "'Press Start 2P', monospace", fontSize: 6.5, textDecoration: 'none', letterSpacing: '0.02em' }}>
-                  🍳 Recipe
-                </a>
-                {!session?.user && (
-                  <a href="/register" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 16px', background: 'linear-gradient(135deg, #c89b3c 0%, #9a7228 100%)', color: '#120c00', fontFamily: "'Press Start 2P', monospace", fontSize: 6.5, fontWeight: 700, textDecoration: 'none', boxShadow: '0 2px 16px rgba(200,155,60,0.4)', letterSpacing: '0.02em' }}>
-                    🛡 Join the Guild
-                  </a>
-                )}
-              </div>
+              )}
             </div>
           </div>
 
@@ -411,14 +400,9 @@ export default async function Home() {
               <p className="body-text" style={{ fontSize: 11, color: 'var(--text-2)', lineHeight: 1.55, margin: '0 0 10px' }}>
                 Your posts, recipes, games, and daily logins all earn me XP.
               </p>
-              <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-                <a href="/skills/community" style={{ padding: '6px 12px', background: 'rgba(200,155,60,0.12)', border: '1px solid rgba(200,155,60,0.3)', color: '#d4a84a', fontFamily: "'Press Start 2P', monospace", fontSize: 6, textDecoration: 'none' }}>✍️ Post</a>
-                <a href="/skills/fun"       style={{ padding: '6px 12px', background: 'rgba(200,155,60,0.12)', border: '1px solid rgba(200,155,60,0.3)', color: '#d4a84a', fontFamily: "'Press Start 2P', monospace", fontSize: 6, textDecoration: 'none' }}>🎮 Play</a>
-                <a href="/skills/food"      style={{ padding: '6px 12px', background: 'rgba(200,155,60,0.12)', border: '1px solid rgba(200,155,60,0.3)', color: '#d4a84a', fontFamily: "'Press Start 2P', monospace", fontSize: 6, textDecoration: 'none' }}>🍳 Recipe</a>
-                {!session?.user && (
-                  <a href="/register" style={{ padding: '6px 14px', background: 'linear-gradient(135deg, #c89b3c, #9a7228)', color: '#120c00', fontFamily: "'Press Start 2P', monospace", fontSize: 6, fontWeight: 700, textDecoration: 'none' }}>🛡 Join</a>
-                )}
-              </div>
+              {!session?.user && (
+                <a href="/register" style={{ display: 'inline-block', padding: '6px 14px', background: 'linear-gradient(135deg, #c89b3c, #9a7228)', color: '#120c00', fontFamily: "'Press Start 2P', monospace", fontSize: 6, fontWeight: 700, textDecoration: 'none' }}>🛡 Join the Guild</a>
+              )}
             </div>
 
             {/* Gold divider */}
