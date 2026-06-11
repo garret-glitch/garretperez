@@ -75,24 +75,6 @@ export default async function Home() {
       } catch { /* migration failed silently */ }
     }
 
-    // Auto-add communities block if not yet present
-    if (homeBlocks.length > 0 && !homeBlocks.some((b: PageBlock) => b.type === 'communities')) {
-      try {
-        await (prisma as any).pageBlock.create({
-          data: {
-            pageSlug: 'home', type: 'communities', order: 1000,
-            colSpan: 2, colStart: 1, visible: true,
-            config: JSON.stringify({ heading: 'Communities' }),
-            styles: JSON.stringify({}),
-          }
-        })
-        const withComm = await (prisma as any).pageBlock.findMany({
-          where: { pageSlug: 'home', visible: true },
-          orderBy: { order: 'asc' },
-        })
-        homeBlocks = parseBlocks(withComm)
-      } catch {}
-    }
 
     const adminUser = await prisma.user.findFirst({
       where: { role: 'ADMIN' },
