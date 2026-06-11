@@ -57,66 +57,105 @@ export default async function FoodPage() {
         )}
       </div>
 
-      {/* ── Featured Wine ───────────────────────────────── */}
-      <div className="osrs-panel-dark rounded-xl" style={{ padding: '14px 16px' }}>
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
-          <span style={{ fontSize: 14 }}>🍷</span>
+      {/* ── Featured Wines ──────────────────────────────── */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
+          <span style={{ fontSize: 15 }}>🍷</span>
           <span style={{ fontSize: 7, color: '#c89b3c', fontFamily: "'Press Start 2P', monospace", textTransform: 'uppercase', letterSpacing: '0.12em' }}>
-            Featured Wine
+            Featured Wines
           </span>
         </div>
 
-        {/* Bottle + Info */}
-        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-          <img
-            src="https://www.wolfexpressliquor.com/cdn/shop/files/50-LLANOESTACADOSWEETREDWINE750ML-Photoroom_d157d2f8-9c0d-4949-ae77-cce948e82bc8.jpg"
-            alt="Llano Estacado Sweet Red Wine"
-            style={{ width: 72, flexShrink: 0, objectFit: 'contain', display: 'block' }}
-          />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#f0d898', fontFamily: 'Inter, sans-serif', marginBottom: 3 }}>
-              Llano Estacado Sweet Red
-            </div>
-            <div style={{ fontSize: 9, color: '#9a7848', fontFamily: 'Inter, sans-serif', marginBottom: 8 }}>
-              Texas · Syrah, Merlot &amp; Cabernet Blend · 12.4% ABV
-            </div>
-            <p className="body-text" style={{ fontSize: 11, color: '#c8b890', lineHeight: 1.7, margin: 0 }}>
-              Alluring blackberry and cherry aromas lead into a medium-sweet palate with soft, round tannins and a hint of mint in the finish.
-              Rich plum in the glass, smooth on the palate — an approachable Texas red that bridges sweet whites and dry reds without compromise.
-              Under $11 and consistently one of the best values in the Lone Star state.
-            </p>
-          </div>
-        </div>
+        <div className="grid sm:grid-cols-2 gap-3">
 
-        {/* Pairings */}
-        <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(200,155,60,0.2)' }}>
-          <div style={{ fontSize: 6.5, color: '#c89b3c', fontFamily: "'Press Start 2P', monospace", textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 9 }}>
-            Pairs Well With
+          {/* Llano Estacado Sweet Red */}
+          <div className="osrs-panel-dark rounded-xl" style={{ padding: '12px 14px' }}>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 10 }}>
+              <img src="https://www.wolfexpressliquor.com/cdn/shop/files/50-LLANOESTACADOSWEETREDWINE750ML-Photoroom_d157d2f8-9c0d-4949-ae77-cce948e82bc8.jpg" alt="Llano Estacado Sweet Red" style={{ width: 58, flexShrink: 0, objectFit: 'contain' }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#f0d898', fontFamily: 'Inter, sans-serif', marginBottom: 2 }}>Llano Estacado Sweet Red</div>
+                <div style={{ fontSize: 9, color: '#9a7848', fontFamily: 'Inter, sans-serif', marginBottom: 6 }}>Texas · Syrah, Merlot &amp; Cab · 12.4% ABV</div>
+                <p className="body-text" style={{ fontSize: 10, color: '#c8b890', lineHeight: 1.65, margin: 0 }}>
+                  Blackberry and cherry aromas with soft tannins and a hint of mint. Medium-sweet, smooth finish. Best value Texas red under $11.
+                </p>
+              </div>
+            </div>
+            <div style={{ borderTop: '1px solid rgba(200,155,60,0.18)', paddingTop: 8 }}>
+              <div style={{ fontSize: 6, color: '#c89b3c', fontFamily: "'Press Start 2P', monospace", letterSpacing: '0.12em', marginBottom: 6 }}>PAIRS WITH</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                {['🦃 Turkey', '🥩 Brisket', '🌶️ Tex-Mex', '🧀 Cheese', '🍫 Chocolate'].map(p => (
+                  <span key={p} className="body-text" style={{ fontSize: 10, color: '#b09060', background: 'rgba(200,155,60,0.07)', border: '1px solid rgba(200,155,60,0.2)', padding: '3px 8px' }}>{p}</span>
+                ))}
+              </div>
+            </div>
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {[
-              '🦃 Turkey & Chicken',
-              '🥩 Brisket & Beef',
-              '🍕 Italian',
-              '🌶️ Tex-Mex',
-              '🧀 Cheese Boards',
-              '🍫 Dark Chocolate',
-            ].map(pair => (
-              <span
-                key={pair}
-                className="body-text"
-                style={{
-                  fontSize: 11, color: '#b09060',
-                  background: 'rgba(200,155,60,0.07)',
-                  border: '1px solid rgba(200,155,60,0.22)',
-                  padding: '4px 10px',
-                }}
-              >
-                {pair}
-              </span>
-            ))}
+
+          {/* Stella Rosa Black */}
+          <div className="osrs-panel-dark rounded-xl" style={{ padding: '12px 14px' }}>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 10 }}>
+              <img src="https://wineonsale.com/cdn/shop/products/Stella_Rosa_Black_bottle_1_1024x.jpg?v=1606254236" alt="Stella Rosa Black" style={{ width: 58, flexShrink: 0, objectFit: 'contain' }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#f0d898', fontFamily: 'Inter, sans-serif', marginBottom: 2 }}>Stella Rosa Black</div>
+                <div style={{ fontSize: 9, color: '#9a7848', fontFamily: 'Inter, sans-serif', marginBottom: 6 }}>Piedmont, Italy · Semi-Sweet Sparkling · 5% ABV</div>
+                <p className="body-text" style={{ fontSize: 10, color: '#c8b890', lineHeight: 1.65, margin: 0 }}>
+                  Ripe blackberry, blueberry, and raspberry with lush floral aromatics. Naturally sparkling, smooth sweetness — best served well chilled.
+                </p>
+              </div>
+            </div>
+            <div style={{ borderTop: '1px solid rgba(200,155,60,0.18)', paddingTop: 8 }}>
+              <div style={{ fontSize: 6, color: '#c89b3c', fontFamily: "'Press Start 2P', monospace", letterSpacing: '0.12em', marginBottom: 6 }}>PAIRS WITH</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                {['🍫 Chocolate', '🧀 Manchego', '🍓 Berries', '🍰 Cheesecake', '🍕 Bratwurst'].map(p => (
+                  <span key={p} className="body-text" style={{ fontSize: 10, color: '#b09060', background: 'rgba(200,155,60,0.07)', border: '1px solid rgba(200,155,60,0.2)', padding: '3px 8px' }}>{p}</span>
+                ))}
+              </div>
+            </div>
           </div>
+
+          {/* Juggernaut Cabernet Sauvignon */}
+          <div className="osrs-panel-dark rounded-xl" style={{ padding: '12px 14px' }}>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 10 }}>
+              <img src="https://wineonsale.com/cdn/shop/products/Juggernaut_Hillside_Cabernet_Sauvignon_2018_bottle_1024x.png?v=1605128623" alt="Juggernaut Cabernet Sauvignon" style={{ width: 58, flexShrink: 0, objectFit: 'contain' }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#f0d898', fontFamily: 'Inter, sans-serif', marginBottom: 2 }}>Juggernaut Cabernet Sauvignon</div>
+                <div style={{ fontSize: 9, color: '#9a7848', fontFamily: 'Inter, sans-serif', marginBottom: 6 }}>California · 100% Cabernet Sauvignon · 14.5% ABV</div>
+                <p className="body-text" style={{ fontSize: 10, color: '#c8b890', lineHeight: 1.65, margin: 0 }}>
+                  Blackberry, huckleberry, and toasted oak on the nose. Spiced plum, black currant, and dark chocolate on the palate with velvety tannins and a long finish.
+                </p>
+              </div>
+            </div>
+            <div style={{ borderTop: '1px solid rgba(200,155,60,0.18)', paddingTop: 8 }}>
+              <div style={{ fontSize: 6, color: '#c89b3c', fontFamily: "'Press Start 2P', monospace", letterSpacing: '0.12em', marginBottom: 6 }}>PAIRS WITH</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                {['🥩 Ribeye', '🍖 Lamb', '🧀 Aged Cheddar', '🍝 Bolognese', '🍔 Burgers'].map(p => (
+                  <span key={p} className="body-text" style={{ fontSize: 10, color: '#b09060', background: 'rgba(200,155,60,0.07)', border: '1px solid rgba(200,155,60,0.2)', padding: '3px 8px' }}>{p}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Matua Sauvignon Blanc */}
+          <div className="osrs-panel-dark rounded-xl" style={{ padding: '12px 14px' }}>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 10 }}>
+              <img src="https://www.kenswineguide.com/images_wine/Matua-2023-Sauvignon-Blanc.gif" alt="Matua Sauvignon Blanc" style={{ width: 58, flexShrink: 0, objectFit: 'contain' }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#f0d898', fontFamily: 'Inter, sans-serif', marginBottom: 2 }}>Matua Sauvignon Blanc</div>
+                <div style={{ fontSize: 9, color: '#9a7848', fontFamily: 'Inter, sans-serif', marginBottom: 6 }}>Marlborough, New Zealand · 100% Sauvignon Blanc · 13% ABV</div>
+                <p className="body-text" style={{ fontSize: 10, color: '#c8b890', lineHeight: 1.65, margin: 0 }}>
+                  Vibrant passion fruit, lemon citrus, and gooseberry on the nose. Crisp green melon, lime zest, and cut grass on the palate with a clean, zesty finish.
+                </p>
+              </div>
+            </div>
+            <div style={{ borderTop: '1px solid rgba(200,155,60,0.18)', paddingTop: 8 }}>
+              <div style={{ fontSize: 6, color: '#c89b3c', fontFamily: "'Press Start 2P', monospace", letterSpacing: '0.12em', marginBottom: 6 }}>PAIRS WITH</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                {['🦞 Seafood', '🐟 Grilled Fish', '🥗 Fresh Salads', '🧀 Goat Cheese', '🌿 Herb Dishes'].map(p => (
+                  <span key={p} className="body-text" style={{ fontSize: 10, color: '#b09060', background: 'rgba(200,155,60,0.07)', border: '1px solid rgba(200,155,60,0.2)', padding: '3px 8px' }}>{p}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
 
