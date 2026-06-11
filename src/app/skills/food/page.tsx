@@ -142,16 +142,16 @@ export default async function FoodPage() {
           <div style={{ height: 1, flex: 1, background: 'rgba(200,155,60,0.15)' }} />
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {WINES.map(wine => (
             <div
               key={wine.id}
               className="wine-card"
               style={{
                 background: S.card,
-                border: `2px solid rgba(200,155,60,0.28)`,
-                borderRadius: 16, overflow: 'hidden',
-                boxShadow: `0 4px 24px rgba(0,0,0,0.6), inset 0 1px 0 rgba(200,155,60,0.06)`,
+                border: `1px solid rgba(200,155,60,0.22)`,
+                borderRadius: 14, overflow: 'hidden',
+                boxShadow: `0 4px 20px rgba(0,0,0,0.55), inset 0 1px 0 rgba(200,155,60,0.05)`,
               }}
             >
               {/* ── Bottle stage ── */}
@@ -162,9 +162,9 @@ export default async function FoodPage() {
                   radial-gradient(ellipse 80% 60% at 50% 30%, rgba(200,155,60,0.06) 0%, transparent 65%),
                   linear-gradient(180deg, #0c0a08 0%, #14100c 60%, #0e0b09 100%)
                 `,
-                minHeight: 280,
+                minHeight: 220,
                 display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-                paddingBottom: 24,
+                paddingBottom: 20,
               }}>
                 {/* Gold accent line at top */}
                 <div style={{
@@ -174,18 +174,18 @@ export default async function FoodPage() {
 
                 {/* Wine type tag — top left */}
                 <div style={{
-                  position: 'absolute', top: 16, left: 18,
+                  position: 'absolute', top: 12, left: 12,
                   background: wine.tagColor, backdropFilter: 'blur(4px)',
                   color: '#f0e8d8',
-                  fontFamily: "'Press Start 2P', monospace", fontSize: 7,
-                  padding: '5px 10px', letterSpacing: '0.08em',
+                  fontFamily: "'Press Start 2P', monospace", fontSize: 6,
+                  padding: '4px 8px', letterSpacing: '0.08em',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
                 }}>
                   {wine.tag}
                 </div>
 
                 {/* Favorite — top right */}
-                <div style={{ position: 'absolute', top: 10, right: 12 }}>
+                <div style={{ position: 'absolute', top: 8, right: 8 }}>
                   <WineFavoriteButton label={wine.name} />
                 </div>
 
@@ -196,9 +196,9 @@ export default async function FoodPage() {
                   alt={wine.name}
                   className="wine-bottle"
                   style={{
-                    height: 210, width: 'auto', maxWidth: 140,
+                    height: 165, width: 'auto', maxWidth: 110,
                     objectFit: 'contain', display: 'block',
-                    filter: 'drop-shadow(0 12px 28px rgba(0,0,0,0.75)) drop-shadow(0 4px 8px rgba(0,0,0,0.5))',
+                    filter: 'drop-shadow(0 10px 22px rgba(0,0,0,0.75)) drop-shadow(0 4px 8px rgba(0,0,0,0.5))',
                     ...(wine.noMask ? {} : {
                       maskImage: 'radial-gradient(ellipse 46% 88% at 50% 48%, black 18%, transparent 68%)',
                       WebkitMaskImage: 'radial-gradient(ellipse 46% 88% at 50% 48%, black 18%, transparent 68%)',
@@ -209,36 +209,36 @@ export default async function FoodPage() {
 
                 {/* Subtle floor reflection */}
                 <div style={{
-                  position: 'absolute', bottom: 0, left: 0, right: 0, height: 60,
+                  position: 'absolute', bottom: 0, left: 0, right: 0, height: 50,
                   background: 'linear-gradient(to top, rgba(0,0,0,0.35), transparent)',
                   pointerEvents: 'none',
                 }} />
               </div>
 
               {/* ── Card body ── */}
-              <div style={{ padding: '22px 24px 26px' }}>
+              <div style={{ padding: '16px 16px 20px' }}>
                 {/* Name */}
                 <h3 style={{
-                  fontFamily: 'Inter, sans-serif', fontSize: 20, fontWeight: 800,
-                  color: S.text1, marginBottom: 10, lineHeight: 1.25,
-                  letterSpacing: '-0.02em',
+                  fontFamily: 'Inter, sans-serif', fontSize: 15, fontWeight: 800,
+                  color: S.text1, marginBottom: 8, lineHeight: 1.3,
+                  letterSpacing: '-0.01em',
                 }}>
                   {wine.name}
                 </h3>
 
                 {/* Meta pills */}
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16, alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
                   {[wine.origin, wine.varietal].map(t => (
                     <span key={t} style={{
-                      fontFamily: 'Inter, sans-serif', fontSize: 12, color: S.text3,
+                      fontFamily: 'Inter, sans-serif', fontSize: 11, color: S.text3,
                       background: 'rgba(200,155,60,0.07)', border: `1px solid rgba(200,155,60,0.16)`,
-                      padding: '4px 10px', borderRadius: 4,
+                      padding: '3px 8px', borderRadius: 4,
                     }}>{t}</span>
                   ))}
                   <span style={{
-                    fontFamily: 'Inter, sans-serif', fontSize: 12, color: S.gold,
+                    fontFamily: 'Inter, sans-serif', fontSize: 11, color: S.gold,
                     fontWeight: 700, background: 'rgba(200,155,60,0.1)',
-                    border: '1px solid rgba(200,155,60,0.25)', padding: '4px 10px', borderRadius: 4,
+                    border: '1px solid rgba(200,155,60,0.25)', padding: '3px 8px', borderRadius: 4,
                   }}>
                     {wine.abv} ABV
                   </span>
@@ -246,29 +246,29 @@ export default async function FoodPage() {
 
                 {/* Tasting notes */}
                 <p style={{
-                  fontFamily: 'Inter, sans-serif', fontSize: 14, color: S.text2,
-                  lineHeight: 1.78, marginBottom: 20,
+                  fontFamily: 'Inter, sans-serif', fontSize: 12, color: S.text2,
+                  lineHeight: 1.7, marginBottom: 14,
                 }}>
                   {wine.notes}
                 </p>
 
                 {/* Pairings */}
-                <div style={{ borderTop: `1px solid rgba(200,155,60,0.1)`, paddingTop: 18 }}>
+                <div style={{ borderTop: `1px solid rgba(200,155,60,0.1)`, paddingTop: 14 }}>
                   <div style={{
-                    fontFamily: "'Press Start 2P', monospace", fontSize: 7,
-                    color: S.goldDim, letterSpacing: '0.14em', marginBottom: 12,
+                    fontFamily: "'Press Start 2P', monospace", fontSize: 6,
+                    color: S.goldDim, letterSpacing: '0.14em', marginBottom: 10,
                   }}>
                     PAIRS WITH
                   </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                     {wine.pairings.map(p => (
                       <span
                         key={p}
                         className="food-pill"
                         style={{
-                          fontFamily: 'Inter, sans-serif', fontSize: 13, color: S.text2,
+                          fontFamily: 'Inter, sans-serif', fontSize: 11, color: S.text2,
                           background: 'rgba(200,155,60,0.07)', border: `1px solid rgba(200,155,60,0.2)`,
-                          padding: '5px 12px', borderRadius: 20,
+                          padding: '4px 9px', borderRadius: 20,
                         }}
                       >
                         {p}

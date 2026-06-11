@@ -5,27 +5,30 @@ import { getXpAmount } from '@/lib/award-xp'
 import { mirrorXpToAdmin } from '@/lib/admin-xp'
 import Anthropic from '@anthropic-ai/sdk'
 
-const WINE_PROMPT = `You are a professional sommelier and wine label expert. Analyze this wine bottle image and identify the wine with maximum accuracy.
+const WINE_PROMPT = `You are a world-class sommelier and wine label expert. Analyze this wine bottle image and identify the wine with maximum precision.
 
 Identification priority:
-1. LABEL TEXT: Read every visible word — brand name, winery, varietal, vintage year, region, appellation, ABV
-2. LABEL DESIGN: Recognize distinctive designs (Stella Rosa multicolor, Yellow Tail kangaroo, Barefoot foot, Juggernaut dark label, Llano Estacado Texas branding, 19 Crimes mugshot, Bread & Butter, Santa Margherita, Bogle, Apothic, Meiomi, Josh Cellars, Kim Crawford, La Marca, Matua, Ménage à Trois, The Prisoner)
-3. BOTTLE SHAPE/COLOR: Bottle silhouette, glass color, capsule foil style
+1. LABEL TEXT: Read every visible word — brand name, winery, varietal, vintage year, region, appellation, ABV percentage
+2. LABEL DESIGN: Recognize distinctive brand designs (Stella Rosa multicolor design, Yellow Tail kangaroo, Barefoot foot logo, Juggernaut dark skull-like label, Llano Estacado Texas branding, 19 Crimes mugshot labels, Bread & Butter, Santa Margherita Pinot Grigio, Bogle, Apothic, Meiomi, Josh Cellars, Kim Crawford, La Marca Prosecco, Matua, Ménage à Trois, The Prisoner, Kendall-Jackson, Chateau Ste. Michelle, Cupcake Vineyards)
+3. BOTTLE CHARACTERISTICS: Bottle silhouette, glass color (green, clear, dark), capsule foil style, bottle shape
 
 Return ONLY a valid JSON object — no markdown, no explanation, no code blocks:
 {
-  "wineName": "Full wine name as shown on label",
+  "wineName": "Full wine name exactly as shown on label",
   "winery": "Producer or winery name",
-  "varietal": "Grape variety or blend",
+  "varietal": "Grape variety or blend description",
   "region": "Wine region and country",
-  "vintage": "Year if visible, otherwise null",
+  "vintage": "4-digit year if visible on label, otherwise null",
   "style": "Exactly one of: Sweet Red, Dry Red, Bold Red, Crisp White, Sweet White, Rosé, Sparkling, Dessert, Unknown",
-  "abv": "ABV if visible (e.g. '13.5%'), otherwise estimated range like '12-13%'",
-  "tastingNotes": "2-3 vivid sentences on flavor profile, aromas, and finish",
-  "pairings": ["Emoji + food 1", "Emoji + food 2", "Emoji + food 3", "Emoji + food 4", "Emoji + food 5"],
-  "confidence": "high if label text clearly readable, medium if partially visible or recognized by design, low if mostly inferring",
-  "identificationMethod": "label_text if you read clear label text, label_design if recognized brand design, visual_inference otherwise"
-}`
+  "abv": "ABV percentage if visible (e.g. '13.5%'), otherwise estimated range like '12-13%'",
+  "tastingNotes": "3 vivid sentences on aroma, flavor profile, and finish — be specific and evocative",
+  "flavorNotes": ["Flavor 1", "Flavor 2", "Flavor 3", "Flavor 4", "Flavor 5", "Flavor 6"],
+  "pairings": ["🥩 Food name", "🍫 Food name", "🧀 Food name", "🌿 Food name", "🍝 Food name"],
+  "confidence": "high if label text clearly readable, medium if partially visible or recognized by brand design, low if mostly inferring from bottle characteristics",
+  "identificationMethod": "label_text if you read clear label text, label_design if recognized brand/logo, visual_inference otherwise"
+}
+
+For flavorNotes: provide 5-7 short descriptors (1-3 words each) of actual tasting/aroma notes — e.g. "Blackberry", "Toasted Oak", "Dark Chocolate", "Spiced Plum", "Vanilla Bean", "Dried Cherry", "Black Pepper", "Citrus Zest", "Tropical Fruit", "Stone Fruit", "Leather", "Earthy", "Floral", "Mineral".`
 
 export async function POST(req: Request) {
   const session = await auth()
@@ -60,14 +63,11 @@ export async function POST(req: Request) {
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
+      max_tokens: 1280,
       messages: [{
         role: 'user',
         content: [
-          {
-            type: 'image',
-            source: { type: 'base64', media_type: mediaType, data: base64Data },
-          },
+          { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64Data } },
           { type: 'text', text: WINE_PROMPT },
         ],
       }],
@@ -89,18 +89,17 @@ export async function POST(req: Request) {
       data: {
         userId: session.user.id,
         imageData,
-        wineName: String(wineData.wineName || 'Unknown Wine').slice(0, 200),
-        winery:      wineData.winery      ? String(wineData.winery).slice(0, 200)      : null,
-        varietal:    wineData.varietal    ? String(wineData.varietal).slice(0, 200)    : null,
-        region:      wineData.region      ? String(wineData.region).slice(0, 200)      : null,
-        vintage:     wineData.vintage     ? String(wineData.vintage).slice(0, 10)      : null,
-        style:       wineData.style       ? String(wineData.style).slice(0, 50)        : null,
-        abv:         wineData.abv         ? String(wineData.abv).slice(0, 20)          : null,
+        wineName:    String(wineData.wineName || 'Unknown Wine').slice(0, 200),
+        winery:      wineData.winery      ? String(wineData.winery).slice(0, 200)   : null,
+        varietal:    wineData.varietal    ? String(wineData.varietal).slice(0, 200) : null,
+        region:      wineData.region      ? String(wineData.region).slice(0, 200)   : null,
+        vintage:     wineData.vintage     ? String(wineData.vintage).slice(0, 10)   : null,
+        style:       wineData.style       ? String(wineData.style).slice(0, 50)     : null,
+        abv:         wineData.abv         ? String(wineData.abv).slice(0, 20)       : null,
         tastingNotes: wineData.tastingNotes ? String(wineData.tastingNotes) : null,
-        pairings: JSON.stringify(
-          Array.isArray(wineData.pairings) ? wineData.pairings.slice(0, 8) : []
-        ),
-        confidence: String(wineData.confidence || 'medium'),
+        pairings:    JSON.stringify(Array.isArray(wineData.pairings)    ? wineData.pairings.slice(0, 8)    : []),
+        flavorNotes: JSON.stringify(Array.isArray(wineData.flavorNotes) ? wineData.flavorNotes.slice(0, 8) : []),
+        confidence:  String(wineData.confidence || 'medium'),
       },
     })
 
@@ -137,7 +136,8 @@ export async function POST(req: Request) {
         style:                wineData.style       ? String(wineData.style)       : undefined,
         abv:                  wineData.abv         ? String(wineData.abv)         : undefined,
         tastingNotes:         wineData.tastingNotes ? String(wineData.tastingNotes) : undefined,
-        pairings:             Array.isArray(wineData.pairings) ? wineData.pairings.map(String) : [],
+        flavorNotes:          Array.isArray(wineData.flavorNotes) ? wineData.flavorNotes.map(String) : [],
+        pairings:             Array.isArray(wineData.pairings)    ? wineData.pairings.map(String)    : [],
         confidence:           String(wineData.confidence || 'medium'),
         identificationMethod: wineData.identificationMethod ? String(wineData.identificationMethod) : undefined,
       },

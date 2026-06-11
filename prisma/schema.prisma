@@ -302,6 +302,7 @@ model WineIdentification {
   abv          String?
   tastingNotes String?       @db.Text
   pairings     String        @db.Text @default("[]")
+  flavorNotes  String        @db.Text @default("[]")
   confidence   String        @default("medium")
   createdAt    DateTime      @default(now())
   user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)

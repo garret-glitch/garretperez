@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { getXpAmount } from '@/lib/award-xp'
+import { mirrorXpToAdmin } from '@/lib/admin-xp'
 
 export async function POST(req: Request) {
   const session = await auth()
@@ -18,11 +20,20 @@ export async function POST(req: Request) {
 
   if (existing) {
     await db.wineFavorite.delete({ where: { id: existing.id } })
-    return NextResponse.json({ favorited: false })
+    return NextResponse.json({ favorited: false, xpAwarded: 0 })
   }
 
   await db.wineFavorite.create({ data: { userId: session.user.id, wineId } })
-  return NextResponse.json({ favorited: true })
+
+  // Award XP for hearting a wine (once per wine — unique constraint means no spam)
+  const xpAmount = await getXpAmount('UPVOTE_GIVEN')
+  await prisma.userSkill.update({
+    where: { userId_skill: { userId: session.user.id, skill: 'FOOD' } },
+    data: { xp: { increment: xpAmount } },
+  })
+  await mirrorXpToAdmin('FOOD', xpAmount, session.user.id)
+
+  return NextResponse.json({ favorited: true, xpAwarded: xpAmount })
 }
 
 export async function GET(req: Request) {
