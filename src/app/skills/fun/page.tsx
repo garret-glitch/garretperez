@@ -6,6 +6,7 @@ import Link from 'next/link'
 export const dynamic = 'force-dynamic'
 
 const GAMES = [
+  { icon: '✦', title: 'Lumina',      desc: 'Flow puzzle game',      href: '/game',                    xp: 'Featured', featured: true },
   { icon: '🍷', title: 'Wine Trivia', desc: '10-question quiz',      href: '/skills/fun/wine-trivia',  xp: '+25 XP (7+/10)' },
   { icon: '🃏', title: 'Matching',    desc: 'Memory card game',      href: '/skills/fun/matching',     xp: '+25 XP' },
   { icon: '🐍', title: 'Snake',       desc: 'Collect 10 coins',      href: '/skills/fun/snake',        xp: '+25 XP' },
@@ -50,8 +51,23 @@ export default async function FunPage() {
         )}
       </div>
 
+      {/* Featured: Lumina */}
+      <Link href="/game" className="rp-card block hover:opacity-90 transition-opacity" style={{
+        borderColor: 'var(--gold)', background: 'linear-gradient(135deg, #0e0e1a 0%, #181828 100%)',
+      }}>
+        <div className="flex items-center gap-4 py-1">
+          <div style={{ fontSize: 32 }}>✦</div>
+          <div style={{ flex: 1 }}>
+            <div className="text-[10px] font-bold mb-1" style={{ color: 'var(--gold)' }}>Lumina</div>
+            <div className="body-text text-[11px] mb-1" style={{ color: 'var(--text-2)' }}>A flow puzzle game — connect the dots, fill the board</div>
+            <div className="text-[7px]" style={{ color: 'var(--text-3)' }}>Classic · Daily · Endless · Zen · Challenge</div>
+          </div>
+          <div className="text-[8px]" style={{ color: 'var(--gold)' }}>Play →</div>
+        </div>
+      </Link>
+
       <div className="grid grid-cols-3 gap-3">
-        {GAMES.map(g => (
+        {GAMES.filter(g => !g.featured).map(g => (
           <Link key={g.href} href={g.href}
             className="rp-card block hover:opacity-80 transition-opacity"
             style={{ borderColor: 'var(--border)' }}>
