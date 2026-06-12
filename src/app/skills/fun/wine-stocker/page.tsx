@@ -155,9 +155,12 @@ function tickPlay(g: GS, dt: number, keys: Set<string>) {
     g.player.vel = v(rt?1:lt?-1:0, dn?1:up?-1:0)
     if (g.player.vel.x !== 0 || g.player.vel.y !== 0) g.player.dir = norm(g.player.vel)
 
-    const canSprint = wantSprint && (e.sprint > 0 || g.player.stamina > 5)
+    // Energy Drink = always sprinting (no button needed); otherwise Shift/Space required
+    const autoSprint = e.sprint > 0
+    const canSprint = autoSprint || (wantSprint && g.player.stamina > 5)
     if (canSprint) {
-      if (e.sprint <= 0) g.player.stamina = Math.max(0, g.player.stamina - STAM_DRAIN * dt)
+      if (!autoSprint) g.player.stamina = Math.max(0, g.player.stamina - STAM_DRAIN * dt)
+      else g.player.stamina = Math.min(STAM_MAX, g.player.stamina + STAM_REGEN * dt)
     } else {
       g.player.stamina = Math.min(STAM_MAX, g.player.stamina + STAM_REGEN * dt)
     }
@@ -347,9 +350,22 @@ function grantCustomerPerk(g: GS) {
 
 function applyPU(g: GS, type: PUType) {
   const e = g.efx
-  if (type === 'energy_drink')   { e.sprint = 20 }
-  if (type === 'forklift')       { e.forklift = 30; g.player.maxCases = 3 }
+  if (type === 'energy_drink') {
+    // Full speed automatically for 20s — no button needed, stamina fully restored
+    e.sprint = 20
+    g.player.stamina = STAM_MAX
+  }
+  if (type === 'forklift') {
+    // Carry 3 cases for 30s AND instantly hand the player 3 cases right now
+    e.forklift = 30
+    g.player.maxCases = 3
+    g.player.cases = 3
+  }
   if (type === 'vendor_support') {
+    // Immediately boost every shelf that's under half, then keep trickle-stocking the lowest
+    for (const sh of g.shelves) {
+      if (sh.stock < SHELF_MAX * 0.5) sh.stock = Math.min(SHELF_MAX, sh.stock + 3)
+    }
     e.vendor = 15
     e.vendorShelf = g.shelves.reduce((a, b) => a.stock < b.stock ? a : b).id
   }
