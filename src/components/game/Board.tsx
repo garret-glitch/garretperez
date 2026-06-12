@@ -3,7 +3,7 @@ import React, { useRef, useState, useCallback, useEffect, useReducer } from 'rea
 import { Puzzle, PathMap, COLORS, GameSettings, Cell } from '@/lib/game/types'
 import {
   startDraw, extendPath, checkWin, buildSVGPath,
-  isColorConnected, connectedCount, totalColors, isEndpoint,
+  isColorConnected, connectedCount, totalColors, isEndpoint, coveredCount,
 } from '@/lib/game/engine'
 import { playClick, playConnect, playBadMove } from '@/lib/game/audio'
 
@@ -175,9 +175,11 @@ export default function Board({ puzzle, settings, onWin, onMovesChange, onConnec
 
   function onPointerUp() { dispatch({ type: 'END' }) }
 
-  const boardPx  = cellSize * puzzle.size
-  const connected = connectedCount(puzzle, state.paths)
-  const total     = totalColors(puzzle)
+  const boardPx     = cellSize * puzzle.size
+  const connected   = connectedCount(puzzle, state.paths)
+  const total       = totalColors(puzzle)
+  const cellsCovered = coveredCount(state.paths)
+  const totalCells  = puzzle.size * puzzle.size
 
   function colorHex(c: string) { return (COLORS as Record<string, { hex: string; glow: string }>)[c]?.hex ?? '#888' }
   function colorGlow(c: string) { return (COLORS as Record<string, { hex: string; glow: string }>)[c]?.glow ?? 'rgba(128,128,128,0.4)' }
@@ -248,25 +250,42 @@ export default function Board({ puzzle, settings, onWin, onMovesChange, onConnec
   const textCl = isDark ? '#a09878' : '#6b6050'
   const gold   = '#c89b3c'
 
-  // Fill percentage for progress bar
-  const fillPct = total > 0 ? Math.round((connected / total) * 100) : 0
+  const colorPct = total > 0 ? Math.round((connected / total) * 100) : 0
+  const cellPct  = totalCells > 0 ? Math.round((cellsCovered / totalCells) * 100) : 0
+  const allConnected = connected === total
+  const allFilled    = cellsCovered === totalCells
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-      {/* Progress row */}
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-        <span style={{ fontSize: 9, color: textCl, fontFamily: "'Press Start 2P', monospace", minWidth: 90 }}>
-          {connected}/{total} connected
-        </span>
-        <div style={{ width: 90, height: 7, background: lineCl, borderRadius: 4, overflow: 'hidden' }}>
-          <div style={{
-            height: '100%',
-            width: `${fillPct}%`,
-            background: connected === total ? '#2dc653' : gold,
-            borderRadius: 4,
-            transition: 'width 0.35s ease',
-            boxShadow: connected === total ? '0 0 8px rgba(45,198,83,0.7)' : 'none',
-          }} />
+      {/* Progress rows */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
+        {/* Colors connected */}
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <span style={{ fontSize: 8, color: allConnected ? '#2dc653' : textCl, fontFamily: "'Press Start 2P', monospace", minWidth: 100 }}>
+            {connected}/{total} colors
+          </span>
+          <div style={{ width: 80, height: 6, background: lineCl, borderRadius: 4, overflow: 'hidden' }}>
+            <div style={{
+              height: '100%', width: `${colorPct}%`,
+              background: allConnected ? '#2dc653' : gold,
+              borderRadius: 4, transition: 'width 0.35s ease',
+              boxShadow: allConnected ? '0 0 8px rgba(45,198,83,0.7)' : 'none',
+            }} />
+          </div>
+        </div>
+        {/* Cells filled */}
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <span style={{ fontSize: 8, color: allFilled ? '#2dc653' : textCl, fontFamily: "'Press Start 2P', monospace", minWidth: 100 }}>
+            {cellsCovered}/{totalCells} cells
+          </span>
+          <div style={{ width: 80, height: 6, background: lineCl, borderRadius: 4, overflow: 'hidden' }}>
+            <div style={{
+              height: '100%', width: `${cellPct}%`,
+              background: allFilled ? '#2dc653' : '#4895ef',
+              borderRadius: 4, transition: 'width 0.35s ease',
+              boxShadow: allFilled ? '0 0 8px rgba(45,198,83,0.7)' : 'none',
+            }} />
+          </div>
         </div>
       </div>
 

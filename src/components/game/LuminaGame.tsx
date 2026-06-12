@@ -463,6 +463,9 @@ export default function LuminaGame() {
             <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: text3, marginTop: 2 }}>
               {DIFF_LABELS[puzzle.difficulty]} · {puzzle.size}×{puzzle.size}{done ? ' ✓' : ''}
             </div>
+            <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: text3, marginTop: 3, letterSpacing: 1 }}>
+              Connect all colors · Fill every cell
+            </div>
           </div>
 
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
