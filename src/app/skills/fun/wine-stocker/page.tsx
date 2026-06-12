@@ -520,9 +520,9 @@ function render(ctx: CanvasRenderingContext2D, g: GS, t: number) {
     ctx.fillStyle = pct>0.6?'#4CAF50':pct>0.3?'#FFC107':'#F44336'
     ctx.fillRect(sh.x, barY, sh.w*pct, 5)
 
-    // Shelf label — gold with dark drop-shadow so it reads on the beige floor
-    ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 6
-    ctx.font = '12px "Press Start 2P", monospace'; ctx.fillStyle = '#D4AC50'; ctx.textAlign = 'center'
+    // Shelf label — black on beige floor for maximum contrast
+    ctx.shadowColor = 'rgba(255,255,255,0.6)'; ctx.shadowBlur = 4
+    ctx.font = '12px "Press Start 2P", monospace'; ctx.fillStyle = '#000000'; ctx.textAlign = 'center'
     ctx.fillText(sh.label, sh.x+sh.w/2, sh.y - 12)
     ctx.shadowBlur = 0
 
