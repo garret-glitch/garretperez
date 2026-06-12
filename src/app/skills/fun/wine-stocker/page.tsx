@@ -101,18 +101,19 @@ function mkState(): GS {
 
 /* ═══════════════════════ SIMULATION ═══════════════════════ */
 function tick(g: GS, dt: number, keys: Set<string>) {
-  if (g.phase === 'dialogue') { tickDialogue(g, dt); return }
-  if (g.phase !== 'playing') return
+  if (g.phase === 'gameover') return
+  // Game always runs — dialogue is just a visual overlay
   tickPlay(g, dt, keys)
-}
-
-function tickDialogue(g: GS, dt: number) {
-  g.mgr.dialogueTimer -= dt
-  if (g.mgr.dialogueTimer > 0) return
-  if (g.strikes >= 3) { g.phase = 'gameover'; return }
-  g.phase = 'playing'
-  g.mgr.state = 'returning'
-  g.mgr.target = { ...g.mgr.homePos }
+  // Tick dialogue timer while overlay is visible
+  if (g.phase === 'dialogue') {
+    g.mgr.dialogueTimer -= dt
+    if (g.mgr.dialogueTimer <= 0) {
+      if (g.strikes >= 3) { g.phase = 'gameover'; return }
+      g.phase = 'playing'
+      g.mgr.state = 'returning'
+      g.mgr.target = { ...g.mgr.homePos }
+    }
+  }
 }
 
 function tickPlay(g: GS, dt: number, keys: Set<string>) {
