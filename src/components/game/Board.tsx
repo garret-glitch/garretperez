@@ -3,14 +3,17 @@ import React, { useRef, useState, useCallback, useEffect, useReducer } from 'rea
 import { Puzzle, PathMap, COLORS, GameSettings, Cell } from '@/lib/game/types'
 import {
   startDraw, extendPath, checkWin, buildSVGPath,
-  isColorConnected, connectedCount, totalColors,
+  isColorConnected, connectedCount, totalColors, isEndpoint,
 } from '@/lib/game/engine'
+import { playClick, playConnect, playBadMove } from '@/lib/game/audio'
 
 interface Props {
   puzzle: Puzzle
   settings: GameSettings
   onWin: (moves: number, elapsed: number) => void
   onMovesChange: (n: number) => void
+  onConnectedChange?: (colors: string[]) => void
+  hintPath?: { color: string; cells: [number, number][] } | null
   boardKey: number
 }
 
@@ -34,69 +37,28 @@ function reducer(state: State, action: Action, puzzle: Puzzle): State {
     case 'START': {
       const { newPaths, activeColor } = startDraw(puzzle, state.paths, action.row, action.col)
       if (!activeColor) return state
-      return {
-        ...state,
-        paths: newPaths,
-        activeColor,
-        history: [...state.history, state.paths],
-      }
+      return { ...state, paths: newPaths, activeColor, history: [...state.history, state.paths] }
     }
     case 'EXTEND': {
       if (!state.activeColor) return state
       const newPaths = extendPath(puzzle, state.paths, state.activeColor, action.row, action.col)
       if (newPaths === state.paths) return state
       const won = checkWin(puzzle, newPaths)
-      return {
-        ...state,
-        paths: newPaths,
-        moves: state.moves + 1,
-        won,
-      }
+      return { ...state, paths: newPaths, moves: state.moves + 1, won }
     }
     case 'END':
       return { ...state, activeColor: null }
     case 'UNDO': {
       if (state.history.length === 0) return state
       const prev = state.history[state.history.length - 1]
-      return {
-        ...state,
-        paths: prev,
-        history: state.history.slice(0, -1),
-        activeColor: null,
-        won: false,
-      }
+      return { ...state, paths: prev, history: state.history.slice(0, -1), activeColor: null, won: false }
     }
     case 'RESTART':
       return { paths: {}, activeColor: null, history: [], moves: 0, won: false }
   }
 }
 
-// Audio: tiny web audio clicks
-let audioCtx: AudioContext | null = null
-function playTone(freq: number, dur: number, gain = 0.07) {
-  try {
-    if (typeof window === 'undefined') return
-    if (!audioCtx) audioCtx = new AudioContext()
-    const osc = audioCtx.createOscillator()
-    const g   = audioCtx.createGain()
-    osc.connect(g); g.connect(audioCtx.destination)
-    osc.type = 'sine'
-    osc.frequency.value = freq
-    g.gain.setValueAtTime(gain, audioCtx.currentTime)
-    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur)
-    osc.start(); osc.stop(audioCtx.currentTime + dur)
-  } catch { /* ignore */ }
-}
-function playClick()   { playTone(880, 0.04) }
-function playConnect() { playTone(660, 0.12) }
-function playWin()     {
-  playTone(523, 0.18, 0.1)
-  setTimeout(() => playTone(659, 0.18, 0.1), 120)
-  setTimeout(() => playTone(784, 0.25, 0.12), 240)
-  setTimeout(() => playTone(1047, 0.35, 0.1), 380)
-}
-
-export default function Board({ puzzle, settings, onWin, onMovesChange, boardKey }: Props) {
+export default function Board({ puzzle, settings, onWin, onMovesChange, onConnectedChange, hintPath, boardKey }: Props) {
   const initState: State = { paths: {}, activeColor: null, history: [], moves: 0, won: false }
   const [state, rawDispatch] = useReducer(
     (s: State, a: Action) => reducer(s, a, puzzle),
@@ -108,6 +70,8 @@ export default function Board({ puzzle, settings, onWin, onMovesChange, boardKey
   const boardRef     = useRef<HTMLDivElement>(null)
   const [cellSize, setCellSize] = useState(56)
   const [animating, setAnimating] = useState(false)
+  const [badMove, setBadMove]     = useState(false)
+  const badMoveRef = useRef(false)
   const isDrawing = state.activeColor !== null
 
   // Reset on boardKey change
@@ -115,6 +79,7 @@ export default function Board({ puzzle, settings, onWin, onMovesChange, boardKey
     rawDispatch({ type: 'RESTART' })
     startTimeRef.current = Date.now()
     setAnimating(false)
+    setBadMove(false)
   }, [boardKey])
 
   // Notify parent of moves
@@ -124,26 +89,31 @@ export default function Board({ puzzle, settings, onWin, onMovesChange, boardKey
   useEffect(() => {
     if (state.won && !animating) {
       setAnimating(true)
-      if (settings.sound) playWin()
       const elapsed = Math.round((Date.now() - startTimeRef.current) / 1000)
-      setTimeout(() => onWin(state.moves, elapsed), 700)
+      setTimeout(() => onWin(state.moves, elapsed), 600)
     }
-  }, [state.won, animating, settings.sound, onWin, state.moves])
+  }, [state.won, animating, onWin, state.moves])
 
-  // Sound on connect
+  // Sound + connected change notification
   const prevConnected = useRef(0)
   useEffect(() => {
     const c = connectedCount(puzzle, state.paths)
-    if (settings.sound && c > prevConnected.current) playConnect()
+    if (c > prevConnected.current) {
+      if (settings.sound) playConnect()
+      // Notify parent which colors are connected
+      const colors = Array.from(new Set(puzzle.dots.map(d => d.color)))
+      const connected = colors.filter(col => isColorConnected(puzzle, state.paths, col))
+      onConnectedChange?.(connected)
+    }
     prevConnected.current = c
-  }, [state.paths, puzzle, settings.sound])
+  }, [state.paths, puzzle, settings.sound, onConnectedChange])
 
   // Responsive cell size
   useEffect(() => {
     function measure() {
       const vw = window.innerWidth
       const vh = window.innerHeight
-      const boardPx = Math.min(vw - 32, vh - 200, 520)
+      const boardPx = Math.min(vw - 32, vh - 220, 520)
       setCellSize(Math.floor(boardPx / puzzle.size))
     }
     measure()
@@ -163,7 +133,6 @@ export default function Board({ puzzle, settings, onWin, onMovesChange, boardKey
     return () => window.removeEventListener('keydown', onKey)
   }, [dispatch])
 
-  // Pointer coords → grid cell
   function cellFromEvent(e: React.PointerEvent): [number, number] | null {
     if (!boardRef.current) return null
     const rect = boardRef.current.getBoundingClientRect()
@@ -175,6 +144,14 @@ export default function Board({ puzzle, settings, onWin, onMovesChange, boardKey
     return [row, col]
   }
 
+  function triggerBadMove() {
+    if (badMoveRef.current) return
+    badMoveRef.current = true
+    setBadMove(true)
+    if (settings.sound) playBadMove()
+    setTimeout(() => { badMoveRef.current = false; setBadMove(false) }, 420)
+  }
+
   function onPointerDown(e: React.PointerEvent) {
     e.currentTarget.setPointerCapture(e.pointerId)
     const cell = cellFromEvent(e)
@@ -182,30 +159,31 @@ export default function Board({ puzzle, settings, onWin, onMovesChange, boardKey
     if (settings.sound) playClick()
     dispatch({ type: 'START', row: cell[0], col: cell[1] })
   }
+
   function onPointerMove(e: React.PointerEvent) {
     if (!isDrawing) return
     const cell = cellFromEvent(e)
     if (!cell) return
+    // Detect: trying to enter another color's endpoint
+    const ep = isEndpoint(puzzle, cell[0], cell[1])
+    if (ep && ep.color !== state.activeColor) {
+      triggerBadMove()
+      return
+    }
     dispatch({ type: 'EXTEND', row: cell[0], col: cell[1] })
   }
+
   function onPointerUp() { dispatch({ type: 'END' }) }
 
-  const boardPx = cellSize * puzzle.size
+  const boardPx  = cellSize * puzzle.size
   const connected = connectedCount(puzzle, state.paths)
   const total     = totalColors(puzzle)
 
-  // Color info helper
-  function colorHex(c: string) {
-    const k = c as keyof typeof COLORS
-    return COLORS[k]?.hex ?? '#888'
-  }
-  function colorGlow(c: string) {
-    const k = c as keyof typeof COLORS
-    return COLORS[k]?.glow ?? 'rgba(128,128,128,0.4)'
-  }
+  function colorHex(c: string) { return (COLORS as Record<string, { hex: string; glow: string }>)[c]?.hex ?? '#888' }
+  function colorGlow(c: string) { return (COLORS as Record<string, { hex: string; glow: string }>)[c]?.glow ?? 'rgba(128,128,128,0.4)' }
 
-  // Build SVG elements for paths
   const pathElements: React.ReactNode[] = []
+
   for (const [color, cells] of Object.entries(state.paths)) {
     if (cells.length < 1) continue
     const hex  = colorHex(color)
@@ -216,29 +194,11 @@ export default function Board({ puzzle, settings, onWin, onMovesChange, boardKey
     if (cells.length >= 2) {
       const d = buildSVGPath(cells as Cell[], cellSize)
       pathElements.push(
-        <path
-          key={`path-glow-${color}`}
-          d={d}
-          stroke={glow}
-          strokeWidth={sw + 8}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-        />,
-        <path
-          key={`path-${color}`}
-          d={d}
-          stroke={hex}
-          strokeWidth={sw}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-          opacity={complete ? 1 : 0.88}
-        />
+        <path key={`pg-${color}`} d={d} stroke={glow} strokeWidth={sw + 8} strokeLinecap="round" strokeLinejoin="round" fill="none" />,
+        <path key={`p-${color}`}  d={d} stroke={hex}  strokeWidth={sw}     strokeLinecap="round" strokeLinejoin="round" fill="none" opacity={complete ? 1 : 0.88} />
       )
     }
 
-    // Endpoint circles
     const eps = puzzle.dots.filter(d => d.color === color)
     for (const ep of eps) {
       const cx = ep.col * cellSize + cellSize / 2
@@ -246,33 +206,38 @@ export default function Board({ puzzle, settings, onWin, onMovesChange, boardKey
       const r  = cellSize * 0.35
       const inPath = cells.some(([rr, cc]) => rr === ep.row && cc === ep.col)
       pathElements.push(
-        <circle
-          key={`ep-glow-${color}-${ep.row}-${ep.col}`}
-          cx={cx} cy={cy} r={r + 4}
-          fill={glow}
-        />,
-        <circle
-          key={`ep-${color}-${ep.row}-${ep.col}`}
-          cx={cx} cy={cy} r={r}
-          fill={hex}
+        <circle key={`eg-${color}-${ep.row}-${ep.col}`} cx={cx} cy={cy} r={r + 4} fill={glow} />,
+        <circle key={`e-${color}-${ep.row}-${ep.col}`}  cx={cx} cy={cy} r={r}     fill={hex}
           stroke={inPath ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.85)'}
-          strokeWidth={inPath ? 2 : 3}
-        />
+          strokeWidth={inPath ? 2 : 3} />
       )
     }
   }
 
-  // Dots whose color has NO path yet
+  // Dots without paths
   for (const d of puzzle.dots) {
     if ((state.paths[d.color] ?? []).length > 0) continue
-    const cx = d.col * cellSize + cellSize / 2
-    const cy = d.row * cellSize + cellSize / 2
-    const r  = cellSize * 0.35
+    const cx  = d.col * cellSize + cellSize / 2
+    const cy  = d.row * cellSize + cellSize / 2
+    const r   = cellSize * 0.35
     const hex  = colorHex(d.color)
     const glow = colorGlow(d.color)
     pathElements.push(
-      <circle key={`dot-glow-${d.color}-${d.row}-${d.col}`} cx={cx} cy={cy} r={r+4} fill={glow} />,
-      <circle key={`dot-${d.color}-${d.row}-${d.col}`} cx={cx} cy={cy} r={r} fill={hex} stroke="rgba(255,255,255,0.85)" strokeWidth={3} />
+      <circle key={`dg-${d.color}-${d.row}-${d.col}`} cx={cx} cy={cy} r={r + 4} fill={glow} />,
+      <circle key={`d-${d.color}-${d.row}-${d.col}`}  cx={cx} cy={cy} r={r}     fill={hex} stroke="rgba(255,255,255,0.85)" strokeWidth={3} />
+    )
+  }
+
+  // Hint path overlay
+  if (hintPath && hintPath.cells.length >= 2) {
+    const hHex  = colorHex(hintPath.color)
+    const hGlow = colorGlow(hintPath.color)
+    const hd    = buildSVGPath(hintPath.cells as Cell[], cellSize)
+    pathElements.push(
+      <path key="hint-glow" d={hd} stroke={hGlow} strokeWidth={cellSize * 0.62} strokeLinecap="round" strokeLinejoin="round" fill="none" style={{ animation: 'luminaHintPulse 0.55s ease-in-out infinite alternate' }} />,
+      <path key="hint-dash" d={hd} stroke={hHex}  strokeWidth={cellSize * 0.42} strokeLinecap="round" strokeLinejoin="round" fill="none"
+        strokeDasharray={`${cellSize * 0.38} ${cellSize * 0.26}`}
+        style={{ animation: 'luminaHintPulse 0.55s ease-in-out infinite alternate' }} />
     )
   }
 
@@ -281,21 +246,26 @@ export default function Board({ puzzle, settings, onWin, onMovesChange, boardKey
   const cellBg = isDark ? '#141424' : '#e8e4dc'
   const lineCl = isDark ? '#1f1f35' : '#d0ccc0'
   const textCl = isDark ? '#a09878' : '#6b6050'
+  const gold   = '#c89b3c'
+
+  // Fill percentage for progress bar
+  const fillPct = total > 0 ? Math.round((connected / total) * 100) : 0
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-      {/* Progress chips */}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        <span style={{ fontSize: 9, color: textCl, fontFamily: "'Press Start 2P', monospace" }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+      {/* Progress row */}
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <span style={{ fontSize: 9, color: textCl, fontFamily: "'Press Start 2P', monospace", minWidth: 90 }}>
           {connected}/{total} connected
         </span>
-        <div style={{ width: 80, height: 6, background: lineCl, borderRadius: 3, overflow: 'hidden' }}>
+        <div style={{ width: 90, height: 7, background: lineCl, borderRadius: 4, overflow: 'hidden' }}>
           <div style={{
             height: '100%',
-            width: `${total > 0 ? (connected / total) * 100 : 0}%`,
-            background: 'var(--gold)',
-            borderRadius: 3,
-            transition: 'width 0.3s ease',
+            width: `${fillPct}%`,
+            background: connected === total ? '#2dc653' : gold,
+            borderRadius: 4,
+            transition: 'width 0.35s ease',
+            boxShadow: connected === total ? '0 0 8px rgba(45,198,83,0.7)' : 'none',
           }} />
         </div>
       </div>
@@ -315,51 +285,44 @@ export default function Board({ puzzle, settings, onWin, onMovesChange, boardKey
             : '0 0 0 2px #d0ccc0, 0 8px 24px rgba(0,0,0,0.15)',
           touchAction: 'none',
           cursor: isDrawing ? 'crosshair' : 'default',
-          transition: state.won ? 'box-shadow 0.4s ease' : 'none',
-          ...(state.won ? { boxShadow: '0 0 0 3px var(--gold), 0 0 40px rgba(200,155,60,0.4)' } : {}),
+          ...(state.won
+            ? { boxShadow: `0 0 0 3px ${gold}, 0 0 50px rgba(200,155,60,0.5)`, transition: 'box-shadow 0.4s ease' }
+            : {}),
+          ...(badMove ? { animation: 'luminaShake 0.4s ease' } : {}),
         }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerLeave={onPointerUp}
       >
-        {/* Grid lines */}
+        {/* Grid cells */}
         {Array.from({ length: puzzle.size }, (_, r) =>
           Array.from({ length: puzzle.size }, (_, c) => (
-            <div
-              key={`cell-${r}-${c}`}
-              style={{
-                position: 'absolute',
-                left: c * cellSize,
-                top: r * cellSize,
-                width: cellSize,
-                height: cellSize,
-                background: cellBg,
-                border: `1px solid ${lineCl}`,
-                boxSizing: 'border-box',
-              }}
-            />
+            <div key={`cell-${r}-${c}`} style={{
+              position: 'absolute',
+              left: c * cellSize, top: r * cellSize,
+              width: cellSize, height: cellSize,
+              background: cellBg,
+              border: `1px solid ${lineCl}`,
+              boxSizing: 'border-box',
+            }} />
           ))
         )}
 
-        {/* SVG overlay for paths and dots */}
-        <svg
-          style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
-          width={boardPx}
-          height={boardPx}
-        >
+        {/* SVG paths + hints */}
+        <svg style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} width={boardPx} height={boardPx}>
           {pathElements}
         </svg>
 
-        {/* Win overlay */}
+        {/* Win flash */}
         {state.won && (
           <div style={{
             position: 'absolute', inset: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(10,10,20,0.3)',
+            background: 'rgba(10,10,20,0.25)',
             animation: 'luminaFadeIn 0.4s ease',
           }}>
-            <div style={{ fontSize: 32, animation: 'luminaBounce 0.5s ease' }}>✨</div>
+            <div style={{ fontSize: 36, animation: 'luminaBounce 0.5s ease' }}>✨</div>
           </div>
         )}
       </div>
@@ -374,11 +337,7 @@ export default function Board({ puzzle, settings, onWin, onMovesChange, boardKey
         >
           ↩ Undo
         </button>
-        <button
-          onClick={() => dispatch({ type: 'RESTART' })}
-          style={ctrlBtn(isDark, false)}
-          title="Restart"
-        >
+        <button onClick={() => dispatch({ type: 'RESTART' })} style={ctrlBtn(isDark, false)} title="Restart">
           ↺ Restart
         </button>
       </div>
@@ -388,7 +347,7 @@ export default function Board({ puzzle, settings, onWin, onMovesChange, boardKey
 
 function ctrlBtn(dark: boolean, disabled: boolean): React.CSSProperties {
   return {
-    padding: '8px 18px',
+    padding: '9px 18px',
     background: dark ? '#1a1a2e' : '#e0dbd0',
     border: `1px solid ${dark ? '#2a2a42' : '#c8c4b8'}`,
     borderRadius: 8,

@@ -50,3 +50,13 @@ export const DEFAULT_SETTINGS: GameSettings = {
   theme: 'dark',
   colorblind: false,
 }
+
+export interface HighScoreEntry {
+  name: string
+  score: number
+  level: string
+  elapsed: number
+  moves: number
+  stars: number
+  date: string
+}
