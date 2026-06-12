@@ -271,9 +271,9 @@ export default function AdminProjectsPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 px-3 py-2">
+                  <div className="flex flex-wrap items-center gap-2 px-3 py-2">
                     <span className="text-base shrink-0">{p.icon}</span>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0" style={{ minWidth: '100px' }}>
                       <div className="text-[8px] font-bold truncate" style={{ color: 'var(--text-1)' }}>
                         {p.title}
                       </div>
@@ -281,7 +281,7 @@ export default function AdminProjectsPage() {
                         {p.progress}% · {p.updated}
                       </div>
                     </div>
-                    <div className="flex gap-1.5 shrink-0">
+                    <div className="flex gap-1.5 flex-wrap">
                       <button
                         onClick={() => startEdit(p)}
                         className="admin-action-btn rounded border"

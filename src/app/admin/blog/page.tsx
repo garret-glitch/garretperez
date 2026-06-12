@@ -255,10 +255,10 @@ export default function AdminBlogPage() {
             {posts.map(p => (
               <div
                 key={p.id}
-                className="flex items-center gap-2 rounded-lg px-3 py-2"
+                className="flex flex-wrap items-center gap-2 rounded-lg px-3 py-2"
                 style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}
               >
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0" style={{ minWidth: '120px' }}>
                   <div className="text-[7px] font-bold truncate" style={{ color: 'var(--text-1)' }}>
                     {p.title}
                   </div>
@@ -270,7 +270,7 @@ export default function AdminBlogPage() {
                     {' '}· {new Date(p.createdAt).toLocaleDateString()}
                   </div>
                 </div>
-                <div className="flex gap-1.5 shrink-0">
+                <div className="flex gap-1.5 flex-wrap">
                   <button
                     onClick={() => togglePublish(p)}
                     className="admin-action-btn rounded border"

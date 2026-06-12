@@ -122,7 +122,7 @@ export default async function SkillPage({ params }: Props) {
                   </div>
                   <UpvoteButton postId={post.id} count={upvoteCount} upvoted={hasUpvoted} />
                 </div>
-                <p className="text-[9px] text-[#d8d8d8] mt-2 leading-relaxed whitespace-pre-wrap">
+                <p className="text-[9px] text-[#d8d8d8] mt-2 leading-relaxed whitespace-pre-wrap break-words">
                   {post.body}
                 </p>
                 </div>

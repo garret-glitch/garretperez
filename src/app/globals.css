@@ -673,9 +673,14 @@ a { color: inherit; text-decoration: none; }
 
 /* ─── Mobile ─────────────────────────────────────────────── */
 @media (max-width: 767px) {
-  /* Prevent page from being pushed wider than viewport */
-  body { overflow-x: hidden; }
-  img, video, table, pre { max-width: 100%; }
+  /* Prevent page from being pushed wider than viewport — html needed for iOS Safari */
+  html, body { overflow-x: hidden; }
+  img, video, canvas, table, pre { max-width: 100% !important; }
+
+  /* Prevent long unbreakable text from causing horizontal scroll */
+  .whitespace-pre-wrap { overflow-wrap: break-word; word-break: break-word; }
+  .osrs-panel, .osrs-panel-dark, .rp-card { overflow-wrap: break-word; word-break: break-word; }
+  .scroll-parchment p, .scroll-parchment li, .scroll-parchment div { overflow-wrap: break-word; }
 
   .hero-panel { padding: 16px; }
   .rp-card    { padding: 14px 12px; }
@@ -735,9 +740,6 @@ a { color: inherit; text-decoration: none; }
   .wine-card { min-height: unset !important; }
   .wine-card img { height: 130px !important; }
 
-  /* ─── Skill hero bar — compact on mobile ─────────────────── */
-  .skill-hero-bar { padding: 14px 12px !important; }
-
   /* ─── Food form grids ─────────────────────────────────────── */
   .food-form-grid, .plant-form-grid { grid-template-columns: 1fr !important; }
 
@@ -749,6 +751,15 @@ a { color: inherit; text-decoration: none; }
   .scroll-parchment .body-text    { font-size: 14px !important; line-height: 1.7; }
   .scroll-parchment .font-bold    { font-size: 13px !important; }
   .post-card                      { padding: 12px !important; }
+}
+
+/* ─── Extra-small screens (< 480px) — tighten admin buttons further ── */
+@media (max-width: 479px) {
+  .admin-action-btn {
+    padding: 6px 7px !important;
+    font-size: 6px !important;
+    min-height: 34px !important;
+  }
 }
 
 /* Scrollbar */
