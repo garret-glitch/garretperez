@@ -15,7 +15,12 @@ const ALLOWED = new Set<XpEventType>([
   'PHOTO_UPLOAD',
 ])
 
-function skillForEvent(eventType: XpEventType, eventKey: string): SkillType | 'RANDOM' {
+function skillForEvent(eventType: XpEventType, eventKey: string, hint?: string): SkillType | 'RANDOM' {
+  // Explicit skill hint from client (e.g. current skill page) takes first priority
+  if (hint) {
+    const up = hint.toUpperCase() as SkillType
+    if (Object.values(SkillType).includes(up)) return up
+  }
   if (eventType === 'MINIGAME_PLAY') return SkillType.FUN
   if (eventType === 'SKILL_OPEN') {
     const up = eventKey.toUpperCase() as SkillType
@@ -29,7 +34,7 @@ export async function POST(req: Request) {
   if (!session?.user?.id) return NextResponse.json({ ok: false }, { status: 401 })
 
   try {
-    const { eventType, eventKey = '' } = await req.json()
+    const { eventType, eventKey = '', skill: skillHint } = await req.json()
 
     if (!ALLOWED.has(eventType as XpEventType)) {
       return NextResponse.json({ ok: false, error: 'invalid_event' }, { status: 400 })
@@ -39,7 +44,7 @@ export async function POST(req: Request) {
       userId: session.user.id,
       eventType: eventType as XpEventType,
       eventKey,
-      skill: skillForEvent(eventType as XpEventType, eventKey),
+      skill: skillForEvent(eventType as XpEventType, eventKey, skillHint),
     })
 
     return NextResponse.json({ ok: true, ...result })
