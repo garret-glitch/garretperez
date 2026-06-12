@@ -16,7 +16,7 @@ export default function AchievementsBlock({ block, liveData }: Props) {
       <div className="scroll-parchment" style={style}>
         <div className="flex items-center gap-2 mb-2">
           <span style={{ fontSize: hPx }}>{cfg.icon}</span>
-          <span style={{ fontSize: hPx, color: '#3a1e06' }}>{cfg.heading}</span>
+          <h2 style={{ fontSize: hPx, color: '#3a1e06', margin: 0 }}>{cfg.heading}</h2>
         </div>
         {badges.length > 0 ? (
           <div className="flex flex-wrap gap-2">
