@@ -26,11 +26,11 @@ const S = {
   text3:    '#9a7a50',
   text4:    '#6a5030',
   up:       '#5abf72',
-  upBorder: 'rgba(60,175,90,0.5)',
-  upBg:     'rgba(50,140,70,0.14)',
+  upBorder: '#2a7040',
+  upBg:     '#0e2216',
   down:     '#d46060',
-  downBorder:'rgba(190,60,60,0.5)',
-  downBg:   'rgba(160,40,40,0.14)',
+  downBorder:'#7a2828',
+  downBg:   '#220e0e',
 }
 
 function fmtPrice(price: number | null, key: string): string {
@@ -72,9 +72,9 @@ function TickCard({ tick, wide = false }: { tick: Tick; wide?: boolean }) {
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, height: 1,
         background: loaded
-          ? (up ? 'linear-gradient(90deg, transparent, rgba(60,175,90,0.5), transparent)'
-                : 'linear-gradient(90deg, transparent, rgba(190,60,60,0.5), transparent)')
-          : 'linear-gradient(90deg, transparent, rgba(200,155,60,0.25), transparent)',
+          ? (up ? 'linear-gradient(90deg, transparent, #2a7040, transparent)'
+                : 'linear-gradient(90deg, transparent, #7a2828, transparent)')
+          : 'linear-gradient(90deg, transparent, #7a5a20, transparent)',
       }} />
 
       {/* Symbol badge */}
