@@ -160,10 +160,10 @@ export default function AdminUsersPage() {
 
       {/* Users Table */}
       <div className="osrs-panel-dark rounded-xl space-y-3">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-[9px] font-bold flex-1" style={{ color: 'var(--text-1)' }}>User List</h2>
           <input
-            className="osrs-input text-[7px] w-40"
+            className="osrs-input text-[7px] w-full sm:w-40"
             placeholder="Search username..."
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -227,7 +227,7 @@ export default function AdminUsersPage() {
                       onChange={e => setNewPassword(e.target.value)}
                     />
                     <button onClick={() => savePassword(u.id)} className="osrs-btn text-[6px]">Save</button>
-                    <button onClick={() => setPwUserId(null)} className="text-[6px] px-1.5 py-0.5 rounded border border-[#8a4a4a] text-[#e09090]">✕</button>
+                    <button onClick={() => setPwUserId(null)} className="admin-action-btn rounded border border-[#8a4a4a] text-[#e09090]">✕</button>
                   </div>
                 )}
 
@@ -235,7 +235,7 @@ export default function AdminUsersPage() {
                 <div className="flex gap-1.5 flex-wrap">
                   <button
                     onClick={() => banUser(u.id, !u.banned)}
-                    className="text-[6px] px-1.5 py-0.5 rounded border"
+                    className="admin-action-btn rounded border"
                     style={{
                       borderColor: u.banned ? '#4a8a4a' : '#8a4a4a',
                       color: u.banned ? '#90c890' : '#e09090',
@@ -248,14 +248,14 @@ export default function AdminUsersPage() {
                       const newRole = u.role === 'ADMIN' ? 'USER' : 'ADMIN'
                       if (confirm(`Change ${u.username} to ${newRole}?`)) changeRole(u.id, newRole)
                     }}
-                    className="text-[6px] px-1.5 py-0.5 rounded border"
+                    className="admin-action-btn rounded border"
                     style={{ borderColor: 'var(--border-lit)', color: 'var(--gold)' }}
                   >
                     {u.role === 'ADMIN' ? 'Demote' : 'Make Admin'}
                   </button>
                   <button
                     onClick={() => { setPwUserId(u.id); setNewPassword('') }}
-                    className="text-[6px] px-1.5 py-0.5 rounded border"
+                    className="admin-action-btn rounded border"
                     style={{ borderColor: 'var(--border)', color: 'var(--text-2)' }}
                   >
                     Reset PW
@@ -263,7 +263,7 @@ export default function AdminUsersPage() {
                   {u.role !== 'ADMIN' && (
                     <button
                       onClick={() => deleteUser(u.id, u.username)}
-                      className="text-[6px] px-1.5 py-0.5 rounded border border-[#8a4a4a] text-[#e09090] hover:bg-[#3a1a1a]"
+                      className="admin-action-btn rounded border border-[#8a4a4a] text-[#e09090] hover:bg-[#3a1a1a]"
                     >
                       Delete
                     </button>
@@ -278,8 +278,8 @@ export default function AdminUsersPage() {
       {/* XP Adjustment */}
       <div className="osrs-panel-dark rounded-xl space-y-3">
         <h2 className="text-[9px] font-bold" style={{ color: 'var(--text-1)' }}>Adjust XP</h2>
-        <div className="flex gap-2 flex-wrap">
-          <div className="flex-1 min-w-[120px]">
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2 items-end">
+          <div>
             <label className="text-[6px] block mb-1" style={{ color: 'var(--text-3)' }}>User</label>
             <select
               className="osrs-input text-[7px] w-full"
@@ -295,7 +295,7 @@ export default function AdminUsersPage() {
           <div>
             <label className="text-[6px] block mb-1" style={{ color: 'var(--text-3)' }}>Skill</label>
             <select
-              className="osrs-input text-[7px]"
+              className="osrs-input text-[7px] w-full"
               value={xpSkill}
               onChange={e => setXpSkill(e.target.value)}
             >
@@ -306,15 +306,13 @@ export default function AdminUsersPage() {
             <label className="text-[6px] block mb-1" style={{ color: 'var(--text-3)' }}>Amount</label>
             <input
               type="number"
-              className="osrs-input text-[7px] w-20"
+              className="osrs-input text-[7px] w-full"
               placeholder="50"
               value={xpAmount}
               onChange={e => setXpAmount(e.target.value)}
             />
           </div>
-          <div className="flex items-end">
-            <button onClick={adjustXp} className="osrs-btn text-[7px]">Adjust XP</button>
-          </div>
+          <button onClick={adjustXp} className="osrs-btn text-[7px]">Adjust XP</button>
         </div>
         <p className="text-[6px]" style={{ color: 'var(--text-3)' }}>Negative amounts remove XP.</p>
       </div>
@@ -322,8 +320,8 @@ export default function AdminUsersPage() {
       {/* Badge Management */}
       <div className="osrs-panel-dark rounded-xl space-y-3">
         <h2 className="text-[9px] font-bold" style={{ color: 'var(--text-1)' }}>Badge Management</h2>
-        <div className="flex gap-2 flex-wrap">
-          <div className="flex-1 min-w-[120px]">
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 items-end">
+          <div>
             <label className="text-[6px] block mb-1" style={{ color: 'var(--text-3)' }}>User</label>
             <select
               className="osrs-input text-[7px] w-full"
@@ -336,7 +334,7 @@ export default function AdminUsersPage() {
               ))}
             </select>
           </div>
-          <div className="flex-1 min-w-[120px]">
+          <div>
             <label className="text-[6px] block mb-1" style={{ color: 'var(--text-3)' }}>Badge</label>
             <select
               className="osrs-input text-[7px] w-full"
@@ -348,11 +346,11 @@ export default function AdminUsersPage() {
               ))}
             </select>
           </div>
-          <div className="flex items-end gap-1.5">
-            <button onClick={awardBadge} className="osrs-btn text-[7px]">Award</button>
+          <div className="flex gap-1.5">
+            <button onClick={awardBadge} className="osrs-btn text-[7px] flex-1 sm:flex-none">Award</button>
             <button
               onClick={revokeBadge}
-              className="text-[6px] px-2 py-1 rounded border border-[#8a4a4a] text-[#e09090] hover:bg-[#3a1a1a]"
+              className="admin-action-btn rounded border border-[#8a4a4a] text-[#e09090] hover:bg-[#3a1a1a] flex-1 sm:flex-none"
             >
               Revoke
             </button>

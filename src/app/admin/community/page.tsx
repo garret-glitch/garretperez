@@ -151,12 +151,12 @@ export default function AdminCommunityPage() {
           {/* Posts tab */}
           {tab === 'posts' && (
             <div className="osrs-panel-dark rounded-xl space-y-3">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-[9px] font-bold flex-1" style={{ color: 'var(--text-1)' }}>
                   Posts ({filteredPosts.length})
                 </h2>
                 <select
-                  className="osrs-input text-[7px] w-28"
+                  className="osrs-input text-[7px] w-full sm:w-28"
                   value={skillFilter}
                   onChange={e => setSkillFilter(e.target.value)}
                 >
@@ -183,7 +183,7 @@ export default function AdminCommunityPage() {
                       </div>
                       <button
                         onClick={() => deletePost(p.id)}
-                        className="text-[6px] px-1.5 py-0.5 rounded border border-[#8a4a4a] text-[#e09090] hover:bg-[#3a1a1a] shrink-0"
+                        className="admin-action-btn rounded border border-[#8a4a4a] text-[#e09090] hover:bg-[#3a1a1a] shrink-0"
                       >
                         Delete
                       </button>
@@ -251,7 +251,7 @@ export default function AdminCommunityPage() {
                         </div>
                         <button
                           onClick={() => deleteAnnouncement(a.id)}
-                          className="text-[6px] px-1.5 py-0.5 rounded border border-[#8a4a4a] text-[#e09090] hover:bg-[#3a1a1a] shrink-0"
+                          className="admin-action-btn rounded border border-[#8a4a4a] text-[#e09090] hover:bg-[#3a1a1a] shrink-0"
                         >
                           Delete
                         </button>

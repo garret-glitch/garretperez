@@ -293,7 +293,7 @@ export default function AdminQuestsPage() {
           />
           <div className="flex gap-2">
             <button onClick={createQuest} className="osrs-btn text-[7px]">+ Create Quest</button>
-            <button onClick={() => setShowCreate(false)} className="text-[6px] px-2 py-1 rounded border border-[#8a4a4a] text-[#e09090] hover:bg-[#3a1a1a]">Cancel</button>
+            <button onClick={() => setShowCreate(false)} className="admin-action-btn rounded border border-[#8a4a4a] text-[#e09090] hover:bg-[#3a1a1a]">Cancel</button>
           </div>
         </div>
       )}
@@ -327,7 +327,7 @@ export default function AdminQuestsPage() {
                     />
                     <div className="flex gap-2">
                       <button onClick={saveEdit} className="osrs-btn text-[7px]">Save</button>
-                      <button onClick={() => setEditId(null)} className="text-[6px] px-2 py-1 rounded border border-[#8a4a4a] text-[#e09090] hover:bg-[#3a1a1a]">Cancel</button>
+                      <button onClick={() => setEditId(null)} className="admin-action-btn rounded border border-[#8a4a4a] text-[#e09090] hover:bg-[#3a1a1a]">Cancel</button>
                     </div>
                   </div>
                 ) : (
@@ -347,7 +347,7 @@ export default function AdminQuestsPage() {
                     <div className="flex gap-1.5 shrink-0">
                       <button
                         onClick={() => toggleActive(q)}
-                        className="text-[6px] px-1.5 py-0.5 rounded border"
+                        className="admin-action-btn rounded border"
                         style={{
                           borderColor: q.active ? '#8a4a4a' : '#4a8a4a',
                           color: q.active ? '#e09090' : '#90c890',
@@ -357,14 +357,14 @@ export default function AdminQuestsPage() {
                       </button>
                       <button
                         onClick={() => startEdit(q)}
-                        className="text-[6px] px-1.5 py-0.5 rounded border"
+                        className="admin-action-btn rounded border"
                         style={{ borderColor: 'var(--border-lit)', color: 'var(--gold)' }}
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => deleteQuest(q.id)}
-                        className="text-[6px] px-1.5 py-0.5 rounded border border-[#8a4a4a] text-[#e09090] hover:bg-[#3a1a1a]"
+                        className="admin-action-btn rounded border border-[#8a4a4a] text-[#e09090] hover:bg-[#3a1a1a]"
                       >
                         Delete
                       </button>

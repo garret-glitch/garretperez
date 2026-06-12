@@ -60,21 +60,26 @@ export default function AdminSidebar() {
         className="md:hidden border-b overflow-x-auto shrink-0"
         style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}
       >
-        <div className="flex gap-0.5 px-2 py-1.5" style={{ width: 'max-content' }}>
+        <div className="flex gap-1 px-2 py-2" style={{ width: 'max-content' }}>
           {NAV_ITEMS.map(item => {
             const active = isActive(item.href, pathname)
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded text-[5.5px] whitespace-nowrap transition-colors"
+                className="flex flex-col items-center gap-1 px-3 rounded whitespace-nowrap transition-colors"
                 style={{
+                  minHeight: 52,
+                  minWidth: 52,
+                  justifyContent: 'center',
                   color: active ? 'var(--gold)' : 'var(--text-2)',
                   background: active ? 'var(--bg-elevated)' : 'transparent',
                   border: active ? '1px solid var(--border-lit)' : '1px solid transparent',
+                  fontFamily: "'Press Start 2P', monospace",
+                  fontSize: 7,
                 }}
               >
-                <span className="text-sm">{item.icon}</span>
+                <span style={{ fontSize: 18, lineHeight: 1 }}>{item.icon}</span>
                 <span>{item.label}</span>
               </Link>
             )

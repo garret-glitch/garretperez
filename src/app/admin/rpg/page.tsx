@@ -175,8 +175,8 @@ export default function AdminRpgPage() {
       {/* Adjust XP */}
       <div className="osrs-panel-dark rounded-xl space-y-3">
         <h2 className="text-[9px] font-bold" style={{ color: 'var(--text-1)' }}>Adjust XP</h2>
-        <div className="flex gap-2 flex-wrap">
-          <div className="flex-1 min-w-[120px]">
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2 items-end">
+          <div>
             <label className="text-[6px] block mb-1" style={{ color: 'var(--text-3)' }}>User</label>
             <select
               className="osrs-input text-[7px] w-full"
@@ -192,7 +192,7 @@ export default function AdminRpgPage() {
           <div>
             <label className="text-[6px] block mb-1" style={{ color: 'var(--text-3)' }}>Skill</label>
             <select
-              className="osrs-input text-[7px]"
+              className="osrs-input text-[7px] w-full"
               value={xpSkill}
               onChange={e => setXpSkill(e.target.value)}
             >
@@ -203,15 +203,13 @@ export default function AdminRpgPage() {
             <label className="text-[6px] block mb-1" style={{ color: 'var(--text-3)' }}>Amount</label>
             <input
               type="number"
-              className="osrs-input text-[7px] w-20"
+              className="osrs-input text-[7px] w-full"
               placeholder="50"
               value={xpAmount}
               onChange={e => setXpAmount(e.target.value)}
             />
           </div>
-          <div className="flex items-end">
-            <button onClick={adjustXp} className="osrs-btn text-[7px]">Adjust XP</button>
-          </div>
+          <button onClick={adjustXp} className="osrs-btn text-[7px]">Adjust XP</button>
         </div>
         <p className="text-[6px]" style={{ color: 'var(--text-3)' }}>Negative amounts remove XP.</p>
       </div>
@@ -219,8 +217,8 @@ export default function AdminRpgPage() {
       {/* Award Badge */}
       <div className="osrs-panel-dark rounded-xl space-y-3">
         <h2 className="text-[9px] font-bold" style={{ color: 'var(--text-1)' }}>Award Badge</h2>
-        <div className="flex gap-2 flex-wrap">
-          <div className="flex-1 min-w-[120px]">
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 items-end">
+          <div>
             <label className="text-[6px] block mb-1" style={{ color: 'var(--text-3)' }}>User</label>
             <select
               className="osrs-input text-[7px] w-full"
@@ -233,7 +231,7 @@ export default function AdminRpgPage() {
               ))}
             </select>
           </div>
-          <div className="flex-1 min-w-[120px]">
+          <div>
             <label className="text-[6px] block mb-1" style={{ color: 'var(--text-3)' }}>Badge</label>
             <select
               className="osrs-input text-[7px] w-full"
@@ -245,11 +243,11 @@ export default function AdminRpgPage() {
               ))}
             </select>
           </div>
-          <div className="flex items-end gap-1.5">
-            <button onClick={awardBadge} className="osrs-btn text-[7px]">Award</button>
+          <div className="flex gap-1.5">
+            <button onClick={awardBadge} className="osrs-btn text-[7px] flex-1 sm:flex-none">Award</button>
             <button
               onClick={revokeBadge}
-              className="text-[6px] px-2 py-1 rounded border border-[#8a4a4a] text-[#e09090] hover:bg-[#3a1a1a]"
+              className="admin-action-btn rounded border border-[#8a4a4a] text-[#e09090] hover:bg-[#3a1a1a] flex-1 sm:flex-none"
             >
               Revoke
             </button>
@@ -268,7 +266,7 @@ export default function AdminRpgPage() {
         </p>
         <button
           onClick={resetXp}
-          className="text-[6px] px-2 py-1.5 rounded border border-[#8a4a4a] text-[#e09090] hover:bg-[#3a1a1a]"
+          className="admin-action-btn rounded border border-[#8a4a4a] text-[#e09090] hover:bg-[#3a1a1a]"
         >
           ⚠️ Reset My XP to Level 1
         </button>

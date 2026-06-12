@@ -278,6 +278,20 @@ a { color: inherit; text-decoration: none; }
   }
   .osrs-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
+  /* Secondary admin action button — smaller than osrs-btn, touch-friendly */
+  .admin-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 10px;
+    min-height: 30px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    white-space: nowrap;
+  }
+
   /* ─── Input ──────────────────────────────────────────────── */
   .osrs-input {
     display: block;
@@ -671,6 +685,11 @@ a { color: inherit; text-decoration: none; }
     padding: 12px 18px;
     min-height: 44px;
     font-size: 10px !important;
+  }
+  .admin-action-btn {
+    padding: 10px 14px;
+    min-height: 40px;
+    font-size: 9px;
   }
 
   /* Ensure canvas games never overflow viewport */

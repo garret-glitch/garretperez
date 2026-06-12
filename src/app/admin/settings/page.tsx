@@ -161,7 +161,7 @@ export default function AdminSettingsPage() {
           </p>
           <button
             onClick={resetXp}
-            className="text-[6px] px-2 py-1.5 rounded border border-[#8a4a4a] text-[#e09090] hover:bg-[#3a1a1a]"
+            className="admin-action-btn rounded border border-[#8a4a4a] text-[#e09090] hover:bg-[#3a1a1a]"
           >
             ⚠️ Reset All My XP to Level 1
           </button>
