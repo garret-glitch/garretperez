@@ -66,13 +66,6 @@ export default function SkillHeroBar({ skill, communityXp, memberCount, postCoun
                 }}>
                   {skill.label}
                 </h1>
-                <span className="text-[5.5px]" style={{
-                  fontFamily: "'Press Start 2P', monospace",
-                  color: '#7a6040', letterSpacing: '0.14em',
-                  border: '1px solid rgba(200,155,60,0.22)', padding: '2px 8px',
-                }}>
-                  GUILD CHANNEL
-                </span>
               </div>
               <p className="body-text" style={{ fontSize: 12, color: 'var(--text-2)', margin: 0, lineHeight: 1.6 }}>
                 {skill.description}
