@@ -72,7 +72,7 @@ function CardContent({ game, isHidden, isAdmin, editMode }: {
     return (
       <div
         className="flex flex-col items-center gap-2 py-4 px-2 rounded-xl"
-        style={{ ...sharedStyle, cursor: 'grab' }}
+        style={sharedStyle}
       >
         {inner}
       </div>
@@ -117,27 +117,27 @@ function SortableGameCard({
   return (
     <div
       ref={setNodeRef}
-      {...(editMode ? attributes : {})}
+      {...(editMode ? { ...attributes, ...listeners } : {})}
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
         opacity: isDragging ? 0.4 : 1,
         position: 'relative',
         zIndex: isDragging ? 50 : 1,
+        touchAction: editMode ? 'none' : 'auto',
+        cursor: editMode ? (isDragging ? 'grabbing' : 'grab') : 'default',
       }}
     >
-      {/* Drag handle — edit mode only */}
+      {/* Drag handle — visual cue only, parent handles events */}
       {editMode && (
         <div
-          {...listeners}
           title="Drag to reorder"
           style={{
             position: 'absolute', top: 7, left: 8, zIndex: 15,
             color: 'rgba(200,155,60,0.75)',
             fontSize: 13, lineHeight: 1,
-            cursor: 'grab',
+            pointerEvents: 'none',
             userSelect: 'none',
-            touchAction: 'none',
           }}
         >
           ⠿
