@@ -42,6 +42,7 @@ model User {
   wineFavorites       WineFavorite[]
   wineRatings         WineRating[]
   wineComments        WineComment[]
+  gameLikes           GameLike[]
 }
 
 model Account {
@@ -344,4 +345,15 @@ model WineComment {
   createdAt DateTime           @default(now())
   user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   wine      WineIdentification @relation(fields: [wineId], references: [id], onDelete: Cascade)
+}
+
+model GameLike {
+  id        String   @id @default(cuid())
+  userId    String
+  gameHref  String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, gameHref])
+  @@index([gameHref])
 }

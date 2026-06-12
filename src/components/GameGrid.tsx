@@ -95,6 +95,7 @@ function CardContent({ game, isHidden, isAdmin, editMode }: {
 
 function SortableGameCard({
   game, isHidden, isBusy, isAdmin, editMode, onToggle,
+  likeCount, isLiked, isLoggedIn, onLike, likeBusy,
 }: {
   game: GameDef
   isHidden: boolean
@@ -102,6 +103,11 @@ function SortableGameCard({
   isAdmin: boolean
   editMode: boolean
   onToggle: (href: string) => void
+  likeCount: number
+  isLiked: boolean
+  isLoggedIn: boolean
+  onLike: (href: string) => void
+  likeBusy: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: game.href,
@@ -159,6 +165,29 @@ function SortableGameCard({
 
       <CardContent game={game} isHidden={isHidden} isAdmin={isAdmin} editMode={editMode} />
 
+      {/* Like button */}
+      {!editMode && (
+        <button
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (isLoggedIn) onLike(game.href) }}
+          title={isLoggedIn ? (isLiked ? 'Unlike' : 'Like') : 'Log in to like'}
+          style={{
+            position: 'absolute', bottom: 7, right: 7, zIndex: 10,
+            background: 'rgba(0,0,0,0.72)',
+            border: `1px solid ${isLiked ? game.glow + '88' : '#2a282055'}`,
+            borderRadius: 5,
+            cursor: isLoggedIn ? (likeBusy ? 'wait' : 'pointer') : 'default',
+            fontSize: 10, padding: '2px 5px', lineHeight: 1,
+            color: isLiked ? game.glow : 'rgba(160,152,128,0.45)',
+            display: 'flex', alignItems: 'center', gap: 3,
+            opacity: likeBusy ? 0.6 : 1,
+            transition: 'color 0.15s, border-color 0.15s',
+          }}
+        >
+          <span style={{ fontSize: 11 }}>{isLiked ? '♥' : '♡'}</span>
+          {likeCount > 0 && <span style={{ fontSize: 8 }}>{likeCount}</span>}
+        </button>
+      )}
+
       {/* HIDDEN badge overlay */}
       {isAdmin && isHidden && (
         <div style={{
@@ -185,11 +214,17 @@ export default function GameGrid({
   initialHidden,
   initialOrder,
   isAdmin,
+  isLoggedIn,
+  initialLikeCounts,
+  initialUserLikes,
 }: {
   games: GameDef[]
   initialHidden: string[]
   initialOrder: string[]
   isAdmin: boolean
+  isLoggedIn: boolean
+  initialLikeCounts: Record<string, number>
+  initialUserLikes: string[]
 }) {
   const [orderedGames, setOrderedGames] = useState<GameDef[]>(() => applyOrder(games, initialOrder))
   const savedRef = useRef<GameDef[]>(applyOrder(games, initialOrder))
@@ -197,6 +232,9 @@ export default function GameGrid({
   const [busy, setBusy] = useState<string | null>(null)
   const [editMode, setEditMode] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [likeCounts, setLikeCounts] = useState<Record<string, number>>(initialLikeCounts)
+  const [likedHrefs, setLikedHrefs] = useState<Set<string>>(new Set(initialUserLikes))
+  const [likeBusy, setLikeBusy] = useState<string | null>(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -258,6 +296,30 @@ export default function GameGrid({
     setEditMode(false)
   }
 
+  async function handleLike(href: string) {
+    if (likeBusy) return
+    setLikeBusy(href)
+    const wasLiked = likedHrefs.has(href)
+    // Optimistic update
+    setLikedHrefs(prev => { const s = new Set(prev); if (wasLiked) s.delete(href); else s.add(href); return s })
+    setLikeCounts(prev => ({ ...prev, [href]: Math.max(0, (prev[href] ?? 0) + (wasLiked ? -1 : 1)) }))
+    try {
+      const res = await fetch('/api/game-like', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ href }),
+      })
+      if (!res.ok) throw new Error()
+      const data = await res.json()
+      setLikeCounts(prev => ({ ...prev, [href]: data.count }))
+    } catch {
+      // Revert
+      setLikedHrefs(prev => { const s = new Set(prev); if (wasLiked) s.add(href); else s.delete(href); return s })
+      setLikeCounts(prev => ({ ...prev, [href]: Math.max(0, (prev[href] ?? 0) + (wasLiked ? 1 : -1)) }))
+    }
+    setLikeBusy(null)
+  }
+
   const displayGames = isAdmin ? orderedGames : orderedGames.filter(g => !hidden.has(g.href))
 
   return (
@@ -315,6 +377,11 @@ export default function GameGrid({
                 isAdmin={isAdmin}
                 editMode={editMode}
                 onToggle={toggle}
+                likeCount={likeCounts[g.href] ?? 0}
+                isLiked={likedHrefs.has(g.href)}
+                isLoggedIn={isLoggedIn}
+                onLike={handleLike}
+                likeBusy={likeBusy === g.href}
               />
             ))}
           </div>

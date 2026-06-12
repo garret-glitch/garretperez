@@ -31,21 +31,28 @@ export default async function FunPage() {
   let communityMemberCount = 0
   let hiddenGames: string[] = []
   let gameOrder: string[] = []
+  const likeCounts: Record<string, number> = {}
+  let userLikedHrefs: string[] = []
 
   try {
-    const [communityData, hiddenSetting, orderSetting] = await Promise.all([
+    const userId = session?.user?.id
+    const [communityData, hiddenSetting, orderSetting, allLikes, userLikeRows] = await Promise.all([
       getCommunityXpForSkill('FUN' as SkillType),
       (prisma as any).siteSetting.findUnique({ where: { key: 'hidden_games' } }),
       (prisma as any).siteSetting.findUnique({ where: { key: 'game_order' } }),
+      (prisma as any).gameLike.groupBy({ by: ['gameHref'], _count: { gameHref: true } }),
+      userId
+        ? (prisma as any).gameLike.findMany({ where: { userId }, select: { gameHref: true } })
+        : Promise.resolve([]),
     ])
     communityXp = communityData.xp
     communityMemberCount = communityData.memberCount
-    if (hiddenSetting) {
-      hiddenGames = JSON.parse(hiddenSetting.value) as string[]
+    if (hiddenSetting) hiddenGames = JSON.parse(hiddenSetting.value) as string[]
+    if (orderSetting) gameOrder = JSON.parse(orderSetting.value) as string[]
+    for (const row of allLikes as { gameHref: string; _count: { gameHref: number } }[]) {
+      likeCounts[row.gameHref] = row._count.gameHref
     }
-    if (orderSetting) {
-      gameOrder = JSON.parse(orderSetting.value) as string[]
-    }
+    userLikedHrefs = (userLikeRows as { gameHref: string }[]).map(r => r.gameHref)
   } catch { /* DB not configured */ }
 
   return (
@@ -59,7 +66,15 @@ export default async function FunPage() {
         isLoggedIn={!!session?.user}
       />
 
-      <GameGrid games={GAMES} initialHidden={hiddenGames} initialOrder={gameOrder} isAdmin={isAdmin} />
+      <GameGrid
+        games={GAMES}
+        initialHidden={hiddenGames}
+        initialOrder={gameOrder}
+        isAdmin={isAdmin}
+        isLoggedIn={!!session?.user}
+        initialLikeCounts={likeCounts}
+        initialUserLikes={userLikedHrefs}
+      />
     </div>
   )
 }
