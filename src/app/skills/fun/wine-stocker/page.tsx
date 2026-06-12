@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { emitXpGained } from '@/components/XpToast'
+import GameLeaderboard from '@/components/GameLeaderboard'
 
 /* ═══════════════════════ CONSTANTS ═══════════════════════ */
 const CW = 800, CH = 570
@@ -877,6 +878,18 @@ export default function WineStockerRush() {
   const [finalScore, setFinalScore] = useState(0)
   const [finalTime, setFinalTime]   = useState(0)
   const [finalLevel, setFinalLevel] = useState(1)
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  const submitScore = useCallback(async (score: number) => {
+    try {
+      await fetch('/api/minigame/score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ game: 'wine-stocker', score }),
+      })
+      setRefreshKey(k => k + 1)
+    } catch {}
+  }, [])
 
   const awardXP = useCallback(async () => {
     if (xpRef.current) return
@@ -967,6 +980,7 @@ export default function WineStockerRush() {
           setFinalTime(Math.floor(g.time))
           setFinalLevel(g.level)
           setScreen('gameover')
+          submitScore(Math.floor(g.score))
           if (g.score >= XP_THRESHOLD) awardXP()
         }
 
@@ -986,7 +1000,7 @@ export default function WineStockerRush() {
       window.removeEventListener('keydown', down)
       window.removeEventListener('keyup', up)
     }
-  }, [awardXP])
+  }, [awardXP, submitScore])
 
   const touchKey = (key: string, down: boolean) => {
     if (down) touchRef.current.add(key)
@@ -1107,6 +1121,10 @@ export default function WineStockerRush() {
           </>
         )}
       </div>
+
+      {(screen === 'menu' || screen === 'gameover') && (
+        <GameLeaderboard game="wine-stocker" scoreLabel="pts" refreshKey={refreshKey} />
+      )}
 
       <Link href="/skills/fun" className="text-[8px] hover:underline" style={{ color: 'var(--text-3)' }}>
         ← Back to Fun
