@@ -19,7 +19,6 @@ export default function HomepageBlockRenderer({ blocks, ...liveData }: Props) {
           className={`mobile-block-${block.type}`}
           style={{
             gridColumn: block.colSpan === 3 ? '1 / -1' : `span ${block.colSpan}`,
-            overflow: 'visible',
           }}
         >
           <BlockRenderer block={block} liveData={liveData} isEditing={false} />
