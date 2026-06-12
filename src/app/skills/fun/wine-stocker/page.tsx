@@ -1091,27 +1091,152 @@ export default function WineStockerRush() {
         {/* ── Menu overlay ── */}
         {screen === 'menu' && (
           <div style={{
-            position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center', gap: 16,
-            background: 'rgba(10,10,20,0.94)', borderRadius: 8,
+            position: 'absolute', inset: 0, overflowY: 'auto',
+            background: 'rgba(6,6,16,0.97)', borderRadius: 8,
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            padding: '16px 18px 18px', gap: 12,
           }}>
-            <div style={{ fontSize: 52, lineHeight: 1 }}>🍷</div>
-            <h1 style={{ fontFamily: '"Press Start 2P", monospace', color: 'var(--gold)', fontSize: 13, textAlign: 'center', lineHeight: 1.8 }}>
-              Wine Stocker Rush
-            </h1>
-            <p className="body-text" style={{ color: 'var(--text-2)', fontSize: 13, textAlign: 'center', lineHeight: 1.8, maxWidth: 380, padding: '0 20px' }}>
-              Keep shelves stocked while customers buy wine.<br/>
-              3 angry manager visits = <span style={{ color: '#FF4444' }}>FIRED!</span><br/>
-              Reach score <span style={{ color: 'var(--gold)' }}>{XP_THRESHOLD}</span> to earn +25 Fun XP.
-            </p>
-            <div style={{ fontFamily: '"Press Start 2P", monospace', color: 'var(--text-3)', fontSize: 6, textAlign: 'center', lineHeight: 2.4, border: '1px solid var(--border)', padding: '10px 20px', borderRadius: 6 }}>
-              WASD / Arrow Keys — Move<br/>
-              Shift / Space — Sprint<br/>
-              Walk left into stockroom → grab cases<br/>
-              Walk near shelves → auto-restock<br/>
-              Collect glowing power-ups for boosts
+
+            {/* ── Title ── */}
+            <div style={{ textAlign: 'center', flexShrink: 0 }}>
+              <div style={{ fontSize: 36, lineHeight: 1, marginBottom: 6 }}>🍷</div>
+              <h1 style={{
+                fontFamily: '"Press Start 2P", monospace', fontSize: 12, lineHeight: 1.7,
+                color: 'var(--gold)', textShadow: '0 0 24px rgba(200,155,60,0.55)', margin: 0,
+              }}>
+                Wine Stocker Rush
+              </h1>
+              <p className="body-text" style={{ color: 'var(--text-3)', fontSize: 10, margin: '4px 0 0' }}>
+                Stock the shelves. Survive the manager. Don&apos;t get fired.
+              </p>
             </div>
-            <button onClick={startGame} className="osrs-btn" style={{ marginTop: 6, padding: '10px 32px' }}>
+
+            {/* ── Two-column body ── */}
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+              gap: 10, width: '100%',
+            }}>
+
+              {/* ── Left: Controls + How It Works ── */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+
+                {/* Controls */}
+                <div style={{
+                  background: 'rgba(200,155,60,0.05)', border: '1px solid rgba(200,155,60,0.22)',
+                  borderRadius: 8, padding: '10px 12px',
+                }}>
+                  <div style={{ fontFamily: '"Press Start 2P", monospace', color: '#C89B3C', fontSize: 7, marginBottom: 9, letterSpacing: 1 }}>
+                    ⌨ CONTROLS
+                  </div>
+                  {([
+                    ['WASD / Arrows', 'Move'],
+                    ['Shift / Space', 'Sprint (watch stamina!)'],
+                    ['← Walk left', 'Enter stockroom · grab cases'],
+                    ['Walk near shelf', 'Auto-restock while carrying'],
+                  ] as [string, string][]).map(([key, desc]) => (
+                    <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                      <span style={{
+                        fontFamily: '"Press Start 2P", monospace', fontSize: 6,
+                        color: '#C89B3C', background: 'rgba(200,155,60,0.14)',
+                        border: '1px solid rgba(200,155,60,0.35)',
+                        padding: '2px 6px', borderRadius: 4, whiteSpace: 'nowrap', flexShrink: 0,
+                      }}>{key}</span>
+                      <span className="body-text" style={{ color: 'var(--text-2)', fontSize: 10 }}>{desc}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* How it works */}
+                <div style={{
+                  background: 'rgba(100,180,255,0.04)', border: '1px solid rgba(100,180,255,0.16)',
+                  borderRadius: 8, padding: '10px 12px',
+                }}>
+                  <div style={{ fontFamily: '"Press Start 2P", monospace', color: '#88CCFF', fontSize: 7, marginBottom: 9, letterSpacing: 1 }}>
+                    ℹ HOW IT WORKS
+                  </div>
+                  {([
+                    ['📦', 'Walk into the dark stockroom on the left to pick up cases of wine.'],
+                    ['🏃', 'Carry cases to shelves — walk close to auto-restock them.'],
+                    ['👔', 'Manager checks your store every ~23s. Keep shelves above 50% full for a bonus. Below 50%? Strike.'],
+                    ['☕', '3 strikes = vendor complaint = you\'re done. Don\'t let it happen.'],
+                    ['❓', 'Customers may stop and ask where a wine is. Click the correct shelf to earn a surprise perk.'],
+                  ] as [string, string][]).map(([icon, text]) => (
+                    <div key={icon} style={{ display: 'flex', gap: 8, marginBottom: 7, alignItems: 'flex-start' }}>
+                      <span style={{ fontSize: 14, lineHeight: '15px', flexShrink: 0 }}>{icon}</span>
+                      <span className="body-text" style={{ color: 'var(--text-2)', fontSize: 10, lineHeight: 1.5 }}>{text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* ── Right: Power-ups + Scoring ── */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+
+                {/* Power-ups */}
+                <div style={{
+                  background: 'rgba(139,195,74,0.04)', border: '1px solid rgba(139,195,74,0.18)',
+                  borderRadius: 8, padding: '10px 12px', flex: 1,
+                }}>
+                  <div style={{ fontFamily: '"Press Start 2P", monospace', color: '#8BC34A', fontSize: 7, marginBottom: 9, letterSpacing: 1 }}>
+                    ✦ POWER-UPS
+                  </div>
+                  {([
+                    { em: '⚡', name: 'Energy Drink',       col: '#00E5FF', desc: 'Auto-sprint 20s · full stamina restored' },
+                    { em: '🏗', name: 'Forklift License',   col: '#FFC107', desc: 'Carry 3 cases at once for 30s' },
+                    { em: '📦', name: 'Vendor Support',     col: '#8BC34A', desc: 'Instantly boosts low shelves + trickle-fills the weakest' },
+                    { em: '⭐', name: 'Employee of Month',  col: '#FF9800', desc: '2× score multiplier for 30s' },
+                    { em: '💰', name: 'Overtime Pay',       col: '#E91E63', desc: '3× score multiplier for 20s' },
+                  ]).map(p => (
+                    <div key={p.name} style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '6px 8px', borderRadius: 6, marginBottom: 5,
+                      background: `${p.col}10`, border: `1px solid ${p.col}30`,
+                    }}>
+                      <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>{p.em}</span>
+                      <div>
+                        <div style={{ fontFamily: '"Press Start 2P", monospace', color: p.col, fontSize: 6, marginBottom: 2 }}>{p.name}</div>
+                        <div className="body-text" style={{ color: 'var(--text-2)', fontSize: 9, lineHeight: 1.4 }}>{p.desc}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Scoring */}
+                <div style={{
+                  background: 'rgba(200,155,60,0.06)', border: '1px solid rgba(200,155,60,0.22)',
+                  borderRadius: 8, padding: '10px 12px',
+                }}>
+                  <div style={{ fontFamily: '"Press Start 2P", monospace', color: '#C89B3C', fontSize: 7, marginBottom: 8, letterSpacing: 1 }}>
+                    ★ SCORING
+                  </div>
+                  {([
+                    ['+12', 'per case stocked on a shelf'],
+                    ['+passive', 'pts over time based on store health'],
+                    ['+100', 'on a happy manager inspection'],
+                    ['-50', 'on an angry inspection (plus a strike)'],
+                  ] as [string, string][]).map(([pts, desc]) => (
+                    <div key={pts+desc} style={{ display: 'flex', gap: 8, marginBottom: 5, alignItems: 'center' }}>
+                      <span style={{
+                        fontFamily: '"Press Start 2P", monospace', fontSize: 7,
+                        color: pts.startsWith('-') ? '#FF5555' : '#4CAF50',
+                        minWidth: 60, flexShrink: 0,
+                      }}>{pts}</span>
+                      <span className="body-text" style={{ color: 'var(--text-2)', fontSize: 10 }}>{desc}</span>
+                    </div>
+                  ))}
+                  <div style={{
+                    marginTop: 8, padding: '6px 10px', borderRadius: 6,
+                    background: 'rgba(200,155,60,0.12)', border: '1px solid rgba(200,155,60,0.3)',
+                    fontFamily: '"Press Start 2P", monospace', color: '#C89B3C', fontSize: 7, textAlign: 'center',
+                  }}>
+                    Reach {XP_THRESHOLD} pts → +25 Fun XP!
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Start button ── */}
+            <button onClick={startGame} className="osrs-btn" style={{ padding: '10px 40px', flexShrink: 0 }}>
               Start Shift
             </button>
           </div>
