@@ -32,7 +32,6 @@ export default async function Home() {
   let currentUserLevel = 1
   let currentUserXpBar = { currentXp: 0, neededXp: 100, percent: 0 }
   let shieldColor = '#1a0e06'
-  let heroTitle = ''
   let heroLocation = 'Houston, TX'
   let contactPhone = '(346) 604-1635'
   let contactEmail = 'gis.owner@gmail.com'
@@ -46,7 +45,6 @@ export default async function Home() {
     const settingsMap: Record<string, string> = {}
     for (const s of allSettings) settingsMap[s.key] = s.value
     headshot = settingsMap.headshot ?? ''
-    if (settingsMap.hero_title) heroTitle = settingsMap.hero_title
     if (settingsMap.hero_location) heroLocation = settingsMap.hero_location
     if (settingsMap.contact_phone) contactPhone = settingsMap.contact_phone
     if (settingsMap.contact_email) contactEmail = settingsMap.contact_email
@@ -80,7 +78,6 @@ export default async function Home() {
     const heroBlock = homeBlocks.find(b => b.type === 'hero')
     if (heroBlock) {
       const hcfg = heroBlock.config as HeroBlockConfig
-      if (hcfg.heroTitle)       heroTitle       = hcfg.heroTitle
       if (hcfg.heroLocation)    heroLocation    = hcfg.heroLocation
       if (hcfg.contactPhone)    contactPhone    = hcfg.contactPhone
       if (hcfg.contactEmail)    contactEmail    = hcfg.contactEmail
