@@ -1,6 +1,7 @@
 'use client'
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import dynamic from 'next/dynamic'
+import { useSession } from 'next-auth/react'
 import { Puzzle, GameMode, Difficulty, GameSettings, HighScoreEntry } from '@/lib/game/types'
 import {
   getDailyPuzzle, getClassicPuzzles,
@@ -11,7 +12,6 @@ import {
   loadEndlessIndex, saveEndlessIndex,
   loadHighScores, addHighScore, isHighScore,
   hasTutorialBeenShown, markTutorialShown,
-  loadPlayerName, savePlayerName,
 } from '@/lib/game/storage'
 import { playHint, playLevelComplete, playNewHighScore } from '@/lib/game/audio'
 
@@ -75,6 +75,9 @@ function calcScore(diff: Difficulty, elapsed: number, moves: number) {
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function LuminaGame() {
+  const { data: session } = useSession()
+  const isLoggedIn = !!session?.user
+
   const [screen, setScreen]         = useState<Screen>('menu')
   const [mode, setMode]             = useState<GameMode>('classic')
   const [diff, setDiff]             = useState<Difficulty>('easy')
@@ -94,10 +97,8 @@ export default function LuminaGame() {
   const [hintPath, setHintPath]     = useState<{ color: string; cells: [number,number][] } | null>(null)
   const [connectedColors, setConnectedColors] = useState<string[]>([])
 
-  // High score entry
-  const [nameInput, setNameInput]       = useState('')
-  const [enteringName, setEnteringName] = useState(false)
-  const [savedRank, setSavedRank]       = useState<number | null>(null)
+  // High score
+  const [savedRank, setSavedRank] = useState<number | null>(null)
 
   // Timer
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -132,7 +133,6 @@ export default function LuminaGame() {
     setHintPath(null)
     setConnectedColors([])
     setSavedRank(null)
-    setEnteringName(false)
   }
 
   function startClassic(d: Difficulty) { setDiff(d); setPuzzleIdx(0); launchPuzzle(getClassicPuzzles(d, 30)[0]) }
@@ -169,38 +169,32 @@ export default function LuminaGame() {
       ? { base: BASE_SCORES[d], timeBonus: 0, moveBonus: 0, score: BASE_SCORES[d], stars: 3 }
       : calcScore(d, e, m)
 
-    const isNewHS = !isZen && isHighScore(score)
+    const accountName = session?.user?.name ?? null
+    const isNewHS = !isZen && !!accountName && isHighScore(score)
 
     if (settings.sound) {
       if (isNewHS) playNewHighScore()
       else playLevelComplete()
     }
 
-    setWinData({ moves: m, elapsed: e, base, timeBonus, moveBonus, score, stars, isNewHighScore: isNewHS })
-    if (isNewHS) {
-      setNameInput(loadPlayerName() || 'Player')
-      setEnteringName(true)
+    let rank: number | null = null
+    if (isNewHS && accountName) {
+      const entry: HighScoreEntry = {
+        name: accountName,
+        score,
+        level: `${MODE_LABELS[mode]} ${DIFF_LABELS[d]}`,
+        elapsed: e,
+        moves: m,
+        stars,
+        date: new Date().toISOString(),
+      }
+      rank = addHighScore(entry)
     }
-    setScreen('win')
-  }, [puzzle, isZen, settings.sound])
 
-  function saveHighScoreEntry() {
-    if (!winData || !puzzle) return
-    const name = nameInput.trim() || 'Player'
-    savePlayerName(name)
-    const entry: HighScoreEntry = {
-      name,
-      score: winData.score,
-      level: `${MODE_LABELS[mode]} ${DIFF_LABELS[puzzle.difficulty]}`,
-      elapsed: winData.elapsed,
-      moves: winData.moves,
-      stars: winData.stars,
-      date: new Date().toISOString(),
-    }
-    const rank = addHighScore(entry)
     setSavedRank(rank)
-    setEnteringName(false)
-  }
+    setWinData({ moves: m, elapsed: e, base, timeBonus, moveBonus, score, stars, isNewHighScore: isNewHS })
+    setScreen('win')
+  }, [puzzle, isZen, settings.sound, session])
 
   const handleMovesChange = useCallback((n: number) => setMoves(n), [])
 
@@ -531,48 +525,13 @@ export default function LuminaGame() {
   if (screen === 'win' && puzzle && winData) {
     const canNext = mode !== 'daily'
 
+    // Would this score qualify if the user were logged in?
+    const wouldBeHighScore = !isZen && isHighScore(winData.score)
+
     return (
       <div style={{ ...fullPage(bg), justifyContent: 'center', alignItems: 'center', padding: '20px', boxSizing: 'border-box' }}>
         <style>{ANIM_CSS}</style>
         <Sparkles />
-
-        {/* Name entry overlay */}
-        {enteringName && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(4px)' }}>
-            <div style={{ background: card, border: `2px solid ${gold}`, borderRadius: 20, padding: '32px 28px', textAlign: 'center', maxWidth: 320, width: 'calc(100% - 40px)', animation: 'luminaFadeIn 0.3s ease', boxShadow: `0 0 60px ${gold}50` }}>
-              <div style={{ fontSize: 40, marginBottom: 10, animation: 'luminaBounce 0.6s ease' }}>🏆</div>
-              <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 8, color: gold, marginBottom: 6 }}>NEW HIGH SCORE!</div>
-              <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 16, color: text1, marginBottom: 20 }}>
-                {winData.score.toLocaleString()}
-              </div>
-              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: text2, marginBottom: 10 }}>
-                Enter your name to save:
-              </div>
-              <input
-                value={nameInput}
-                onChange={e => setNameInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && saveHighScoreEntry()}
-                maxLength={18}
-                autoFocus
-                placeholder="Your name"
-                style={{
-                  width: '100%', boxSizing: 'border-box',
-                  background: isDark ? '#1a1a2e' : '#e0dbd0',
-                  border: `1px solid ${border}`, borderRadius: 8,
-                  padding: '10px 12px', color: text1,
-                  fontFamily: "'Press Start 2P', monospace", fontSize: 8,
-                  outline: 'none', marginBottom: 14,
-                }}
-              />
-              <button onClick={saveHighScoreEntry} style={{ width: '100%', background: gold, border: 'none', borderRadius: 10, padding: '13px', color: '#0a0a10', fontFamily: "'Press Start 2P', monospace", fontSize: 8, cursor: 'pointer', boxShadow: `0 4px 20px ${gold}60` }}>
-                Save Score →
-              </button>
-              <button onClick={() => setEnteringName(false)} style={{ marginTop: 10, background: 'none', border: 'none', color: text3, fontFamily: 'Inter, sans-serif', fontSize: 12, cursor: 'pointer' }}>
-                Skip
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Win card */}
         <div style={{
@@ -624,10 +583,23 @@ export default function LuminaGame() {
             <MiniStat label="Grid"  value={`${puzzle.size}×${puzzle.size}`} text1={text1} text2={text2} />
           </div>
 
-          {/* High score badge */}
+          {/* High score feedback */}
           {winData.isNewHighScore && savedRank !== null && (
             <div style={{ background: `${gold}20`, border: `1px solid ${gold}60`, borderRadius: 8, padding: '8px 14px', marginBottom: 14, fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: gold }}>
-              🏆 Rank #{savedRank} on leaderboard!
+              🏆 Rank #{savedRank} — saved as {session?.user?.name}!
+            </div>
+          )}
+          {!isLoggedIn && wouldBeHighScore && (
+            <div style={{ background: isDark ? '#1a1428' : '#e8e0f0', border: `1px solid ${border}`, borderRadius: 8, padding: '10px 14px', marginBottom: 14, textAlign: 'center' }}>
+              <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: '#9b5de5', marginBottom: 6 }}>
+                🏆 That&apos;s a top score!
+              </div>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: text2, marginBottom: 8 }}>
+                Log in to save your score to the leaderboard.
+              </div>
+              <a href="/login" style={{ display: 'inline-block', background: '#9b5de5', border: 'none', borderRadius: 7, padding: '8px 18px', color: '#fff', fontFamily: "'Press Start 2P', monospace", fontSize: 7, cursor: 'pointer', textDecoration: 'none' }}>
+                Log In →
+              </a>
             </div>
           )}
 
