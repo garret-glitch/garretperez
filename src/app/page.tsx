@@ -185,7 +185,6 @@ export default async function Home() {
                     letterSpacing: '0.04em', margin: 0,
                   }}>Garret Perez</h1>
                 </div>
-                {heroTitle && <div className="body-text" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)', marginBottom: 4 }}>{heroTitle}</div>}
                 <div className="body-text" style={{ fontSize: 12, color: 'var(--text-2)' }}>📍 {heroLocation}</div>
               </div>
 
@@ -321,7 +320,6 @@ export default async function Home() {
                 textShadow: '0 0 20px rgba(200,155,60,0.45), 1px 1px 3px rgba(0,0,0,0.9)',
                 letterSpacing: '0.04em', marginBottom: 7,
               }}>Garret Perez</h1>
-              <div className="body-text" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)', marginBottom: 5, lineHeight: 1.4 }}>{heroTitle}</div>
               <div className="body-text" style={{ fontSize: 12, color: 'var(--text-2)' }}>📍 {heroLocation}</div>
             </div>
 
