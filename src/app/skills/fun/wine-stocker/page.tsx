@@ -46,7 +46,7 @@ interface Efx { sprint: number; forklift: number; vendor: number; vendorShelf: n
 
 interface GS {
   phase: 'playing' | 'dialogue' | 'gameover'
-  player: { pos: V2; vel: V2; cases: number; maxCases: number; stamina: number; dir: V2 }
+  player: { pos: V2; vel: V2; cases: number; maxCases: number; stamina: number; dir: V2; staminaDepleted: boolean }
   shelves: Shelf[]
   custs: Customer[]; nextCid: number; nextCSpawn: number
   mgr: Mgr
@@ -92,7 +92,7 @@ function mkState(): GS {
   const hp = v(OFF.x + OFF.w/2, OFF.y + OFF.h/2)
   return {
     phase: 'playing',
-    player: { pos: v(SR_W + 90, CH/2), vel: v(0,0), cases: 0, maxCases: 1, stamina: STAM_MAX, dir: v(1,0) },
+    player: { pos: v(SR_W + 90, CH/2), vel: v(0,0), cases: 0, maxCases: 1, stamina: STAM_MAX, dir: v(1,0), staminaDepleted: false },
     shelves: SHELF_DEFS.map(s => ({ ...s, stock: SHELF_MAX })),
     custs: [], nextCid: 0, nextCSpawn: BASE_CUST_INT,
     mgr: { pos: { ...hp }, state: 'idle', target: { ...hp }, homePos: { ...hp }, lines: [], mood: 'happy', dialogueTimer: 0, nextInspection: BASE_MGR_INT },
@@ -155,16 +155,23 @@ function tickPlay(g: GS, dt: number, keys: Set<string>) {
     g.player.vel = v(rt?1:lt?-1:0, dn?1:up?-1:0)
     if (g.player.vel.x !== 0 || g.player.vel.y !== 0) g.player.dir = norm(g.player.vel)
 
-    // Energy Drink = always sprinting (no button needed); otherwise Shift/Space required
+    // Energy Drink = always sprinting (no button needed)
     const autoSprint = e.sprint > 0
-    const canSprint = autoSprint || (wantSprint && g.player.stamina > 5)
-    if (canSprint) {
-      if (!autoSprint) g.player.stamina = Math.max(0, g.player.stamina - STAM_DRAIN * dt)
-      else g.player.stamina = Math.min(STAM_MAX, g.player.stamina + STAM_REGEN * dt)
-    } else {
+    if (autoSprint) {
+      // Energy drink active — full speed, stamina regens, clear depleted flag
       g.player.stamina = Math.min(STAM_MAX, g.player.stamina + STAM_REGEN * dt)
+      g.player.staminaDepleted = false
+    } else if (wantSprint && !g.player.staminaDepleted) {
+      // Normal sprint — drain stamina; lock out sprint when it hits 0
+      g.player.stamina = Math.max(0, g.player.stamina - STAM_DRAIN * dt)
+      if (g.player.stamina <= 0) g.player.staminaDepleted = true
+    } else {
+      // Regen; unlock sprint once recovered to 30
+      g.player.stamina = Math.min(STAM_MAX, g.player.stamina + STAM_REGEN * dt)
+      if (g.player.staminaDepleted && g.player.stamina >= 30) g.player.staminaDepleted = false
     }
 
+    const canSprint = autoSprint || (wantSprint && !g.player.staminaDepleted)
     const spd = canSprint ? SPRINT_SPD : PLAYER_SPD
     const mv = norm(g.player.vel)
     g.player.pos.x = clamp(g.player.pos.x + mv.x * spd * dt, PR, CW - PR)
@@ -354,6 +361,7 @@ function applyPU(g: GS, type: PUType) {
     // Full speed automatically for 20s — no button needed, stamina fully restored
     e.sprint = 20
     g.player.stamina = STAM_MAX
+    g.player.staminaDepleted = false
   }
   if (type === 'forklift') {
     // Carry 3 cases for 30s AND instantly hand the player 3 cases right now
