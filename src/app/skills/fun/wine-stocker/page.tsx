@@ -36,7 +36,7 @@ const SHELF_DEFS = [
 /* ═══════════════════════ TYPES ═══════════════════════ */
 interface V2 { x: number; y: number }
 interface Shelf { id: number; x: number; y: number; w: number; h: number; label: string; clr: string; stock: number }
-type CustState = 'entering' | 'walking' | 'taking' | 'leaving'
+type CustState = 'entering' | 'approaching' | 'asking' | 'walking' | 'taking' | 'leaving'
 interface Customer { id: number; pos: V2; state: CustState; target: V2; shelfId: number; spd: number; takeTimer: number; clr: string; sz: number }
 type MgrState = 'idle' | 'walking' | 'dialogue' | 'returning'
 interface Mgr { pos: V2; state: MgrState; target: V2; homePos: V2; lines: string[]; mood: 'happy'|'angry'; dialogueTimer: number; nextInspection: number }
@@ -53,6 +53,8 @@ interface GS {
   pups: PU[]; nextPid: number; nextPSpawn: number
   score: number; level: number; strikes: number; time: number
   efx: Efx
+  activeAsker: number | null   // customer id blocking the player
+  wrongFlash: number           // timer for wrong-shelf feedback
 }
 
 /* ═══════════════════════ HELPERS ═══════════════════════ */
@@ -96,6 +98,7 @@ function mkState(): GS {
     pups: [], nextPid: 0, nextPSpawn: rnd(18, 32),
     score: 0, level: 1, strikes: 0, time: 0,
     efx: { sprint: 0, forklift: 0, vendor: 0, vendorShelf: -1, multi: 1, multiTimer: 0 },
+    activeAsker: null, wrongFlash: 0,
   }
 }
 
@@ -129,6 +132,7 @@ function tickPlay(g: GS, dt: number, keys: Set<string>) {
   e.multiTimer = Math.max(0, e.multiTimer - dt)
   if (e.multiTimer <= 0) e.multi = 1
   g.player.maxCases = e.forklift > 0 ? 3 : 1
+  g.wrongFlash = Math.max(0, g.wrongFlash - dt)
 
   // Vendor support auto-stocks the weakest shelf
   if (e.vendor > 0 && e.vendorShelf >= 0) {
@@ -137,26 +141,30 @@ function tickPlay(g: GS, dt: number, keys: Set<string>) {
     else e.vendorShelf = -1
   }
 
-  // Player input
-  const up = keys.has('KeyW') || keys.has('ArrowUp')
-  const dn = keys.has('KeyS') || keys.has('ArrowDown')
-  const lt = keys.has('KeyA') || keys.has('ArrowLeft')
-  const rt = keys.has('KeyD') || keys.has('ArrowRight')
-  const wantSprint = keys.has('ShiftLeft') || keys.has('ShiftRight') || keys.has('Space')
-  g.player.vel = v(rt?1:lt?-1:0, dn?1:up?-1:0)
-  if (g.player.vel.x !== 0 || g.player.vel.y !== 0) g.player.dir = norm(g.player.vel)
-
-  const canSprint = wantSprint && (e.sprint > 0 || g.player.stamina > 5)
-  if (canSprint) {
-    if (e.sprint <= 0) g.player.stamina = Math.max(0, g.player.stamina - STAM_DRAIN * dt)
+  // Player input — locked while a customer is asking
+  if (g.activeAsker !== null) {
+    g.player.vel = v(0, 0)
   } else {
-    g.player.stamina = Math.min(STAM_MAX, g.player.stamina + STAM_REGEN * dt)
-  }
+    const up = keys.has('KeyW') || keys.has('ArrowUp')
+    const dn = keys.has('KeyS') || keys.has('ArrowDown')
+    const lt = keys.has('KeyA') || keys.has('ArrowLeft')
+    const rt = keys.has('KeyD') || keys.has('ArrowRight')
+    const wantSprint = keys.has('ShiftLeft') || keys.has('ShiftRight') || keys.has('Space')
+    g.player.vel = v(rt?1:lt?-1:0, dn?1:up?-1:0)
+    if (g.player.vel.x !== 0 || g.player.vel.y !== 0) g.player.dir = norm(g.player.vel)
 
-  const spd = canSprint ? SPRINT_SPD : PLAYER_SPD
-  const mv = norm(g.player.vel)
-  g.player.pos.x = clamp(g.player.pos.x + mv.x * spd * dt, PR, CW - PR)
-  g.player.pos.y = clamp(g.player.pos.y + mv.y * spd * dt, PR, CH - PR)
+    const canSprint = wantSprint && (e.sprint > 0 || g.player.stamina > 5)
+    if (canSprint) {
+      if (e.sprint <= 0) g.player.stamina = Math.max(0, g.player.stamina - STAM_DRAIN * dt)
+    } else {
+      g.player.stamina = Math.min(STAM_MAX, g.player.stamina + STAM_REGEN * dt)
+    }
+
+    const spd = canSprint ? SPRINT_SPD : PLAYER_SPD
+    const mv = norm(g.player.vel)
+    g.player.pos.x = clamp(g.player.pos.x + mv.x * spd * dt, PR, CW - PR)
+    g.player.pos.y = clamp(g.player.pos.y + mv.y * spd * dt, PR, CH - PR)
+  }
 
   // Stock room pickup (walk into left zone)
   if (g.player.pos.x < SR_W + 10 && g.player.cases < g.player.maxCases) {
@@ -204,8 +212,14 @@ function tickPlay(g: GS, dt: number, keys: Set<string>) {
         if (avail.length > 0) {
           const sh = avail[rndI(0, avail.length-1)]
           c.shelfId = sh.id
-          c.target = v(sh.x + sh.w/2 + rnd(-8,8), sh.y + sh.h + 22)
-          c.state = 'walking'
+          // ~30% chance to ask the player for directions (one asker at a time)
+          if (Math.random() < 0.30 && g.activeAsker === null) {
+            c.state = 'approaching'
+            c.target = { ...g.player.pos }
+          } else {
+            c.target = v(sh.x + sh.w/2 + rnd(-8,8), sh.y + sh.h + 22)
+            c.state = 'walking'
+          }
         } else {
           c.target = v(rnd(ENT_X, ENT_X+ENT_W), CH+20)
           c.state = 'leaving'
@@ -213,6 +227,32 @@ function tickPlay(g: GS, dt: number, keys: Set<string>) {
       } else {
         const dir = norm(v(c.target.x - c.pos.x, c.target.y - c.pos.y))
         c.pos.x += dir.x * c.spd * dt; c.pos.y += dir.y * c.spd * dt
+      }
+    } else if (c.state === 'approaching') {
+      // Walk toward player to ask
+      if (g.activeAsker !== null && g.activeAsker !== c.id) {
+        // Another customer already asking — just head straight to shelf
+        const sh = g.shelves.find(s => s.id === c.shelfId)
+        c.target = sh ? v(sh.x + sh.w/2, sh.y + sh.h + 22) : v(rnd(ENT_X, ENT_X+ENT_W), CH+20)
+        c.state = sh ? 'walking' : 'leaving'
+      } else {
+        c.target = { ...g.player.pos }  // keep tracking
+        const d = dist(c.pos, g.player.pos)
+        if (d < 26) {
+          g.activeAsker = c.id
+          c.state = 'asking'
+        } else {
+          const dir = norm(v(c.target.x - c.pos.x, c.target.y - c.pos.y))
+          c.pos.x += dir.x * c.spd * dt; c.pos.y += dir.y * c.spd * dt
+        }
+      }
+    } else if (c.state === 'asking') {
+      // Standing still — waiting for player to click the right shelf
+      // (resolved by handleCanvasClick; safety clear if activeAsker was reset externally)
+      if (g.activeAsker !== c.id) {
+        const sh = g.shelves.find(s => s.id === c.shelfId)
+        c.target = sh ? v(sh.x + sh.w/2, sh.y + sh.h + 22) : v(rnd(ENT_X, ENT_X+ENT_W), CH+20)
+        c.state = sh ? 'walking' : 'leaving'
       }
     } else if (c.state === 'walking') {
       const d = dist(c.pos, c.target)
@@ -419,7 +459,7 @@ function render(ctx: CanvasRenderingContext2D, g: GS, t: number) {
     ctx.fillText(sh.label, sh.x+sh.w/2, sh.y-5)
 
     // Proximity highlight when player can stock
-    if (g.player.cases > 0 && sh.stock < SHELF_MAX) {
+    if (g.activeAsker === null && g.player.cases > 0 && sh.stock < SHELF_MAX) {
       const d2 = dist(g.player.pos, v(sh.x+sh.w/2, sh.y+sh.h/2+18))
       if (d2 < STOCK_R * 1.7) {
         ctx.strokeStyle = d2 < STOCK_R ? 'rgba(0,255,100,0.75)' : 'rgba(255,210,0,0.3)'
@@ -427,6 +467,28 @@ function render(ctx: CanvasRenderingContext2D, g: GS, t: number) {
         ctx.strokeRect(sh.x-3, sh.y-3, sh.w+6, sh.h+12)
         ctx.setLineDash([])
       }
+    }
+
+    // Asking mode: all shelves pulse as clickable targets
+    if (g.activeAsker !== null) {
+      const asker = g.custs.find(c => c.id === g.activeAsker)
+      const isTarget = asker?.shelfId === sh.id
+      const pulse = 0.55 + 0.45 * Math.sin(t * 5 + sh.id * 1.2)
+      if (isTarget) {
+        // Correct shelf glows gold — but only visually if player already moused over it
+        // (we don't give it away; they must read the label)
+        ctx.shadowColor = '#C89B3C'; ctx.shadowBlur = 18
+      }
+      ctx.strokeStyle = isTarget
+        ? `rgba(200,155,60,${pulse})` : `rgba(100,180,255,${pulse * 0.7})`
+      ctx.lineWidth = isTarget ? 3 : 2
+      ctx.strokeRect(sh.x-4, sh.y-4, sh.w+8, sh.h+10)
+      ctx.shadowBlur = 0
+      // "CLICK" label above shelf label
+      ctx.font = '6px "Press Start 2P", monospace'
+      ctx.fillStyle = isTarget ? `rgba(200,155,60,${pulse})` : `rgba(100,180,255,${pulse * 0.7})`
+      ctx.textAlign = 'center'
+      ctx.fillText('CLICK', sh.x+sh.w/2, sh.y-15)
     }
   }
 
@@ -456,14 +518,43 @@ function render(ctx: CanvasRenderingContext2D, g: GS, t: number) {
   // ── Customers ───────────────────────────────────────────────
   for (const c of g.custs) {
     ctx.save()
-    ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 4
+    // Highlight asking customer
+    if (c.state === 'asking') {
+      ctx.shadowColor = '#88CCFF'; ctx.shadowBlur = 18
+    } else {
+      ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 4
+    }
     ctx.fillStyle = c.clr
     ctx.beginPath(); ctx.arc(c.pos.x, c.pos.y, c.sz, 0, Math.PI*2); ctx.fill()
     ctx.fillStyle = '#F5C99A'
     ctx.beginPath(); ctx.arc(c.pos.x, c.pos.y - c.sz*0.42, c.sz*0.52, 0, Math.PI*2); ctx.fill()
+    ctx.shadowBlur = 0
     if (c.state === 'taking') {
-      ctx.shadowBlur = 0; ctx.font = '11px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+      ctx.font = '11px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
       ctx.fillText('🍷', c.pos.x, c.pos.y - c.sz - 5)
+    }
+    // Speech bubble while approaching or asking
+    if (c.state === 'approaching' || c.state === 'asking') {
+      const sh = g.shelves.find(s => s.id === c.shelfId)
+      const wine = sh?.label ?? '?'
+      const bx = c.pos.x - 44, by = c.pos.y - c.sz - 38, bw = 88, bh = 26
+      ctx.fillStyle = 'rgba(255,255,255,0.93)'
+      rrect(ctx, bx, by, bw, bh, 5); ctx.fill()
+      ctx.strokeStyle = '#88CCFF'; ctx.lineWidth = 1.5; ctx.stroke()
+      // Tail
+      ctx.beginPath()
+      ctx.moveTo(c.pos.x - 5, by + bh)
+      ctx.lineTo(c.pos.x, c.pos.y - c.sz - 4)
+      ctx.lineTo(c.pos.x + 5, by + bh)
+      ctx.closePath(); ctx.fillStyle = 'rgba(255,255,255,0.93)'; ctx.fill()
+      ctx.strokeStyle = '#88CCFF'; ctx.lineWidth = 1; ctx.stroke()
+      // Text
+      ctx.font = '6px "Press Start 2P", monospace'
+      ctx.fillStyle = '#1A1A2A'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+      ctx.fillText(`Where is`, c.pos.x, by + 9)
+      ctx.fillStyle = '#C89B3C'
+      ctx.fillText(wine + '?', c.pos.x, by + 20)
+      ctx.textBaseline = 'alphabetic'
     }
     ctx.restore()
   }
@@ -530,6 +621,36 @@ function render(ctx: CanvasRenderingContext2D, g: GS, t: number) {
 
   // ── Dialogue overlay ─────────────────────────────────────────
   if (g.phase === 'dialogue') renderDialogue(ctx, g)
+
+  // ── Customer asking banner ────────────────────────────────────
+  if (g.activeAsker !== null) {
+    const asker = g.custs.find(c => c.id === g.activeAsker)
+    if (asker) {
+      const sh = g.shelves.find(s => s.id === asker.shelfId)
+      const wine = sh?.label ?? '?'
+
+      // Banner at the bottom
+      ctx.fillStyle = 'rgba(8,8,20,0.88)'
+      rrect(ctx, CW/2 - 210, CH - 56, 420, 44, 10); ctx.fill()
+      ctx.strokeStyle = '#88CCFF'; ctx.lineWidth = 2; ctx.stroke()
+
+      ctx.font = '8px "Press Start 2P", monospace'
+      ctx.fillStyle = '#88CCFF'; ctx.textAlign = 'center'
+      ctx.fillText(`"Excuse me! Where is the ${wine}?"`, CW/2, CH - 37)
+      ctx.font = '7px "Press Start 2P", monospace'
+      ctx.fillStyle = '#C89B3C'
+      ctx.fillText('CLICK THE CORRECT SHELF', CW/2, CH - 22)
+
+      // Wrong flash feedback
+      if (g.wrongFlash > 0) {
+        ctx.fillStyle = `rgba(255,50,50,${Math.min(0.35, g.wrongFlash * 0.3)})`
+        ctx.fillRect(0, 0, CW, CH)
+        ctx.font = '10px "Press Start 2P", monospace'
+        ctx.fillStyle = '#FF5555'; ctx.textAlign = 'center'
+        ctx.fillText("That's not it!", CW/2, CH/2 - 10)
+      }
+    }
+  }
 }
 
 function renderHUD(ctx: CanvasRenderingContext2D, g: GS) {
@@ -698,6 +819,44 @@ export default function WineStockerRush() {
     } catch {}
   }, [])
 
+  const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const g = gsRef.current
+    if (!g || g.activeAsker === null) return
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const rect = canvas.getBoundingClientRect()
+    let clientX: number, clientY: number
+    if ('touches' in e) {
+      if (e.changedTouches.length === 0) return
+      clientX = e.changedTouches[0].clientX
+      clientY = e.changedTouches[0].clientY
+    } else {
+      clientX = e.clientX; clientY = e.clientY
+    }
+    const cx = (clientX - rect.left) * (CW / rect.width)
+    const cy = (clientY - rect.top) * (CH / rect.height)
+
+    const asker = g.custs.find(c => c.id === g.activeAsker)
+    if (!asker) { g.activeAsker = null; return }
+
+    for (const sh of g.shelves) {
+      if (cx >= sh.x - 6 && cx <= sh.x + sh.w + 6 && cy >= sh.y - 14 && cy <= sh.y + sh.h + 14) {
+        if (sh.id === asker.shelfId) {
+          // Correct! Send customer to that shelf
+          g.activeAsker = null
+          asker.state = 'walking'
+          asker.target = v(sh.x + sh.w/2, sh.y + sh.h + 22)
+          g.score += Math.round(8 * g.efx.multi)
+        } else {
+          // Wrong shelf
+          g.wrongFlash = 1.0
+        }
+        break
+      }
+    }
+  }, [])
+
   const startGame = useCallback(() => {
     gsRef.current = mkState()
     xpRef.current = false
@@ -766,10 +925,13 @@ export default function WineStockerRush() {
           ref={canvasRef}
           width={CW}
           height={CH}
+          onClick={handleCanvasClick}
+          onTouchEnd={handleCanvasClick}
           style={{
             display: 'block', width: '100%', height: 'auto',
             border: '2px solid var(--border)', borderRadius: 8,
             background: '#0d0d14',
+            cursor: 'default',
           }}
         />
 
