@@ -1,7 +1,10 @@
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import XpBar from '@/components/XpBar'
-import Link from 'next/link'
+import { getSkillBySlug } from '@/lib/skills'
+import { getCommunityXpForSkill } from '@/lib/community-xp'
+import SkillHeroBar from '@/components/SkillHeroBar'
+import SkillVisitTracker from '@/components/SkillVisitTracker'
+import { SkillType } from '@prisma/client'
 import GameGrid, { type GameDef } from '@/components/GameGrid'
 
 export const dynamic = 'force-dynamic'
@@ -22,19 +25,19 @@ const GAMES: GameDef[] = [
 export default async function FunPage() {
   const session = await auth()
   const isAdmin = session?.user?.role === 'ADMIN'
+  const skillMeta = getSkillBySlug('fun')!
 
-  let userXp = 0
+  let communityXp = 0
+  let communityMemberCount = 0
   let hiddenGames: string[] = []
 
   try {
-    if (session?.user?.id) {
-      const userSkill = await prisma.userSkill.findUnique({
-        where: { userId_skill: { userId: session.user.id, skill: 'FUN' } },
-      })
-      userXp = userSkill?.xp ?? 0
-    }
-
-    const hiddenSetting = await (prisma as any).siteSetting.findUnique({ where: { key: 'hidden_games' } })
+    const [communityData, hiddenSetting] = await Promise.all([
+      getCommunityXpForSkill('FUN' as SkillType),
+      (prisma as any).siteSetting.findUnique({ where: { key: 'hidden_games' } }),
+    ])
+    communityXp = communityData.xp
+    communityMemberCount = communityData.memberCount
     if (hiddenSetting) {
       hiddenGames = JSON.parse(hiddenSetting.value) as string[]
     }
@@ -42,26 +45,14 @@ export default async function FunPage() {
 
   return (
     <div className="space-y-4">
-      <div className="rp-card">
-        <div className="flex items-center gap-3 mb-2">
-          <span className="text-2xl">🎮</span>
-          <div>
-            <h1 className="text-[12px]" style={{ color: 'var(--text-1)' }}>More Games</h1>
-            <p className="text-[7px] mt-0.5" style={{ color: 'var(--text-3)' }}>Play mini-games to earn Fun XP</p>
-          </div>
-        </div>
-        {session?.user && (
-          <div className="mt-3">
-            <XpBar xp={userXp} skillName="Fun" />
-          </div>
-        )}
-        {!session?.user && (
-          <p className="text-[7px] mt-2" style={{ color: 'var(--text-3)' }}>
-            <Link href="/login" style={{ color: 'var(--gold)' }}>Login</Link>
-            {' '}to save your XP when you win!
-          </p>
-        )}
-      </div>
+      {session?.user && <SkillVisitTracker skill={'FUN' as SkillType} />}
+
+      <SkillHeroBar
+        skill={skillMeta}
+        communityXp={communityXp}
+        memberCount={communityMemberCount}
+        isLoggedIn={!!session?.user}
+      />
 
       <GameGrid games={GAMES} initialHidden={hiddenGames} isAdmin={isAdmin} />
     </div>
