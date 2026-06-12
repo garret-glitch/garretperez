@@ -19,8 +19,8 @@ const STAM_MAX = 100, STAM_DRAIN = 32, STAM_REGEN = 19
 const SHELF_MAX = 8, CASE_FILL = 4
 const STOCK_R = 56
 
-const BASE_CUST_INT = 4.2
-const BASE_MGR_INT = 27
+const BASE_CUST_INT = 3.6
+const BASE_MGR_INT = 23
 const BASE_CUST_SPD = 55
 
 const XP_THRESHOLD = 400
@@ -57,6 +57,8 @@ interface GS {
   activeAsker: number | null   // customer id blocking the player
   wrongFlash: number           // timer for wrong-shelf feedback
   custPerk: { type: PUType; timer: number } | null  // notification for perk earned
+  levelUpTimer: number
+  stockFlashes: Array<{ shelfId: number; timer: number }>
 }
 
 /* ═══════════════════════ HELPERS ═══════════════════════ */
@@ -101,6 +103,7 @@ function mkState(): GS {
     score: 0, level: 1, strikes: 0, time: 0,
     efx: { sprint: 0, forklift: 0, vendor: 0, vendorShelf: -1, multi: 1, multiTimer: 0 },
     activeAsker: null, wrongFlash: 0, custPerk: null,
+    levelUpTimer: 0, stockFlashes: [],
   }
 }
 
@@ -123,8 +126,10 @@ function tick(g: GS, dt: number, keys: Set<string>) {
 
 function tickPlay(g: GS, dt: number, keys: Set<string>) {
   g.time += dt
-  g.level = Math.max(g.level, 1 + Math.floor(g.score/250) + Math.floor(g.time/65))
-  const diff = 1 + (g.level - 1) * 0.14
+  const prevLevel = g.level
+  g.level = Math.max(g.level, 1 + Math.floor(g.score/160) + Math.floor(g.time/45))
+  if (g.level > prevLevel) g.levelUpTimer = 2.5
+  const diff = 1 + (g.level - 1) * 0.20
 
   // Effects countdown
   const e = g.efx
@@ -135,6 +140,8 @@ function tickPlay(g: GS, dt: number, keys: Set<string>) {
   if (e.multiTimer <= 0) e.multi = 1
   g.player.maxCases = e.forklift > 0 ? 3 : 1
   g.wrongFlash = Math.max(0, g.wrongFlash - dt)
+  g.levelUpTimer = Math.max(0, g.levelUpTimer - dt)
+  g.stockFlashes = g.stockFlashes.filter(f => { f.timer -= dt; return f.timer > 0 })
   if (g.custPerk) { g.custPerk.timer -= dt; if (g.custPerk.timer <= 0) g.custPerk = null }
 
   // Vendor support auto-stocks the weakest shelf
@@ -193,6 +200,7 @@ function tickPlay(g: GS, dt: number, keys: Set<string>) {
         sh.stock = Math.min(SHELF_MAX, sh.stock + CASE_FILL)
         g.player.cases--
         g.score += Math.round(12 * e.multi)
+        g.stockFlashes.push({ shelfId: sh.id, timer: 0.55 })
       }
     }
   }
@@ -225,8 +233,9 @@ function tickPlay(g: GS, dt: number, keys: Set<string>) {
         if (avail.length > 0) {
           const sh = avail[rndI(0, avail.length-1)]
           c.shelfId = sh.id
-          // ~30% chance to ask the player for directions (one asker at a time)
-          if (Math.random() < 0.30 && g.activeAsker === null) {
+          // Asking chance scales from 28% → 65% as level rises
+          const askChance = Math.min(0.65, 0.28 + (g.level - 1) * 0.07)
+          if (Math.random() < askChance && g.activeAsker === null) {
             c.state = 'approaching'
             c.target = { ...g.player.pos }
           } else {
@@ -297,6 +306,16 @@ function tickPlay(g: GS, dt: number, keys: Set<string>) {
     m.target = { ...g.player.pos }
     const d = dist(m.pos, m.target)
     if (d < 22) {
+      // Release any blocked customer so they can continue on their own
+      if (g.activeAsker !== null) {
+        const stuck = g.custs.find(c => c.id === g.activeAsker)
+        if (stuck) {
+          const sh = g.shelves.find(s => s.id === stuck.shelfId)
+          stuck.state = sh ? 'walking' : 'leaving'
+          stuck.target = sh ? v(sh.x + sh.w/2, sh.y + sh.h + 22) : v(rnd(ENT_X, ENT_X+ENT_W), CH+20)
+        }
+        g.activeAsker = null
+      }
       const shopAvg = g.shelves.reduce((a, s) => a + s.stock/SHELF_MAX, 0) / g.shelves.length
       m.state = 'dialogue'
       if (shopAvg >= 0.5) {
@@ -312,7 +331,7 @@ function tickPlay(g: GS, dt: number, keys: Set<string>) {
       m.dialogueTimer = g.strikes >= 3 ? 5 : 4.2
       g.phase = 'dialogue'
     } else {
-      const mspd = 82 + (g.level-1)*5
+      const mspd = 85 + (g.level-1)*8
       const dir = norm(v(m.target.x - m.pos.x, m.target.y - m.pos.y))
       m.pos.x += dir.x * mspd * dt; m.pos.y += dir.y * mspd * dt
     }
@@ -321,7 +340,7 @@ function tickPlay(g: GS, dt: number, keys: Set<string>) {
     const d = dist(m.pos, m.homePos)
     if (d < 10) {
       m.pos = { ...m.homePos }; m.state = 'idle'
-      m.nextInspection = rnd(BASE_MGR_INT * 0.8, BASE_MGR_INT * 1.2) / (1 + (g.level-1)*0.1)
+      m.nextInspection = rnd(BASE_MGR_INT * 0.75, BASE_MGR_INT * 1.1) / (1 + (g.level-1)*0.15)
     } else {
       const dir = norm(v(m.homePos.x - m.pos.x, m.homePos.y - m.pos.y))
       m.pos.x += dir.x * 92 * dt; m.pos.y += dir.y * 92 * dt
@@ -501,6 +520,13 @@ function render(ctx: CanvasRenderingContext2D, g: GS, t: number) {
       }
     }
 
+    // Stock flash — brief green overlay when player just restocked this shelf
+    const sf = g.stockFlashes.find(f => f.shelfId === sh.id)
+    if (sf) {
+      ctx.fillStyle = `rgba(80,220,120,${(sf.timer / 0.55) * 0.52})`
+      ctx.fillRect(sh.x, sh.y, sh.w, sh.h)
+    }
+
     // Asking mode: all shelves pulse as clickable targets
     if (g.activeAsker !== null) {
       const asker = g.custs.find(c => c.id === g.activeAsker)
@@ -613,13 +639,15 @@ function render(ctx: CanvasRenderingContext2D, g: GS, t: number) {
   // Label
   ctx.font = '7px "Press Start 2P", monospace'; ctx.fillStyle = '#F1C40F'; ctx.textAlign = 'center'
   ctx.fillText('MGR', m.pos.x, m.pos.y + MR + 10)
-  // Inspection warning when approaching
+  // Inspection warning when approaching — visible from farther away
   if (m.state === 'walking') {
     const d2p = dist(m.pos, g.player.pos)
-    if (d2p < 120) {
-      ctx.font = '8px "Press Start 2P", monospace'
-      ctx.fillStyle = `rgba(255,80,80,${Math.min(1, (120-d2p)/120)})`
-      ctx.fillText('!', m.pos.x, m.pos.y - MR - 6)
+    if (d2p < 200) {
+      const a = Math.min(1, (200 - d2p) / 180)
+      const sz = d2p < 80 ? 12 : 9
+      ctx.font = `${sz}px "Press Start 2P", monospace`
+      ctx.fillStyle = `rgba(255,60,60,${a})`
+      ctx.fillText(d2p < 80 ? '!!' : '!', m.pos.x, m.pos.y - MR - 6)
     }
   }
   ctx.restore()
@@ -649,7 +677,7 @@ function render(ctx: CanvasRenderingContext2D, g: GS, t: number) {
   ctx.restore()
 
   // ── HUD ─────────────────────────────────────────────────────
-  renderHUD(ctx, g)
+  renderHUD(ctx, g, t)
 
   // ── Dialogue overlay ─────────────────────────────────────────
   if (g.phase === 'dialogue') renderDialogue(ctx, g)
@@ -682,6 +710,28 @@ function render(ctx: CanvasRenderingContext2D, g: GS, t: number) {
         ctx.fillText("That's not it!", CW/2, CH/2 - 10)
       }
     }
+  }
+
+  // ── Level-up popup ────────────────────────────────────────────
+  if (g.levelUpTimer > 0) {
+    const fade = Math.min(1, g.levelUpTimer * 1.4)
+    const rise = Math.max(0, 2.5 - g.levelUpTimer) * 22
+    const lbw = 260, lbh = 50, lbx = CW/2 - 130, lby = CH/2 - 40 - rise
+    ctx.save()
+    ctx.globalAlpha = fade
+    ctx.shadowColor = '#C89B3C'; ctx.shadowBlur = 30
+    ctx.fillStyle = 'rgba(10,8,3,0.94)'
+    rrect(ctx, lbx, lby, lbw, lbh, 12); ctx.fill()
+    ctx.strokeStyle = '#C89B3C'; ctx.lineWidth = 2.5; ctx.stroke()
+    ctx.shadowBlur = 0
+    ctx.font = '11px "Press Start 2P", monospace'
+    ctx.fillStyle = '#C89B3C'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    ctx.fillText(`⭐ LEVEL ${g.level}! ⭐`, CW/2, lby + 20)
+    ctx.font = '7px "Press Start 2P", monospace'
+    ctx.fillStyle = '#A09880'
+    ctx.fillText('Getting harder...', CW/2, lby + 38)
+    ctx.textBaseline = 'alphabetic'
+    ctx.restore()
   }
 
   // ── Customer perk notification ────────────────────────────────
@@ -729,7 +779,7 @@ function render(ctx: CanvasRenderingContext2D, g: GS, t: number) {
   }
 }
 
-function renderHUD(ctx: CanvasRenderingContext2D, g: GS) {
+function renderHUD(ctx: CanvasRenderingContext2D, g: GS, t: number) {
   ctx.textBaseline = 'alphabetic'
 
   // Score / level / cases
@@ -748,9 +798,10 @@ function renderHUD(ctx: CanvasRenderingContext2D, g: GS) {
 
   // Strikes
   const alert = g.strikes >= 2
-  ctx.fillStyle = 'rgba(8,8,16,0.88)'
+  const alertPulse = alert ? 0.7 + 0.3 * Math.sin(t * 7) : 1
+  ctx.fillStyle = alert ? `rgba(28,6,6,${alertPulse * 0.94})` : 'rgba(8,8,16,0.88)'
   rrect(ctx, CW-172, 8, 164, 52, 8); ctx.fill()
-  ctx.strokeStyle = alert ? '#FF4444' : '#C89B3C'; ctx.lineWidth = 1.5; ctx.stroke()
+  ctx.strokeStyle = alert ? `rgba(255,60,60,${alertPulse})` : '#C89B3C'; ctx.lineWidth = 1.5; ctx.stroke()
   ctx.font = '7px "Press Start 2P", monospace'
   ctx.fillStyle = alert ? '#FF4444' : '#E8E6E0'; ctx.textAlign = 'right'
   ctx.fillText('STRIKES', CW-16, 26)
@@ -782,6 +833,17 @@ function renderHUD(ctx: CanvasRenderingContext2D, g: GS) {
   ctx.font = '9px "Press Start 2P", monospace'
   ctx.fillStyle = avg>0.6?'#4CAF50':avg>0.3?'#FFC107':'#F44336'
   ctx.fillText(`${Math.round(avg*100)}%`, CW/2, 34)
+
+  // Manager incoming warning — shows whenever manager is walking toward player
+  if (g.mgr.state === 'walking') {
+    const pulse = 0.65 + 0.35 * Math.sin(t * 7)
+    ctx.fillStyle = `rgba(26,4,4,${pulse * 0.92})`
+    rrect(ctx, CW/2-108, 46, 216, 22, 5); ctx.fill()
+    ctx.strokeStyle = `rgba(255,70,70,${pulse})`; ctx.lineWidth = 1.5; ctx.stroke()
+    ctx.font = '7px "Press Start 2P", monospace'
+    ctx.fillStyle = '#FFCCCC'; ctx.textAlign = 'center'
+    ctx.fillText('⚠ MANAGER INCOMING!', CW/2, 61)
+  }
 
   // Active effects
   let ey = 112
@@ -938,7 +1000,7 @@ export default function WineStockerRush() {
           grantCustomerPerk(g)
         } else {
           // Wrong shelf
-          g.wrongFlash = 1.0
+          g.wrongFlash = 1.6
         }
         break
       }
