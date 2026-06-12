@@ -23,6 +23,7 @@ export default async function SkillPage({ params }: Props) {
 
   const session = await auth()
 
+  let headshot = ''
   let communityXp = 0
   let communityMemberCount = 0
   let posts: Array<{
@@ -33,8 +34,9 @@ export default async function SkillPage({ params }: Props) {
   }> = []
 
   try {
-    const [communityData, postRows] = await Promise.all([
+    const [communityData, headshotRow, postRows] = await Promise.all([
       getCommunityXpForSkill(skillMeta.dbEnum as SkillType),
+      (prisma as any).siteSetting.findUnique({ where: { key: 'headshot' } }),
       (prisma as any).post.findMany({
         where: { skill: skillMeta.dbEnum as SkillType },
         orderBy: { createdAt: 'desc' },
@@ -51,6 +53,7 @@ export default async function SkillPage({ params }: Props) {
     ])
     communityXp = communityData.xp
     communityMemberCount = communityData.memberCount
+    headshot = headshotRow?.value ?? ''
     posts = postRows
 
     } catch {
@@ -68,6 +71,7 @@ export default async function SkillPage({ params }: Props) {
         memberCount={communityMemberCount}
         postCount={posts.length}
         isLoggedIn={!!session?.user}
+        headshot={headshot}
       />
 
       {session?.user ? (

@@ -90,6 +90,7 @@ const WINES = [
 export default async function FoodPage() {
   const session = await auth()
 
+  let headshot = ''
   let communityXp = 0
   let communityMemberCount = 0
   let recipes: Array<{
@@ -103,9 +104,13 @@ export default async function FoodPage() {
   }> = []
 
   try {
-    const communityData = await getCommunityXpForSkill('FOOD')
+    const [communityData, headshotRow] = await Promise.all([
+      getCommunityXpForSkill('FOOD'),
+      (prisma as any).siteSetting.findUnique({ where: { key: 'headshot' } }),
+    ])
     communityXp = communityData.xp
     communityMemberCount = communityData.memberCount
+    headshot = headshotRow?.value ?? ''
     recipes = await prisma.recipe.findMany({
       orderBy: { createdAt: 'desc' }, take: 20,
       include: { user: { select: { username: true } } },
@@ -126,6 +131,7 @@ export default async function FoodPage() {
         memberCount={communityMemberCount}
         postCount={posts.length}
         isLoggedIn={!!session?.user}
+        headshot={headshot}
       />
 
       {/* ── FEATURED WINES ───────────────────────────────────── */}

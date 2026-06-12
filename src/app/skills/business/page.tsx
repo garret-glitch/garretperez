@@ -25,6 +25,7 @@ const S = {
 export default async function BusinessPage() {
   const session = await auth()
 
+  let headshot = ''
   let communityXp = 0
   let communityMemberCount = 0
   let posts: Array<{
@@ -33,9 +34,13 @@ export default async function BusinessPage() {
   }> = []
 
   try {
-    const communityData = await getCommunityXpForSkill('BUSINESS')
+    const [communityData, headshotRow] = await Promise.all([
+      getCommunityXpForSkill('BUSINESS'),
+      (prisma as any).siteSetting.findUnique({ where: { key: 'headshot' } }),
+    ])
     communityXp = communityData.xp
     communityMemberCount = communityData.memberCount
+    headshot = headshotRow?.value ?? ''
     posts = await prisma.post.findMany({
       where: { skill: 'BUSINESS' },
       orderBy: { createdAt: 'desc' }, take: 20,
@@ -52,6 +57,7 @@ export default async function BusinessPage() {
         memberCount={communityMemberCount}
         postCount={posts.length}
         isLoggedIn={!!session?.user}
+        headshot={headshot}
       />
 
       {/* ── LIVE MARKET DATA ─────────────────────────────────── */}

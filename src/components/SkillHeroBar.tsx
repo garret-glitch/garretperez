@@ -8,6 +8,7 @@ interface Props {
   memberCount: number
   postCount?: number
   isLoggedIn: boolean
+  headshot?: string
 }
 
 function StatChip({ value, label, highlight }: { value: string | number; label: string; highlight?: boolean }) {
@@ -29,36 +30,38 @@ function StatChip({ value, label, highlight }: { value: string | number; label: 
   )
 }
 
-export default function SkillHeroBar({ skill, communityXp, memberCount, postCount, isLoggedIn }: Props) {
+export default function SkillHeroBar({ skill, communityXp, memberCount, postCount, isLoggedIn, headshot }: Props) {
   const p = xpProgress(communityXp)
 
   return (
     <div className="hero-panel">
       <div className="flex flex-col sm:flex-row gap-5 sm:items-center">
 
-        {/* ── LEFT: icon + identity + stats ── */}
+        {/* ── LEFT: photo + identity + stats ── */}
         <div style={{ flex: 1, minWidth: 0 }}>
 
-          {/* Icon + title */}
+          {/* Photo + title */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 14 }}>
 
-            {/* Skill icon — matches the sidebar SkillCell exactly */}
+            {/* Profile photo — same style as homepage */}
             <div style={{
-              width: 76, height: 76, flexShrink: 0,
-              background: skill.color,
-              border: '2px solid rgba(200,155,60,0.35)',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              gap: 5,
+              width: 90, height: 90, flexShrink: 0,
+              border: '3px solid #c89b3c',
+              boxShadow: '0 0 0 4px rgba(200,155,60,0.1), 0 6px 24px rgba(0,0,0,0.7)',
+              overflow: 'hidden',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'var(--bg-page)', color: 'var(--gold)',
+              fontSize: 24, fontWeight: 700,
             }}>
-              <span style={{ fontSize: 30, lineHeight: 1 }}>{skill.icon}</span>
-              <span className="text-[5px]" style={{ fontFamily: "'Press Start 2P', monospace", color: '#e8d8b0', letterSpacing: '0.04em', textAlign: 'center', lineHeight: 1.4, padding: '0 4px' }}>
-                {skill.label}
-              </span>
+              {headshot
+                ? <img src={headshot} alt="Garret Perez" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : 'GP'}
             </div>
 
-            {/* Title + badge + description */}
+            {/* Title + skill badge + description */}
             <div style={{ minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 20, lineHeight: 1 }}>{skill.icon}</span>
                 <h1 style={{
                   fontFamily: "'Cinzel', serif",
                   fontSize: 21, fontWeight: 700, color: 'var(--text-1)',
