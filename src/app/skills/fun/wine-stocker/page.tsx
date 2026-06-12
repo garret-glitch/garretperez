@@ -55,6 +55,7 @@ interface GS {
   efx: Efx
   activeAsker: number | null   // customer id blocking the player
   wrongFlash: number           // timer for wrong-shelf feedback
+  custPerk: { type: PUType; timer: number } | null  // notification for perk earned
 }
 
 /* ═══════════════════════ HELPERS ═══════════════════════ */
@@ -98,7 +99,7 @@ function mkState(): GS {
     pups: [], nextPid: 0, nextPSpawn: rnd(18, 32),
     score: 0, level: 1, strikes: 0, time: 0,
     efx: { sprint: 0, forklift: 0, vendor: 0, vendorShelf: -1, multi: 1, multiTimer: 0 },
-    activeAsker: null, wrongFlash: 0,
+    activeAsker: null, wrongFlash: 0, custPerk: null,
   }
 }
 
@@ -133,6 +134,7 @@ function tickPlay(g: GS, dt: number, keys: Set<string>) {
   if (e.multiTimer <= 0) e.multi = 1
   g.player.maxCases = e.forklift > 0 ? 3 : 1
   g.wrongFlash = Math.max(0, g.wrongFlash - dt)
+  if (g.custPerk) { g.custPerk.timer -= dt; if (g.custPerk.timer <= 0) g.custPerk = null }
 
   // Vendor support auto-stocks the weakest shelf
   if (e.vendor > 0 && e.vendorShelf >= 0) {
@@ -333,6 +335,14 @@ function tickPlay(g: GS, dt: number, keys: Set<string>) {
     if (dist(g.player.pos, pu.pos) < 22) { applyPU(g, pu.type); return false }
     return true
   })
+}
+
+const PU_TYPES: PUType[] = ['energy_drink', 'forklift', 'vendor_support', 'eotm', 'overtime']
+
+function grantCustomerPerk(g: GS) {
+  const type = PU_TYPES[rndI(0, PU_TYPES.length - 1)]
+  applyPU(g, type)
+  g.custPerk = { type, timer: 2.8 }
 }
 
 function applyPU(g: GS, type: PUType) {
@@ -651,6 +661,50 @@ function render(ctx: CanvasRenderingContext2D, g: GS, t: number) {
       }
     }
   }
+
+  // ── Customer perk notification ────────────────────────────────
+  if (g.custPerk) {
+    const { type, timer } = g.custPerk
+    const info = PU_INFO[type]
+    const fade = Math.min(1, timer * 1.5)
+    const rise = (2.8 - timer) * 18   // floats upward as it fades
+
+    const PERK_LABELS: Record<PUType, string> = {
+      energy_drink:   'Energy Drink!',
+      forklift:       'Forklift License!',
+      vendor_support: 'Vendor Support!',
+      eotm:           'Employee of Month!',
+      overtime:       'Overtime Pay!',
+    }
+
+    ctx.save()
+    ctx.globalAlpha = fade
+
+    const bw = 280, bh = 54
+    const bx = CW/2 - bw/2, by = CH/2 - 80 - rise
+
+    ctx.shadowColor = info.col; ctx.shadowBlur = 24
+    ctx.fillStyle = 'rgba(10,10,20,0.92)'
+    rrect(ctx, bx, by, bw, bh, 12); ctx.fill()
+    ctx.strokeStyle = info.col; ctx.lineWidth = 2.5; ctx.stroke()
+    ctx.shadowBlur = 0
+
+    // Icon
+    ctx.font = '22px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    ctx.fillText(info.em, bx + 36, by + bh/2)
+
+    // Text
+    ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left'
+    ctx.font = '7px "Press Start 2P", monospace'
+    ctx.fillStyle = '#A09880'
+    ctx.fillText('CUSTOMER PERK!', bx + 58, by + 20)
+    ctx.font = '9px "Press Start 2P", monospace'
+    ctx.fillStyle = info.col
+    ctx.fillText(PERK_LABELS[type], bx + 58, by + 38)
+
+    ctx.restore()
+    ctx.textBaseline = 'alphabetic'
+  }
 }
 
 function renderHUD(ctx: CanvasRenderingContext2D, g: GS) {
@@ -843,11 +897,11 @@ export default function WineStockerRush() {
     for (const sh of g.shelves) {
       if (cx >= sh.x - 6 && cx <= sh.x + sh.w + 6 && cy >= sh.y - 14 && cy <= sh.y + sh.h + 14) {
         if (sh.id === asker.shelfId) {
-          // Correct! Send customer to that shelf
+          // Correct! Award a perk and send customer to shelf
           g.activeAsker = null
           asker.state = 'walking'
           asker.target = v(sh.x + sh.w/2, sh.y + sh.h + 22)
-          g.score += Math.round(8 * g.efx.multi)
+          grantCustomerPerk(g)
         } else {
           // Wrong shelf
           g.wrongFlash = 1.0
