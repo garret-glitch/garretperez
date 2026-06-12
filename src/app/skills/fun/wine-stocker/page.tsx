@@ -1,0 +1,878 @@
+'use client'
+
+import { useEffect, useRef, useState, useCallback } from 'react'
+import Link from 'next/link'
+import { emitXpGained } from '@/components/XpToast'
+
+/* ═══════════════════════ CONSTANTS ═══════════════════════ */
+const CW = 800, CH = 570
+const SR_W = 148                                            // stock room width
+const OFF = { x: 630, y: 0, w: CW - 630, h: 108 }         // manager office
+const ENT_X = 315, ENT_W = 170                             // entrance strip
+
+const PR = 13, MR = 16                                     // player / manager radius
+
+const PLAYER_SPD = 158, SPRINT_SPD = 278
+const STAM_MAX = 100, STAM_DRAIN = 32, STAM_REGEN = 19
+
+const SHELF_MAX = 8, CASE_FILL = 4
+const STOCK_R = 56
+
+const BASE_CUST_INT = 4.2
+const BASE_MGR_INT = 27
+const BASE_CUST_SPD = 55
+
+const XP_THRESHOLD = 400
+
+const SHELF_DEFS = [
+  { id: 0, x: 207, y: 148, w: 94, h: 38, label: 'Cabernet',   clr: '#9B2335' },
+  { id: 1, x: 354, y: 148, w: 94, h: 38, label: 'Merlot',     clr: '#C0392B' },
+  { id: 2, x: 501, y: 148, w: 94, h: 38, label: 'Pinot',      clr: '#6B2737' },
+  { id: 3, x: 207, y: 316, w: 94, h: 38, label: 'Chardonnay', clr: '#C8A020' },
+  { id: 4, x: 354, y: 316, w: 94, h: 38, label: 'Sauvignon',  clr: '#7DB874' },
+  { id: 5, x: 501, y: 316, w: 94, h: 38, label: 'Rosé',       clr: '#E8A0BF' },
+]
+
+/* ═══════════════════════ TYPES ═══════════════════════ */
+interface V2 { x: number; y: number }
+interface Shelf { id: number; x: number; y: number; w: number; h: number; label: string; clr: string; stock: number }
+type CustState = 'entering' | 'walking' | 'taking' | 'leaving'
+interface Customer { id: number; pos: V2; state: CustState; target: V2; shelfId: number; spd: number; takeTimer: number; clr: string; sz: number }
+type MgrState = 'idle' | 'walking' | 'dialogue' | 'returning'
+interface Mgr { pos: V2; state: MgrState; target: V2; homePos: V2; lines: string[]; mood: 'happy'|'angry'; dialogueTimer: number; nextInspection: number }
+type PUType = 'energy_drink' | 'forklift' | 'vendor_support' | 'eotm' | 'overtime'
+interface PU { id: number; pos: V2; type: PUType; life: number }
+interface Efx { sprint: number; forklift: number; vendor: number; vendorShelf: number; multi: number; multiTimer: number }
+
+interface GS {
+  phase: 'playing' | 'dialogue' | 'gameover'
+  player: { pos: V2; vel: V2; cases: number; maxCases: number; stamina: number; dir: V2 }
+  shelves: Shelf[]
+  custs: Customer[]; nextCid: number; nextCSpawn: number
+  mgr: Mgr
+  pups: PU[]; nextPid: number; nextPSpawn: number
+  score: number; level: number; strikes: number; time: number
+  efx: Efx
+}
+
+/* ═══════════════════════ HELPERS ═══════════════════════ */
+const v = (x: number, y: number): V2 => ({ x, y })
+const dist = (a: V2, b: V2) => Math.hypot(a.x - b.x, a.y - b.y)
+const norm = (d: V2): V2 => { const m = Math.hypot(d.x, d.y) || 1; return v(d.x/m, d.y/m) }
+const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n))
+const rnd  = (a: number, b: number) => a + Math.random() * (b - a)
+const rndI = (a: number, b: number) => Math.floor(rnd(a, b + 0.99))
+const fpos = (): V2 => v(rnd(SR_W + 32, CW - 32), rnd(130, CH - 55))
+
+/* ═══════════════════════ DATA ═══════════════════════ */
+const PU_INFO: Record<PUType, { em: string; col: string }> = {
+  energy_drink:   { em: '⚡', col: '#00E5FF' },
+  forklift:       { em: '🏗', col: '#FFC107' },
+  vendor_support: { em: '📦', col: '#8BC34A' },
+  eotm:           { em: '⭐', col: '#FF9800' },
+  overtime:       { em: '💰', col: '#E91E63' },
+}
+
+const HAPPY = [
+  ["Great work!", "Everything looks perfect.", "+100 BONUS POINTS!"],
+  ["Beautiful shelves!", "You&apos;re a natural.", "+100 BONUS POINTS!"],
+  ["Top notch!", "The vendor will love this!", "+100 BONUS POINTS!"],
+]
+const ANGRY = [
+  ["What happened here?!", "Get those shelves stocked!", "I'm watching you."],
+  ["This is UNACCEPTABLE.", "Second warning!", "One more strike..."],
+  ["You are DONE.", "Vendor complaint filed.", "GET OUT OF MY STORE."],
+]
+
+/* ═══════════════════════ INITIAL STATE ═══════════════════════ */
+function mkState(): GS {
+  const hp = v(OFF.x + OFF.w/2, OFF.y + OFF.h/2)
+  return {
+    phase: 'playing',
+    player: { pos: v(SR_W + 90, CH/2), vel: v(0,0), cases: 0, maxCases: 1, stamina: STAM_MAX, dir: v(1,0) },
+    shelves: SHELF_DEFS.map(s => ({ ...s, stock: SHELF_MAX })),
+    custs: [], nextCid: 0, nextCSpawn: BASE_CUST_INT,
+    mgr: { pos: { ...hp }, state: 'idle', target: { ...hp }, homePos: { ...hp }, lines: [], mood: 'happy', dialogueTimer: 0, nextInspection: BASE_MGR_INT },
+    pups: [], nextPid: 0, nextPSpawn: rnd(18, 32),
+    score: 0, level: 1, strikes: 0, time: 0,
+    efx: { sprint: 0, forklift: 0, vendor: 0, vendorShelf: -1, multi: 1, multiTimer: 0 },
+  }
+}
+
+/* ═══════════════════════ SIMULATION ═══════════════════════ */
+function tick(g: GS, dt: number, keys: Set<string>) {
+  if (g.phase === 'dialogue') { tickDialogue(g, dt); return }
+  if (g.phase !== 'playing') return
+  tickPlay(g, dt, keys)
+}
+
+function tickDialogue(g: GS, dt: number) {
+  g.mgr.dialogueTimer -= dt
+  if (g.mgr.dialogueTimer > 0) return
+  if (g.strikes >= 3) { g.phase = 'gameover'; return }
+  g.phase = 'playing'
+  g.mgr.state = 'returning'
+  g.mgr.target = { ...g.mgr.homePos }
+}
+
+function tickPlay(g: GS, dt: number, keys: Set<string>) {
+  g.time += dt
+  g.level = Math.max(g.level, 1 + Math.floor(g.score/250) + Math.floor(g.time/65))
+  const diff = 1 + (g.level - 1) * 0.14
+
+  // Effects countdown
+  const e = g.efx
+  e.sprint   = Math.max(0, e.sprint   - dt)
+  e.forklift = Math.max(0, e.forklift - dt)
+  e.vendor   = Math.max(0, e.vendor   - dt)
+  e.multiTimer = Math.max(0, e.multiTimer - dt)
+  if (e.multiTimer <= 0) e.multi = 1
+  g.player.maxCases = e.forklift > 0 ? 3 : 1
+
+  // Vendor support auto-stocks the weakest shelf
+  if (e.vendor > 0 && e.vendorShelf >= 0) {
+    const sh = g.shelves[e.vendorShelf]
+    if (sh && sh.stock < SHELF_MAX) sh.stock = Math.min(SHELF_MAX, sh.stock + dt * 2)
+    else e.vendorShelf = -1
+  }
+
+  // Player input
+  const up = keys.has('KeyW') || keys.has('ArrowUp')
+  const dn = keys.has('KeyS') || keys.has('ArrowDown')
+  const lt = keys.has('KeyA') || keys.has('ArrowLeft')
+  const rt = keys.has('KeyD') || keys.has('ArrowRight')
+  const wantSprint = keys.has('ShiftLeft') || keys.has('ShiftRight') || keys.has('Space')
+  g.player.vel = v(rt?1:lt?-1:0, dn?1:up?-1:0)
+  if (g.player.vel.x !== 0 || g.player.vel.y !== 0) g.player.dir = norm(g.player.vel)
+
+  const canSprint = wantSprint && (e.sprint > 0 || g.player.stamina > 5)
+  if (canSprint) {
+    if (e.sprint <= 0) g.player.stamina = Math.max(0, g.player.stamina - STAM_DRAIN * dt)
+  } else {
+    g.player.stamina = Math.min(STAM_MAX, g.player.stamina + STAM_REGEN * dt)
+  }
+
+  const spd = canSprint ? SPRINT_SPD : PLAYER_SPD
+  const mv = norm(g.player.vel)
+  g.player.pos.x = clamp(g.player.pos.x + mv.x * spd * dt, PR, CW - PR)
+  g.player.pos.y = clamp(g.player.pos.y + mv.y * spd * dt, PR, CH - PR)
+
+  // Stock room pickup (walk into left zone)
+  if (g.player.pos.x < SR_W + 10 && g.player.cases < g.player.maxCases) {
+    g.player.cases = g.player.maxCases
+  }
+
+  // Auto-stock nearby shelves
+  if (g.player.cases > 0) {
+    for (const sh of g.shelves) {
+      if (g.player.cases <= 0) break
+      if (sh.stock >= SHELF_MAX) continue
+      if (dist(g.player.pos, v(sh.x + sh.w/2, sh.y + sh.h/2 + 18)) < STOCK_R) {
+        sh.stock = Math.min(SHELF_MAX, sh.stock + CASE_FILL)
+        g.player.cases--
+        g.score += Math.round(12 * e.multi)
+      }
+    }
+  }
+
+  // Passive score from time + shelf health
+  const avg = g.shelves.reduce((a, s) => a + s.stock/SHELF_MAX, 0) / g.shelves.length
+  g.score += dt * 1.8 * avg * e.multi
+
+  // Customer spawning
+  g.nextCSpawn -= dt
+  if (g.nextCSpawn <= 0) {
+    const interval = BASE_CUST_INT / diff
+    g.nextCSpawn = rnd(interval * 0.7, interval * 1.3)
+    const cx = rnd(ENT_X, ENT_X + ENT_W)
+    g.custs.push({
+      id: g.nextCid++, pos: v(cx, CH - 4), state: 'entering',
+      target: v(cx, CH - 68 + rnd(0,28)), shelfId: -1,
+      spd: BASE_CUST_SPD * (0.88 + diff * 0.28),
+      takeTimer: 0, clr: `hsl(${rndI(0,360)},50%,62%)`, sz: rndI(8,11),
+    })
+  }
+
+  // Customer AI
+  const kept: Customer[] = []
+  for (const c of g.custs) {
+    if (c.state === 'entering') {
+      const d = dist(c.pos, c.target)
+      if (d < 6) {
+        const avail = g.shelves.filter(s => s.stock > 0)
+        if (avail.length > 0) {
+          const sh = avail[rndI(0, avail.length-1)]
+          c.shelfId = sh.id
+          c.target = v(sh.x + sh.w/2 + rnd(-8,8), sh.y + sh.h + 22)
+          c.state = 'walking'
+        } else {
+          c.target = v(rnd(ENT_X, ENT_X+ENT_W), CH+20)
+          c.state = 'leaving'
+        }
+      } else {
+        const dir = norm(v(c.target.x - c.pos.x, c.target.y - c.pos.y))
+        c.pos.x += dir.x * c.spd * dt; c.pos.y += dir.y * c.spd * dt
+      }
+    } else if (c.state === 'walking') {
+      const d = dist(c.pos, c.target)
+      if (d < 8) { c.state = 'taking'; c.takeTimer = rnd(0.5, 1.1) / diff }
+      else {
+        const dir = norm(v(c.target.x - c.pos.x, c.target.y - c.pos.y))
+        c.pos.x += dir.x * c.spd * dt; c.pos.y += dir.y * c.spd * dt
+      }
+    } else if (c.state === 'taking') {
+      c.takeTimer -= dt
+      if (c.takeTimer <= 0) {
+        const sh = g.shelves.find(s => s.id === c.shelfId)
+        if (sh) sh.stock = Math.max(0, sh.stock - rndI(1,2))
+        c.state = 'leaving'
+        c.target = v(rnd(ENT_X, ENT_X+ENT_W), CH+20)
+      }
+    } else {
+      const d = dist(c.pos, c.target)
+      if (d < 5) continue
+      const dir = norm(v(c.target.x - c.pos.x, c.target.y - c.pos.y))
+      c.pos.x += dir.x * c.spd * dt; c.pos.y += dir.y * c.spd * dt
+    }
+    kept.push(c)
+  }
+  g.custs = kept
+
+  // Manager logic
+  const m = g.mgr
+  m.nextInspection -= dt
+  if (m.state === 'idle' && m.nextInspection <= 0) m.state = 'walking'
+  if (m.state === 'walking') {
+    m.target = { ...g.player.pos }
+    const d = dist(m.pos, m.target)
+    if (d < 22) {
+      const shopAvg = g.shelves.reduce((a, s) => a + s.stock/SHELF_MAX, 0) / g.shelves.length
+      m.state = 'dialogue'
+      if (shopAvg >= 0.5) {
+        m.mood = 'happy'
+        m.lines = HAPPY[rndI(0,2)]
+        g.score += Math.round(100 * e.multi)
+      } else {
+        m.mood = 'angry'
+        m.lines = ANGRY[Math.min(g.strikes, 2)]
+        g.strikes++
+        g.score = Math.max(0, g.score - 50)
+      }
+      m.dialogueTimer = g.strikes >= 3 ? 5 : 4.2
+      g.phase = 'dialogue'
+    } else {
+      const mspd = 82 + (g.level-1)*5
+      const dir = norm(v(m.target.x - m.pos.x, m.target.y - m.pos.y))
+      m.pos.x += dir.x * mspd * dt; m.pos.y += dir.y * mspd * dt
+    }
+  }
+  if (m.state === 'returning') {
+    const d = dist(m.pos, m.homePos)
+    if (d < 10) {
+      m.pos = { ...m.homePos }; m.state = 'idle'
+      m.nextInspection = rnd(BASE_MGR_INT * 0.8, BASE_MGR_INT * 1.2) / (1 + (g.level-1)*0.1)
+    } else {
+      const dir = norm(v(m.homePos.x - m.pos.x, m.homePos.y - m.pos.y))
+      m.pos.x += dir.x * 92 * dt; m.pos.y += dir.y * 92 * dt
+    }
+  }
+
+  // Power-up spawning
+  g.nextPSpawn -= dt
+  if (g.nextPSpawn <= 0) {
+    const types: PUType[] = ['energy_drink','forklift','vendor_support','eotm','overtime']
+    g.pups.push({ id: g.nextPid++, pos: fpos(), type: types[rndI(0,4)], life: 14 })
+    g.nextPSpawn = rnd(20, 40)
+  }
+
+  // Power-up age + collection
+  g.pups = g.pups.filter(pu => {
+    pu.life -= dt
+    if (pu.life <= 0) return false
+    if (dist(g.player.pos, pu.pos) < 22) { applyPU(g, pu.type); return false }
+    return true
+  })
+}
+
+function applyPU(g: GS, type: PUType) {
+  const e = g.efx
+  if (type === 'energy_drink')   { e.sprint = 20 }
+  if (type === 'forklift')       { e.forklift = 30; g.player.maxCases = 3 }
+  if (type === 'vendor_support') {
+    e.vendor = 15
+    e.vendorShelf = g.shelves.reduce((a, b) => a.stock < b.stock ? a : b).id
+  }
+  if (type === 'eotm')     { e.multi = 2; e.multiTimer = 30 }
+  if (type === 'overtime') { e.multi = 3; e.multiTimer = 20 }
+}
+
+/* ═══════════════════════ RENDERER ═══════════════════════ */
+function rrect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath()
+  ctx.moveTo(x+r, y); ctx.lineTo(x+w-r, y); ctx.quadraticCurveTo(x+w,y, x+w,y+r)
+  ctx.lineTo(x+w, y+h-r); ctx.quadraticCurveTo(x+w,y+h, x+w-r,y+h)
+  ctx.lineTo(x+r, y+h); ctx.quadraticCurveTo(x,y+h, x,y+h-r)
+  ctx.lineTo(x, y+r); ctx.quadraticCurveTo(x,y, x+r,y)
+  ctx.closePath()
+}
+
+function render(ctx: CanvasRenderingContext2D, g: GS, t: number) {
+  ctx.clearRect(0, 0, CW, CH)
+
+  // ── Main floor ──────────────────────────────────────────────
+  ctx.fillStyle = '#EDE4C8'
+  ctx.fillRect(SR_W, 0, CW - SR_W, CH)
+  ctx.strokeStyle = 'rgba(175,150,95,0.22)'
+  ctx.lineWidth = 0.5
+  const TILE = 42
+  for (let x = SR_W; x <= CW; x += TILE) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,CH); ctx.stroke() }
+  for (let y = 0;    y <= CH;  y += TILE) { ctx.beginPath(); ctx.moveTo(SR_W,y); ctx.lineTo(CW,y); ctx.stroke() }
+
+  // ── Stock room ──────────────────────────────────────────────
+  const srg = ctx.createLinearGradient(0,0,SR_W,0)
+  srg.addColorStop(0,'#181826'); srg.addColorStop(1,'#20202C')
+  ctx.fillStyle = srg; ctx.fillRect(0,0,SR_W,CH)
+  // Door frame
+  ctx.fillStyle = '#383850'; ctx.fillRect(SR_W-4, CH/2-34, 8, 68)
+  ctx.fillStyle = 'rgba(237,228,200,0.09)'; ctx.fillRect(SR_W-1, CH/2-30, 2, 60)
+  // Cases pile
+  const [cpx, cpy] = [SR_W/2, CH/2]
+  ctx.fillStyle = '#58380A'; ctx.fillRect(cpx-38, cpy-54, 76, 22)
+  ctx.fillStyle = '#6A4810'; ctx.fillRect(cpx-38, cpy-32, 76, 22)
+  ctx.fillStyle = '#7A5518'; ctx.fillRect(cpx-30, cpy-64, 60, 12)
+  ctx.fillStyle = 'rgba(255,195,70,0.14)'
+  ctx.fillRect(cpx-38, cpy-54, 76, 3); ctx.fillRect(cpx-38, cpy-32, 76, 3)
+  // Labels
+  ctx.font = '8px "Press Start 2P", monospace'; ctx.fillStyle = '#C89B3C'; ctx.textAlign = 'center'
+  ctx.fillText('STOCK', SR_W/2, 22); ctx.fillText('ROOM', SR_W/2, 36)
+  // Prompt when player needs cases
+  if (g.player.cases < g.player.maxCases && g.player.pos.x >= SR_W) {
+    ctx.font = '7px "Press Start 2P", monospace'
+    ctx.fillStyle = g.player.pos.x < SR_W + 65 ? '#4CAF50' : '#C89B3C'
+    ctx.fillText('← GET', SR_W/2, CH-22); ctx.fillText('CASES', SR_W/2, CH-10)
+  }
+
+  // ── Manager office ──────────────────────────────────────────
+  ctx.fillStyle = '#16162A'; ctx.fillRect(OFF.x, OFF.y, OFF.w, OFF.h)
+  ctx.strokeStyle = '#2C2C44'; ctx.lineWidth = 2; ctx.strokeRect(OFF.x, OFF.y, OFF.w, OFF.h)
+  ctx.fillStyle = '#291E0C'; ctx.fillRect(OFF.x+16, OFF.y+42, OFF.w-32, 36)
+  ctx.fillStyle = '#38280E'; ctx.fillRect(OFF.x+16, OFF.y+42, OFF.w-32, 4)
+  ctx.font = '7px "Press Start 2P", monospace'; ctx.fillStyle = '#484868'; ctx.textAlign = 'center'
+  ctx.fillText('MANAGER', OFF.x+OFF.w/2, OFF.y+18); ctx.fillText('OFFICE', OFF.x+OFF.w/2, OFF.y+30)
+  // Door gap
+  ctx.fillStyle = '#EDE4C8'; ctx.fillRect(OFF.x+OFF.w/2-18, OFF.h, 36, 4)
+
+  // ── Shelves ─────────────────────────────────────────────────
+  for (const sh of g.shelves) {
+    const pct = sh.stock / SHELF_MAX
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(sh.x+4, sh.y+sh.h, sh.w, 7)
+
+    // Wood body
+    const wg = ctx.createLinearGradient(sh.x, sh.y, sh.x, sh.y+sh.h)
+    wg.addColorStop(0, '#8C6230'); wg.addColorStop(1, '#50380A')
+    ctx.fillStyle = wg; ctx.fillRect(sh.x, sh.y, sh.w, sh.h)
+
+    // Inner shelf surface
+    ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.fillRect(sh.x+2, sh.y+2, sh.w-4, sh.h-8)
+
+    // Front lip
+    ctx.fillStyle = '#A07830'; ctx.fillRect(sh.x, sh.y+sh.h-6, sh.w, 6)
+
+    // Bottles
+    const n = Math.floor(sh.stock)
+    if (n > 0) {
+      const bw = 7, bh = 22, gap = 2
+      const totalW = n*(bw+gap) - gap
+      const sx = sh.x + (sh.w - totalW)/2
+      for (let i = 0; i < n; i++) {
+        const bx = sx + i*(bw+gap), by = sh.y+2
+        // Body
+        ctx.fillStyle = sh.clr; ctx.fillRect(bx, by+5, bw, bh-5)
+        // Neck
+        ctx.fillRect(bx+2, by, bw-4, 6)
+        // Label
+        ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.fillRect(bx+1, by+8, bw-2, 8)
+        // Foil
+        ctx.fillStyle = 'rgba(255,205,50,0.65)'; ctx.fillRect(bx+2, by, bw-4, 2)
+      }
+    }
+
+    // Empty shelf flash
+    if (sh.stock === 0) {
+      const flash = 0.5 + 0.5 * Math.sin(t*5.5)
+      ctx.fillStyle = `rgba(255,50,50,${flash*0.22})`; ctx.fillRect(sh.x, sh.y, sh.w, sh.h)
+      ctx.font = 'bold 7px sans-serif'; ctx.fillStyle = `rgba(255,80,80,${0.7+flash*0.3})`
+      ctx.textAlign = 'center'; ctx.fillText('EMPTY', sh.x+sh.w/2, sh.y+sh.h/2+3)
+    }
+
+    // Stock health bar
+    const barY = sh.y + sh.h + 7
+    ctx.fillStyle = '#18140A'; ctx.fillRect(sh.x, barY, sh.w, 5)
+    ctx.fillStyle = pct>0.6?'#4CAF50':pct>0.3?'#FFC107':'#F44336'
+    ctx.fillRect(sh.x, barY, sh.w*pct, 5)
+
+    // Shelf label
+    ctx.font = '7px "Press Start 2P", monospace'; ctx.fillStyle = '#5A3800'; ctx.textAlign = 'center'
+    ctx.fillText(sh.label, sh.x+sh.w/2, sh.y-5)
+
+    // Proximity highlight when player can stock
+    if (g.player.cases > 0 && sh.stock < SHELF_MAX) {
+      const d2 = dist(g.player.pos, v(sh.x+sh.w/2, sh.y+sh.h/2+18))
+      if (d2 < STOCK_R * 1.7) {
+        ctx.strokeStyle = d2 < STOCK_R ? 'rgba(0,255,100,0.75)' : 'rgba(255,210,0,0.3)'
+        ctx.lineWidth = 2; ctx.setLineDash([3,3])
+        ctx.strokeRect(sh.x-3, sh.y-3, sh.w+6, sh.h+12)
+        ctx.setLineDash([])
+      }
+    }
+  }
+
+  // ── Entrance strip ──────────────────────────────────────────
+  ctx.fillStyle = '#9A8E6C'; ctx.fillRect(ENT_X, CH-12, ENT_W, 12)
+  ctx.font = '6px "Press Start 2P", monospace'; ctx.fillStyle = '#CEC090'; ctx.textAlign = 'center'
+  ctx.fillText('ENTRANCE', ENT_X+ENT_W/2, CH-2)
+
+  // ── Power-ups ───────────────────────────────────────────────
+  for (const pu of g.pups) {
+    const info = PU_INFO[pu.type]
+    const pulse = 0.85 + 0.15 * Math.sin(t*4.5 + pu.id)
+    const alpha = Math.min(1, pu.life * 0.5) * pulse
+    ctx.save()
+    ctx.globalAlpha = alpha
+    ctx.shadowColor = info.col; ctx.shadowBlur = 14
+    ctx.fillStyle = info.col + '30'
+    rrect(ctx, pu.pos.x-14, pu.pos.y-14, 28, 28, 7); ctx.fill()
+    ctx.strokeStyle = info.col + 'AA'; ctx.lineWidth = 1.5; ctx.stroke()
+    ctx.shadowBlur = 0
+    ctx.font = '16px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    ctx.fillText(info.em, pu.pos.x, pu.pos.y)
+    ctx.restore()
+  }
+  ctx.textBaseline = 'alphabetic'
+
+  // ── Customers ───────────────────────────────────────────────
+  for (const c of g.custs) {
+    ctx.save()
+    ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 4
+    ctx.fillStyle = c.clr
+    ctx.beginPath(); ctx.arc(c.pos.x, c.pos.y, c.sz, 0, Math.PI*2); ctx.fill()
+    ctx.fillStyle = '#F5C99A'
+    ctx.beginPath(); ctx.arc(c.pos.x, c.pos.y - c.sz*0.42, c.sz*0.52, 0, Math.PI*2); ctx.fill()
+    if (c.state === 'taking') {
+      ctx.shadowBlur = 0; ctx.font = '11px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+      ctx.fillText('🍷', c.pos.x, c.pos.y - c.sz - 5)
+    }
+    ctx.restore()
+  }
+  ctx.textBaseline = 'alphabetic'
+
+  // ── Manager ─────────────────────────────────────────────────
+  const m = g.mgr
+  ctx.save()
+  ctx.shadowColor = m.mood === 'angry' ? '#FF444466' : '#F1C40F66'
+  ctx.shadowBlur = m.state === 'dialogue' ? 20 : 7
+  // Suit
+  ctx.fillStyle = m.state === 'dialogue' && m.mood === 'angry' ? '#660000' : '#1C2E40'
+  ctx.beginPath(); ctx.arc(m.pos.x, m.pos.y, MR, 0, Math.PI*2); ctx.fill()
+  // Face
+  ctx.fillStyle = '#F5C99A'
+  ctx.beginPath(); ctx.arc(m.pos.x, m.pos.y - MR*0.3, MR*0.58, 0, Math.PI*2); ctx.fill()
+  // Tie
+  ctx.fillStyle = '#F1C40F'; ctx.fillRect(m.pos.x-2, m.pos.y+2, 4, 10)
+  // Emoji face
+  ctx.shadowBlur = 0; ctx.font = '13px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+  const moji = m.state === 'dialogue' ? (m.mood==='angry'?'😤':'😊') : (m.nextInspection < 8 ? '😐' : '🙂')
+  ctx.fillText(moji, m.pos.x, m.pos.y - MR*0.3)
+  ctx.textBaseline = 'alphabetic'
+  // Label
+  ctx.font = '7px "Press Start 2P", monospace'; ctx.fillStyle = '#F1C40F'; ctx.textAlign = 'center'
+  ctx.fillText('MGR', m.pos.x, m.pos.y + MR + 10)
+  // Inspection warning when approaching
+  if (m.state === 'walking') {
+    const d2p = dist(m.pos, g.player.pos)
+    if (d2p < 120) {
+      ctx.font = '8px "Press Start 2P", monospace'
+      ctx.fillStyle = `rgba(255,80,80,${Math.min(1, (120-d2p)/120)})`
+      ctx.fillText('!', m.pos.x, m.pos.y - MR - 6)
+    }
+  }
+  ctx.restore()
+
+  // ── Player ──────────────────────────────────────────────────
+  const p = g.player
+  ctx.save()
+  ctx.shadowColor = '#C89B3C44'; ctx.shadowBlur = 10
+  // Body
+  ctx.fillStyle = '#3A2A6A'
+  ctx.beginPath(); ctx.arc(p.pos.x, p.pos.y, PR, 0, Math.PI*2); ctx.fill()
+  // Apron
+  ctx.fillStyle = '#C89B3C'
+  ctx.beginPath()
+  ctx.arc(p.pos.x, p.pos.y, PR*0.72, -0.45, Math.PI+0.45); ctx.fill()
+  // Face
+  ctx.fillStyle = '#F5C99A'; ctx.shadowBlur = 0
+  ctx.beginPath()
+  ctx.arc(p.pos.x + p.dir.x*5, p.pos.y + p.dir.y*5, PR*0.42, 0, Math.PI*2); ctx.fill()
+  // Cases carried (stacked boxes on side)
+  for (let i = 0; i < p.cases; i++) {
+    ctx.fillStyle = '#7A5010'
+    ctx.fillRect(p.pos.x+10, p.pos.y-7-i*10, 13, 9)
+    ctx.fillStyle = 'rgba(255,195,70,0.22)'
+    ctx.fillRect(p.pos.x+10, p.pos.y-7-i*10, 13, 2)
+  }
+  ctx.restore()
+
+  // ── HUD ─────────────────────────────────────────────────────
+  renderHUD(ctx, g)
+
+  // ── Dialogue overlay ─────────────────────────────────────────
+  if (g.phase === 'dialogue') renderDialogue(ctx, g)
+}
+
+function renderHUD(ctx: CanvasRenderingContext2D, g: GS) {
+  ctx.textBaseline = 'alphabetic'
+
+  // Score / level / cases
+  ctx.fillStyle = 'rgba(8,8,16,0.88)'
+  rrect(ctx, 8, 8, 186, 64, 8); ctx.fill()
+  ctx.strokeStyle = '#C89B3C'; ctx.lineWidth = 1.5; ctx.stroke()
+  ctx.font = '9px "Press Start 2P", monospace'
+  ctx.fillStyle = '#C89B3C'; ctx.textAlign = 'left'
+  ctx.fillText(`SCORE: ${Math.floor(g.score)}`, 16, 28)
+  ctx.font = '7px "Press Start 2P", monospace'; ctx.fillStyle = '#A09880'
+  ctx.fillText(`LVL ${g.level}`, 16, 44)
+  ctx.fillStyle = g.efx.multi > 1 ? '#FF9800' : '#A09880'
+  ctx.fillText(`T:${Math.floor(g.time)}s`, 74, 44)
+  ctx.fillStyle = '#E8E6E0'
+  ctx.fillText(`CASES: ${g.player.cases}/${g.player.maxCases}`, 16, 62)
+
+  // Strikes
+  const alert = g.strikes >= 2
+  ctx.fillStyle = 'rgba(8,8,16,0.88)'
+  rrect(ctx, CW-172, 8, 164, 52, 8); ctx.fill()
+  ctx.strokeStyle = alert ? '#FF4444' : '#C89B3C'; ctx.lineWidth = 1.5; ctx.stroke()
+  ctx.font = '7px "Press Start 2P", monospace'
+  ctx.fillStyle = alert ? '#FF4444' : '#E8E6E0'; ctx.textAlign = 'right'
+  ctx.fillText('STRIKES', CW-16, 26)
+  ctx.font = '18px serif'; ctx.textAlign = 'center'
+  for (let i = 0; i < 3; i++) {
+    ctx.globalAlpha = i < g.strikes ? 1 : 0.18
+    ctx.fillText('☕', CW-126 + i*34, 51)
+  }
+  ctx.globalAlpha = 1
+
+  // Stamina bar
+  ctx.fillStyle = 'rgba(8,8,16,0.88)'
+  rrect(ctx, 8, 80, 162, 24, 5); ctx.fill()
+  ctx.font = '6px "Press Start 2P", monospace'; ctx.fillStyle = '#A09880'; ctx.textAlign = 'left'
+  ctx.fillText('STAMINA', 14, 93)
+  ctx.fillStyle = '#111118'; ctx.fillRect(74, 83, 88, 10)
+  const sp = g.player.stamina / STAM_MAX
+  ctx.fillStyle = sp>0.5?'#4CAF50':sp>0.2?'#FFC107':'#F44336'
+  ctx.fillRect(74, 83, 88*sp, 10)
+
+  // Store health (center top)
+  const avg = g.shelves.reduce((a, s) => a + s.stock/SHELF_MAX, 0) / g.shelves.length
+  ctx.fillStyle = 'rgba(8,8,16,0.88)'
+  rrect(ctx, CW/2-84, 8, 168, 32, 6); ctx.fill()
+  ctx.strokeStyle = avg>0.6?'#4CAF50':avg>0.3?'#FFC107':'#F44336'
+  ctx.lineWidth = 1.5; ctx.stroke()
+  ctx.font = '6px "Press Start 2P", monospace'; ctx.fillStyle = '#A09880'; ctx.textAlign = 'center'
+  ctx.fillText('STORE HEALTH', CW/2, 22)
+  ctx.font = '9px "Press Start 2P", monospace'
+  ctx.fillStyle = avg>0.6?'#4CAF50':avg>0.3?'#FFC107':'#F44336'
+  ctx.fillText(`${Math.round(avg*100)}%`, CW/2, 34)
+
+  // Active effects
+  let ey = 112
+  type EE = { icon: string; t: number; col: string }
+  const efxList: EE[] = []
+  if (g.efx.sprint > 0)     efxList.push({ icon: '⚡', t: g.efx.sprint,     col: '#00E5FF' })
+  if (g.efx.forklift > 0)   efxList.push({ icon: '🏗', t: g.efx.forklift,   col: '#FFC107' })
+  if (g.efx.vendor > 0)     efxList.push({ icon: '📦', t: g.efx.vendor,     col: '#8BC34A' })
+  if (g.efx.multi > 1)      efxList.push({ icon: `×${g.efx.multi}`, t: g.efx.multiTimer, col: '#FF9800' })
+  for (const ef of efxList) {
+    ctx.fillStyle = 'rgba(8,8,16,0.88)'
+    rrect(ctx, 8, ey, 98, 22, 4); ctx.fill()
+    ctx.strokeStyle = ef.col; ctx.lineWidth = 1; ctx.stroke()
+    ctx.font = '13px serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'
+    ctx.fillText(ef.icon.length <= 2 ? ef.icon : '', 14, ey+11)
+    ctx.font = '7px "Press Start 2P", monospace'; ctx.textBaseline = 'alphabetic'
+    ctx.fillStyle = ef.col
+    if (ef.icon.length > 2) ctx.fillText(ef.icon, 14, ey+15)
+    ctx.fillText(`${Math.ceil(ef.t)}s`, ef.icon.length > 2 ? 44 : 32, ey+15)
+    ey += 26
+  }
+  ctx.textBaseline = 'alphabetic'
+}
+
+function renderDialogue(ctx: CanvasRenderingContext2D, g: GS) {
+  ctx.fillStyle = 'rgba(0,0,0,0.58)'; ctx.fillRect(0, 0, CW, CH)
+
+  const bw = 495, bh = 158, bx = (CW-bw)/2, by = (CH-bh)/2
+
+  ctx.fillStyle = '#0C0C1A'
+  rrect(ctx, bx, by, bw, bh, 14); ctx.fill()
+  ctx.strokeStyle = g.mgr.mood==='angry' ? '#FF4444' : '#C89B3C'
+  ctx.lineWidth = 2.5; ctx.stroke()
+
+  // Portrait
+  const px = bx+64, py = by+bh/2+4
+  ctx.save()
+  ctx.shadowColor = g.mgr.mood==='angry' ? '#FF4444' : '#C89B3C'; ctx.shadowBlur = 20
+  ctx.fillStyle = g.mgr.mood==='angry' ? '#550000' : '#1C2E40'
+  ctx.beginPath(); ctx.arc(px, py, 30, 0, Math.PI*2); ctx.fill()
+  ctx.fillStyle = '#F5C99A'; ctx.beginPath(); ctx.arc(px, py-10, 17, 0, Math.PI*2); ctx.fill()
+  ctx.fillStyle = '#F1C40F'; ctx.fillRect(px-3, py+7, 6, 14)
+  ctx.shadowBlur = 0; ctx.font = '22px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+  ctx.fillText(g.mgr.mood==='angry' ? '😤' : '😊', px, py-10)
+  ctx.restore()
+  ctx.textBaseline = 'alphabetic'
+
+  // Header line
+  ctx.font = '8px "Press Start 2P", monospace'; ctx.textAlign = 'left'
+  ctx.fillStyle = g.mgr.mood==='angry' ? '#FF5555' : '#C89B3C'
+  ctx.fillText(
+    g.mgr.mood==='angry' ? `✗ STRIKE ${g.strikes}/3` : '✓ MANAGER PLEASED',
+    bx+112, by+26
+  )
+
+  // Dialogue lines
+  g.mgr.lines.forEach((line, i) => {
+    ctx.font = i===0 ? '9px "Press Start 2P", monospace' : '8px "Press Start 2P", monospace'
+    ctx.fillStyle = i===0 ? '#E8E6E0' : '#A09880'
+    ctx.textAlign = 'left'
+    ctx.fillText(line, bx+112, by+54+i*26)
+  })
+
+  ctx.font = '6px "Press Start 2P", monospace'; ctx.fillStyle = '#383625'; ctx.textAlign = 'center'
+  ctx.fillText('(auto-continues...)', bx+bw/2, by+bh-10)
+
+  // FIRED banner when 3rd strike
+  if (g.strikes >= 3 && g.mgr.mood==='angry') {
+    ctx.save()
+    ctx.font = 'bold 14px "Press Start 2P", monospace'
+    ctx.fillStyle = '#FF2222'; ctx.textAlign = 'center'
+    ctx.shadowColor = '#FF0000'; ctx.shadowBlur = 22
+    ctx.fillText('VENDOR COMPLAINT FILED!', CW/2, by-16)
+    ctx.restore()
+  }
+}
+
+/* ═══════════════════════ COMPONENT ═══════════════════════ */
+const DPAD = ['', 'KeyW', '', 'KeyA', 'KeyS', 'KeyD', '', '', ''] as const
+const DPAD_ICON: Record<string, string> = { KeyW: '▲', KeyA: '◀', KeyS: '▼', KeyD: '▶' }
+
+export default function WineStockerRush() {
+  const canvasRef   = useRef<HTMLCanvasElement>(null)
+  const gsRef       = useRef<GS | null>(null)
+  const keysRef     = useRef<Set<string>>(new Set())
+  const touchRef    = useRef<Set<string>>(new Set())
+  const lastTRef    = useRef(0)
+  const rafRef      = useRef(0)
+  const goFiredRef  = useRef(false)   // guard against repeated setState in RAF
+  const xpRef       = useRef(false)
+
+  const [screen, setScreen]   = useState<'menu' | 'playing' | 'gameover'>('menu')
+  const [xpMsg, setXpMsg]     = useState('')
+  const [finalScore, setFinalScore] = useState(0)
+  const [finalTime, setFinalTime]   = useState(0)
+  const [finalLevel, setFinalLevel] = useState(1)
+
+  const awardXP = useCallback(async () => {
+    if (xpRef.current) return
+    xpRef.current = true
+    try {
+      const r = await fetch('/api/minigame/win', { method: 'POST' })
+      if (r.ok) {
+        const d = await r.json()
+        const xp = d.xpAwarded ?? 25
+        emitXpGained(xp)
+        setXpMsg(`+${xp} Fun XP earned!`)
+      } else if (r.status === 401) {
+        setXpMsg('Login to save XP next time!')
+      }
+    } catch {}
+  }, [])
+
+  const startGame = useCallback(() => {
+    gsRef.current = mkState()
+    xpRef.current = false
+    goFiredRef.current = false
+    keysRef.current.clear()
+    touchRef.current.clear()
+    setXpMsg('')
+    setScreen('playing')
+  }, [])
+
+  // RAF game loop
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault()
+      keysRef.current.add(e.code)
+    }
+    const up = (e: KeyboardEvent) => keysRef.current.delete(e.code)
+    window.addEventListener('keydown', down)
+    window.addEventListener('keyup', up)
+
+    function loop(ts: number) {
+      const dt = Math.min((ts - lastTRef.current) / 1000, 0.05)
+      lastTRef.current = ts
+
+      const g = gsRef.current
+      if (g) {
+        const allKeys = new Set([...Array.from(keysRef.current), ...Array.from(touchRef.current)])
+        tick(g, dt, allKeys)
+
+        if (g.phase === 'gameover' && !goFiredRef.current) {
+          goFiredRef.current = true
+          setFinalScore(Math.floor(g.score))
+          setFinalTime(Math.floor(g.time))
+          setFinalLevel(g.level)
+          setScreen('gameover')
+          if (g.score >= XP_THRESHOLD) awardXP()
+        }
+
+        const canvas = canvasRef.current
+        if (canvas) {
+          const ctx = canvas.getContext('2d')
+          if (ctx) render(ctx, g, ts / 1000)
+        }
+      }
+
+      rafRef.current = requestAnimationFrame(loop)
+    }
+    rafRef.current = requestAnimationFrame(loop)
+
+    return () => {
+      cancelAnimationFrame(rafRef.current)
+      window.removeEventListener('keydown', down)
+      window.removeEventListener('keyup', up)
+    }
+  }, [awardXP])
+
+  const touchKey = (key: string, down: boolean) => {
+    if (down) touchRef.current.add(key)
+    else touchRef.current.delete(key)
+  }
+
+  return (
+    <div className="space-y-4">
+      <div style={{ position: 'relative', width: '100%', maxWidth: CW, margin: '0 auto' }}>
+        <canvas
+          ref={canvasRef}
+          width={CW}
+          height={CH}
+          style={{
+            display: 'block', width: '100%', height: 'auto',
+            border: '2px solid var(--border)', borderRadius: 8,
+            background: '#0d0d14',
+          }}
+        />
+
+        {/* ── Menu overlay ── */}
+        {screen === 'menu' && (
+          <div style={{
+            position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center', gap: 16,
+            background: 'rgba(10,10,20,0.94)', borderRadius: 8,
+          }}>
+            <div style={{ fontSize: 52, lineHeight: 1 }}>🍷</div>
+            <h1 style={{ fontFamily: '"Press Start 2P", monospace', color: 'var(--gold)', fontSize: 13, textAlign: 'center', lineHeight: 1.8 }}>
+              Wine Stocker Rush
+            </h1>
+            <p className="body-text" style={{ color: 'var(--text-2)', fontSize: 13, textAlign: 'center', lineHeight: 1.8, maxWidth: 380, padding: '0 20px' }}>
+              Keep shelves stocked while customers buy wine.<br/>
+              3 angry manager visits = <span style={{ color: '#FF4444' }}>FIRED!</span><br/>
+              Reach score <span style={{ color: 'var(--gold)' }}>{XP_THRESHOLD}</span> to earn +25 Fun XP.
+            </p>
+            <div style={{ fontFamily: '"Press Start 2P", monospace', color: 'var(--text-3)', fontSize: 6, textAlign: 'center', lineHeight: 2.4, border: '1px solid var(--border)', padding: '10px 20px', borderRadius: 6 }}>
+              WASD / Arrow Keys — Move<br/>
+              Shift / Space — Sprint<br/>
+              Walk left into stockroom → grab cases<br/>
+              Walk near shelves → auto-restock<br/>
+              Collect glowing power-ups for boosts
+            </div>
+            <button onClick={startGame} className="osrs-btn" style={{ marginTop: 6, padding: '10px 32px' }}>
+              Start Shift
+            </button>
+          </div>
+        )}
+
+        {/* ── Game Over overlay ── */}
+        {screen === 'gameover' && (
+          <div style={{
+            position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center', gap: 14,
+            background: 'rgba(10,10,20,0.95)', borderRadius: 8,
+          }}>
+            <div style={{ fontSize: 46 }}>📋</div>
+            <h2 style={{ fontFamily: '"Press Start 2P", monospace', color: '#FF4444', fontSize: 12, textAlign: 'center', lineHeight: 1.6 }}>
+              VENDOR COMPLAINT FILED
+            </h2>
+            <p className="body-text" style={{ color: 'var(--text-2)', fontSize: 14 }}>You&apos;ve been let go.</p>
+            <div style={{ fontFamily: '"Press Start 2P", monospace', textAlign: 'center', lineHeight: 2.5 }}>
+              <div style={{ color: 'var(--gold)', fontSize: 12 }}>Score: {finalScore}</div>
+              <div style={{ color: 'var(--text-2)', fontSize: 8 }}>Level {finalLevel} · {finalTime}s survived</div>
+            </div>
+            {xpMsg
+              ? <div style={{ fontFamily: '"Press Start 2P", monospace', color: '#4CAF50', fontSize: 9 }}>{xpMsg}</div>
+              : finalScore < XP_THRESHOLD && (
+                  <div style={{ fontFamily: '"Press Start 2P", monospace', color: 'var(--text-3)', fontSize: 7, textAlign: 'center' }}>
+                    Reach score {XP_THRESHOLD} to earn Fun XP!
+                  </div>
+                )
+            }
+            <button onClick={startGame} className="osrs-btn" style={{ marginTop: 4, padding: '10px 28px' }}>
+              Try Again
+            </button>
+          </div>
+        )}
+
+        {/* ── Touch D-pad ── */}
+        {screen === 'playing' && (
+          <>
+            <div style={{
+              position: 'absolute', bottom: 12, left: 12,
+              display: 'grid', gridTemplateColumns: 'repeat(3, 46px)', gridTemplateRows: 'repeat(3, 46px)',
+              gap: 2, opacity: 0.7,
+            }}>
+              {DPAD.map((k, i) => k ? (
+                <button key={i}
+                  style={{ background: 'rgba(200,155,60,0.28)', border: '1px solid rgba(200,155,60,0.48)', borderRadius: 6,
+                    color: '#C89B3C', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    WebkitUserSelect: 'none', userSelect: 'none', touchAction: 'none' }}
+                  onPointerDown={e => { e.preventDefault(); touchKey(k, true) }}
+                  onPointerUp={() => touchKey(k, false)}
+                  onPointerLeave={() => touchKey(k, false)}
+                >
+                  {DPAD_ICON[k]}
+                </button>
+              ) : <div key={i} />)}
+            </div>
+            <button
+              style={{
+                position: 'absolute', bottom: 12, right: 12, width: 64, height: 64,
+                background: 'rgba(200,155,60,0.28)', border: '1px solid rgba(200,155,60,0.48)',
+                borderRadius: 32, color: '#C89B3C', fontFamily: '"Press Start 2P", monospace',
+                fontSize: 6, cursor: 'pointer', opacity: 0.7,
+                WebkitUserSelect: 'none', userSelect: 'none', touchAction: 'none',
+              }}
+              onPointerDown={e => { e.preventDefault(); touchKey('ShiftLeft', true) }}
+              onPointerUp={() => touchKey('ShiftLeft', false)}
+              onPointerLeave={() => touchKey('ShiftLeft', false)}
+            >
+              SPRINT
+            </button>
+          </>
+        )}
+      </div>
+
+      <Link href="/skills/fun" className="text-[8px] hover:underline" style={{ color: 'var(--text-3)' }}>
+        ← Back to Fun
+      </Link>
+    </div>
+  )
+}

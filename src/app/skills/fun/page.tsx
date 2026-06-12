@@ -15,6 +15,7 @@ const GAMES = [
   { icon: '🧱', title: 'Breakout',     desc: 'Clear all the bricks',    href: '/skills/fun/breakout',     xp: '+25 XP',           bg: 'linear-gradient(135deg,#1a1a0a,#0e0e04)', glow: '#c0a030' },
   { icon: '🦔', title: 'Whack-a-Mole', desc: '30s · score 10+',         href: '/skills/fun/whack-a-mole', xp: '+25 XP',           bg: 'linear-gradient(135deg,#2a1808,#180e04)', glow: '#b06830' },
   { icon: '🏓', title: 'Pong',         desc: 'vs CPU · first to 5',     href: '/skills/fun/pong',         xp: '+25 XP',           bg: 'linear-gradient(135deg,#181828,#0e0e18)', glow: '#8080c0' },
+  { icon: '🍷', title: 'Wine Stocker', desc: 'Stock shelves · dodge mgr', href: '/skills/fun/wine-stocker', xp: '+25 XP (400+ pts)', bg: 'linear-gradient(135deg,#1a0a14,#0e0508)', glow: '#b03060' },
 ]
 
 export default async function FunPage() {
