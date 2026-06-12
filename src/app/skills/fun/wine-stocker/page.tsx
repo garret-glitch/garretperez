@@ -241,19 +241,16 @@ function tickPlay(g: GS, dt: number, keys: Set<string>) {
         c.pos.x += dir.x * c.spd * dt; c.pos.y += dir.y * c.spd * dt
       }
     } else if (c.state === 'approaching') {
-      // Walk toward player to ask
-      if (g.activeAsker !== null && g.activeAsker !== c.id) {
-        // Another customer already asking — just head straight to shelf
-        const sh = g.shelves.find(s => s.id === c.shelfId)
-        c.target = sh ? v(sh.x + sh.w/2, sh.y + sh.h + 22) : v(rnd(ENT_X, ENT_X+ENT_W), CH+20)
-        c.state = sh ? 'walking' : 'leaving'
+      // Always follow the player; only stop and ask when no one else is blocking them
+      c.target = { ...g.player.pos }
+      const d = dist(c.pos, g.player.pos)
+      if (d < 26 && g.activeAsker === null) {
+        g.activeAsker = c.id
+        c.state = 'asking'
       } else {
-        c.target = { ...g.player.pos }  // keep tracking
-        const d = dist(c.pos, g.player.pos)
-        if (d < 26) {
-          g.activeAsker = c.id
-          c.state = 'asking'
-        } else {
+        // If someone else is being asked, hover nearby instead of crowding
+        const hangBack = g.activeAsker !== null ? 55 : 26
+        if (d > hangBack) {
           const dir = norm(v(c.target.x - c.pos.x, c.target.y - c.pos.y))
           c.pos.x += dir.x * c.spd * dt; c.pos.y += dir.y * c.spd * dt
         }
