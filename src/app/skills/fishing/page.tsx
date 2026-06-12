@@ -3,324 +3,322 @@ import { prisma } from '@/lib/prisma'
 import { getCommunityXpForSkill } from '@/lib/community-xp'
 import { getSkillBySlug } from '@/lib/skills'
 import SkillHeroBar from '@/components/SkillHeroBar'
-import UpvoteButton from '@/components/UpvoteButton'
 import SkillVisitTracker from '@/components/SkillVisitTracker'
 import Link from 'next/link'
 import type { SkillType } from '@prisma/client'
-import FishingPostForm, { getAvatarColor, getAvatarBorder } from './FishingPostForm'
-import FishingReplyForm from './FishingReplyForm'
+import FishingCatchForm from './FishingCatchForm'
+import FishingFeed, { type FeedPost } from './FishingFeed'
 
 export const dynamic = 'force-dynamic'
 
-interface GearItem {
-  id: string
-  emoji: string
-  name: string
-  category: string
-  url: string
+/* ── Design tokens ─────────────────────────────────────────────── */
+const S = {
+  card:       '#0f1520',
+  elevated:   '#141e2c',
+  borderDim:  'rgba(60,160,220,0.1)',
+  border:     'rgba(60,160,220,0.18)',
+  borderLit:  'rgba(60,160,220,0.4)',
+  water:      '#3090b0',
+  waterDim:   '#1a5570',
+  gold:       '#c89b3c',
+  goldDim:    '#7a5a20',
+  text1:      '#e8f2f8',
+  text2:      '#7aaac8',
+  text3:      '#3a6080',
+  text4:      '#1e3850',
 }
 
+/* ── Gear list ─────────────────────────────────────────────────── */
+interface GearItem { id: string; emoji: string; name: string; category: string; url: string }
 const DEFAULT_GEAR: GearItem[] = [
-  { id: '1', emoji: '🎣', name: 'Spinning Rod',   category: 'Rods',     url: '' },
-  { id: '2', emoji: '⚙️', name: 'Spinning Reel',  category: 'Reels',    url: '' },
-  { id: '3', emoji: '🪁', name: 'Crankbaits',     category: 'Lures',    url: '' },
-  { id: '4', emoji: '🐛', name: 'Live Bait Rigs', category: 'Bait',     url: '' },
-  { id: '5', emoji: '🧵', name: 'Mono Line 10lb', category: 'Line',     url: '' },
-  { id: '6', emoji: '📦', name: 'Tackle Box',     category: 'Storage',  url: '' },
-  { id: '7', emoji: '🦟', name: 'Insect Repellent', category: 'Gear',   url: '' },
-  { id: '8', emoji: '🎒', name: 'Fishing Vest',   category: 'Gear',     url: '' },
+  { id:'1', emoji:'🎣', name:'Spinning Rod',     category:'Rods',    url:'' },
+  { id:'2', emoji:'⚙️', name:'Spinning Reel',    category:'Reels',   url:'' },
+  { id:'3', emoji:'🪁', name:'Crankbaits',       category:'Lures',   url:'' },
+  { id:'4', emoji:'🐛', name:'Live Bait Rigs',   category:'Bait',    url:'' },
+  { id:'5', emoji:'🧵', name:'Mono Line 10lb',   category:'Line',    url:'' },
+  { id:'6', emoji:'📦', name:'Tackle Box',       category:'Storage', url:'' },
+  { id:'7', emoji:'🦟', name:'Insect Repellent', category:'Gear',    url:'' },
+  { id:'8', emoji:'🎒', name:'Fishing Vest',     category:'Gear',    url:'' },
 ]
 
-function timeAgo(date: Date) {
-  const secs = Math.floor((Date.now() - date.getTime()) / 1000)
-  if (secs < 60) return 'just now'
-  if (secs < 3600) return `${Math.floor(secs / 60)}m ago`
-  if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`
-  if (secs < 604800) return `${Math.floor(secs / 86400)}d ago`
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+/* ── Stats helpers ─────────────────────────────────────────────── */
+interface CatchStats {
+  totalCatches: number
+  biggestWeight: number
+  biggestSpecies: string
+  favBait: string
+  topSpecies: string
 }
 
+function computeStats(bodies: string[]): CatchStats {
+  let biggestWeight = 0
+  let biggestSpecies = ''
+  const baitCount:    Record<string,number> = {}
+  const speciesCount: Record<string,number> = {}
+  let totalCatches = 0
+
+  for (const body of bodies) {
+    try {
+      const d = JSON.parse(body)
+      if (!d.__catchData) continue
+      totalCatches++
+      if (d.weight) {
+        const w = parseFloat(d.weight)
+        if (w > biggestWeight) { biggestWeight = w; biggestSpecies = d.species ?? '' }
+      }
+      if (d.bait)    baitCount[d.bait]       = (baitCount[d.bait]       || 0) + 1
+      if (d.species) speciesCount[d.species] = (speciesCount[d.species] || 0) + 1
+    } catch { /* skip */ }
+  }
+
+  return {
+    totalCatches,
+    biggestWeight,
+    biggestSpecies,
+    favBait:    Object.entries(baitCount).sort(([,a],[,b]) => b-a)[0]?.[0] ?? '—',
+    topSpecies: Object.entries(speciesCount).sort(([,a],[,b]) => b-a)[0]?.[0] ?? '—',
+  }
+}
+
+/* ── Stat chip ─────────────────────────────────────────────────── */
+function StatChip({ value, sub, label }: { value: string; sub?: string; label: string }) {
+  return (
+    <div style={{
+      flex: 1, minWidth: 120,
+      background: S.elevated,
+      border: `1px solid ${S.border}`,
+      padding: '16px 18px',
+      display: 'flex', flexDirection: 'column', gap: 4,
+    }}>
+      <span style={{
+        fontFamily: 'Inter, sans-serif', fontSize: 20, fontWeight: 800,
+        color: S.text1, lineHeight: 1, letterSpacing: '-0.01em',
+      }}>{value}</span>
+      {sub && (
+        <span style={{
+          fontFamily: 'Inter, sans-serif', fontSize: 12, color: S.text3,
+          lineHeight: 1.3,
+        }}>{sub}</span>
+      )}
+      <span style={{
+        fontFamily: "'Press Start 2P', monospace", fontSize: 6,
+        color: S.waterDim, letterSpacing: '0.12em', marginTop: 4,
+      }}>{label}</span>
+    </div>
+  )
+}
+
+/* ── Page ──────────────────────────────────────────────────────── */
 export default async function FishingPage() {
   const session = await auth()
 
-  let communityXp = 0
-  let communityMemberCount = 0
-  let posts: Array<{
-    id: string; title: string; body: string; imageUrl?: string | null; createdAt: Date
-    user: { username: string }
-    replies: Array<{ id: string; body: string; createdAt: Date; user: { username: string } }>
-    upvotes: Array<{ userId: string }>
-  }> = []
+  let communityXp   = 0
+  let memberCount   = 0
+  let stats: CatchStats = { totalCatches:0, biggestWeight:0, biggestSpecies:'', favBait:'—', topSpecies:'—' }
+  let posts: FeedPost[] = []
   let gear: GearItem[] = DEFAULT_GEAR
 
   try {
     const communityData = await getCommunityXpForSkill('FISHING' as SkillType)
     communityXp = communityData.xp
-    communityMemberCount = communityData.memberCount
-    posts = await (prisma as any).post.findMany({
-      where: { skill: 'FISHING' },
-      orderBy: { createdAt: 'desc' },
-      take: 20,
-      include: {
-        user: { select: { username: true } },
-        replies: {
-          orderBy: { createdAt: 'asc' },
-          include: { user: { select: { username: true } } },
+    memberCount  = communityData.memberCount
+
+    const [allBodies, rawPosts, gearSetting] = await Promise.all([
+      (prisma as any).post.findMany({
+        where: { skill: 'FISHING' },
+        select: { body: true },
+      }) as Promise<{ body: string }[]>,
+      (prisma as any).post.findMany({
+        where: { skill: 'FISHING' },
+        orderBy: { createdAt: 'desc' },
+        take: 30,
+        include: {
+          user:    { select: { username: true } },
+          replies: { orderBy: { createdAt: 'asc' }, include: { user: { select: { username: true } } } },
+          upvotes: { select: { userId: true } },
         },
-        upvotes: { select: { userId: true } },
-      },
-    })
-    const gearSetting = await (prisma as any).siteSetting.findUnique({ where: { key: 'fishing_gear' } })
+      }),
+      (prisma as any).siteSetting.findUnique({ where: { key: 'fishing_gear' } }),
+    ])
+
+    stats = computeStats(allBodies.map((r: { body: string }) => r.body))
+
+    posts = rawPosts.map((p: {
+      id: string; title: string; body: string; imageUrl: string | null; createdAt: Date
+      user: { username: string }
+      replies: { id: string; body: string; createdAt: Date; user: { username: string } }[]
+      upvotes: { userId: string }[]
+    }) => ({
+      ...p,
+      createdAt: p.createdAt.toISOString(),
+      replies: p.replies.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })),
+    }))
+
     if (gearSetting?.value) {
       try { gear = JSON.parse(gearSetting.value) } catch { /* use default */ }
     }
-  } catch {
-    // DB not configured
-  }
+  } catch { /* DB not configured */ }
 
-  const totalPosts = posts.length
   const isAdmin = session?.user?.role === 'ADMIN'
 
   return (
-    <div style={{ fontFamily: 'Inter, sans-serif', color: '#e8e6e0' }}>
+    <div style={{ color: S.text1, fontFamily: 'Inter, sans-serif', display: 'flex', flexDirection: 'column', gap: 20 }}>
       {session?.user && <SkillVisitTracker skill={'FISHING' as SkillType} />}
 
       <SkillHeroBar
         skill={getSkillBySlug('fishing')!}
         communityXp={communityXp}
-        memberCount={communityMemberCount}
-        postCount={totalPosts}
+        memberCount={memberCount}
+        postCount={stats.totalCatches}
         isLoggedIn={!!session?.user}
       />
 
+      {/* ── Fishing Stats ───────────────────────────────────── */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+          <div style={{ height: 1, flex: 1, background: 'rgba(60,160,220,0.12)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 15 }}>📊</span>
+            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: S.water, letterSpacing: '0.1em' }}>
+              CATCH LOG STATS
+            </span>
+          </div>
+          <div style={{ height: 1, flex: 1, background: 'rgba(60,160,220,0.12)' }} />
+        </div>
+
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <StatChip
+            value={stats.totalCatches.toString()}
+            label="TOTAL CATCHES"
+          />
+          <StatChip
+            value={stats.biggestWeight > 0 ? `${stats.biggestWeight} lbs` : '—'}
+            sub={stats.biggestSpecies || undefined}
+            label="BIGGEST CATCH"
+          />
+          <StatChip
+            value={stats.topSpecies}
+            label="TOP SPECIES"
+          />
+          <StatChip
+            value={stats.favBait}
+            label="FAVORITE BAIT"
+          />
+        </div>
+      </div>
+
       {/* ── Tackle Box ──────────────────────────────────────── */}
       <div style={{
-        background: '#0d0d14',
-        border: '2px solid rgba(200,155,60,0.22)',
-        borderTop: 'none', borderBottom: 'none',
+        background: S.card,
+        border: `1px solid ${S.border}`,
         padding: '18px 18px 20px',
       }}>
-        {/* Section header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 16 }}>⚓</span>
-            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: '#c89b3c', letterSpacing: '0.1em' }}>
+            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: S.gold, letterSpacing: '0.1em' }}>
               TACKLE BOX
             </span>
             <span style={{
-              fontSize: 8, fontFamily: "'Press Start 2P', monospace", color: '#5a4020',
-              background: 'rgba(200,155,60,0.07)', border: '1px solid rgba(200,155,60,0.18)',
+              fontSize: 7, fontFamily: "'Press Start 2P', monospace", color: S.goldDim,
+              background: 'rgba(200,155,60,0.07)', border: `1px solid rgba(200,155,60,0.18)`,
               padding: '2px 7px', letterSpacing: '0.08em',
             }}>MY GEAR</span>
           </div>
           {isAdmin && (
-            <Link
-              href="/admin"
-              style={{ fontSize: 11, color: '#6a5030', fontFamily: 'Inter, sans-serif', textDecoration: 'none' }}
-            >
+            <Link href="/admin" style={{ fontSize: 11, color: S.text3, fontFamily: 'Inter, sans-serif', textDecoration: 'none' }}>
               + Edit gear
             </Link>
           )}
         </div>
 
-        {/* App icon grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(88px, 1fr))', gap: 10 }}>
           {gear.map(item => {
             const hasLink = item.url.trim().length > 0
-            if (hasLink) {
-              return (
-                <a
-                  key={item.id}
-                  href={item.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="gear-tile"
-                >
-                  <span style={{ fontSize: 28, lineHeight: 1 }}>{item.emoji}</span>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: '#c8b880', textAlign: 'center', lineHeight: 1.3 }}>
-                    {item.name}
-                  </span>
-                  <span style={{ fontSize: 9, color: '#5a4820', fontFamily: "'Press Start 2P', monospace", letterSpacing: '0.06em' }}>
-                    {item.category}
-                  </span>
-                  <span style={{ fontSize: 9, color: '#7a6030' }}>↗</span>
-                </a>
-              )
+            const tileBase: React.CSSProperties = {
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              gap: 5, padding: '12px 8px',
+              background: S.elevated,
+              border: `1px solid ${S.borderDim}`,
+              cursor: hasLink ? 'pointer' : 'default',
+              textDecoration: 'none',
             }
-            return (
-              <div key={item.id} className="gear-tile gear-tile-dead">
+            if (hasLink) return (
+              <a key={item.id} href={item.url} target="_blank" rel="noopener noreferrer" style={tileBase}
+                className="gear-tile">
                 <span style={{ fontSize: 28, lineHeight: 1 }}>{item.emoji}</span>
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#7a6840', textAlign: 'center', lineHeight: 1.3 }}>
-                  {item.name}
-                </span>
-                <span style={{ fontSize: 9, color: '#3a2e18', fontFamily: "'Press Start 2P', monospace", letterSpacing: '0.06em' }}>
-                  {item.category}
-                </span>
-                <span style={{ fontSize: 8, color: '#3a2e18' }}>link soon</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: '#c8b880', textAlign: 'center', lineHeight: 1.3 }}>{item.name}</span>
+                <span style={{ fontSize: 9, color: S.goldDim, fontFamily: "'Press Start 2P', monospace", letterSpacing: '0.06em' }}>{item.category}</span>
+                <span style={{ fontSize: 9, color: '#7a6030' }}>↗</span>
+              </a>
+            )
+            return (
+              <div key={item.id} style={tileBase} className="gear-tile-dead">
+                <span style={{ fontSize: 28, lineHeight: 1 }}>{item.emoji}</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: '#5a5030', textAlign: 'center', lineHeight: 1.3 }}>{item.name}</span>
+                <span style={{ fontSize: 9, color: '#2a2010', fontFamily: "'Press Start 2P', monospace", letterSpacing: '0.06em' }}>{item.category}</span>
+                <span style={{ fontSize: 8, color: '#2a2010' }}>link soon</span>
               </div>
             )
           })}
         </div>
       </div>
 
-      {/* ── Feed area ───────────────────────────────────────── */}
-      <div style={{
-        background: '#0d0d14',
-        border: '2px solid rgba(200,155,60,0.22)',
-        borderTop: '1px solid rgba(200,155,60,0.12)',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
-      }}>
+      {/* ── Catch Log ───────────────────────────────────────── */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
+          <div style={{ height: 1, flex: 1, background: 'rgba(60,160,220,0.12)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 15 }}>🐟</span>
+            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: S.water, letterSpacing: '0.1em' }}>
+              CATCH LOG
+            </span>
+          </div>
+          <div style={{ height: 1, flex: 1, background: 'rgba(60,160,220,0.12)' }} />
+        </div>
+
         {/* Post form or login CTA */}
-        <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(200,155,60,0.1)' }}>
+        <div style={{ marginBottom: 24 }}>
           {session?.user ? (
-            <FishingPostForm username={session.user.name ?? 'User'} />
+            <FishingCatchForm />
           ) : (
             <div style={{
-              background: '#13131c', border: '1px solid rgba(200,155,60,0.18)',
-              padding: '16px 20px',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              gap: 16, flexWrap: 'wrap',
+              background: S.card, border: `1px solid ${S.border}`,
+              padding: '28px', textAlign: 'center',
             }}>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#e8e6e0', marginBottom: 4 }}>Join the Guild</div>
-                <div style={{ fontSize: 13, color: '#7a6040' }}>Share your catches, tips, and fishing spots with the community.</div>
+              <div style={{ fontSize: 36, marginBottom: 14 }}>🎣</div>
+              <div style={{
+                fontFamily: 'Inter, sans-serif', fontSize: 18, fontWeight: 700,
+                color: S.text1, marginBottom: 8,
+              }}>Share your catches with the guild</div>
+              <div style={{
+                fontFamily: 'Inter, sans-serif', fontSize: 14, color: S.text3, marginBottom: 22,
+              }}>
+                Log catches with photos, species, size, bait &amp; conditions — earn <strong style={{ color: S.gold }}>+50 Fishing XP</strong> per post.
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
                 <Link href="/login" style={{
-                  display: 'inline-block', padding: '9px 18px',
-                  background: 'transparent', border: '1px solid rgba(200,155,60,0.35)',
-                  color: '#c89b3c', fontSize: 13, fontWeight: 600, textDecoration: 'none',
+                  padding: '11px 22px', background: 'transparent',
+                  border: `1px solid rgba(60,160,220,0.35)`, color: S.water,
+                  fontSize: 14, fontWeight: 600, textDecoration: 'none', fontFamily: 'Inter, sans-serif',
                 }}>Log In</Link>
                 <Link href="/register" style={{
-                  display: 'inline-block', padding: '9px 18px',
+                  padding: '11px 22px',
                   background: 'linear-gradient(135deg, #c89b3c 0%, #a07828 100%)',
-                  color: '#0a0600', fontSize: 13, fontWeight: 700, textDecoration: 'none',
-                }}>🛡 Join</Link>
+                  color: '#0a0600', fontSize: 14, fontWeight: 700,
+                  textDecoration: 'none', fontFamily: 'Inter, sans-serif',
+                }}>🛡 Create Account</Link>
               </div>
             </div>
           )}
         </div>
 
-        {/* Posts feed */}
-        {posts.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '60px 20px', fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: '#3a2e20' }}>
-            No catches yet — be the first to post! 🎣
-          </div>
-        ) : (
-          <div>
-            {posts.map((post, idx) => {
-              const upvoteCount = post.upvotes.length
-              const hasUpvoted  = session?.user?.id
-                ? post.upvotes.some((u: { userId: string }) => u.userId === session.user!.id)
-                : false
-              return (
-                <div
-                  key={post.id}
-                  style={{
-                    padding: '18px 18px 14px',
-                    background: idx % 2 !== 0 ? 'rgba(200,155,60,0.025)' : 'transparent',
-                    borderBottom: '1px solid rgba(200,155,60,0.07)',
-                  }}
-                >
-                  <div style={{ display: 'flex', gap: 14 }}>
-                    {/* Avatar */}
-                    <div style={{
-                      width: 42, height: 42, borderRadius: '50%', flexShrink: 0,
-                      background: getAvatarColor(post.user.username),
-                      border: `2px solid ${getAvatarBorder(post.user.username)}`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 14, fontWeight: 700, color: '#d8c890', fontFamily: 'Inter, sans-serif',
-                    }}>
-                      {post.user.username.slice(0, 2).toUpperCase()}
-                    </div>
-
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      {/* Username + time */}
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 5, flexWrap: 'wrap' }}>
-                        <Link href={`/profile/${post.user.username}`} style={{ fontSize: 14, fontWeight: 700, color: '#c89b3c', textDecoration: 'none' }}>
-                          {post.user.username}
-                        </Link>
-                        <span style={{ fontSize: 11, color: '#3e3020' }}>
-                          {timeAgo(new Date(post.createdAt))}
-                        </span>
-                      </div>
-
-                      {/* Title */}
-                      <div style={{ fontSize: 15, fontWeight: 600, color: '#e8e6e0', marginBottom: 6, lineHeight: 1.45 }}>
-                        {post.title}
-                      </div>
-
-                      {/* Body */}
-                      <div style={{ fontSize: 14, color: '#a09880', lineHeight: 1.7, marginBottom: post.imageUrl ? 10 : 12, whiteSpace: 'pre-wrap' }}>
-                        {post.body}
-                      </div>
-
-                      {/* Post image */}
-                      {post.imageUrl && (
-                        <div style={{ marginBottom: 12 }}>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={post.imageUrl}
-                            alt="Post photo"
-                            style={{
-                              maxWidth: '100%', maxHeight: 420, display: 'block',
-                              border: '1px solid rgba(200,155,60,0.2)',
-                              objectFit: 'contain',
-                            }}
-                          />
-                        </div>
-                      )}
-
-                      {/* Reactions */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: post.replies.length > 0 || session?.user ? 10 : 0 }}>
-                        <UpvoteButton postId={post.id} count={upvoteCount} upvoted={hasUpvoted} />
-                        {post.replies.length > 0 && (
-                          <span style={{ fontSize: 12, color: '#4a3820' }}>
-                            💬 {post.replies.length} {post.replies.length === 1 ? 'reply' : 'replies'}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Reply thread */}
-                      {post.replies.length > 0 && (
-                        <div style={{ paddingLeft: 14, borderLeft: '2px solid rgba(200,155,60,0.2)', marginBottom: 8 }}>
-                          {post.replies.map(reply => (
-                            <div key={reply.id} style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
-                              <div style={{
-                                width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-                                background: getAvatarColor(reply.user.username),
-                                border: `1.5px solid ${getAvatarBorder(reply.user.username)}`,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: 9, fontWeight: 700, color: '#d8c890', fontFamily: 'Inter, sans-serif',
-                              }}>
-                                {reply.user.username.slice(0, 2).toUpperCase()}
-                              </div>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginBottom: 2 }}>
-                                  <Link href={`/profile/${reply.user.username}`} style={{ fontSize: 12, fontWeight: 600, color: '#c89b3c', textDecoration: 'none' }}>
-                                    {reply.user.username}
-                                  </Link>
-                                  <span style={{ fontSize: 10, color: '#322418' }}>
-                                    {timeAgo(new Date(reply.createdAt))}
-                                  </span>
-                                </div>
-                                <div style={{ fontSize: 13, color: '#7a6848', lineHeight: 1.6 }}>
-                                  {reply.body}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {session?.user && <FishingReplyForm postId={post.id} />}
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
+        {/* Feed */}
+        <FishingFeed
+          posts={posts}
+          currentUserId={session?.user?.id}
+          isLoggedIn={!!session?.user}
+        />
       </div>
     </div>
   )
