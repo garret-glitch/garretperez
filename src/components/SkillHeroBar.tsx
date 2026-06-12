@@ -1,6 +1,25 @@
 import Link from 'next/link'
 import { xpProgress } from '@/lib/xp'
 import type { SkillMeta } from '@/lib/skills'
+import {
+  Heart, Hammer, Briefcase, Users, Fish, Wine, Leaf, Compass, Gamepad2,
+  Diamond, Star,
+} from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+
+const SKILL_ICONS: Record<string, LucideIcon> = {
+  health:       Heart,
+  projects:     Hammer,
+  business:     Briefcase,
+  community:    Users,
+  fishing:      Fish,
+  food:         Wine,
+  gardening:    Leaf,
+  travel:       Compass,
+  fun:          Gamepad2,
+  'cool-items': Diamond,
+  'cool-people':Star,
+}
 
 interface Props {
   skill: SkillMeta
@@ -8,7 +27,6 @@ interface Props {
   memberCount: number
   postCount?: number
   isLoggedIn: boolean
-  headshot?: string
 }
 
 function StatChip({ value, label, highlight }: { value: string | number; label: string; highlight?: boolean }) {
@@ -30,38 +48,33 @@ function StatChip({ value, label, highlight }: { value: string | number; label: 
   )
 }
 
-export default function SkillHeroBar({ skill, communityXp, memberCount, postCount, isLoggedIn, headshot }: Props) {
+export default function SkillHeroBar({ skill, communityXp, memberCount, postCount, isLoggedIn }: Props) {
   const p = xpProgress(communityXp)
+  const SkillIcon = SKILL_ICONS[skill.slug] ?? Gamepad2
 
   return (
     <div className="hero-panel">
       <div className="flex flex-col sm:flex-row gap-5 sm:items-center">
 
-        {/* ── LEFT: photo + identity + stats ── */}
+        {/* ── LEFT: icon + identity + stats ── */}
         <div style={{ flex: 1, minWidth: 0 }}>
 
-          {/* Photo + title */}
+          {/* Icon + title */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 14 }}>
 
-            {/* Profile photo — same style as homepage */}
+            {/* Sidebar-style icon — same look as the guild channel row, scaled up */}
             <div style={{
               width: 90, height: 90, flexShrink: 0,
-              border: '3px solid #c89b3c',
-              boxShadow: '0 0 0 4px rgba(200,155,60,0.1), 0 6px 24px rgba(0,0,0,0.7)',
-              overflow: 'hidden',
+              background: skill.color,
+              borderRadius: 16,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'var(--bg-page)', color: 'var(--gold)',
-              fontSize: 24, fontWeight: 700,
             }}>
-              {headshot
-                ? <img src={headshot} alt="Garret Perez" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : 'GP'}
+              <SkillIcon size={42} color="#dcc898" strokeWidth={1.5} />
             </div>
 
-            {/* Title + skill badge + description */}
+            {/* Title + description */}
             <div style={{ minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 20, lineHeight: 1 }}>{skill.icon}</span>
                 <h1 style={{
                   fontFamily: "'Cinzel', serif",
                   fontSize: 21, fontWeight: 700, color: 'var(--text-1)',

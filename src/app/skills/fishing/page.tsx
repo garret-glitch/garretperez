@@ -112,7 +112,6 @@ function StatChip({ value, sub, label }: { value: string; sub?: string; label: s
 export default async function FishingPage() {
   const session = await auth()
 
-  let headshot = ''
   let communityXp   = 0
   let memberCount   = 0
   let stats: CatchStats = { totalCatches:0, biggestWeight:0, biggestSpecies:'', favBait:'—', topSpecies:'—' }
@@ -124,7 +123,7 @@ export default async function FishingPage() {
     communityXp = communityData.xp
     memberCount  = communityData.memberCount
 
-    const [allBodies, rawPosts, gearSetting, headshotRow] = await Promise.all([
+    const [allBodies, rawPosts, gearSetting] = await Promise.all([
       (prisma as any).post.findMany({
         where: { skill: 'FISHING' },
         select: { body: true },
@@ -140,10 +139,8 @@ export default async function FishingPage() {
         },
       }),
       (prisma as any).siteSetting.findUnique({ where: { key: 'fishing_gear' } }),
-      (prisma as any).siteSetting.findUnique({ where: { key: 'headshot' } }),
     ])
 
-    headshot = headshotRow?.value ?? ''
     stats = computeStats(allBodies.map((r: { body: string }) => r.body))
 
     posts = rawPosts.map((p: {
@@ -174,7 +171,6 @@ export default async function FishingPage() {
         memberCount={memberCount}
         postCount={stats.totalCatches}
         isLoggedIn={!!session?.user}
-        headshot={headshot}
       />
 
       {/* ── Fishing Stats ───────────────────────────────────── */}

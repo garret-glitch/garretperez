@@ -27,7 +27,6 @@ export default async function FunPage() {
   const isAdmin = session?.user?.role === 'ADMIN'
   const skillMeta = getSkillBySlug('fun')!
 
-  let headshot = ''
   let communityXp = 0
   let communityMemberCount = 0
   let hiddenGames: string[] = []
@@ -37,7 +36,7 @@ export default async function FunPage() {
 
   try {
     const userId = session?.user?.id
-    const [communityData, hiddenSetting, orderSetting, allLikes, userLikeRows, headshotRow] = await Promise.all([
+    const [communityData, hiddenSetting, orderSetting, allLikes, userLikeRows] = await Promise.all([
       getCommunityXpForSkill('FUN' as SkillType),
       (prisma as any).siteSetting.findUnique({ where: { key: 'hidden_games' } }),
       (prisma as any).siteSetting.findUnique({ where: { key: 'game_order' } }),
@@ -45,11 +44,9 @@ export default async function FunPage() {
       userId
         ? (prisma as any).gameLike.findMany({ where: { userId }, select: { gameHref: true } })
         : Promise.resolve([]),
-      (prisma as any).siteSetting.findUnique({ where: { key: 'headshot' } }),
     ])
     communityXp = communityData.xp
     communityMemberCount = communityData.memberCount
-    headshot = headshotRow?.value ?? ''
     if (hiddenSetting) hiddenGames = JSON.parse(hiddenSetting.value) as string[]
     if (orderSetting) gameOrder = JSON.parse(orderSetting.value) as string[]
     for (const row of allLikes as { gameHref: string; _count: { gameHref: number } }[]) {
@@ -67,7 +64,6 @@ export default async function FunPage() {
         communityXp={communityXp}
         memberCount={communityMemberCount}
         isLoggedIn={!!session?.user}
-        headshot={headshot}
       />
 
       <GameGrid

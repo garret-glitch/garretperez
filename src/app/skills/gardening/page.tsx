@@ -24,20 +24,15 @@ const S = {
 export default async function GardeningPage() {
   const session = await auth()
 
-  let headshot = ''
   let communityXp = 0
   let communityMemberCount = 0
   let plants: PlantData[] = []
   let posts: Array<{ id: string; title: string; body: string; createdAt: Date; user: { username: string } }> = []
 
   try {
-    const [communityData, headshotRow] = await Promise.all([
-      getCommunityXpForSkill('GARDENING'),
-      (prisma as any).siteSetting.findUnique({ where: { key: 'headshot' } }),
-    ])
+    const communityData = await getCommunityXpForSkill('GARDENING')
     communityXp = communityData.xp
     communityMemberCount = communityData.memberCount
-    headshot = headshotRow?.value ?? ''
     plants = await (prisma as any).plant.findMany({
       orderBy: { createdAt: 'desc' },
       include: { user: { select: { username: true } } },
@@ -58,7 +53,6 @@ export default async function GardeningPage() {
         memberCount={communityMemberCount}
         postCount={posts.length}
         isLoggedIn={!!session?.user}
-        headshot={headshot}
       />
 
       {/* ── MY GARDEN ───────────────────────────────────────── */}
