@@ -214,13 +214,21 @@ export default function MarketDashboard() {
   }) ?? ''
 
   const SectionHead = ({ icon, label }: { icon: string; label: string }) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-      <span style={{ fontSize: 14 }}>{icon}</span>
-      <span style={{
-        fontFamily: "'Press Start 2P', monospace", fontSize: 8,
-        color: S.goldDim, letterSpacing: '0.12em',
-      }}>{label}</span>
-      <div style={{ flex: 1, height: 1, background: 'rgba(200,155,60,0.1)' }} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 9, flexShrink: 0,
+        background: 'rgba(200,155,60,0.13)',
+        border: '1px solid rgba(200,155,60,0.45)',
+        padding: '9px 18px',
+        boxShadow: '0 0 10px rgba(200,155,60,0.08)',
+      }}>
+        <span style={{ fontSize: 15, lineHeight: 1 }}>{icon}</span>
+        <span style={{
+          fontFamily: "'Press Start 2P', monospace", fontSize: 8,
+          color: S.gold, letterSpacing: '0.12em',
+        }}>{label}</span>
+      </div>
+      <div style={{ flex: 1, height: 1, background: 'rgba(200,155,60,0.18)' }} />
     </div>
   )
 
