@@ -32,7 +32,7 @@ export default function GameGrid({
     // Optimistic update
     setHidden(prev => {
       const next = new Set(prev)
-      willHide ? next.add(href) : next.delete(href)
+      if (willHide) next.add(href); else next.delete(href)
       return next
     })
     try {
@@ -46,7 +46,7 @@ export default function GameGrid({
       // Revert on failure
       setHidden(prev => {
         const next = new Set(prev)
-        willHide ? next.delete(href) : next.add(href)
+        if (willHide) next.delete(href); else next.add(href)
         return next
       })
     }
