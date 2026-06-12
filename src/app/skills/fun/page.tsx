@@ -30,16 +30,21 @@ export default async function FunPage() {
   let communityXp = 0
   let communityMemberCount = 0
   let hiddenGames: string[] = []
+  let gameOrder: string[] = []
 
   try {
-    const [communityData, hiddenSetting] = await Promise.all([
+    const [communityData, hiddenSetting, orderSetting] = await Promise.all([
       getCommunityXpForSkill('FUN' as SkillType),
       (prisma as any).siteSetting.findUnique({ where: { key: 'hidden_games' } }),
+      (prisma as any).siteSetting.findUnique({ where: { key: 'game_order' } }),
     ])
     communityXp = communityData.xp
     communityMemberCount = communityData.memberCount
     if (hiddenSetting) {
       hiddenGames = JSON.parse(hiddenSetting.value) as string[]
+    }
+    if (orderSetting) {
+      gameOrder = JSON.parse(orderSetting.value) as string[]
     }
   } catch { /* DB not configured */ }
 
@@ -54,7 +59,7 @@ export default async function FunPage() {
         isLoggedIn={!!session?.user}
       />
 
-      <GameGrid games={GAMES} initialHidden={hiddenGames} isAdmin={isAdmin} />
+      <GameGrid games={GAMES} initialHidden={hiddenGames} initialOrder={gameOrder} isAdmin={isAdmin} />
     </div>
   )
 }
