@@ -32,7 +32,7 @@ export default async function Home() {
   let currentUserLevel = 1
   let currentUserXpBar = { currentXp: 0, neededXp: 100, percent: 0 }
   let shieldColor = '#1a0e06'
-  let heroTitle = 'Sales Supervisor · Builder · Family Man'
+  let heroTitle = ''
   let heroLocation = 'Houston, TX'
   let contactPhone = '(346) 604-1635'
   let contactEmail = 'gis.owner@gmail.com'
@@ -185,7 +185,7 @@ export default async function Home() {
                     letterSpacing: '0.04em', margin: 0,
                   }}>Garret Perez</h1>
                 </div>
-                <div className="body-text" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)', marginBottom: 4 }}>{heroTitle}</div>
+                {heroTitle && <div className="body-text" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)', marginBottom: 4 }}>{heroTitle}</div>}
                 <div className="body-text" style={{ fontSize: 12, color: 'var(--text-2)' }}>📍 {heroLocation}</div>
               </div>
 
