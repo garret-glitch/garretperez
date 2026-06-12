@@ -4,12 +4,14 @@ import Link from 'next/link'
 import { useState, useRef } from 'react'
 import {
   DndContext,
+  DragOverlay,
   closestCenter,
-  PointerSensor,
+  MouseSensor,
   TouchSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
 } from '@dnd-kit/core'
 import {
   SortableContext,
@@ -39,60 +41,6 @@ function applyOrder(defs: GameDef[], order: string[]): GameDef[] {
   return result
 }
 
-function CardContent({ game, isHidden, isAdmin, editMode }: {
-  game: GameDef
-  isHidden: boolean
-  isAdmin: boolean
-  editMode: boolean
-}) {
-  const inner = (
-    <>
-      <span style={{ fontSize: 30, lineHeight: 1, filter: `drop-shadow(0 0 6px ${game.glow}99)` }}>
-        {game.icon}
-      </span>
-      <div className="text-center">
-        <div className="text-[9px] font-bold mb-0.5" style={{ color: '#e8e4d8' }}>{game.title}</div>
-        <div className="text-[6px] mb-1 body-text" style={{ color: 'rgba(160,152,128,0.7)' }}>{game.desc}</div>
-        <div className="text-[6px] font-bold" style={{ color: game.glow }}>{game.xp}</div>
-      </div>
-    </>
-  )
-
-  const sharedStyle: React.CSSProperties = {
-    background: game.bg,
-    border: `1px solid ${isHidden ? 'rgba(255,85,85,0.25)' : game.glow + '33'}`,
-    boxShadow: `0 2px 12px ${game.glow}22, inset 0 1px 0 rgba(255,255,255,0.06)`,
-    opacity: isHidden ? 0.38 : 1,
-    filter: isHidden ? 'grayscale(0.55)' : 'none',
-    display: 'flex',
-    outline: editMode ? `1px dashed ${game.glow}55` : 'none',
-  }
-
-  if (editMode) {
-    return (
-      <div
-        className="flex flex-col items-center gap-2 py-4 px-2 rounded-xl"
-        style={sharedStyle}
-      >
-        {inner}
-      </div>
-    )
-  }
-
-  return (
-    <Link
-      href={game.href}
-      className="flex flex-col items-center gap-2 py-4 px-2 rounded-xl transition-all duration-150 hover:scale-105 hover:brightness-110"
-      style={{
-        ...sharedStyle,
-        pointerEvents: isHidden && !isAdmin ? 'none' : 'auto',
-      }}
-    >
-      {inner}
-    </Link>
-  )
-}
-
 function SortableGameCard({
   game, isHidden, isBusy, isAdmin, editMode, onToggle,
   likeCount, isLiked, isLoggedIn, onLike, likeBusy,
@@ -114,43 +62,64 @@ function SortableGameCard({
     disabled: !editMode,
   })
 
+  const cardStyle: React.CSSProperties = {
+    background: game.bg,
+    border: `1px solid ${isHidden ? 'rgba(255,85,85,0.25)' : game.glow + '33'}`,
+    boxShadow: `0 2px 12px ${game.glow}22, inset 0 1px 0 rgba(255,255,255,0.06)`,
+    opacity: isHidden ? 0.38 : 1,
+    filter: isHidden ? 'grayscale(0.55)' : 'none',
+    display: 'flex',
+    outline: editMode ? `1px dashed ${game.glow}55` : 'none',
+  }
+
+  const inner = (
+    <>
+      <span style={{ fontSize: 30, lineHeight: 1, filter: `drop-shadow(0 0 6px ${game.glow}99)` }}>
+        {game.icon}
+      </span>
+      <div className="text-center">
+        <div className="text-[9px] font-bold mb-0.5" style={{ color: '#e8e4d8' }}>{game.title}</div>
+        <div className="text-[6px] mb-1 body-text" style={{ color: 'rgba(160,152,128,0.7)' }}>{game.desc}</div>
+        <div className="text-[6px] font-bold" style={{ color: game.glow }}>{game.xp}</div>
+      </div>
+    </>
+  )
+
   return (
     <div
       ref={setNodeRef}
       {...(editMode ? { ...attributes, ...listeners } : {})}
       style={{
         transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.4 : 1,
+        transition: isDragging ? undefined : transition,
+        opacity: isDragging ? 0 : 1,
         position: 'relative',
         zIndex: isDragging ? 50 : 1,
         touchAction: editMode ? 'none' : 'auto',
-        cursor: editMode ? (isDragging ? 'grabbing' : 'grab') : 'default',
+        cursor: editMode ? 'grab' : 'default',
       }}
     >
-      {/* Drag handle — visual cue only, parent handles events */}
+      {/* Drag handle — visual cue only */}
       {editMode && (
-        <div
-          title="Drag to reorder"
-          style={{
-            position: 'absolute', top: 7, left: 8, zIndex: 15,
-            color: 'rgba(200,155,60,0.75)',
-            fontSize: 13, lineHeight: 1,
-            pointerEvents: 'none',
-            userSelect: 'none',
-          }}
-        >
+        <div style={{
+          position: 'absolute', top: 7, left: 8, zIndex: 15,
+          color: 'rgba(200,155,60,0.8)',
+          fontSize: 13, lineHeight: 1,
+          pointerEvents: 'none',
+          userSelect: 'none',
+        }}>
           ⠿
         </div>
       )}
 
-      {/* Visibility toggle — always shown to admin */}
+      {/* Visibility toggle */}
       {isAdmin && (
         <button
+          onMouseDown={(e) => e.stopPropagation()}
           onClick={() => onToggle(game.href)}
           title={isHidden ? 'Show for all users' : 'Hide from users'}
           style={{
-            position: 'absolute', top: 7, right: 7, zIndex: 10,
+            position: 'absolute', top: 7, right: 7, zIndex: 20,
             background: 'rgba(0,0,0,0.82)',
             border: `1px solid ${isHidden ? '#FF555566' : '#4CAF5066'}`,
             borderRadius: 5, cursor: isBusy ? 'wait' : 'pointer',
@@ -163,7 +132,20 @@ function SortableGameCard({
         </button>
       )}
 
-      <CardContent game={game} isHidden={isHidden} isAdmin={isAdmin} editMode={editMode} />
+      {/* Card body */}
+      {editMode ? (
+        <div className="flex flex-col items-center gap-2 py-4 px-2 rounded-xl" style={cardStyle}>
+          {inner}
+        </div>
+      ) : (
+        <Link
+          href={game.href}
+          className="flex flex-col items-center gap-2 py-4 px-2 rounded-xl transition-all duration-150 hover:scale-105 hover:brightness-110"
+          style={{ ...cardStyle, pointerEvents: isHidden && !isAdmin ? 'none' : 'auto' }}
+        >
+          {inner}
+        </Link>
+      )}
 
       {/* Like button */}
       {!editMode && (
@@ -188,12 +170,11 @@ function SortableGameCard({
         </button>
       )}
 
-      {/* HIDDEN badge overlay */}
+      {/* HIDDEN badge */}
       {isAdmin && isHidden && (
         <div style={{
           position: 'absolute', bottom: 8, left: 0, right: 0,
-          display: 'flex', justifyContent: 'center',
-          pointerEvents: 'none',
+          display: 'flex', justifyContent: 'center', pointerEvents: 'none',
         }}>
           <span style={{
             fontFamily: '"Press Start 2P", monospace', fontSize: 6,
@@ -232,24 +213,21 @@ export default function GameGrid({
   const [busy, setBusy] = useState<string | null>(null)
   const [editMode, setEditMode] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [activeId, setActiveId] = useState<string | null>(null)
   const [likeCounts, setLikeCounts] = useState<Record<string, number>>(initialLikeCounts)
   const [likedHrefs, setLikedHrefs] = useState<Set<string>>(new Set(initialUserLikes))
   const [likeBusy, setLikeBusy] = useState<string | null>(null)
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+    useSensor(MouseSensor),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
   )
 
   async function toggle(href: string) {
     if (busy) return
     setBusy(href)
     const willHide = !hidden.has(href)
-    setHidden(prev => {
-      const next = new Set(prev)
-      if (willHide) next.add(href); else next.delete(href)
-      return next
-    })
+    setHidden(prev => { const s = new Set(prev); if (willHide) s.add(href); else s.delete(href); return s })
     try {
       const res = await fetch('/api/admin/toggle-game', {
         method: 'POST',
@@ -258,16 +236,17 @@ export default function GameGrid({
       })
       if (!res.ok) throw new Error()
     } catch {
-      setHidden(prev => {
-        const next = new Set(prev)
-        if (willHide) next.delete(href); else next.add(href)
-        return next
-      })
+      setHidden(prev => { const s = new Set(prev); if (willHide) s.delete(href); else s.add(href); return s })
     }
     setBusy(null)
   }
 
+  function handleDragStart({ active }: DragStartEvent) {
+    setActiveId(active.id as string)
+  }
+
   function handleDragEnd({ active, over }: DragEndEvent) {
+    setActiveId(null)
     if (!over || active.id === over.id) return
     setOrderedGames(prev => {
       const from = prev.findIndex(g => g.href === active.id)
@@ -287,7 +266,7 @@ export default function GameGrid({
       if (!res.ok) throw new Error()
       savedRef.current = orderedGames
       setEditMode(false)
-    } catch { /* stay in edit mode on failure */ }
+    } catch { /* stay in edit mode */ }
     setSaving(false)
   }
 
@@ -300,7 +279,6 @@ export default function GameGrid({
     if (likeBusy) return
     setLikeBusy(href)
     const wasLiked = likedHrefs.has(href)
-    // Optimistic update
     setLikedHrefs(prev => { const s = new Set(prev); if (wasLiked) s.delete(href); else s.add(href); return s })
     setLikeCounts(prev => ({ ...prev, [href]: Math.max(0, (prev[href] ?? 0) + (wasLiked ? -1 : 1)) }))
     try {
@@ -313,7 +291,6 @@ export default function GameGrid({
       const data = await res.json()
       setLikeCounts(prev => ({ ...prev, [href]: data.count }))
     } catch {
-      // Revert
       setLikedHrefs(prev => { const s = new Set(prev); if (wasLiked) s.add(href); else s.delete(href); return s })
       setLikeCounts(prev => ({ ...prev, [href]: Math.max(0, (prev[href] ?? 0) + (wasLiked ? 1 : -1)) }))
     }
@@ -321,6 +298,7 @@ export default function GameGrid({
   }
 
   const displayGames = isAdmin ? orderedGames : orderedGames.filter(g => !hidden.has(g.href))
+  const activeGame = activeId ? orderedGames.find(g => g.href === activeId) : null
 
   return (
     <div>
@@ -328,23 +306,18 @@ export default function GameGrid({
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10, gap: 8, alignItems: 'center' }}>
           {editMode ? (
             <>
-              <span style={{
-                fontFamily: '"Press Start 2P", monospace', fontSize: 6,
-                color: '#a09880', marginRight: 4,
-              }}>
+              <span style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 6, color: '#a09880', marginRight: 4 }}>
                 drag to reorder
               </span>
               <button onClick={cancelEdit} style={{
-                fontFamily: '"Press Start 2P", monospace', fontSize: 7,
-                padding: '5px 10px',
+                fontFamily: '"Press Start 2P", monospace', fontSize: 7, padding: '5px 10px',
                 background: 'rgba(0,0,0,0.4)', color: '#a09880',
                 border: '1px solid #2a2820', borderRadius: 5, cursor: 'pointer',
               }}>
                 Cancel
               </button>
               <button onClick={saveOrder} disabled={saving} style={{
-                fontFamily: '"Press Start 2P", monospace', fontSize: 7,
-                padding: '5px 10px',
+                fontFamily: '"Press Start 2P", monospace', fontSize: 7, padding: '5px 10px',
                 background: 'linear-gradient(135deg,#c89b3c,#a07830)', color: '#0d0d14',
                 border: '1px solid #c89b3c', borderRadius: 5,
                 cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.7 : 1,
@@ -354,8 +327,7 @@ export default function GameGrid({
             </>
           ) : (
             <button onClick={() => setEditMode(true)} style={{
-              fontFamily: '"Press Start 2P", monospace', fontSize: 7,
-              padding: '5px 10px',
+              fontFamily: '"Press Start 2P", monospace', fontSize: 7, padding: '5px 10px',
               background: 'rgba(0,0,0,0.4)', color: '#a09880',
               border: '1px solid #2a2820', borderRadius: 5, cursor: 'pointer',
             }}>
@@ -365,7 +337,13 @@ export default function GameGrid({
         </div>
       )}
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={() => setActiveId(null)}
+      >
         <SortableContext items={displayGames.map(g => g.href)} strategy={rectSortingStrategy}>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {displayGames.map(g => (
@@ -386,6 +364,30 @@ export default function GameGrid({
             ))}
           </div>
         </SortableContext>
+
+        <DragOverlay dropAnimation={{ duration: 180, easing: 'ease' }}>
+          {activeGame ? (
+            <div
+              className="flex flex-col items-center gap-2 py-4 px-2 rounded-xl"
+              style={{
+                background: activeGame.bg,
+                border: `1px solid ${activeGame.glow}66`,
+                boxShadow: `0 12px 32px rgba(0,0,0,0.7), 0 0 24px ${activeGame.glow}44`,
+                opacity: 0.95,
+                cursor: 'grabbing',
+                transform: 'rotate(2deg) scale(1.04)',
+              }}
+            >
+              <span style={{ fontSize: 30, lineHeight: 1, filter: `drop-shadow(0 0 8px ${activeGame.glow})` }}>
+                {activeGame.icon}
+              </span>
+              <div className="text-center">
+                <div className="text-[9px] font-bold mb-0.5" style={{ color: '#e8e4d8' }}>{activeGame.title}</div>
+                <div className="text-[6px] body-text" style={{ color: 'rgba(160,152,128,0.7)' }}>{activeGame.desc}</div>
+              </div>
+            </div>
+          ) : null}
+        </DragOverlay>
       </DndContext>
     </div>
   )
