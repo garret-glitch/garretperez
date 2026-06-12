@@ -1119,7 +1119,7 @@ export default function WineStockerRush() {
                 fontFamily: '"Press Start 2P", monospace', fontSize: 12, lineHeight: 1.7,
                 color: 'var(--gold)', textShadow: '0 0 24px rgba(200,155,60,0.55)', margin: 0,
               }}>
-                Wine Stocker Rush
+                Wine Rush
               </h1>
               <p className="body-text" style={{ color: 'var(--text-3)', fontSize: 10, margin: '4px 0 0' }}>
                 Stock the shelves. Survive the manager. Don&apos;t get fired.
