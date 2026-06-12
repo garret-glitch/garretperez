@@ -22,7 +22,7 @@ function StatChip({ value, label, highlight }: { value: string | number; label: 
       <span className="body-text" style={{ fontSize: 17, fontWeight: 700, color: '#c89b3c', lineHeight: 1, marginBottom: 5 }}>
         {value}
       </span>
-      <span style={{ fontSize: 5.5, color: '#7a6040', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: "'Press Start 2P', monospace" }}>
+      <span className="text-[5.5px]" style={{ color: '#7a6040', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: "'Press Start 2P', monospace" }}>
         {label}
       </span>
     </div>
@@ -51,7 +51,7 @@ export default function SkillHeroBar({ skill, communityXp, memberCount, postCoun
               gap: 5,
             }}>
               <span style={{ fontSize: 30, lineHeight: 1 }}>{skill.icon}</span>
-              <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 4.5, color: '#e8d8b0', letterSpacing: '0.04em', textAlign: 'center', lineHeight: 1.4, padding: '0 4px' }}>
+              <span className="text-[5px]" style={{ fontFamily: "'Press Start 2P', monospace", color: '#e8d8b0', letterSpacing: '0.04em', textAlign: 'center', lineHeight: 1.4, padding: '0 4px' }}>
                 {skill.label}
               </span>
             </div>
@@ -66,8 +66,8 @@ export default function SkillHeroBar({ skill, communityXp, memberCount, postCoun
                 }}>
                   {skill.label}
                 </h1>
-                <span style={{
-                  fontSize: 5.5, fontFamily: "'Press Start 2P', monospace",
+                <span className="text-[5.5px]" style={{
+                  fontFamily: "'Press Start 2P', monospace",
                   color: '#7a6040', letterSpacing: '0.14em',
                   border: '1px solid rgba(200,155,60,0.22)', padding: '2px 8px',
                 }}>
@@ -124,7 +124,7 @@ export default function SkillHeroBar({ skill, communityXp, memberCount, postCoun
             <span className="body-text" style={{ fontSize: 38, fontWeight: 800, color: '#c89b3c', lineHeight: 1, marginBottom: 6 }}>
               {p.level}
             </span>
-            <span style={{ fontSize: 6, fontFamily: "'Press Start 2P', monospace", color: '#7a6040', letterSpacing: '0.14em' }}>
+            <span className="text-[6px]" style={{ fontFamily: "'Press Start 2P', monospace", color: '#7a6040', letterSpacing: '0.14em' }}>
               COMMUNITY
             </span>
           </div>

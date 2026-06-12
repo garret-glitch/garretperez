@@ -23,9 +23,10 @@ export default function CommunityFeedBlock({ block, isEditing, liveData }: Props
     <>
       <div className="scroll-roll" />
       <div className="scroll-parchment" style={{ ...style, overflow: 'hidden' }}>
-        <h2 className="mb-4 flex items-center gap-2" style={{ fontSize: hPx, color: '#3a1e06' }}>
-          <span>{cfg.icon}</span> {cfg.heading}
-          <span className="ml-auto text-[6px]" style={{ color: '#8a6030' }}>All Communities</span>
+        <h2 className="mb-4 flex items-center gap-2 min-w-0" style={{ fontSize: hPx, color: '#3a1e06' }}>
+          <span className="shrink-0">{cfg.icon}</span>
+          <span className="truncate">{cfg.heading}</span>
+          <span className="ml-auto shrink-0 hidden sm:inline text-[6px]" style={{ color: '#8a6030' }}>All Communities</span>
         </h2>
         {posts.length === 0 ? (
           <div className="text-center py-10">
