@@ -29,6 +29,7 @@ export interface GameDef {
   xp: string
   bg: string
   glow: string
+  featured?: boolean
 }
 
 function applyOrder(defs: GameDef[], order: string[]): GameDef[] {
@@ -39,6 +40,194 @@ function applyOrder(defs: GameDef[], order: string[]): GameDef[] {
   const inOrder = new Set(order)
   defs.forEach(g => { if (!inOrder.has(g.href)) result.push(g) })
   return result
+}
+
+function FeaturedGameCard({
+  game, isHidden, isBusy, isAdmin, onToggle,
+  likeCount, isLiked, isLoggedIn, onLike, likeBusy,
+}: {
+  game: GameDef
+  isHidden: boolean
+  isBusy: boolean
+  isAdmin: boolean
+  onToggle: (href: string) => void
+  likeCount: number
+  isLiked: boolean
+  isLoggedIn: boolean
+  onLike: (href: string) => void
+  likeBusy: boolean
+}) {
+  const cardContent = (
+    <div className="flex flex-col sm:flex-row" style={{ minHeight: 0 }}>
+
+      {/* ── Visual panel ── */}
+      <div
+        className="flex-shrink-0 flex flex-col items-center justify-center gap-3 border-b sm:border-b-0 sm:border-r"
+        style={{
+          borderColor: 'rgba(176,48,96,0.22)',
+          padding: '22px 20px',
+          background: 'linear-gradient(160deg, rgba(176,48,96,0.18) 0%, rgba(90,10,28,0.10) 100%)',
+          position: 'relative',
+          minHeight: 120,
+        }}
+      >
+        {/* Atmosphere glow */}
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 80% at 50% 50%, rgba(176,48,96,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+        {/* Top shelf */}
+        <div className="flex items-end gap-2 relative z-10">
+          <span style={{ fontSize: 38, filter: 'drop-shadow(0 6px 14px rgba(176,48,96,0.85))' }}>🍷</span>
+          <span style={{ fontSize: 44, filter: 'drop-shadow(0 6px 14px rgba(140,10,50,0.9))' }}>🍾</span>
+          <span style={{ fontSize: 36, filter: 'drop-shadow(0 6px 14px rgba(176,48,96,0.85))' }}>🍷</span>
+        </div>
+
+        {/* Gold shelf plank */}
+        <div style={{
+          width: '88%', height: 3, position: 'relative', zIndex: 10,
+          background: 'linear-gradient(90deg, transparent 0%, rgba(200,155,60,0.55) 15%, rgba(200,155,60,0.9) 50%, rgba(200,155,60,0.55) 85%, transparent 100%)',
+          borderRadius: 2,
+          boxShadow: '0 1px 6px rgba(200,155,60,0.3)',
+        }} />
+
+        {/* Bottom shelf — hidden on mobile to keep compact */}
+        <div className="hidden sm:flex items-end gap-3 relative z-10">
+          <span style={{ fontSize: 32, filter: 'drop-shadow(0 4px 10px rgba(176,48,96,0.7))', opacity: 0.9 }}>🍾</span>
+          <span style={{ fontSize: 36, filter: 'drop-shadow(0 4px 10px rgba(176,48,96,0.8))', opacity: 0.85 }}>🍷</span>
+          <span style={{ fontSize: 28, filter: 'drop-shadow(0 4px 10px rgba(176,48,96,0.6))', opacity: 0.8 }}>🍾</span>
+        </div>
+      </div>
+
+      {/* ── Content panel ── */}
+      <div style={{ flex: 1, padding: '22px 26px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 10 }}>
+
+        {/* Featured badge */}
+        <div>
+          <span style={{
+            fontFamily: '"Press Start 2P", monospace', fontSize: 6,
+            color: '#c89b3c', letterSpacing: '0.15em',
+            border: '1px solid rgba(200,155,60,0.35)', padding: '3px 9px',
+            background: 'rgba(200,155,60,0.07)',
+          }}>
+            ★ FEATURED
+          </span>
+        </div>
+
+        {/* Title */}
+        <h2 style={{
+          fontFamily: "'Cinzel', serif",
+          fontSize: 'clamp(20px, 3.5vw, 26px)', fontWeight: 700,
+          color: '#f2eade', margin: 0,
+          letterSpacing: '0.04em', lineHeight: 1.15,
+          textShadow: '0 0 28px rgba(176,48,96,0.55), 0 1px 3px rgba(0,0,0,0.9)',
+        }}>
+          Wine Stocker
+        </h2>
+
+        {/* Description */}
+        <p className="body-text" style={{ fontSize: 13, color: 'rgba(210,185,150,0.85)', margin: 0, lineHeight: 1.7 }}>
+          Stock shelves, build displays, and move cases like a pro.
+        </p>
+
+        {/* XP + play button */}
+        <div className="flex flex-wrap items-center gap-3" style={{ paddingTop: 2 }}>
+          <span style={{
+            fontFamily: '"Press Start 2P", monospace', fontSize: 7,
+            color: '#b03060', background: 'rgba(176,48,96,0.12)',
+            border: '1px solid rgba(176,48,96,0.32)', padding: '5px 10px',
+            letterSpacing: '0.04em',
+          }}>
+            +25 XP · 400+ PTS
+          </span>
+          <span style={{
+            fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 700,
+            color: '#f4ede0',
+            background: 'linear-gradient(135deg, rgba(176,48,96,0.75) 0%, rgba(110,8,36,0.9) 100%)',
+            border: '1px solid rgba(176,48,96,0.55)',
+            padding: '8px 20px',
+            letterSpacing: '0.06em',
+            boxShadow: '0 0 18px rgba(176,48,96,0.28)',
+          }}>
+            ▶ PLAY NOW
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+
+  return (
+    <div style={{ position: 'relative', marginBottom: 16, opacity: isHidden ? 0.38 : 1, filter: isHidden ? 'grayscale(0.55)' : 'none' }}>
+
+      {/* Admin visibility toggle */}
+      {isAdmin && (
+        <button
+          onClick={() => onToggle(game.href)}
+          style={{
+            position: 'absolute', top: 10, right: 10, zIndex: 20,
+            background: 'rgba(0,0,0,0.82)',
+            border: `1px solid ${isHidden ? '#FF555566' : '#4CAF5066'}`,
+            borderRadius: 5, cursor: isBusy ? 'wait' : 'pointer',
+            fontSize: 13, padding: '3px 5px', lineHeight: 1,
+            opacity: isBusy ? 0.5 : 1, color: isHidden ? '#FF5555' : '#4CAF50',
+          }}
+        >
+          {isHidden ? '🚫' : '👁'}
+        </button>
+      )}
+
+      {/* Card */}
+      <Link
+        href={game.href}
+        className="block transition-all duration-200 hover:brightness-110 hover:-translate-y-0.5"
+        style={{
+          background: 'linear-gradient(135deg, #1c0b16 0%, #0e0508 55%, #180a12 100%)',
+          border: '1px solid rgba(176,48,96,0.38)',
+          borderRadius: 16,
+          overflow: 'hidden',
+          boxShadow: '0 6px 32px rgba(176,48,96,0.18), 0 2px 10px rgba(0,0,0,0.75), inset 0 1px 0 rgba(200,155,60,0.07)',
+          textDecoration: 'none',
+          pointerEvents: isHidden && !isAdmin ? 'none' : 'auto',
+          display: 'block',
+        }}
+      >
+        {cardContent}
+      </Link>
+
+      {/* Like button */}
+      <button
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (isLoggedIn) onLike(game.href) }}
+        title={isLoggedIn ? (isLiked ? 'Unlike' : 'Like') : 'Log in to like'}
+        style={{
+          position: 'absolute', bottom: 14, right: 14, zIndex: 10,
+          background: 'rgba(0,0,0,0.72)',
+          border: `1px solid ${isLiked ? 'rgba(176,48,96,0.6)' : '#2a282055'}`,
+          borderRadius: 5,
+          cursor: isLoggedIn ? (likeBusy ? 'wait' : 'pointer') : 'default',
+          fontSize: 10, padding: '3px 7px', lineHeight: 1,
+          color: isLiked ? '#b03060' : 'rgba(160,152,128,0.45)',
+          display: 'flex', alignItems: 'center', gap: 3,
+          opacity: likeBusy ? 0.6 : 1,
+          transition: 'color 0.15s, border-color 0.15s',
+        }}
+      >
+        <span style={{ fontSize: 12 }}>{isLiked ? '♥' : '♡'}</span>
+        {likeCount > 0 && <span style={{ fontSize: 9 }}>{likeCount}</span>}
+      </button>
+
+      {/* Hidden badge */}
+      {isAdmin && isHidden && (
+        <div style={{ position: 'absolute', top: 14, left: 14, pointerEvents: 'none' }}>
+          <span style={{
+            fontFamily: '"Press Start 2P", monospace', fontSize: 6,
+            color: '#FF6666', background: 'rgba(0,0,0,0.8)',
+            padding: '2px 6px', borderRadius: 3,
+            border: '1px solid rgba(255,85,85,0.4)',
+          }}>
+            HIDDEN
+          </span>
+        </div>
+      )}
+    </div>
+  )
 }
 
 function SortableGameCard({
@@ -298,10 +487,29 @@ export default function GameGrid({
   }
 
   const displayGames = isAdmin ? orderedGames : orderedGames.filter(g => !hidden.has(g.href))
+  const featuredGames = displayGames.filter(g => g.featured)
+  const regularGames = displayGames.filter(g => !g.featured)
   const activeGame = activeId ? orderedGames.find(g => g.href === activeId) : null
 
   return (
     <div>
+      {/* ── Featured cards (rendered outside the drag grid) ── */}
+      {featuredGames.map(g => (
+        <FeaturedGameCard
+          key={g.href}
+          game={g}
+          isHidden={hidden.has(g.href)}
+          isBusy={busy === g.href}
+          isAdmin={isAdmin}
+          onToggle={toggle}
+          likeCount={likeCounts[g.href] ?? 0}
+          isLiked={likedHrefs.has(g.href)}
+          isLoggedIn={isLoggedIn}
+          onLike={handleLike}
+          likeBusy={likeBusy === g.href}
+        />
+      ))}
+
       {isAdmin && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10, gap: 8, alignItems: 'center' }}>
           {editMode ? (
@@ -344,9 +552,9 @@ export default function GameGrid({
         onDragEnd={handleDragEnd}
         onDragCancel={() => setActiveId(null)}
       >
-        <SortableContext items={displayGames.map(g => g.href)} strategy={rectSortingStrategy}>
+        <SortableContext items={regularGames.map(g => g.href)} strategy={rectSortingStrategy}>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {displayGames.map(g => (
+            {regularGames.map(g => (
               <SortableGameCard
                 key={g.href}
                 game={g}
