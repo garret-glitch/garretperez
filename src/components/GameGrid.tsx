@@ -209,7 +209,7 @@ export default function GameGrid({
     const willHide = !hidden.has(href)
     setHidden(prev => {
       const next = new Set(prev)
-      willHide ? next.add(href) : next.delete(href)
+      if (willHide) next.add(href); else next.delete(href)
       return next
     })
     try {
@@ -222,7 +222,7 @@ export default function GameGrid({
     } catch {
       setHidden(prev => {
         const next = new Set(prev)
-        willHide ? next.delete(href) : next.add(href)
+        if (willHide) next.delete(href); else next.add(href)
         return next
       })
     }
