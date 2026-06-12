@@ -303,6 +303,8 @@ Key CSS classes (all in `globals.css`):
 - `.body-text` — Inter font override (use on all body/paragraph text, NOT headings)
 - `.guild-channel` — sidebar channel row with left-border hover
 - `.scroll-roll` / `.scroll-parchment` — parchment scroll wrapper used by the About Me block
+- `.content-grid` — homepage block grid; 1-col mobile (`minmax(0,1fr)`), 3-col desktop. Grid items must have `min-width:0` to prevent content stretching the track.
+- `.mobile-block-{type}` — per-block wrapper class used to set mobile ordering (CSS `order` property)
 
 Two fonts: **Press Start 2P** for all headings/labels (default), **Inter** for body text (apply `.body-text` class).
 
@@ -373,3 +375,7 @@ Vercel is configured with both `garretperez.com` and `www.garretperez.com` as al
 - **Nested DndContext**: The About Me bubble editor uses its own `DndContext` (independent of the builder canvas DndContext). This is intentional and supported by @dnd-kit.
 - **AboutBlockConfig legacy format**: Old DB records may have `bio1/bio2/bio3` fields instead of `bubbles[]`. The `normalizeCfg()` function in `AboutBlock.tsx` handles this at read time — never strip the optional legacy fields from the type.
 - **`@tiptap/extension-text-style`** exports `TextStyle` as a named export, not default. Import as `import { TextStyle } from '@tiptap/extension-text-style'`.
+- **Mobile overflow — CSS grid**: Plain `1fr` track uses `minmax(auto, 1fr)` which lets content stretch columns. Always use `minmax(0, 1fr)` for mobile grid tracks, and add `min-width: 0` to grid items. Without this, parchment blocks (About, Projects, XP Guide, etc.) overflow the viewport.
+- **Mobile overflow — inline styles**: `overflow: visible` on a grid item is not overrideable by a plain CSS rule — requires `!important` in the media query. The mobile CSS uses `overflow: hidden !important` on `.content-grid > div` to hard-constrain blocks regardless of inline styles.
+- **iOS Safari overflow**: Requires BOTH `html { overflow-x: hidden }` AND `body { overflow-x: hidden }` — just `body` alone is insufficient.
+- **Tiny font sizes**: Labels using inline `style={{ fontSize: X }}` cannot be targeted by mobile CSS bump rules. Convert to Tailwind `text-[Xpx]` classes so the `@media (max-width: 767px)` overrides apply.
