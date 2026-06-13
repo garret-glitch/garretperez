@@ -10,7 +10,7 @@ import GameGrid, { type GameDef } from '@/components/GameGrid'
 export const dynamic = 'force-dynamic'
 
 const GAMES: GameDef[] = [
-  { icon: '✦',  title: 'Lumina',       desc: 'Flow puzzle game',        href: '/game',                    xp: 'Endless',          bg: 'linear-gradient(135deg,#2a1a4a,#1a1230)', glow: '#9060ff' },
+  { icon: '✦',  title: 'Lumina',       desc: 'Light the path. Clear the grid. Find your flow.',        href: '/game',                    xp: 'Endless',          bg: 'linear-gradient(135deg,#2a1a4a,#1a1230)', glow: '#9060ff', featured: true },
   { icon: '⚽', title: 'Ball Game',    desc: 'Keep the ball alive',     href: '/skills/fun/ballgame',     xp: 'High Score',       bg: 'linear-gradient(135deg,#2a1a08,#180e04)', glow: '#c07830' },
   { icon: '🔵', title: 'Drag Ball',    desc: 'Steer · dodge · collect', href: '/skills/fun/dragball',     xp: 'High Score',       bg: 'linear-gradient(135deg,#0a1a38,#050e20)', glow: '#4090e0' },
   { icon: '🍷', title: 'Wine Trivia',  desc: '10-question quiz',        href: '/skills/fun/wine-trivia',  xp: '+25 XP (7+/10)',   bg: 'linear-gradient(135deg,#3a1020,#1a0810)', glow: '#c03050' },
