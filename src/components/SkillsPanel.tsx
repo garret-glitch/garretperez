@@ -39,7 +39,11 @@ export default async function SkillsPanel() {
         if (Array.isArray(parsed) && parsed.length > 0) {
           // Filter out stale keys (e.g. HEALTH) that no longer exist in CHAN
           const filtered = parsed.filter((k: string) => DEFAULT_CHAN_ORDER.includes(k as ChanKey))
-          if (filtered.length > 0) channelOrder = filtered
+          if (filtered.length > 0) {
+            // Append any newly-added keys not in the saved order
+            const missing = DEFAULT_CHAN_ORDER.filter(k => !filtered.includes(k))
+            channelOrder = [...filtered, ...missing]
+          }
         }
       } catch { /* use default */ }
     }
