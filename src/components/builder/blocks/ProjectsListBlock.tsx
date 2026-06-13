@@ -34,8 +34,9 @@ export default function ProjectsListBlock({ block, isEditing, liveData }: Props)
         ) : (
           <div className="space-y-2">
             {projects.map(p => (
-              <div key={p.id} className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg"
-                style={{ background: 'rgba(180,120,40,0.18)', border: '1px solid #a07840' }}>
+              <Link key={p.id} href={isEditing ? '#' : `/skills/projects/${p.id}`}
+                className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg hover:opacity-80 transition-opacity"
+                style={{ background: 'rgba(180,120,40,0.18)', border: '1px solid #a07840', textDecoration: 'none', display: 'flex' }}>
                 <span className="text-xl shrink-0">{p.icon}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -45,7 +46,7 @@ export default function ProjectsListBlock({ block, isEditing, liveData }: Props)
                   <div className="prog-bar"><div className="prog-bar-fill" style={{ width: `${p.progress}%` }} /></div>
                   <div className="text-[5.5px] mt-1" style={{ color: '#8a6030' }}>Updated {p.updated}</div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}
