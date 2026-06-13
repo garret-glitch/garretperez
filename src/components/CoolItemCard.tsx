@@ -7,6 +7,7 @@ export interface ItemData {
   category: string | null
   link: string | null
   priceRange: string | null
+  imageUrl: string | null
   accentColor: string
   createdAt: string
   user: { id: string; username: string }
@@ -40,7 +41,7 @@ export default function CoolItemCard({
 
       <div
         className={`ci-${uid}`}
-        style={{ width: '100%', paddingBottom: '57%', position: 'relative', perspective: '1200px' }}
+        style={{ width: '100%', paddingBottom: '66%', position: 'relative', perspective: '1200px' }}
       >
         <div
           className={`ci-inner-${uid}`}
@@ -60,79 +61,132 @@ export default function CoolItemCard({
             borderRadius: 8,
             overflow: 'hidden',
             boxShadow: `0 6px 28px rgba(0,0,0,0.65), 0 0 0 1px ${ac}12, inset 0 1px 0 rgba(255,255,255,0.04)`,
-            padding: '14px 16px 14px 22px',
             display: 'flex',
             flexDirection: 'column',
           }}>
             {/* Left accent bar */}
             <div style={{
-              position: 'absolute', left: 0, top: 0, bottom: 0, width: 5,
+              position: 'absolute', left: 0, top: 0, bottom: 0, width: 5, zIndex: 2,
               background: `linear-gradient(180deg, ${ac} 0%, ${ac}70 100%)`,
             }} />
 
             {/* Grid pattern */}
             <div style={{
-              position: 'absolute', inset: 0, opacity: 0.022, pointerEvents: 'none',
+              position: 'absolute', inset: 0, opacity: 0.022, pointerEvents: 'none', zIndex: 0,
               backgroundImage: `linear-gradient(${ac} 1px, transparent 1px), linear-gradient(90deg, ${ac} 1px, transparent 1px)`,
               backgroundSize: '28px 28px',
             }} />
 
-            {/* Category pill + emoji */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, position: 'relative' }}>
-              <div style={{
-                width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
-                background: `${ac}18`, border: `1.5px solid ${ac}55`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 14,
-              }}>
-                ⚙️
+            {/* Image hero (if present) */}
+            {item.imageUrl ? (
+              <div style={{ position: 'relative', height: '44%', flexShrink: 0, marginLeft: 5 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={item.imageUrl}
+                  alt={item.itemName}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                />
+                {/* Bottom fade */}
+                <div style={{
+                  position: 'absolute', bottom: 0, left: 0, right: 0, height: 40,
+                  background: 'linear-gradient(to top, #12100e, transparent)',
+                  pointerEvents: 'none',
+                }} />
+                {/* Category pill over image */}
+                {item.category && (
+                  <span style={{
+                    position: 'absolute', top: 8, left: 10,
+                    fontFamily: "'Inter', system-ui, sans-serif", fontSize: 9,
+                    color: ac, background: 'rgba(10,8,6,0.85)',
+                    border: `1px solid ${ac}50`,
+                    padding: '2px 8px', borderRadius: 10, letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
+                  }}>
+                    {item.category}
+                  </span>
+                )}
+                {/* Price over image */}
+                {item.priceRange && (
+                  <span style={{
+                    position: 'absolute', top: 8, right: 10,
+                    fontFamily: "'Inter', system-ui, sans-serif", fontSize: 13,
+                    fontWeight: 800, color: '#60df80',
+                    background: 'rgba(4,22,10,0.9)',
+                    border: '1px solid rgba(60,180,80,0.4)',
+                    padding: '3px 10px', borderRadius: 4,
+                  }}>
+                    {item.priceRange}
+                  </span>
+                )}
               </div>
-              {item.category && (
-                <span style={{
-                  fontFamily: "'Inter', system-ui, sans-serif", fontSize: 9,
-                  color: ac, background: `${ac}15`, border: `1px solid ${ac}35`,
-                  padding: '1px 7px', borderRadius: 10, letterSpacing: '0.04em',
-                  textTransform: 'uppercase',
-                }}>
-                  {item.category}
-                </span>
-              )}
-              {item.priceRange && (
-                <span style={{
-                  fontFamily: "'Press Start 2P', monospace", fontSize: 5,
-                  color: '#60bf80', background: 'rgba(10,50,25,0.7)',
-                  border: '1px solid rgba(60,180,80,0.3)',
-                  padding: '2px 7px', borderRadius: 10, letterSpacing: '0.06em', marginLeft: 'auto',
-                }}>
-                  {item.priceRange}
-                </span>
-              )}
-            </div>
+            ) : null}
 
-            {/* Item name */}
+            {/* Content area */}
             <div style={{
-              fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: '#f0d898',
-              lineHeight: 1.55, marginBottom: 6, position: 'relative',
+              flex: 1, display: 'flex', flexDirection: 'column',
+              padding: item.imageUrl ? '10px 14px 12px 22px' : '14px 14px 12px 22px',
+              position: 'relative', zIndex: 1, minHeight: 0,
             }}>
-              {item.itemName}
-            </div>
+              {/* Row: circle icon + category (no-image only) */}
+              {!item.imageUrl && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+                    background: `${ac}18`, border: `1.5px solid ${ac}55`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 13,
+                  }}>
+                    ⚙️
+                  </div>
+                  {item.category && (
+                    <span style={{
+                      fontFamily: "'Inter', system-ui, sans-serif", fontSize: 9,
+                      color: ac, background: `${ac}15`, border: `1px solid ${ac}35`,
+                      padding: '1px 7px', borderRadius: 10, letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                    }}>
+                      {item.category}
+                    </span>
+                  )}
+                </div>
+              )}
 
-            {/* Description */}
-            {item.description && (
+              {/* Item name */}
               <div style={{
-                fontFamily: "'Inter', system-ui, sans-serif", fontSize: 11,
-                color: '#907858', fontStyle: 'italic', position: 'relative', flex: 1,
-                lineHeight: 1.5,
+                fontFamily: "'Press Start 2P', monospace", fontSize: 8, color: '#f0d898',
+                lineHeight: 1.5, marginBottom: 5,
               }}>
-                &ldquo;{item.description}&rdquo;
+                {item.itemName}
               </div>
-            )}
 
-            {/* Bottom: recommended by */}
-            <div style={{ marginTop: 'auto', paddingTop: 8, position: 'relative' }}>
-              <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 5, color: '#504030' }}>
-                shared by @{item.user.username}
-              </span>
+              {/* Description */}
+              {item.description && (
+                <div style={{
+                  fontFamily: "'Inter', system-ui, sans-serif", fontSize: 11,
+                  color: '#907858', fontStyle: 'italic',
+                  lineHeight: 1.5, flex: 1,
+                }}>
+                  &ldquo;{item.description}&rdquo;
+                </div>
+              )}
+
+              {/* Bottom row: username + price (no-image only — with image price is overlaid) */}
+              <div style={{ marginTop: 'auto', paddingTop: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 5, color: '#504030' }}>
+                  @{item.user.username}
+                </span>
+                {!item.imageUrl && item.priceRange && (
+                  <span style={{
+                    fontFamily: "'Inter', system-ui, sans-serif", fontSize: 14,
+                    fontWeight: 800, color: '#60df80',
+                    background: 'rgba(4,22,10,0.85)',
+                    border: '1px solid rgba(60,180,80,0.35)',
+                    padding: '3px 10px', borderRadius: 4, whiteSpace: 'nowrap',
+                  }}>
+                    {item.priceRange}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -152,7 +206,7 @@ export default function CoolItemCard({
             flexDirection: 'column',
             justifyContent: 'center',
             alignItems: 'center',
-            gap: 14,
+            gap: 12,
           }}>
             {/* Top accent line */}
             <div style={{
@@ -168,6 +222,19 @@ export default function CoolItemCard({
               {item.itemName}
             </div>
 
+            {/* Price on back — large */}
+            {item.priceRange && (
+              <div style={{
+                fontFamily: "'Inter', system-ui, sans-serif", fontSize: 20,
+                fontWeight: 900, color: '#60df80',
+                background: 'rgba(4,22,10,0.85)',
+                border: '1px solid rgba(60,180,80,0.35)',
+                padding: '5px 16px', borderRadius: 4,
+              }}>
+                {item.priceRange}
+              </div>
+            )}
+
             {item.description && (
               <div style={{
                 fontFamily: "'Inter', system-ui, sans-serif", fontSize: 11,
@@ -177,7 +244,7 @@ export default function CoolItemCard({
               </div>
             )}
 
-            {/* Link button or no-link message */}
+            {/* Link button */}
             {item.link ? (
               <a
                 href={cleanUrl(item.link)}

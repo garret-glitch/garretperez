@@ -36,7 +36,11 @@ export default async function SkillsPanel() {
     if (orderSetting?.value) {
       try {
         const parsed = JSON.parse(orderSetting.value)
-        if (Array.isArray(parsed) && parsed.length > 0) channelOrder = parsed
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Filter out stale keys (e.g. HEALTH) that no longer exist in CHAN
+          const filtered = parsed.filter((k: string) => DEFAULT_CHAN_ORDER.includes(k as ChanKey))
+          if (filtered.length > 0) channelOrder = filtered
+        }
       } catch { /* use default */ }
     }
 

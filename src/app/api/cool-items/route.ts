@@ -23,7 +23,7 @@ export async function POST(req: Request) {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
-    const { itemName, description, category, link, priceRange, accentColor } = await req.json()
+    const { itemName, description, category, link, priceRange, imageUrl, accentColor } = await req.json()
 
     if (!itemName?.trim()) return NextResponse.json({ error: 'Item name is required.' }, { status: 400 })
     if (category && !ALLOWED_CATEGORIES.includes(category)) {
@@ -38,6 +38,7 @@ export async function POST(req: Request) {
         category: category || null,
         link: link?.trim().slice(0, 300) || null,
         priceRange: priceRange?.trim().slice(0, 50) || null,
+        imageUrl: imageUrl || null,
         accentColor: accentColor || '#c89b3c',
       },
       include: { user: { select: { id: true, username: true } } },
