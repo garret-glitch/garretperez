@@ -2,10 +2,28 @@
 
 import { useState, useRef, useCallback } from 'react'
 import { ComposableMap, Geographies, Geography, type Geography as GeoType } from 'react-simple-maps'
+import { geoAlbersUsa, geoEqualEarth } from 'd3-geo'
 import Link from 'next/link'
 
 const WORLD_GEO = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json'
 const USA_GEO   = 'https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json'
+
+// Projection instances matching the map config: USA (scale 720, 800×352) and World (scale 77, 800×240)
+const USA_PROJ   = geoAlbersUsa().scale(720).translate([400, 176])
+const WORLD_PROJ = geoEqualEarth().scale(77).translate([400, 120])
+
+// Convert a USA-map pin (percentage coords in 800×352 space) to world-map percentage coords.
+// Returns null if the point falls outside all AlbersUSA sub-projections.
+function usaPinToWorldPct(x: number, y: number): { x: number; y: number } | null {
+  const lonLat = USA_PROJ.invert([(x / 100) * 800, (y / 100) * 352])
+  if (!lonLat) return null
+  const pt = WORLD_PROJ(lonLat)
+  if (!pt) return null
+  return {
+    x: Math.max(1, Math.min(99, (pt[0] / 800) * 100)),
+    y: Math.max(1, Math.min(99, (pt[1] / 240) * 100)),
+  }
+}
 
 const TRAVEL_EMOJIS = [
   '📍','✈️','🏖️','🏔️','🗼','🏯',
@@ -52,9 +70,22 @@ export default function TravelMapClient({ initialPins, isLoggedIn, userId }: Pro
   const hasDraggedRef = useRef(false)
   const dragStartRef = useRef<{ x: number; y: number } | null>(null)
 
-  const visiblePins = pins.filter(p => (p.mapView ?? 'world') === mapView)
-  const worldCount  = pins.filter(p => (p.mapView ?? 'world') === 'world').length
-  const usaCount    = pins.filter(p => p.mapView === 'usa').length
+  type DisplayPin = { pin: TravelPin; x: number; y: number; converted: boolean }
+  // Map pin rendering: world view shows all pins (USA ones projected to world coords).
+  const displayPins: DisplayPin[] =
+    mapView === 'world'
+      ? pins.flatMap<DisplayPin>(p => {
+          if ((p.mapView ?? 'world') === 'world') return [{ pin: p, x: p.x, y: p.y, converted: false }]
+          const pos = usaPinToWorldPct(p.x, p.y)
+          return pos ? [{ pin: p, x: pos.x, y: pos.y, converted: true }] : []
+        })
+      : pins.filter(p => p.mapView === 'usa').map(p => ({ pin: p, x: p.x, y: p.y, converted: false }))
+
+  // Card list below the map: always filter by current view (no duplicates).
+  const cardPins = pins.filter(p => (p.mapView ?? 'world') === mapView)
+
+  const worldCount = pins.filter(p => (p.mapView ?? 'world') === 'world').length
+  const usaCount   = pins.filter(p => p.mapView === 'usa').length
 
   function switchView(view: MapView) {
     if (view === mapView) return
@@ -333,21 +364,27 @@ export default function TravelMapClient({ initialPins, isLoggedIn, userId }: Pro
               {/* Pin overlay — same position as the SVG */}
               <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, pointerEvents: 'none' }}>
 
-              {visiblePins.map(pin => {
+              {displayPins.map(({ pin, x, y, converted }) => {
                 const isDragging = draggingId === pin.id
-                const pos = isDragging && dragPos ? dragPos : { x: pin.x, y: pin.y }
+                // Converted USA pins shown on the world map use their projected position (no drag).
+                const dispX = isDragging && dragPos ? dragPos.x : x
+                const dispY = isDragging && dragPos ? dragPos.y : y
                 const isOwner = !!(userId && pin.userId === userId)
+                const canDrag = isOwner && !converted
                 return (
                   <button
-                    key={pin.id}
-                    onPointerDown={isOwner ? e => onPinDown(pin, e) : undefined}
-                    onPointerMove={isOwner ? e => onPinMove(pin, e) : undefined}
-                    onPointerUp={e => isOwner ? onPinUp(pin, e) : (e.stopPropagation(), setActivePin(pin), setMode('viewing'))}
+                    key={`${pin.id}-${converted ? 'conv' : 'orig'}`}
+                    onPointerDown={canDrag ? e => onPinDown(pin, e) : undefined}
+                    onPointerMove={canDrag ? e => onPinMove(pin, e) : undefined}
+                    onPointerUp={e => {
+                      if (canDrag) { onPinUp(pin, e); return }
+                      e.stopPropagation(); setActivePin(pin); setMode('viewing')
+                    }}
                     title={pin.name}
                     style={{
                       pointerEvents: 'all',
                       position: 'absolute',
-                      left: `${pos.x}%`, top: `${pos.y}%`,
+                      left: `${dispX}%`, top: `${dispY}%`,
                       transform: isDragging ? 'translate(-50%,-118%) scale(1.5)' : 'translate(-50%,-100%)',
                       border: 'none', background: 'none', padding: 0,
                       zIndex: isDragging ? 30 : 10,
@@ -356,7 +393,7 @@ export default function TravelMapClient({ initialPins, isLoggedIn, userId }: Pro
                         ? 'drop-shadow(0 6px 14px rgba(200,155,60,0.95))'
                         : 'drop-shadow(0 1px 4px rgba(0,0,0,1))',
                       transition: isDragging ? 'none' : 'transform 0.12s ease, filter 0.12s ease',
-                      cursor: isOwner ? (isDragging ? 'grabbing' : 'grab') : 'pointer',
+                      cursor: canDrag ? (isDragging ? 'grabbing' : 'grab') : 'pointer',
                       display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
                       minWidth: 24, minHeight: 24,
                       touchAction: 'none',
@@ -373,6 +410,10 @@ export default function TravelMapClient({ initialPins, isLoggedIn, userId }: Pro
                     }}
                   >
                     {pin.emoji}
+                    {/* Small US flag badge for USA pins shown on the world map */}
+                    {converted && (
+                      <span style={{ position: 'absolute', top: -4, right: -4, fontSize: 7, lineHeight: 1 }}>🇺🇸</span>
+                    )}
                     <span style={{ position: 'absolute', bottom: -3, left: '50%', transform: 'translateX(-50%)', width: 1.5, height: 4, background: isDragging ? '#c89b3c' : 'rgba(200,155,60,0.55)', display: 'block' }} />
                   </button>
                 )
@@ -414,7 +455,7 @@ export default function TravelMapClient({ initialPins, isLoggedIn, userId }: Pro
       </div>
 
       {/* ── EMPTY STATE ── */}
-      {isLoggedIn && visiblePins.length === 0 && (
+      {isLoggedIn && cardPins.length === 0 && (
         <div style={{ background: 'var(--bg-card)', border: '1px dashed rgba(200,155,60,0.2)', borderRadius: 12, padding: '20px', textAlign: 'center', minWidth: 0 }}>
           <div style={{ fontSize: 30, marginBottom: 8 }}>{mapView === 'world' ? '🌍' : '🇺🇸'}</div>
           <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: 'var(--text-2)', marginBottom: 6 }}>
@@ -427,7 +468,7 @@ export default function TravelMapClient({ initialPins, isLoggedIn, userId }: Pro
       )}
 
       {/* ── ADVENTURE SPOTS ── */}
-      {visiblePins.length > 0 && (
+      {cardPins.length > 0 && (
         <div style={{ background: 'var(--bg-card)', border: '1px solid rgba(200,155,60,0.15)', borderRadius: 12, overflow: 'hidden', minWidth: 0 }}>
           <div style={{ padding: '10px 14px', borderBottom: '1px solid rgba(200,155,60,0.08)', display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(0,0,0,0.2)' }}>
             <span style={{ fontSize: 13 }}>📍</span>
@@ -435,12 +476,12 @@ export default function TravelMapClient({ initialPins, isLoggedIn, userId }: Pro
               {mapView === 'world' ? 'World Destinations' : 'USA Destinations'}
             </span>
             <span className="body-text" style={{ fontSize: 10, color: 'var(--text-3)' }}>
-              {visiblePins.length} {visiblePins.length === 1 ? 'place' : 'places'}
+              {cardPins.length} {cardPins.length === 1 ? 'place' : 'places'}
             </span>
           </div>
 
           <div style={{ padding: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 9 }}>
-            {visiblePins.map(pin => (
+            {cardPins.map(pin => (
               <div key={pin.id} style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(200,155,60,0.12)', borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
                   <div style={{ width: 38, height: 38, flexShrink: 0, borderRadius: 9, background: 'rgba(200,155,60,0.07)', border: '1px solid rgba(200,155,60,0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
