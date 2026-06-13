@@ -456,7 +456,7 @@ function render(ctx: CanvasRenderingContext2D, g: GS, t: number) {
   if (g.player.cases < g.player.maxCases && g.player.pos.x >= SR_W) {
     ctx.font = '10px "Press Start 2P", monospace'
     ctx.fillStyle = g.player.pos.x < SR_W + 65 ? '#4CAF50' : '#C89B3C'
-    ctx.fillText('← GET', SR_W/2, CH-24); ctx.fillText('CASES', SR_W/2, CH-11)
+    ctx.fillText('← GET', SR_W/2, cpy-88); ctx.fillText('CASES', SR_W/2, cpy-74)
   }
 
   // ── Manager office ──────────────────────────────────────────
@@ -924,7 +924,9 @@ function renderDialogue(ctx: CanvasRenderingContext2D, g: GS) {
     ctx.fillText(line, bx+120, by+58+i*32)
   })
 
-  ctx.font = '10px "Press Start 2P", monospace'; ctx.fillStyle = '#605E48'; ctx.textAlign = 'center'
+  ctx.font = '9px "Press Start 2P", monospace'; ctx.fillStyle = '#4a7aa0'; ctx.textAlign = 'center'
+  ctx.fillText('↑ ↓ ← →  keep moving while I talk!', bx+bw/2, by+bh-28)
+  ctx.font = '9px "Press Start 2P", monospace'; ctx.fillStyle = '#484640'; ctx.textAlign = 'center'
   ctx.fillText('(auto-continues...)', bx+bw/2, by+bh-12)
 
   // FIRED banner when 3rd strike
@@ -1106,178 +1108,118 @@ export default function WineStockerRush() {
         {/* ── Menu overlay ── */}
         {screen === 'menu' && (
           <div style={{
-            position: 'absolute', inset: 0, overflowY: 'auto',
-            background: 'rgba(6,6,16,0.97)', borderRadius: 8,
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-            padding: '16px 18px 18px', gap: 12,
+            position: 'absolute', inset: 0,
+            background: 'rgba(5,5,14,0.97)', borderRadius: 8,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            padding: '18px 24px', gap: 14,
           }}>
 
-            {/* ── Title + Start ── */}
+            {/* ── Title ── */}
             <div style={{ textAlign: 'center', flexShrink: 0 }}>
-              <div style={{ fontSize: 36, lineHeight: 1, marginBottom: 6 }}>🍷</div>
+              <div style={{ fontSize: 26, lineHeight: 1, marginBottom: 5 }}>🍷</div>
               <h1 style={{
-                fontFamily: '"Press Start 2P", monospace', fontSize: 12, lineHeight: 1.7,
-                color: 'var(--gold)', textShadow: '0 0 24px rgba(200,155,60,0.55)', margin: 0,
-              }}>
-                Wine Rush
-              </h1>
-              <p className="body-text" style={{ color: 'var(--text-3)', fontSize: 10, margin: '4px 0 10px' }}>
-                Stock the shelves. Survive the manager. Don&apos;t get fired.
+                fontFamily: '"Press Start 2P", monospace', fontSize: 13, lineHeight: 1.6,
+                color: 'var(--gold)', textShadow: '0 0 22px rgba(200,155,60,0.5)', margin: 0,
+              }}>Wine Rush</h1>
+              <p className="body-text" style={{ color: 'var(--text-3)', fontSize: 10, margin: '3px 0 0' }}>
+                Stock the shelves. Don&apos;t get fired.
               </p>
+            </div>
 
-              {/* ── Quick controls strip ── */}
-              <div style={{
-                display: 'flex', justifyContent: 'center', gap: 16, flexWrap: 'wrap',
-                marginBottom: 12,
-              }}>
+            {/* ── Two-column: Controls + How To Play ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, width: '100%' }}>
+
+              {/* Controls */}
+              <div style={{ background: 'rgba(200,155,60,0.05)', border: '1px solid rgba(200,155,60,0.2)', borderRadius: 8, padding: '11px 14px' }}>
+                <div style={{ fontFamily: '"Press Start 2P", monospace', color: '#C89B3C', fontSize: 6, marginBottom: 10, letterSpacing: 1 }}>⌨ CONTROLS</div>
+
+                {/* Arrow keys row */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <div style={{ display: 'flex', gap: 3 }}>
+                    {['↑','↓','←','→'].map(k => (
+                      <span key={k} style={{
+                        fontFamily: '"Press Start 2P", monospace', fontSize: 10,
+                        color: '#c89b3c', background: 'rgba(200,155,60,0.13)',
+                        border: '1px solid rgba(200,155,60,0.45)',
+                        borderBottom: '3px solid rgba(200,155,60,0.55)',
+                        padding: '5px 7px', borderRadius: 5, lineHeight: 1, display: 'inline-block',
+                      }}>{k}</span>
+                    ))}
+                  </div>
+                  <span className="body-text" style={{ color: 'var(--text-1)', fontSize: 11, fontWeight: 700 }}>Move</span>
+                </div>
+
+                {/* Spacebar row */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <span style={{
+                    fontFamily: '"Press Start 2P", monospace', fontSize: 7,
+                    color: '#c89b3c', background: 'rgba(200,155,60,0.13)',
+                    border: '1px solid rgba(200,155,60,0.45)',
+                    borderBottom: '3px solid rgba(200,155,60,0.55)',
+                    padding: '5px 22px', borderRadius: 5, lineHeight: 1,
+                    letterSpacing: '0.15em', display: 'inline-block',
+                  }}>SPACE</span>
+                  <span className="body-text" style={{ color: 'var(--text-1)', fontSize: 11, fontWeight: 700 }}>Run</span>
+                </div>
+
+                {/* Stockroom */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{
+                    fontFamily: '"Press Start 2P", monospace', fontSize: 6,
+                    color: '#88CCFF', background: 'rgba(100,180,255,0.1)',
+                    border: '1px solid rgba(100,180,255,0.3)',
+                    borderBottom: '3px solid rgba(100,180,255,0.4)',
+                    padding: '5px 8px', borderRadius: 5, lineHeight: 1, whiteSpace: 'nowrap',
+                  }}>← LEFT</span>
+                  <span className="body-text" style={{ color: 'var(--text-2)', fontSize: 10 }}>Enter stockroom for cases</span>
+                </div>
+              </div>
+
+              {/* How to play */}
+              <div style={{ background: 'rgba(100,180,255,0.04)', border: '1px solid rgba(100,180,255,0.16)', borderRadius: 8, padding: '11px 14px' }}>
+                <div style={{ fontFamily: '"Press Start 2P", monospace', color: '#88CCFF', fontSize: 6, marginBottom: 10, letterSpacing: 1 }}>ℹ HOW TO PLAY</div>
                 {([
-                  { keys: ['↑','↓','←','→'], label: 'Move' },
-                  { keys: ['SPACE'], label: 'Run' },
-                ] as { keys: string[]; label: string }[]).map(({ keys, label }) => (
-                  <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <div style={{ display: 'flex', gap: 3 }}>
-                      {keys.map(k => (
-                        <span key={k} style={{
-                          fontFamily: '"Press Start 2P", monospace', fontSize: 7,
-                          color: '#c89b3c', background: 'rgba(200,155,60,0.12)',
-                          border: '1px solid rgba(200,155,60,0.42)',
-                          borderBottom: '3px solid rgba(200,155,60,0.42)',
-                          padding: '4px 7px', borderRadius: 5,
-                          display: 'inline-block', lineHeight: 1,
-                        }}>{k}</span>
-                      ))}
-                    </div>
-                    <span className="body-text" style={{ color: 'var(--text-2)', fontSize: 10 }}>{label}</span>
+                  ['📦', 'Go left → grab wine cases'],
+                  ['🏃', 'Run to shelves → auto-stocks'],
+                  ['❓', 'Answer customers → earn perks'],
+                  ['👔', 'Keep shelves full or get a strike'],
+                  ['☕', '3 strikes = fired!'],
+                ] as [string, string][]).map(([icon, text]) => (
+                  <div key={icon} style={{ display: 'flex', gap: 7, marginBottom: 6, alignItems: 'center' }}>
+                    <span style={{ fontSize: 12, flexShrink: 0 }}>{icon}</span>
+                    <span className="body-text" style={{ color: 'var(--text-2)', fontSize: 10, lineHeight: 1.45 }}>{text}</span>
                   </div>
                 ))}
               </div>
-
-              <button onClick={startGame} className="osrs-btn" style={{ padding: '10px 40px' }}>
-                Start Shift
-              </button>
             </div>
 
-            {/* ── Two-column body ── */}
-            <div style={{
-              display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
-              gap: 10, width: '100%',
-            }}>
-
-              {/* ── Left: Controls + How It Works ── */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-
-                {/* Controls */}
-                <div style={{
-                  background: 'rgba(200,155,60,0.05)', border: '1px solid rgba(200,155,60,0.22)',
-                  borderRadius: 8, padding: '10px 12px',
+            {/* ── Power-ups strip ── */}
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
+              {([
+                { em: '⚡', name: 'Energy Drink',    col: '#00E5FF' },
+                { em: '🏗', name: 'Forklift',        col: '#FFC107' },
+                { em: '📦', name: 'Vendor Support',  col: '#8BC34A' },
+                { em: '⭐', name: 'Emp. of Month',   col: '#FF9800' },
+                { em: '💰', name: 'Overtime Pay',    col: '#E91E63' },
+              ]).map(p => (
+                <div key={p.name} style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  background: `${p.col}12`, border: `1px solid ${p.col}35`,
+                  padding: '4px 9px', borderRadius: 20,
                 }}>
-                  <div style={{ fontFamily: '"Press Start 2P", monospace', color: '#C89B3C', fontSize: 7, marginBottom: 9, letterSpacing: 1 }}>
-                    ⌨ CONTROLS
-                  </div>
-                  {([
-                    ['WASD / Arrows', 'Move'],
-                    ['Space / Shift', 'Hold to run (uses stamina)'],
-                    ['← Walk left', 'Enter stockroom · grab cases'],
-                    ['Walk near shelf', 'Auto-restock while carrying'],
-                  ] as [string, string][]).map(([key, desc]) => (
-                    <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                      <span style={{
-                        fontFamily: '"Press Start 2P", monospace', fontSize: 6,
-                        color: '#C89B3C', background: 'rgba(200,155,60,0.14)',
-                        border: '1px solid rgba(200,155,60,0.35)',
-                        padding: '2px 6px', borderRadius: 4, whiteSpace: 'nowrap', flexShrink: 0,
-                      }}>{key}</span>
-                      <span className="body-text" style={{ color: 'var(--text-2)', fontSize: 10 }}>{desc}</span>
-                    </div>
-                  ))}
+                  <span style={{ fontSize: 13 }}>{p.em}</span>
+                  <span style={{ fontFamily: '"Press Start 2P", monospace', color: p.col, fontSize: 5, whiteSpace: 'nowrap' }}>{p.name}</span>
                 </div>
+              ))}
+            </div>
 
-                {/* How it works */}
-                <div style={{
-                  background: 'rgba(100,180,255,0.04)', border: '1px solid rgba(100,180,255,0.16)',
-                  borderRadius: 8, padding: '10px 12px',
-                }}>
-                  <div style={{ fontFamily: '"Press Start 2P", monospace', color: '#88CCFF', fontSize: 7, marginBottom: 9, letterSpacing: 1 }}>
-                    ℹ HOW IT WORKS
-                  </div>
-                  {([
-                    ['📦', 'Walk into the dark stockroom on the left to pick up cases of wine.'],
-                    ['🏃', 'Carry cases to shelves — walk close to auto-restock them.'],
-                    ['👔', 'Manager checks your store every ~23s. Keep shelves above 50% full for a bonus. Below 50%? Strike.'],
-                    ['☕', '3 strikes = vendor complaint = you\'re done. Don\'t let it happen.'],
-                    ['❓', 'Customers may stop and ask where a wine is. Click the correct shelf to earn a surprise perk.'],
-                  ] as [string, string][]).map(([icon, text]) => (
-                    <div key={icon} style={{ display: 'flex', gap: 8, marginBottom: 7, alignItems: 'flex-start' }}>
-                      <span style={{ fontSize: 14, lineHeight: '15px', flexShrink: 0 }}>{icon}</span>
-                      <span className="body-text" style={{ color: 'var(--text-2)', fontSize: 10, lineHeight: 1.5 }}>{text}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* ── Right: Power-ups + Scoring ── */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-
-                {/* Power-ups */}
-                <div style={{
-                  background: 'rgba(139,195,74,0.04)', border: '1px solid rgba(139,195,74,0.18)',
-                  borderRadius: 8, padding: '10px 12px', flex: 1,
-                }}>
-                  <div style={{ fontFamily: '"Press Start 2P", monospace', color: '#8BC34A', fontSize: 7, marginBottom: 9, letterSpacing: 1 }}>
-                    ✦ POWER-UPS
-                  </div>
-                  {([
-                    { em: '⚡', name: 'Energy Drink',       col: '#00E5FF', desc: 'Auto-sprint 20s · full stamina restored' },
-                    { em: '🏗', name: 'Forklift License',   col: '#FFC107', desc: 'Carry 3 cases at once for 30s' },
-                    { em: '📦', name: 'Vendor Support',     col: '#8BC34A', desc: 'Instantly boosts low shelves + trickle-fills the weakest' },
-                    { em: '⭐', name: 'Employee of Month',  col: '#FF9800', desc: '2× score multiplier for 30s' },
-                    { em: '💰', name: 'Overtime Pay',       col: '#E91E63', desc: '3× score multiplier for 20s' },
-                  ]).map(p => (
-                    <div key={p.name} style={{
-                      display: 'flex', alignItems: 'center', gap: 10,
-                      padding: '6px 8px', borderRadius: 6, marginBottom: 5,
-                      background: `${p.col}10`, border: `1px solid ${p.col}30`,
-                    }}>
-                      <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>{p.em}</span>
-                      <div>
-                        <div style={{ fontFamily: '"Press Start 2P", monospace', color: p.col, fontSize: 6, marginBottom: 2 }}>{p.name}</div>
-                        <div className="body-text" style={{ color: 'var(--text-2)', fontSize: 9, lineHeight: 1.4 }}>{p.desc}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Scoring */}
-                <div style={{
-                  background: 'rgba(200,155,60,0.06)', border: '1px solid rgba(200,155,60,0.22)',
-                  borderRadius: 8, padding: '10px 12px',
-                }}>
-                  <div style={{ fontFamily: '"Press Start 2P", monospace', color: '#C89B3C', fontSize: 7, marginBottom: 8, letterSpacing: 1 }}>
-                    ★ SCORING
-                  </div>
-                  {([
-                    ['+12', 'per case stocked on a shelf'],
-                    ['+passive', 'pts over time based on store health'],
-                    ['+100', 'on a happy manager inspection'],
-                    ['-50', 'on an angry inspection (plus a strike)'],
-                  ] as [string, string][]).map(([pts, desc]) => (
-                    <div key={pts+desc} style={{ display: 'flex', gap: 8, marginBottom: 5, alignItems: 'center' }}>
-                      <span style={{
-                        fontFamily: '"Press Start 2P", monospace', fontSize: 7,
-                        color: pts.startsWith('-') ? '#FF5555' : '#4CAF50',
-                        minWidth: 60, flexShrink: 0,
-                      }}>{pts}</span>
-                      <span className="body-text" style={{ color: 'var(--text-2)', fontSize: 10 }}>{desc}</span>
-                    </div>
-                  ))}
-                  <div style={{
-                    marginTop: 8, padding: '6px 10px', borderRadius: 6,
-                    background: 'rgba(200,155,60,0.12)', border: '1px solid rgba(200,155,60,0.3)',
-                    fontFamily: '"Press Start 2P", monospace', color: '#C89B3C', fontSize: 7, textAlign: 'center',
-                  }}>
-                    Reach {XP_THRESHOLD} pts → +25 Fun XP!
-                  </div>
-                </div>
+            {/* ── Start ── */}
+            <div style={{ textAlign: 'center', flexShrink: 0 }}>
+              <button onClick={startGame} className="osrs-btn" style={{ padding: '11px 48px' }}>
+                ▶ Start Shift
+              </button>
+              <div style={{ fontFamily: '"Press Start 2P", monospace', color: 'rgba(200,155,60,0.45)', fontSize: 6, marginTop: 7, letterSpacing: 1 }}>
+                Reach {XP_THRESHOLD} pts → +25 Fun XP
               </div>
             </div>
 
