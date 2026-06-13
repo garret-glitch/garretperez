@@ -150,7 +150,7 @@ interface AttackFlash {
 }
 
 interface GS {
-  phase: 'playing' | 'victory' | 'defeat'
+  phase: 'playing' | 'dying' | 'victory' | 'defeat'
   player: PlayerState
   boss: BossState
   projectiles: Projectile[]
@@ -599,7 +599,34 @@ function tick(
   abilityTarget: V2,
   pendingAbility: number | null,
 ) {
-  if (g.phase !== 'playing') return
+  if (g.phase !== 'playing' && g.phase !== 'dying') return
+
+  // ── Dying animation tick — boss explodes for 3s before showing victory ──
+  if (g.phase === 'dying') {
+    g.gtime += dt
+    g.bossDeathAnim -= dt
+    g.screenShake = Math.max(0, g.screenShake - dt * 1.5)
+    // Continuous explosion bursts — faster and bigger as it approaches end
+    const intensity = 1 - Math.max(0, g.bossDeathAnim / 3.0)
+    if (Math.random() < dt * (18 + intensity * 40)) {
+      const ox = rnd(-90, 90), oy = rnd(-90, 90)
+      const bossPos = BOSS_DEFS[bossId]
+      const colors = ['#F1C40F', '#FFFFFF', bossPos.color, '#FF4500']
+      spawnParticles(g, v(g.boss.pos.x + ox, g.boss.pos.y + oy),
+        rndI(8, 18), colors[rndI(0, colors.length - 1)], rnd(180, 450), rnd(0.4, 1.5))
+    }
+    if (Math.random() < dt * 5) g.screenShake = Math.max(g.screenShake, rnd(0.4, 1.1))
+    // Decay particles
+    g.particles = g.particles.filter(part => {
+      part.life -= dt
+      part.pos.x += part.vel.x * dt; part.pos.y += part.vel.y * dt
+      part.vel.x *= Math.pow(0.15, dt); part.vel.y *= Math.pow(0.15, dt)
+      return part.life > 0
+    })
+    g.damageNums = g.damageNums.filter(d => { d.life -= dt; d.pos.y -= 28 * dt; return d.life > 0 })
+    if (g.bossDeathAnim <= 0) g.phase = 'victory'
+    return
+  }
 
   const p = g.player
   const b = g.boss
@@ -946,12 +973,15 @@ function tick(
     spawnParticles(g, b.pos, 30, '#FF4444', 300)
   }
 
-  // Boss death
+  // Boss death — enter dying animation phase
   if (b.hp <= 0 && g.phase === 'playing') {
-    g.phase = 'victory'
-    g.bossDeathAnim = 1.5
-    g.screenShake = 1.0
-    spawnParticles(g, b.pos, 50, '#F1C40F', 300)
+    g.phase = 'dying'
+    g.bossDeathAnim = 3.0
+    g.bossAttack = null
+    g.screenShake = 1.4
+    spawnParticles(g, b.pos, 80, '#F1C40F', 380)
+    spawnParticles(g, b.pos, 40, bossDef.color, 300)
+    spawnParticles(g, b.pos, 20, '#FFFFFF', 500)
   }
 
   // Damage numbers decay
@@ -1832,6 +1862,99 @@ function renderDamageNumbers(ctx: CanvasRenderingContext2D, g: GS) {
   ctx.textBaseline = 'alphabetic'
 }
 
+function renderBossDeath(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId) {
+  const b = g.boss
+  const bossDef = BOSS_DEFS[bossId]
+  const totalDur = 3.0
+  const prog = Math.max(0, Math.min(1, 1 - g.bossDeathAnim / totalDur))
+  // Boss stays solid for the first half then fades fast
+  const alpha = prog < 0.5 ? 1 : Math.max(0, 1 - ((prog - 0.5) * 2) ** 2)
+
+  // Expanding shockwave rings — staggered outward
+  for (let ring = 0; ring < 5; ring++) {
+    const ringDelay = ring * 0.18
+    const ringProg = Math.max(0, Math.min(1, (prog - ringDelay) / 0.7))
+    if (ringProg <= 0) continue
+    const ringR = ringProg * (260 + ring * 50)
+    const ringAlpha = (1 - ringProg) * 0.65
+    ctx.save()
+    ctx.globalAlpha = ringAlpha
+    ctx.strokeStyle = ring % 2 === 0 ? '#F1C40F' : bossDef.color
+    ctx.lineWidth = 5 - ring * 0.6
+    ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 18
+    ctx.beginPath(); ctx.arc(b.pos.x, b.pos.y, Math.max(0, ringR), 0, Math.PI * 2); ctx.stroke()
+    ctx.restore()
+  }
+
+  // White flash at moment of death (first 0.3s)
+  if (prog < 0.3) {
+    const flashAlpha = (1 - prog / 0.3) * 0.7
+    ctx.save()
+    ctx.globalAlpha = flashAlpha
+    ctx.fillStyle = '#FFFFFF'
+    ctx.fillRect(0, 0, CW, CH)
+    ctx.restore()
+  }
+
+  // Boss body — spinning + shrinking + fragmenting
+  if (alpha > 0.02) {
+    ctx.save()
+    ctx.translate(b.pos.x, b.pos.y)
+    const spinSpeed = prog * Math.PI * 10
+    ctx.rotate(spinSpeed)
+    const scale = Math.max(0.05, 1 - prog * 0.92)
+    ctx.scale(scale, scale)
+    ctx.globalAlpha = alpha
+    // Flash white in early phase
+    const isWhite = prog < 0.25 && Math.floor(g.gtime * 28) % 2 === 0
+    ctx.shadowColor = isWhite ? '#FFFFFF' : bossDef.color
+    ctx.shadowBlur = 40 + prog * 30
+    ctx.fillStyle = isWhite ? '#FFFFFF' : bossDef.color
+    ctx.beginPath(); ctx.arc(0, 0, bossDef.size, 0, Math.PI * 2); ctx.fill()
+    // Inner bright core
+    const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, bossDef.size * 0.5)
+    coreGrad.addColorStop(0, 'rgba(255,255,255,0.9)')
+    coreGrad.addColorStop(1, 'rgba(255,255,255,0)')
+    ctx.fillStyle = coreGrad
+    ctx.beginPath(); ctx.arc(0, 0, bossDef.size * 0.5, 0, Math.PI * 2); ctx.fill()
+    ctx.restore()
+
+    // Debris chunks — 8 fragments flying outward
+    for (let i = 0; i < 8; i++) {
+      const chunkAngle = (i / 8) * Math.PI * 2 + spinSpeed * 0.3
+      const chunkDist = prog * (100 + i * 20)
+      const chunkAlpha = alpha * (1 - prog * 0.6)
+      if (chunkAlpha < 0.02) continue
+      ctx.save()
+      ctx.translate(b.pos.x + Math.cos(chunkAngle) * chunkDist, b.pos.y + Math.sin(chunkAngle) * chunkDist)
+      ctx.rotate(chunkAngle + spinSpeed)
+      ctx.globalAlpha = chunkAlpha
+      ctx.fillStyle = i % 2 === 0 ? bossDef.color : '#F1C40F'
+      ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 10
+      const sz = (bossDef.size * 0.22) * (1 - prog * 0.7)
+      ctx.beginPath(); ctx.arc(0, 0, Math.max(1, sz), 0, Math.PI * 2); ctx.fill()
+      ctx.restore()
+    }
+  }
+
+  // "BOSS SLAIN" text — fades in after 1.5s
+  if (prog > 0.5) {
+    const textAlpha = Math.min(1, (prog - 0.5) * 3)
+    ctx.save()
+    ctx.globalAlpha = textAlpha
+    ctx.font = '22px "Press Start 2P", monospace'
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    ctx.shadowColor = '#F1C40F'; ctx.shadowBlur = 24
+    ctx.fillStyle = '#F1C40F'
+    ctx.fillText('BOSS SLAIN', CW / 2, CH / 2 - 20)
+    ctx.font = '11px "Press Start 2P", monospace'
+    ctx.fillStyle = bossDef.color
+    ctx.shadowColor = bossDef.color
+    ctx.fillText(bossDef.name.toUpperCase() + ' DEFEATED', CW / 2, CH / 2 + 16)
+    ctx.restore()
+  }
+}
+
 function render(ctx: CanvasRenderingContext2D, g: GS, cls: ClassDef, bossId: BossId, t: number) {
   ctx.save()
   if (g.screenShake > 0.05) {
@@ -1840,15 +1963,23 @@ function render(ctx: CanvasRenderingContext2D, g: GS, cls: ClassDef, bossId: Bos
 
   const bossDef = BOSS_DEFS[bossId]
   renderArena(ctx, bossDef.arenaType, t, g)
-  renderHazards(ctx, g)
-  renderSlowTraps(ctx, g, t)
-  renderTelegraph(ctx, g, bossId, t)
-  renderParticles(ctx, g)
-  renderProjectiles(ctx, g)
-  renderBoss(ctx, g, bossId, t)
-  renderPlayer(ctx, g, cls, t)
-  renderDamageNumbers(ctx, g)
-  renderHUD(ctx, g, cls, bossDef, t)
+
+  if (g.phase === 'dying') {
+    // During death animation: just show arena + particles + death sequence
+    renderParticles(ctx, g)
+    renderBossDeath(ctx, g, bossId)
+    renderPlayer(ctx, g, cls, t)
+  } else {
+    renderHazards(ctx, g)
+    renderSlowTraps(ctx, g, t)
+    renderTelegraph(ctx, g, bossId, t)
+    renderParticles(ctx, g)
+    renderProjectiles(ctx, g)
+    renderBoss(ctx, g, bossId, t)
+    renderPlayer(ctx, g, cls, t)
+    renderDamageNumbers(ctx, g)
+    renderHUD(ctx, g, cls, bossDef, t)
+  }
 
   ctx.restore()
 }
@@ -1982,6 +2113,7 @@ export default function BossHunter() {
         )
         pendingAbilityRef.current = null
 
+        // Only transition to victory AFTER the death animation completes
         if (g.phase === 'victory') {
           const bossScore = (currentBossId + 1) * 1000 + Math.round(g.boss.maxHp / 10)
           setScore(bossScore)
@@ -2000,7 +2132,7 @@ export default function BossHunter() {
         }
 
         const canvas = canvasRef.current
-        if (canvas && g.phase === 'playing') {
+        if (canvas && (g.phase === 'playing' || g.phase === 'dying')) {
           const ctx = canvas.getContext('2d')
           if (ctx) render(ctx, g, clsDef, currentBossId, ts / 1000)
         }
@@ -2287,7 +2419,9 @@ export default function BossHunter() {
 
         {/* ── VICTORY ── */}
         {screen === 'victory' && (
-          <div style={overlayStyle}>
+          <>
+          <style>{`@keyframes bossVictoryFade{from{opacity:0;transform:scale(0.93) translateY(12px)}to{opacity:1;transform:scale(1) translateY(0)}}`}</style>
+          <div style={{ ...overlayStyle, animation: 'bossVictoryFade 1.6s cubic-bezier(0.22,1,0.36,1) both' }}>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 48, lineHeight: 1, filter: 'drop-shadow(0 0 16px #F1C40F)' }}>⚔️</div>
               <h1 style={{ ...h1Style, color: '#F1C40F', fontSize: 18, margin: '8px 0 4px' }}>BOSS SLAIN!</h1>
@@ -2347,6 +2481,7 @@ export default function BossHunter() {
               </div>
             </div>
           </div>
+          </>
         )}
 
         {/* ── DEFEAT ── */}
