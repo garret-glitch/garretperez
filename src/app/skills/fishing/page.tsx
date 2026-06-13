@@ -13,19 +13,19 @@ export const dynamic = 'force-dynamic'
 
 /* ── Design tokens ─────────────────────────────────────────────── */
 const S = {
-  card:       '#0f1520',
-  elevated:   '#141e2c',
-  borderDim:  'rgba(60,160,220,0.1)',
-  border:     'rgba(60,160,220,0.18)',
-  borderLit:  'rgba(60,160,220,0.4)',
-  water:      '#3090b0',
-  waterDim:   '#1a5570',
+  card:       '#12100e',
+  elevated:   '#1c1812',
+  borderDim:  'rgba(200,155,60,0.1)',
+  border:     'rgba(200,155,60,0.18)',
+  borderLit:  'rgba(200,155,60,0.4)',
+  water:      '#c89b3c',
+  waterDim:   '#7a5a20',
   gold:       '#c89b3c',
   goldDim:    '#7a5a20',
-  text1:      '#e8f2f8',
-  text2:      '#7aaac8',
-  text3:      '#3a6080',
-  text4:      '#1e3850',
+  text1:      '#f0d898',
+  text2:      '#c8a870',
+  text3:      '#907848',
+  text4:      '#504030',
 }
 
 /* ── Gear list ─────────────────────────────────────────────────── */
@@ -176,14 +176,14 @@ export default async function FishingPage() {
       {/* ── Fishing Stats ───────────────────────────────────── */}
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-          <div style={{ height: 1, flex: 1, background: 'rgba(60,160,220,0.12)' }} />
+          <div style={{ height: 1, flex: 1, background: 'rgba(200,155,60,0.12)' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 15 }}>📊</span>
             <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: S.water, letterSpacing: '0.1em' }}>
               CATCH LOG STATS
             </span>
           </div>
-          <div style={{ height: 1, flex: 1, background: 'rgba(60,160,220,0.12)' }} />
+          <div style={{ height: 1, flex: 1, background: 'rgba(200,155,60,0.12)' }} />
         </div>
 
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -267,14 +267,14 @@ export default async function FishingPage() {
       {/* ── Catch Log ───────────────────────────────────────── */}
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
-          <div style={{ height: 1, flex: 1, background: 'rgba(60,160,220,0.12)' }} />
+          <div style={{ height: 1, flex: 1, background: 'rgba(200,155,60,0.12)' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 15 }}>🐟</span>
             <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: S.water, letterSpacing: '0.1em' }}>
               CATCH LOG
             </span>
           </div>
-          <div style={{ height: 1, flex: 1, background: 'rgba(60,160,220,0.12)' }} />
+          <div style={{ height: 1, flex: 1, background: 'rgba(200,155,60,0.12)' }} />
         </div>
 
         {/* Post form or login CTA */}
@@ -299,7 +299,7 @@ export default async function FishingPage() {
               <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
                 <Link href="/login" style={{
                   padding: '11px 22px', background: 'transparent',
-                  border: `1px solid rgba(60,160,220,0.35)`, color: S.water,
+                  border: `1px solid rgba(200,155,60,0.35)`, color: S.water,
                   fontSize: 14, fontWeight: 600, textDecoration: 'none', fontFamily: 'Inter, sans-serif',
                 }}>Log In</Link>
                 <Link href="/register" style={{

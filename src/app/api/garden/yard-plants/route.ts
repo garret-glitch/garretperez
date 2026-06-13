@@ -18,12 +18,13 @@ export async function POST(req: Request) {
   const session = await auth()
   if (session?.user?.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { name, plantTypeId, growthStage, xPos, yPos, datePlanted, notes, isAutoGrowth } = await req.json()
+  const { name, bedType, plantTypeId, growthStage, xPos, yPos, datePlanted, notes, isAutoGrowth } = await req.json()
   if (!name?.trim()) return NextResponse.json({ error: 'Name required' }, { status: 400 })
 
   const plant = await (prisma as any).gardenYardPlant.create({
     data: {
       name: name.trim(),
+      bedType: bedType || 'RAISED_BED',
       plantTypeId: plantTypeId || null,
       growthStage: growthStage ? parseInt(growthStage) : 1,
       xPos: xPos !== undefined ? parseFloat(xPos) : 50,

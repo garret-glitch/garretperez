@@ -45,6 +45,7 @@ model User {
   gameLikes           GameLike[]
   businessCard        BusinessCard?
   youtubeChannels     YoutubeChannel[]
+  coolItems           CoolItem[]
 }
 
 model Account {
@@ -455,6 +456,20 @@ model BusinessCard {
   linkedin    String?
   website     String?
   tagline     String?
+  accentColor String   @default("#c89b3c")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model CoolItem {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemName    String
+  description String?  @db.Text
+  category    String?
+  link        String?
+  priceRange  String?
   accentColor String   @default("#c89b3c")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

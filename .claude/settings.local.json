@@ -2,7 +2,33 @@
   "permissions": {
     "allow": [
       "PowerShell(head *)",
-      "PowerShell($items = Get-ChildItem -Path \"C:\\\\Users\\\\gisow\\\\Downloads\" -Force; $items | Where-Object {$_.PSIsContainer -eq $true} | Select-Object Name)"
+      "PowerShell($items = Get-ChildItem -Path \"C:\\\\Users\\\\gisow\\\\Downloads\" -Force; $items | Where-Object {$_.PSIsContainer -eq $true} | Select-Object Name)",
+      "Bash(npx next *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push)",
+      "Bash(node scripts/add-quest-block.mjs)",
+      "Bash(node scripts/fix-quest-block.mjs)",
+      "Bash(del scripts\\\\add-quest-block.mjs scripts\\\\fix-quest-block.mjs)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'Remove XP example chips from hero header *)",
+      "Bash(git commit -m 'Move Level chip next to Posts, match same style *)",
+      "Bash(git commit -m 'Shorten XP bar, update hint text *)",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(npx prisma *)",
+      "Bash(git push *)",
+      "Bash(git commit -m 'Fix: equal-height featured game cards via flex stretch + marginTop auto on CTA *)",
+      "Bash(git commit -m 'Remove boss references from Wine Rush card and description *)",
+      "Bash(git commit -m 'Fix: move Wine Rush Start button above fold so it'\\\\''s visible without scrolling *)",
+      "Bash(git commit -m 'Fix: clarify Space/Shift = run in Wine Rush controls *)",
+      "Bash(git commit -m 'Fix: add visible Move/Run key badges above Start button in Wine Rush menu *)",
+      "Bash(npm install *)",
+      "Bash(node -e \"const pkg = require\\('./node_modules/react-simple-maps/package.json'\\); console.log\\(pkg.version\\)\")",
+      "Bash(node -e \"const d3 = require\\('d3-geo'\\); console.log\\(Object.keys\\(d3\\).filter\\(k=>k.includes\\('Equal'\\)||k.includes\\('Albers'\\)\\)\\)\")",
+      "Bash(node -e \"console.log\\(require\\('./node_modules/d3-geo/package.json'\\).version\\)\")",
+      "Bash(ls node_modules/d3-geo/src/*.d.ts)",
+      "Bash(node scripts/seed-garden-types.mjs)",
+      "Bash(node scripts/add-test-plant.mjs)"
     ]
   }
 }

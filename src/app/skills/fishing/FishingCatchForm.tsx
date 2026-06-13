@@ -72,14 +72,14 @@ const EMPTY: FormData = {
 }
 
 const S = {
-  card:     '#0f1520',
-  elevated: '#141e2c',
-  border:   'rgba(60,160,220,0.2)',
-  water:    '#3090b0',
+  card:     '#12100e',
+  elevated: '#1c1812',
+  border:   'rgba(200,155,60,0.2)',
+  water:    '#c89b3c',
   gold:     '#c89b3c',
-  text1:    '#e8f2f8',
-  text2:    '#7aaac8',
-  text3:    '#3a6080',
+  text1:    '#f0d898',
+  text2:    '#c8a870',
+  text3:    '#907848',
 }
 
 export default function FishingCatchForm() {
@@ -191,7 +191,7 @@ export default function FishingCatchForm() {
   const sel: React.CSSProperties = { ...inp, cursor: 'pointer', appearance: 'none' }
   const lbl: React.CSSProperties = {
     fontFamily: "'Press Start 2P', monospace", fontSize: 7,
-    color: '#4a7890', letterSpacing: '0.12em', display: 'block', marginBottom: 7,
+    color: '#907848', letterSpacing: '0.12em', display: 'block', marginBottom: 7,
   }
 
   return (
@@ -241,12 +241,12 @@ export default function FishingCatchForm() {
           <button type="button" onClick={() => fileRef.current?.click()} disabled={imgLoading}
             style={{
               width: '100%', padding: '36px 20px',
-              background: S.elevated, border: `2px dashed rgba(60,160,220,0.22)`,
+              background: S.elevated, border: `2px dashed rgba(200,155,60,0.22)`,
               color: S.text3, cursor: 'pointer',
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
             }}
-            onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(60,160,220,0.5)' }}
-            onMouseOut={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(60,160,220,0.22)' }}
+            onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(200,155,60,0.5)' }}
+            onMouseOut={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(200,155,60,0.22)' }}
           >
             <span style={{ fontSize: 30 }}>📷</span>
             <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 600 }}>
@@ -378,7 +378,7 @@ export default function FishingCatchForm() {
         )}
         <button type="button" onClick={close} style={{
           padding: '10px 20px', background: 'transparent',
-          border: `1px solid rgba(60,160,220,0.25)`, color: S.text2,
+          border: `1px solid rgba(200,155,60,0.25)`, color: S.text2,
           fontFamily: 'Inter, sans-serif', fontSize: 14, cursor: 'pointer',
         }}>Cancel</button>
         <button type="submit"

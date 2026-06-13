@@ -7,12 +7,13 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   if (session?.user?.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await req.json()
-  const { name, plantTypeId, growthStage, xPos, yPos, datePlanted, notes, harvestStatus, isAutoGrowth, photos } = body
+  const { name, bedType, plantTypeId, growthStage, xPos, yPos, datePlanted, notes, harvestStatus, isAutoGrowth, photos } = body
 
   const updated = await (prisma as any).gardenYardPlant.update({
     where: { id: params.id },
     data: {
       ...(name !== undefined && { name: name.trim() }),
+      ...(bedType !== undefined && { bedType }),
       ...(plantTypeId !== undefined && { plantTypeId: plantTypeId || null }),
       ...(growthStage !== undefined && { growthStage: parseInt(growthStage) }),
       ...(xPos !== undefined && { xPos: parseFloat(xPos) }),

@@ -45,14 +45,14 @@ function timeAgo(d: string) {
 }
 
 const S = {
-  card:     '#0f1520',
-  elevated: '#141e2c',
-  border:   'rgba(60,160,220,0.18)',
+  card:     '#12100e',
+  elevated: '#1c1812',
+  border:   'rgba(200,155,60,0.18)',
   gold:     '#c89b3c',
-  text1:    '#e8f2f8',
-  text2:    '#7aaac8',
-  text3:    '#3a6080',
-  text4:    '#1e3850',
+  text1:    '#f0d898',
+  text2:    '#c8a870',
+  text3:    '#907848',
+  text4:    '#504030',
 }
 
 function Pill({ label, bg, color }: { label: string; bg: string; color: string }) {
@@ -143,7 +143,7 @@ function InlineReplyForm({ postId }: { postId: string }) {
         }}>Send</button>
         <button type="button" onClick={() => { setOpen(false); setBody('') }} style={{
           padding: '6px 14px', background: 'transparent',
-          border: `1px solid rgba(60,160,220,0.25)`,
+          border: `1px solid rgba(200,155,60,0.25)`,
           color: S.text2, fontFamily: 'Inter, sans-serif', fontSize: 12, cursor: 'pointer',
         }}>✕</button>
       </div>
@@ -155,7 +155,7 @@ function ReplyThread({ replies }: { replies: Reply[] }) {
   if (!replies.length) return null
   return (
     <div style={{
-      paddingLeft: 14, borderLeft: `2px solid rgba(60,160,220,0.15)`,
+      paddingLeft: 14, borderLeft: `2px solid rgba(200,155,60,0.15)`,
       marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10,
     }}>
       {replies.map(r => (
@@ -253,14 +253,14 @@ function CatchCard({ post, currentUserId, isLoggedIn }: {
           /* No photo — show species + measurements as top badges */
           (cd.species || cd.length || cd.weight) && (
             <div style={{
-              background: 'linear-gradient(135deg, rgba(10,30,50,0.6) 0%, rgba(5,15,30,0.4) 100%)',
+              background: 'linear-gradient(135deg, rgba(30,20,8,0.6) 0%, rgba(20,14,4,0.4) 100%)',
               borderBottom: `1px solid ${S.border}`,
               padding: '14px 20px',
               display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center',
             }}>
               {cd.species && (
                 <span style={{
-                  background: 'rgba(10,50,25,0.9)', color: '#5abf80',
+                  background: 'rgba(10,50,25,0.9)', color: '#60bf80',
                   fontFamily: "'Press Start 2P', monospace", fontSize: 7,
                   padding: '5px 11px', letterSpacing: '0.06em',
                 }}>🐟 {cd.species}</span>
@@ -310,10 +310,10 @@ function CatchCard({ post, currentUserId, isLoggedIn }: {
               borderBottom: `1px solid rgba(60,160,220,0.08)`,
             }}>
               {cd.spot    && <Pill label={`📍 ${cd.spot}`}    bg="rgba(70,45,8,0.65)"    color="#c89b3c" />}
-              {cd.bait    && <Pill label={`🪡 ${cd.bait}`}    bg="rgba(8,45,80,0.7)"    color="#4ab0d0" />}
-              {cd.lure    && <Pill label={`🪁 ${cd.lure}`}    bg="rgba(8,40,75,0.6)"    color="#4ab0d0" />}
-              {cd.water   && <Pill label={`🌊 ${cd.water}`}   bg="rgba(8,25,55,0.75)"   color="#3aa0c0" />}
-              {cd.weather && <Pill label={`⛅ ${cd.weather}`} bg="rgba(8,25,55,0.65)"   color="#3aa0c0" />}
+              {cd.bait    && <Pill label={`🪡 ${cd.bait}`}    bg="rgba(80,55,8,0.7)"     color="#c8a030" />}
+              {cd.lure    && <Pill label={`🪁 ${cd.lure}`}    bg="rgba(75,50,8,0.6)"     color="#c8a030" />}
+              {cd.water   && <Pill label={`🌊 ${cd.water}`}   bg="rgba(8,35,60,0.75)"    color="#60a8c8" />}
+              {cd.weather && <Pill label={`⛅ ${cd.weather}`} bg="rgba(55,40,8,0.65)"    color="#c89b3c" />}
             </div>
           )}
 
@@ -440,8 +440,8 @@ export default function FishingFeed({ posts, currentUserId, isLoggedIn }: {
   const hasFilters = speciesFilter || baitFilter || spotFilter
 
   const selStyle: React.CSSProperties = {
-    background: '#141e2c', border: '1px solid rgba(60,160,220,0.2)',
-    color: '#7aaac8', padding: '8px 14px',
+    background: '#1c1812', border: '1px solid rgba(200,155,60,0.2)',
+    color: '#c8a870', padding: '8px 14px',
     fontFamily: 'Inter, sans-serif', fontSize: 13,
     cursor: 'pointer', outline: 'none',
     appearance: 'none', minWidth: 130, maxWidth: '100%',
@@ -452,8 +452,8 @@ export default function FishingFeed({ posts, currentUserId, isLoggedIn }: {
       {/* Filter / sort bar */}
       {posts.length > 0 && (
         <div style={{
-          background: '#080d14',
-          border: '1px solid rgba(60,160,220,0.14)',
+          background: '#0e0c0a',
+          border: '1px solid rgba(200,155,60,0.14)',
           padding: '12px 16px',
           marginBottom: 22,
           display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center',
@@ -468,8 +468,8 @@ export default function FishingFeed({ posts, currentUserId, isLoggedIn }: {
               <button key={k} onClick={() => setSort(k)} style={{
                 padding: '7px 14px',
                 background: sort === k ? 'rgba(200,155,60,0.14)' : 'transparent',
-                border: sort === k ? '1px solid rgba(200,155,60,0.45)' : '1px solid rgba(60,160,220,0.14)',
-                color: sort === k ? '#c89b3c' : '#3a6080',
+                border: sort === k ? '1px solid rgba(200,155,60,0.45)' : '1px solid rgba(200,155,60,0.14)',
+                color: sort === k ? '#c89b3c' : '#907848',
                 fontFamily: 'Inter, sans-serif', fontSize: 12,
                 fontWeight: sort === k ? 700 : 400,
                 cursor: 'pointer', whiteSpace: 'nowrap',
@@ -512,7 +512,7 @@ export default function FishingFeed({ posts, currentUserId, isLoggedIn }: {
       {filtered.length === 0 ? (
         <div style={{
           textAlign: 'center', padding: '60px 20px',
-          fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: '#1a3050',
+          fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: '#504030',
         }}>
           {hasFilters ? 'No catches match your filters 🎣' : 'No catches yet — be the first to post! 🎣'}
         </div>
