@@ -217,6 +217,11 @@ model Project {
   updated   String
   order     Int      @default(0)
   createdAt DateTime @default(now())
+  images    String   @db.Text @default("[]")
+  tasks     String   @db.Text @default("[]")
+  specs     String   @db.Text @default("{}")
+  status    String   @default("in_progress")
+  updatedAt DateTime @updatedAt
 }
 
 model Quest {
