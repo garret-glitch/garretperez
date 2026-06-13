@@ -36,12 +36,17 @@ export default async function SkillsPanel() {
       try {
         const parsed = JSON.parse(orderSetting.value)
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Filter out stale keys (e.g. HEALTH) that no longer exist in CHAN
+          // Filter to valid keys, dedupe, append anything missing
           const filtered = parsed.filter((k: string) => DEFAULT_CHAN_ORDER.includes(k as ChanKey))
           const deduped = filtered.filter((k: string, i: number) => filtered.indexOf(k) === i)
           if (deduped.length > 0) {
             const missing = DEFAULT_CHAN_ORDER.filter(k => !deduped.includes(k))
-            channelOrder = [...deduped, ...missing]
+            const merged = [...deduped, ...missing]
+            // Always pin DEMO to the very end so it never bunches with other entries
+            channelOrder = [
+              ...merged.filter(k => k !== 'DEMO'),
+              'DEMO',
+            ] as ChanKey[]
           }
         }
       } catch { /* use default */ }
