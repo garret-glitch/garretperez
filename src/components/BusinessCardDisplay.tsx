@@ -239,14 +239,6 @@ export default function BusinessCardDisplay({
               )}
             </div>
 
-            {/* Bottom branding */}
-            <div style={{
-              position: 'absolute', bottom: 10, right: 14,
-              fontFamily: "'Press Start 2P', monospace", fontSize: 4.5, color: '#3a2a18',
-            }}>
-              garretperez.com
-            </div>
-
             {/* Bottom accent line */}
             <div style={{
               position: 'absolute', bottom: 0, left: 0, right: 0, height: 3,
