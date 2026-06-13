@@ -815,15 +815,6 @@ export default function GardenYard({ initialPlants, initialTypes, isAdmin }: {
             <div key={i} style={{ position:'absolute', left:`${l}%`, top:`${t}%`, width:`${w}%`, height:`${h}%`, background:'rgba(110,200,70,0.1)', borderRadius:'50%', pointerEvents:'none', zIndex:1 }} />
           ))}
 
-          {/* ── Raised garden bed outlines ── */}
-          {[
-            { l:'27%', t:'54%', w:'20%', h:'23%', r:-2 },
-            { l:'55%', t:'39%', w:'18%', h:'21%', r:1 },
-            { l:'70%', t:'59%', w:'16%', h:'18%', r:-1 },
-          ].map((b,i) => (
-            <div key={i} style={{ position:'absolute', left:b.l, top:b.t, width:b.w, height:b.h, border:'2px solid rgba(120,80,35,0.5)', borderRadius:8, background:'rgba(55,32,12,0.2)', transform:`rotate(${b.r}deg)`, pointerEvents:'none', zIndex:2 }} />
-          ))}
-
           {/* ── Stone path ── */}
           {[
             { l:'42%', t:'82%', w:'9%',   h:'6%',   r:14  },
