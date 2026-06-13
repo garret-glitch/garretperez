@@ -74,7 +74,6 @@ const WINES = [
     id: 'matua',
     name: 'Matua Sauvignon Blanc',
     image: 'https://www.kenswineguide.com/images_wine/Matua-2023-Sauvignon-Blanc.gif',
-    noMask: true,
     origin: 'Marlborough, New Zealand',
     varietal: '100% Sauvignon Blanc',
     abv: '13%',
@@ -87,8 +86,7 @@ const WINES = [
   {
     id: 'bonterra',
     name: 'Bonterra Cabernet Sauvignon',
-    image: '/wines/bonterra-cab.webp',
-    noMask: true,
+    image: '/wines/bonterra-cab.png',
     origin: 'Mendocino County, California',
     varietal: '100% Cabernet Sauvignon',
     abv: '13.5%',
@@ -101,8 +99,7 @@ const WINES = [
   {
     id: 'breadandbutter',
     name: 'Bread & Butter Chardonnay',
-    image: '/wines/bread-and-butter-chard.jpg',
-    noMask: true,
+    image: '/wines/bread-and-butter-chard.png',
     origin: 'California',
     varietal: '100% Chardonnay',
     abv: '13.5%',
@@ -115,8 +112,7 @@ const WINES = [
   {
     id: 'bogle',
     name: 'Bogle Chardonnay',
-    image: '/wines/bogle-chard.jpg',
-    noMask: true,
+    image: '/wines/bogle-chard.png',
     origin: 'California',
     varietal: '100% Chardonnay',
     abv: '13.5%',
@@ -204,9 +200,9 @@ export default async function FoodPage() {
                   radial-gradient(ellipse 80% 60% at 50% 30%, rgba(200,155,60,0.06) 0%, transparent 65%),
                   linear-gradient(180deg, #0c0a08 0%, #14100c 60%, #0e0b09 100%)
                 `,
-                minHeight: 220,
+                minHeight: 260,
                 display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-                paddingBottom: 20,
+                paddingBottom: 24,
               }}>
                 {/* Gold accent line at top */}
                 <div style={{
@@ -238,13 +234,11 @@ export default async function FoodPage() {
                   alt={wine.name}
                   className="wine-bottle"
                   style={{
-                    height: 165, width: 'auto', maxWidth: 110,
+                    height: 200, width: 'auto', maxWidth: 130,
                     objectFit: 'contain', display: 'block',
                     filter: 'drop-shadow(0 10px 22px rgba(0,0,0,0.75)) drop-shadow(0 4px 8px rgba(0,0,0,0.5))',
-                    ...(wine.noMask ? {} : {
-                      maskImage: 'radial-gradient(ellipse 46% 88% at 50% 48%, black 18%, transparent 68%)',
-                      WebkitMaskImage: 'radial-gradient(ellipse 46% 88% at 50% 48%, black 18%, transparent 68%)',
-                    }),
+                    maskImage: 'radial-gradient(ellipse 52% 92% at 50% 50%, black 30%, transparent 72%)',
+                    WebkitMaskImage: 'radial-gradient(ellipse 52% 92% at 50% 50%, black 30%, transparent 72%)',
                     position: 'relative', zIndex: 1,
                   }}
                 />
