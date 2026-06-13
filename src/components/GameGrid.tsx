@@ -74,7 +74,7 @@ function FeaturedGameCard({
       : 'linear-gradient(145deg, #16121e, #0e0b18)'
 
   const cardContent = (
-    <div style={{ display: 'flex', flexDirection: 'column' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
 
       {/* ── Visual panel ─────────────────────────────── */}
       <div style={{ height: 158, background: game.bg, position: 'relative', overflow: 'hidden' }}>
@@ -141,7 +141,7 @@ function FeaturedGameCard({
       </div>
 
       {/* ── Content panel ────────────────────────────── */}
-      <div style={{ padding: '15px 16px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ padding: '15px 16px 16px', display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
 
         {/* Badges */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
@@ -187,7 +187,7 @@ function FeaturedGameCard({
         )}
 
         {/* XP badge + play CTA */}
-        <div className="flex flex-wrap items-center gap-2" style={{ paddingTop: 2 }}>
+        <div className="flex flex-wrap items-center gap-2" style={{ paddingTop: 2, marginTop: 'auto' }}>
           {game.xp !== 'Endless' && (
             <span style={{
               fontFamily: '"Press Start 2P", monospace', fontSize: 6,
@@ -216,7 +216,7 @@ function FeaturedGameCard({
   )
 
   return (
-    <div style={{ position: 'relative', opacity: isHidden ? 0.38 : 1, filter: isHidden ? 'grayscale(0.55)' : 'none' }}>
+    <div style={{ position: 'relative', opacity: isHidden ? 0.38 : 1, filter: isHidden ? 'grayscale(0.55)' : 'none', display: 'flex', flexDirection: 'column' }}>
 
       {/* Admin visibility toggle */}
       {isAdmin && (
@@ -238,8 +238,9 @@ function FeaturedGameCard({
       {/* Card */}
       <Link
         href={game.href}
-        className="block transition-all duration-200 hover:brightness-110 hover:-translate-y-0.5"
+        className="transition-all duration-200 hover:brightness-110 hover:-translate-y-0.5"
         style={{
+          flex: 1, display: 'flex', flexDirection: 'column',
           background: cardBg,
           border: `1px solid ${g}38`,
           borderRadius: 16,
@@ -247,7 +248,6 @@ function FeaturedGameCard({
           boxShadow: `0 8px 32px ${g}22, 0 2px 10px rgba(0,0,0,0.8), inset 0 1px 0 rgba(200,155,60,0.06)`,
           textDecoration: 'none',
           pointerEvents: isHidden && !isAdmin ? 'none' : 'auto',
-          display: 'block',
         }}
       >
         {cardContent}
