@@ -11,18 +11,17 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import {
-  Heart, Hammer, Briefcase, Users, Fish, Wine, Leaf, Compass, Gamepad2,
+  Hammer, Briefcase, Users, Fish, Wine, Leaf, Compass, Gamepad2,
   GripVertical, Home, Scroll,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 export type ChanKey =
-  | 'HEALTH' | 'PROJECTS' | 'BUSINESS' | 'COMMUNITY'
+  | 'PROJECTS' | 'BUSINESS' | 'COMMUNITY'
   | 'FISHING' | 'FOOD' | 'GARDENING' | 'TRAVEL' | 'FUN'
   | 'QUESTS'
 
 const CHAN: Record<ChanKey, { label: string; Icon: LucideIcon; bg: string; href: string }> = {
-  HEALTH:    { label: 'Health',      Icon: Heart,     bg: '#5a1414', href: '/skills/health' },
   PROJECTS:  { label: 'Projects',    Icon: Hammer,    bg: '#382e0e', href: '/skills/projects' },
   BUSINESS:  { label: 'Business',    Icon: Briefcase, bg: '#1c2e10', href: '/skills/business' },
   COMMUNITY: { label: 'Community',   Icon: Users,     bg: '#181e4a', href: '/skills/community' },
@@ -35,7 +34,7 @@ const CHAN: Record<ChanKey, { label: string; Icon: LucideIcon; bg: string; href:
 }
 
 export const DEFAULT_CHAN_ORDER: ChanKey[] = [
-  'HEALTH', 'PROJECTS', 'BUSINESS', 'COMMUNITY',
+  'PROJECTS', 'BUSINESS', 'COMMUNITY',
   'FISHING', 'FOOD', 'GARDENING', 'TRAVEL', 'FUN', 'QUESTS',
 ]
 

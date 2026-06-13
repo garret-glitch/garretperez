@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  Heart, Hammer, Briefcase, Users, Fish, Wine, Leaf, Compass, Gamepad2,
+  Hammer, Briefcase, Users, Fish, Wine, Leaf, Compass, Gamepad2,
   Home, FileText, Menu, X, Scroll, Star, Package,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -16,7 +16,6 @@ const NAV_ITEMS: NavItem[] = [
 ]
 
 const COMMUNITIES: NavItem[] = [
-  { label: 'Health',      Icon: Heart,      href: '/skills/health',   bg: '#5a1414' },
   { label: 'Projects',    Icon: Hammer,     href: '/skills/projects', bg: '#382e0e' },
   { label: 'Business',    Icon: Briefcase,  href: '/skills/business', bg: '#1c2e10' },
   { label: 'Community',   Icon: Users,      href: '/skills/community',bg: '#181e4a' },
