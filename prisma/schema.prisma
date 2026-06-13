@@ -363,6 +363,55 @@ model GameLike {
   @@index([gameHref])
 }
 
+enum PlantCategory {
+  POTTED
+  RAISED_BED
+  VINE
+  HERB
+  TREE
+  BERRY_BUSH
+}
+
+model GardenPlantType {
+  id               String            @id @default(cuid())
+  name             String
+  category         PlantCategory     @default(POTTED)
+  icon             String            @default("🌱")
+  description      String?           @db.Text
+  careInstructions String?           @db.Text
+  waterNeeds       String?
+  sunNeeds         String?
+  daysToHarvest    Int?
+  autoGrowthDays   Int?
+  stage1Image      String?           @db.Text
+  stage2Image      String?           @db.Text
+  stage3Image      String?           @db.Text
+  stage4Image      String?           @db.Text
+  stage5Image      String?           @db.Text
+  stage6Image      String?           @db.Text
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  yardPlants       GardenYardPlant[]
+}
+
+model GardenYardPlant {
+  id            String           @id @default(cuid())
+  name          String
+  plantTypeId   String?
+  plantType     GardenPlantType? @relation(fields: [plantTypeId], references: [id], onDelete: SetNull)
+  growthStage   Int              @default(1)
+  xPos          Float            @default(50)
+  yPos          Float            @default(50)
+  datePlanted   DateTime?
+  notes         String?          @db.Text
+  harvestStatus Boolean          @default(false)
+  photos        String           @db.Text @default("[]")
+  isAutoGrowth  Boolean          @default(false)
+  addedBy       String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+}
+
 model TravelPin {
   id        String   @id @default(cuid())
   userId    String
