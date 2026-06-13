@@ -81,28 +81,15 @@ function FeaturedGameCard({
 
         {isWine && (
           <>
-            <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 80% 85% at 50% 38%, rgba(200,40,90,0.18) 0%, transparent 68%)', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 90% 90% at 50% 50%, rgba(176,48,96,0.22) 0%, rgba(60,4,14,0.15) 60%, transparent 100%)', pointerEvents: 'none' }} />
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent, rgba(200,155,60,0.45) 40%, rgba(200,155,60,0.45) 60%, transparent)', pointerEvents: 'none' }} />
-            <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 7 }}>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 5 }}>
-                <span style={{ fontSize: 28, filter: 'drop-shadow(0 5px 12px rgba(176,48,96,0.9))' }}>🍷</span>
-                <span style={{ fontSize: 38, filter: 'drop-shadow(0 5px 14px rgba(130,8,44,0.95))' }}>🍾</span>
-                <span style={{ fontSize: 32, filter: 'drop-shadow(0 5px 12px rgba(176,48,96,0.85))' }}>🍷</span>
-                <span style={{ fontSize: 26, filter: 'drop-shadow(0 4px 10px rgba(176,48,96,0.7))', opacity: 0.85 }}>🍾</span>
-                <span style={{ fontSize: 30, filter: 'drop-shadow(0 5px 12px rgba(176,48,96,0.8))' }}>🍷</span>
-              </div>
-              <div style={{ width: '88%', height: 3, background: 'linear-gradient(90deg, transparent, rgba(200,155,60,0.5) 12%, rgba(220,175,70,0.95) 50%, rgba(200,155,60,0.5) 88%, transparent)', borderRadius: 2, boxShadow: '0 2px 8px rgba(200,155,60,0.28)' }} />
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 5, opacity: 0.82 }}>
-                <span style={{ fontSize: 24, filter: 'drop-shadow(0 4px 10px rgba(176,48,96,0.7))' }}>🍾</span>
-                <span style={{ fontSize: 28, filter: 'drop-shadow(0 4px 12px rgba(130,8,44,0.88))' }}>🍷</span>
-                <span style={{ fontSize: 22, filter: 'drop-shadow(0 4px 10px rgba(176,48,96,0.65))' }}>🍾</span>
-                <span style={{ fontSize: 26, filter: 'drop-shadow(0 4px 10px rgba(176,48,96,0.7))' }}>🍷</span>
-              </div>
-              <div style={{ width: '80%', height: 2, background: 'linear-gradient(90deg, transparent, rgba(200,155,60,0.4) 15%, rgba(200,155,60,0.7) 50%, rgba(200,155,60,0.4) 85%, transparent)', borderRadius: 1 }} />
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 15 }}>😊</span>
-                <span style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 4, color: 'rgba(200,155,60,0.4)', letterSpacing: '0.12em' }}>MANAGER</span>
-              </div>
+            <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/wine-rush-icon.svg"
+                alt="Wine Rush"
+                style={{ width: 136, height: 136, display: 'block', filter: 'drop-shadow(0 4px 18px rgba(176,48,96,0.65)) drop-shadow(0 0 32px rgba(140,20,40,0.4))' }}
+              />
             </div>
           </>
         )}

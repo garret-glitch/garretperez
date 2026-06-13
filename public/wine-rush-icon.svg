@@ -1,0 +1,265 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <clipPath id="cc"><circle cx="256" cy="256" r="241"/></clipPath>
+
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="9" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="wine-glow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="22" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <radialGradient id="bg" cx="50%" cy="32%" r="68%">
+      <stop offset="0%"   stop-color="#3a1010"/>
+      <stop offset="55%"  stop-color="#190708"/>
+      <stop offset="100%" stop-color="#060203"/>
+    </radialGradient>
+    <linearGradient id="wine" x1="25%" y1="0%" x2="75%" y2="100%">
+      <stop offset="0%"   stop-color="#cc2848"/>
+      <stop offset="35%"  stop-color="#8c0018"/>
+      <stop offset="100%" stop-color="#380008"/>
+    </linearGradient>
+    <radialGradient id="wine-surf" cx="44%" cy="28%" r="58%">
+      <stop offset="0%"   stop-color="#e84068" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#900020" stop-opacity="0.8"/>
+    </radialGradient>
+    <linearGradient id="wood" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#8a5a28"/>
+      <stop offset="40%"  stop-color="#6a3e18"/>
+      <stop offset="100%" stop-color="#3a2008"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#ffe566"/>
+      <stop offset="20%"  stop-color="#c89b3c"/>
+      <stop offset="45%"  stop-color="#ffd700"/>
+      <stop offset="65%"  stop-color="#b88a2c"/>
+      <stop offset="85%"  stop-color="#ffe566"/>
+      <stop offset="100%" stop-color="#a07020"/>
+    </linearGradient>
+    <radialGradient id="atmo" cx="50%" cy="52%" r="46%">
+      <stop offset="0%"   stop-color="#c02040" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#600010" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="banner" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#280608"/>
+      <stop offset="100%" stop-color="#100204"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ── dark outer disc ── -->
+  <circle cx="256" cy="256" r="256" fill="#060203"/>
+
+  <g clip-path="url(#cc)">
+
+    <!-- ── BACKGROUND ── -->
+    <circle cx="256" cy="256" r="241" fill="url(#bg)"/>
+    <!-- floor darkening -->
+    <rect x="0" y="370" width="512" height="142" fill="#080203" opacity="0.7"/>
+
+    <!-- ── SIDE WALL PANELS ── -->
+    <rect x="0"   y="45" width="114" height="335" fill="#160a05"/>
+    <rect x="111" y="45" width="3"   height="335" fill="#4a2810" opacity="0.35"/>
+    <rect x="398" y="45" width="114" height="335" fill="#160a05"/>
+    <rect x="398" y="45" width="3"   height="335" fill="#4a2810" opacity="0.35"/>
+
+    <!-- ── SHELVES LEFT ── -->
+    <rect x="0"   y="147" width="114" height="9" fill="url(#wood)"/>
+    <rect x="0"   y="156" width="114" height="4" fill="#1a0c04"/>
+    <rect x="0"   y="262" width="114" height="9" fill="url(#wood)"/>
+    <rect x="0"   y="271" width="114" height="4" fill="#1a0c04"/>
+
+    <!-- ── SHELVES RIGHT ── -->
+    <rect x="398" y="147" width="114" height="9" fill="url(#wood)"/>
+    <rect x="398" y="156" width="114" height="4" fill="#1a0c04"/>
+    <rect x="398" y="262" width="114" height="9" fill="url(#wood)"/>
+    <rect x="398" y="271" width="114" height="4" fill="#1a0c04"/>
+
+    <!-- ── BOTTLES: left top shelf ── -->
+    <!-- bottle A dark green -->
+    <rect x="8"  y="112" width="20" height="35" rx="3" fill="#1a3a0e"/>
+    <rect x="13" y="101" width="10" height="13" rx="3" fill="#1a3a0e"/>
+    <rect x="11" y="99"  width="14" height="5"  rx="1" fill="#0a2008"/>
+    <rect x="10" y="119" width="18" height="10" rx="1" fill="#8b0000" opacity="0.65"/>
+    <rect x="10" y="113" width="4"  height="20" rx="1" fill="rgba(255,255,255,0.11)"/>
+    <!-- bottle B brown -->
+    <rect x="34" y="117" width="20" height="30" rx="3" fill="#4a2808"/>
+    <rect x="39" y="107" width="10" height="12" rx="3" fill="#4a2808"/>
+    <rect x="37" y="105" width="14" height="5"  rx="1" fill="#2a1404"/>
+    <rect x="36" y="124" width="18" height="9"  rx="1" fill="#c89b3c" opacity="0.28"/>
+    <rect x="36" y="118" width="4"  height="17" rx="1" fill="rgba(255,255,255,0.10)"/>
+    <!-- bottle C tall green -->
+    <rect x="60" y="106" width="20" height="41" rx="3" fill="#1a3a0e"/>
+    <rect x="65" y="94"  width="10" height="14" rx="3" fill="#1a3a0e"/>
+    <rect x="63" y="92"  width="14" height="5"  rx="1" fill="#0a2008"/>
+    <rect x="62" y="113" width="18" height="10" rx="1" fill="#8b0000" opacity="0.65"/>
+    <rect x="62" y="107" width="4"  height="23" rx="1" fill="rgba(255,255,255,0.11)"/>
+    <!-- bottle D brown-black -->
+    <rect x="86" y="115" width="20" height="32" rx="3" fill="#2a1808"/>
+    <rect x="91" y="105" width="10" height="12" rx="3" fill="#2a1808"/>
+    <rect x="89" y="103" width="14" height="5"  rx="1" fill="#150c04"/>
+    <rect x="88" y="122" width="18" height="9"  rx="1" fill="#c89b3c" opacity="0.22"/>
+
+    <!-- ── BOTTLES: left bottom shelf ── -->
+    <!-- two lying bottles -->
+    <rect x="6"  y="238" width="44" height="15" rx="7" fill="#1a3a0e"/>
+    <rect x="6"  y="256" width="44" height="15" rx="7" fill="#2a1808"/>
+    <circle cx="7"  cy="245" r="7" fill="#0a2008"/>
+    <circle cx="7"  cy="263" r="7" fill="#150c04"/>
+    <!-- two standing -->
+    <rect x="56" y="231" width="20" height="31" rx="3" fill="#1a3a0e"/>
+    <rect x="61" y="221" width="10" height="12" rx="3" fill="#1a3a0e"/>
+    <rect x="59" y="219" width="14" height="5"  rx="1" fill="#0a2008"/>
+    <rect x="56" y="238" width="4"  height="17" rx="1" fill="rgba(255,255,255,0.11)"/>
+    <rect x="82" y="234" width="20" height="28" rx="3" fill="#4a2808"/>
+    <rect x="87" y="224" width="10" height="12" rx="3" fill="#4a2808"/>
+    <rect x="85" y="222" width="14" height="5"  rx="1" fill="#2a1404"/>
+
+    <!-- ── BOTTLES: right top shelf ── -->
+    <rect x="404" y="112" width="20" height="35" rx="3" fill="#2a1808"/>
+    <rect x="409" y="101" width="10" height="13" rx="3" fill="#2a1808"/>
+    <rect x="407" y="99"  width="14" height="5"  rx="1" fill="#150c04"/>
+    <rect x="406" y="119" width="18" height="9"  rx="1" fill="#c89b3c" opacity="0.22"/>
+
+    <rect x="430" y="106" width="20" height="41" rx="3" fill="#1a3a0e"/>
+    <rect x="435" y="94"  width="10" height="14" rx="3" fill="#1a3a0e"/>
+    <rect x="433" y="92"  width="14" height="5"  rx="1" fill="#0a2008"/>
+    <rect x="432" y="113" width="18" height="10" rx="1" fill="#8b0000" opacity="0.65"/>
+    <rect x="432" y="107" width="4"  height="23" rx="1" fill="rgba(255,255,255,0.11)"/>
+
+    <rect x="456" y="115" width="20" height="32" rx="3" fill="#4a2808"/>
+    <rect x="461" y="105" width="10" height="12" rx="3" fill="#4a2808"/>
+    <rect x="459" y="103" width="14" height="5"  rx="1" fill="#2a1404"/>
+    <rect x="458" y="122" width="18" height="9"  rx="1" fill="#c89b3c" opacity="0.28"/>
+
+    <rect x="483" y="110" width="20" height="37" rx="3" fill="#1a3a0e"/>
+    <rect x="488" y="99"  width="10" height="13" rx="3" fill="#1a3a0e"/>
+    <rect x="486" y="97"  width="14" height="5"  rx="1" fill="#0a2008"/>
+    <rect x="485" y="117" width="18" height="10" rx="1" fill="#8b0000" opacity="0.6"/>
+
+    <!-- ── BOTTLES: right bottom shelf ── -->
+    <rect x="406" y="231" width="20" height="31" rx="3" fill="#4a2808"/>
+    <rect x="411" y="221" width="10" height="12" rx="3" fill="#4a2808"/>
+    <rect x="409" y="219" width="14" height="5"  rx="1" fill="#2a1404"/>
+
+    <rect x="432" y="234" width="20" height="28" rx="3" fill="#1a3a0e"/>
+    <rect x="437" y="224" width="10" height="12" rx="3" fill="#1a3a0e"/>
+    <rect x="435" y="222" width="14" height="5"  rx="1" fill="#0a2008"/>
+    <rect x="432" y="241" width="4"  height="16" rx="1" fill="rgba(255,255,255,0.10)"/>
+
+    <!-- lying bottles right -->
+    <rect x="462" y="238" width="44" height="15" rx="7" fill="#2a1808"/>
+    <rect x="462" y="256" width="44" height="15" rx="7" fill="#1a3a0e"/>
+    <circle cx="505" cy="245" r="7" fill="#150c04"/>
+    <circle cx="505" cy="263" r="7" fill="#0a2008"/>
+
+    <!-- ── WINE CASES ── -->
+    <!-- left -->
+    <rect x="4"   y="340" width="92" height="27" rx="3" fill="#5a3010"/>
+    <rect x="4"   y="367" width="92" height="27" rx="3" fill="#4a2808"/>
+    <rect x="4"   y="340" width="92" height="3"  fill="#7a4820"/>
+    <rect x="4"   y="367" width="92" height="3"  fill="#6a3818"/>
+    <line x1="34" y1="340" x2="34" y2="394" stroke="#3a1e08" stroke-width="2"/>
+    <line x1="64" y1="340" x2="64" y2="394" stroke="#3a1e08" stroke-width="2"/>
+    <!-- right -->
+    <rect x="416" y="340" width="92" height="27" rx="3" fill="#5a3010"/>
+    <rect x="416" y="367" width="92" height="27" rx="3" fill="#4a2808"/>
+    <rect x="416" y="340" width="92" height="3"  fill="#7a4820"/>
+    <rect x="416" y="367" width="92" height="3"  fill="#6a3818"/>
+    <line x1="446" y1="340" x2="446" y2="394" stroke="#3a1e08" stroke-width="2"/>
+    <line x1="476" y1="340" x2="476" y2="394" stroke="#3a1e08" stroke-width="2"/>
+
+    <!-- ── ATMOSPHERIC WINE GLOW ── -->
+    <ellipse cx="256" cy="245" rx="86" ry="98" fill="url(#atmo)" filter="url(#wine-glow)" opacity="0.8"/>
+
+    <!-- ── HERO WINE GLASS ── -->
+    <!-- wine fill (tapered bowl shape) -->
+    <path d="M 199 180 C 192 232 213 302 248 317 L 264 317 C 299 302 320 232 313 180 Z"
+      fill="url(#wine)" filter="url(#glow)"/>
+    <!-- wine surface -->
+    <ellipse cx="256" cy="180" rx="57" ry="11" fill="url(#wine-surf)"/>
+    <ellipse cx="256" cy="180" rx="55" ry="9"  fill="none" stroke="rgba(255,130,150,0.5)" stroke-width="2"/>
+    <!-- highlight on wine surface -->
+    <ellipse cx="238" cy="186" rx="22" ry="6" fill="rgba(255,110,130,0.42)"/>
+    <!-- wine depth shadow -->
+    <ellipse cx="264" cy="296" rx="28" ry="11" fill="rgba(20,0,4,0.45)"/>
+    <!-- wine micro bubbles -->
+    <circle cx="240" cy="248" r="2.2" fill="rgba(255,150,170,0.5)"/>
+    <circle cx="253" cy="218" r="1.6" fill="rgba(255,150,170,0.4)"/>
+    <circle cx="270" cy="266" r="1.6" fill="rgba(255,150,170,0.35)"/>
+
+    <!-- glass bowl outline – left side -->
+    <path d="M 199 165 C 184 232 210 305 247 320" fill="none" stroke="rgba(210,240,255,0.38)" stroke-width="3.5" stroke-linecap="round"/>
+    <!-- glass bowl outline – right side -->
+    <path d="M 313 165 C 328 232 302 305 265 320" fill="none" stroke="rgba(210,240,255,0.22)" stroke-width="3.5" stroke-linecap="round"/>
+    <!-- top rim -->
+    <ellipse cx="256" cy="165" rx="57" ry="11" fill="rgba(230,245,255,0.07)" stroke="rgba(210,240,255,0.42)" stroke-width="2.5"/>
+
+    <!-- specular highlight (bold left stripe) -->
+    <path d="M 208 177 C 202 242 214 286 218 308" fill="none" stroke="rgba(255,255,255,0.60)" stroke-width="6" stroke-linecap="round"/>
+    <path d="M 216 192 C 211 244 220 272 222 294" fill="none" stroke="rgba(255,255,255,0.26)" stroke-width="3" stroke-linecap="round"/>
+
+    <!-- stem -->
+    <rect x="249" y="318" width="14" height="50" rx="6" fill="rgba(210,240,255,0.24)"/>
+    <rect x="252" y="318" width="5"  height="50" rx="2" fill="rgba(255,255,255,0.16)"/>
+    <!-- base -->
+    <ellipse cx="256" cy="368" rx="50" ry="12" fill="rgba(210,240,255,0.22)"/>
+    <ellipse cx="256" cy="368" rx="48" ry="10" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="2"/>
+    <ellipse cx="244" cy="365" rx="22" ry="5"  fill="rgba(255,255,255,0.10)"/>
+
+    <!-- ── SPARKLES ── -->
+    <!-- large – upper left -->
+    <g filter="url(#glow)">
+      <line x1="178" y1="143" x2="178" y2="175" stroke="#ffe566" stroke-width="3"   stroke-linecap="round"/>
+      <line x1="162" y1="159" x2="194" y2="159" stroke="#ffe566" stroke-width="3"   stroke-linecap="round"/>
+      <line x1="167" y1="148" x2="189" y2="170" stroke="#ffe566" stroke-width="2"   stroke-linecap="round"/>
+      <line x1="189" y1="148" x2="167" y2="170" stroke="#ffe566" stroke-width="2"   stroke-linecap="round"/>
+    </g>
+    <!-- medium – upper right -->
+    <line x1="333" y1="150" x2="333" y2="174" stroke="#fde68a" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="321" y1="162" x2="345" y2="162" stroke="#fde68a" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="324" y1="153" x2="342" y2="171" stroke="#fde68a" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="342" y1="153" x2="324" y2="171" stroke="#fde68a" stroke-width="1.8" stroke-linecap="round"/>
+    <!-- small – upper center-right -->
+    <line x1="308" y1="128" x2="308" y2="148" stroke="#c89b3c" stroke-width="2"   stroke-linecap="round"/>
+    <line x1="298" y1="138" x2="318" y2="138" stroke="#c89b3c" stroke-width="2"   stroke-linecap="round"/>
+    <!-- tiny – sides -->
+    <line x1="162" y1="202" x2="162" y2="214" stroke="#c89b3c" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="156" y1="208" x2="168" y2="208" stroke="#c89b3c" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="350" y1="200" x2="350" y2="212" stroke="#fde68a" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="344" y1="206" x2="356" y2="206" stroke="#fde68a" stroke-width="1.8" stroke-linecap="round"/>
+    <!-- dot sparkles -->
+    <circle cx="170" cy="172" r="2.8" fill="#ffe566" opacity="0.95"/>
+    <circle cx="340" cy="132" r="2.2" fill="#fde68a" opacity="0.85"/>
+    <circle cx="196" cy="138" r="1.8" fill="#ffe566" opacity="0.75"/>
+    <circle cx="320" cy="184" r="2.0" fill="#c89b3c" opacity="0.90"/>
+    <circle cx="174" cy="230" r="1.6" fill="#cc2040" opacity="0.80"/>
+    <circle cx="338" cy="244" r="1.6" fill="#cc2040" opacity="0.75"/>
+
+    <!-- ── TEXT BANNER ── -->
+    <rect x="96"  y="390" width="320" height="76" rx="9" fill="url(#banner)"/>
+    <rect x="96"  y="390" width="320" height="76" rx="9" fill="none" stroke="rgba(200,155,60,0.58)" stroke-width="2"/>
+    <rect x="106" y="397" width="300" height="1.5" fill="rgba(200,155,60,0.38)"/>
+    <rect x="106" y="459" width="300" height="1.5" fill="rgba(200,155,60,0.28)"/>
+
+    <!-- WINE (gold) -->
+    <text x="256" y="426"
+      text-anchor="middle"
+      font-family="Impact, Arial Black, sans-serif"
+      font-size="34" font-weight="900" letter-spacing="9"
+      fill="#e8c060">WINE</text>
+    <!-- RUSH (wine-red) -->
+    <text x="256" y="458"
+      text-anchor="middle"
+      font-family="Impact, Arial Black, sans-serif"
+      font-size="34" font-weight="900" letter-spacing="9"
+      fill="#c83058">RUSH</text>
+
+  </g><!-- end clip group -->
+
+  <!-- ── GOLD OUTER RING (on top, unclipped) ── -->
+  <circle cx="256" cy="256" r="249" fill="none" stroke="url(#gold)" stroke-width="12"/>
+  <!-- inner accent ring -->
+  <circle cx="256" cy="256" r="241" fill="none" stroke="rgba(200,155,60,0.30)" stroke-width="1.5"/>
+</svg>
