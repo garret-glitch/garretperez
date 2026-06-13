@@ -237,8 +237,13 @@ export default function SkillsPanelClient({
         onDragEnd={handleDragEnd}
       >
         <SortableContext items={order} strategy={verticalListSortingStrategy}>
-          {order.map(key =>
-            key === 'DEMO'
+          {order.map((key, idx) => {
+            // Skip CP/CI if they appear after DEMO — those are stale DB duplicates
+            const demoIdx = order.indexOf('DEMO')
+            if ((key === 'COOL_PEOPLE' || key === 'COOL_ITEMS') && demoIdx !== -1 && idx > demoIdx) {
+              return null
+            }
+            return key === 'DEMO'
               ? <DemoRow key="DEMO" isAdmin={isAdmin} />
               : (
                 <ChannelRow
@@ -250,7 +255,7 @@ export default function SkillsPanelClient({
                   pathname={pathname}
                 />
               )
-          )}
+          })}
         </SortableContext>
       </DndContext>
     </div>
