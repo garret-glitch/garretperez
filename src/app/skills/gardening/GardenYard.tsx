@@ -763,32 +763,153 @@ export default function GardenYard({ initialPlants, initialTypes, isAdmin }: {
           style={{
             position: 'relative', width: '100%', aspectRatio: '16/9',
             borderRadius: '16px 16px 0 0', overflow: 'hidden',
-            background: 'radial-gradient(ellipse at 30% 20%, #4a9a34 0%, #2d7020 40%, #1e5014 80%, #3d7a28 100%)',
-            boxShadow: 'inset 0 0 40px rgba(0,0,0,0.4)',
-            border: '4px solid #5a3010', borderBottom: 'none', minHeight: 200,
+            background: '#1a4a10',
+            border: '5px solid #6b4020', borderBottom: 'none', minHeight: 200,
+            boxShadow: '0 0 0 1px rgba(200,155,60,0.15)',
             cursor: isDragging ? 'grabbing' : 'default',
           }}
         >
-          {/* Grass texture */}
-          <div style={{ position: 'absolute', inset: 0, background: 'repeating-linear-gradient(88deg, transparent, transparent 18px, rgba(0,0,0,0.03) 18px, rgba(0,0,0,0.03) 36px)', pointerEvents: 'none' }} />
-          {/* Dirt strip */}
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '14%', background: 'linear-gradient(180deg, #5c3a1a 0%, #4a2e12 100%)', borderTop: '2px solid #7a4a1e', opacity: 0.6, pointerEvents: 'none' }} />
+          {/* ── CSS Animations ── */}
+          <style>{`
+            @keyframes flutter {
+              0%,100% { transform: translateY(0px) rotate(-8deg) scaleX(1); }
+              35% { transform: translateY(-10px) rotate(10deg) scaleX(-1); }
+              70% { transform: translateY(-4px) rotate(-4deg) scaleX(1); }
+            }
+            @keyframes flutter2 {
+              0%,100% { transform: translateY(0px) rotate(6deg); }
+              40% { transform: translateY(-14px) rotate(-9deg); }
+              75% { transform: translateY(-6px) rotate(5deg); }
+            }
+            @keyframes beehover {
+              0%,100% { transform: translate(0,0) rotate(0deg); }
+              25% { transform: translate(7px,-5px) rotate(6deg); }
+              50% { transform: translate(3px,-9px) rotate(-4deg); }
+              75% { transform: translate(-5px,-4px) rotate(5deg); }
+            }
+            @keyframes sway {
+              0%,100% { transform: rotate(-4deg) scale(1); }
+              50% { transform: rotate(4deg) scale(1.06); }
+            }
+            @keyframes pond-ripple {
+              0%,100% { transform: scale(1); opacity: 0.18; }
+              50% { transform: scale(1.12); opacity: 0.38; }
+            }
+            @keyframes harvest-glow {
+              0%,100% { box-shadow: 0 4px 16px rgba(0,0,0,0.5), 0 0 20px rgba(224,192,32,0.5); }
+              50% { box-shadow: 0 4px 16px rgba(0,0,0,0.5), 0 0 36px rgba(224,192,32,0.85), 0 0 55px rgba(224,192,32,0.25); }
+            }
+          `}</style>
 
-          {/* Garden sign */}
-          <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', background: 'rgba(90,50,10,0.85)', border: '2px solid #8a5c28', borderRadius: 6, padding: '5px 14px', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
-            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: '#e8c878', letterSpacing: '0.12em' }}>🌿 ZEN GARDEN 🌿</span>
+          {/* ── Sky ── */}
+          <div style={{ position:'absolute', top:0, left:0, right:0, height:'20%', background:'linear-gradient(180deg, #6aaed6 0%, #9ecde0 50%, #c0dda8 100%)', pointerEvents:'none', zIndex:0 }} />
+
+          {/* ── Far background trees ── */}
+          {[3,9,15,22,68,74,80,87,93].map((l,i) => (
+            <span key={i} style={{ position:'absolute', left:`${l}%`, top:'9%', fontSize:'min(3.5vw,26px)', pointerEvents:'none', zIndex:1, filter:'brightness(0.45) saturate(0.6)', opacity:0.75, userSelect:'none' }}>🌲</span>
+          ))}
+
+          {/* ── Main grass ── */}
+          <div style={{ position:'absolute', top:'18%', bottom:'13%', left:0, right:0, background:'linear-gradient(180deg, #5aaa3e 0%, #42902e 40%, #307020 80%, #266018 100%)', pointerEvents:'none', zIndex:0 }} />
+
+          {/* ── Grass texture ── */}
+          <div style={{ position:'absolute', top:'18%', bottom:'13%', left:0, right:0, background:'repeating-linear-gradient(92deg, transparent, transparent 22px, rgba(255,255,255,0.022) 22px, rgba(255,255,255,0.022) 44px)', pointerEvents:'none', zIndex:1 }} />
+
+          {/* ── Light grass patches ── */}
+          {[[12,30,16,8],[60,55,12,6],[82,38,10,7],[35,70,8,5],[50,25,14,7]].map(([l,t,w,h],i) => (
+            <div key={i} style={{ position:'absolute', left:`${l}%`, top:`${t}%`, width:`${w}%`, height:`${h}%`, background:'rgba(110,200,70,0.1)', borderRadius:'50%', pointerEvents:'none', zIndex:1 }} />
+          ))}
+
+          {/* ── Raised garden bed outlines ── */}
+          {[
+            { l:'27%', t:'54%', w:'20%', h:'23%', r:-2 },
+            { l:'55%', t:'39%', w:'18%', h:'21%', r:1 },
+            { l:'70%', t:'59%', w:'16%', h:'18%', r:-1 },
+          ].map((b,i) => (
+            <div key={i} style={{ position:'absolute', left:b.l, top:b.t, width:b.w, height:b.h, border:'2px solid rgba(120,80,35,0.5)', borderRadius:8, background:'rgba(55,32,12,0.2)', transform:`rotate(${b.r}deg)`, pointerEvents:'none', zIndex:2 }} />
+          ))}
+
+          {/* ── Stone path ── */}
+          {[
+            { l:'42%', t:'82%', w:'9%',   h:'6%',   r:14  },
+            { l:'47%', t:'73%', w:'8%',   h:'5.5%', r:-10 },
+            { l:'43%', t:'64%', w:'9.5%', h:'6%',   r:8   },
+            { l:'46%', t:'55%', w:'8%',   h:'5%',   r:-12 },
+            { l:'42%', t:'46%', w:'9%',   h:'6%',   r:5   },
+            { l:'45%', t:'37%', w:'7.5%', h:'5%',   r:-8  },
+          ].map((s,i) => (
+            <div key={i} style={{ position:'absolute', left:s.l, top:s.t, width:s.w, height:s.h, background:'radial-gradient(ellipse at 40% 30%, #d0c8b8, #a09080)', borderRadius:'50%', transform:`rotate(${s.r}deg)`, boxShadow:'inset 0 2px 5px rgba(0,0,0,0.25), 0 2px 5px rgba(0,0,0,0.35)', pointerEvents:'none', zIndex:3 }} />
+          ))}
+
+          {/* ── Pond ── */}
+          <div style={{ position:'absolute', left:'5%', top:'47%', width:'14%', paddingBottom:'10%', background:'radial-gradient(ellipse at 45% 38%, #5599cc, #1a3d88)', borderRadius:'50%', boxShadow:'inset 0 4px 14px rgba(0,0,60,0.5), 0 3px 12px rgba(0,0,0,0.45)', border:'2px solid rgba(100,170,220,0.45)', overflow:'hidden', pointerEvents:'none', zIndex:3 }}>
+            <div style={{ position:'absolute', top:'12%', left:'18%', width:'65%', height:'22%', background:'rgba(255,255,255,0.14)', borderRadius:'50%', transform:'rotate(-18deg)', animation:'pond-ripple 3.5s infinite ease-in-out' }} />
+            <div style={{ position:'absolute', top:'45%', left:'8%', width:'40%', height:'15%', background:'rgba(255,255,255,0.08)', borderRadius:'50%', animation:'pond-ripple 4.8s 1.2s infinite ease-in-out' }} />
+            <span style={{ position:'absolute', bottom:'18%', right:'14%', fontSize:'min(2.8vw,18px)', lineHeight:1 }}>🪷</span>
+            <span style={{ position:'absolute', top:'22%', left:'10%', fontSize:'min(1.5vw,11px)', lineHeight:1 }}>🐸</span>
           </div>
 
-          {/* Admin drag hint */}
+          {/* ── Rocks ── */}
+          {[
+            { l:'24%', t:'58%', w:'3.2%', pb:'2%'  },
+            { l:'63%', t:'68%', w:'2.8%', pb:'1.8%' },
+            { l:'82%', t:'43%', w:'3%',   pb:'1.9%' },
+            { l:'18%', t:'72%', w:'2.4%', pb:'1.5%' },
+          ].map((r,i) => (
+            <div key={i} style={{ position:'absolute', left:r.l, top:r.t, width:r.w, paddingBottom:r.pb, background:`radial-gradient(ellipse at 38% 28%, #c0b8a8, ${i%2===0?'#807060':'#706858'})`, borderRadius:'50%', boxShadow:'0 2px 5px rgba(0,0,0,0.5), inset 0 1px 3px rgba(255,255,255,0.18)', pointerEvents:'none', zIndex:4 }} />
+          ))}
+
+          {/* ── Dirt strip ── */}
+          <div style={{ position:'absolute', bottom:0, left:0, right:0, height:'13%', background:'linear-gradient(180deg, #6b3e18 0%, #4e2c0e 100%)', borderTop:'2px solid #8b5228', pointerEvents:'none', zIndex:2 }} />
+
+          {/* ── Wooden fence ── */}
+          <div style={{ position:'absolute', bottom:'13%', left:0, right:0, height:'3.5%', background:'linear-gradient(180deg, #9b6838, #7a4e26)', pointerEvents:'none', zIndex:5 }}>
+            {Array.from({ length: 18 }, (_, i) => (
+              <div key={i} style={{ position:'absolute', bottom:0, left:`${(i / 17) * 100}%`, width:'4px', height:'220%', background:'linear-gradient(180deg, #b87a44, #6b4020)', borderRadius:'3px 3px 0 0', transform:'translateX(-50%)', boxShadow:'1px 0 3px rgba(0,0,0,0.3)' }} />
+            ))}
+          </div>
+
+          {/* ── Decorative border flowers ── */}
+          {[
+            { l:'1%',  t:'24%', e:'🌸', d:'0s',   dur:'2.2s' },
+            { l:'6%',  t:'34%', e:'🌼', d:'0.6s', dur:'2.8s' },
+            { l:'3%',  t:'45%', e:'🌺', d:'1.2s', dur:'2.5s' },
+            { l:'88%', t:'23%', e:'🌸', d:'0.3s', dur:'2.4s' },
+            { l:'93%', t:'34%', e:'🌼', d:'1s',   dur:'2.1s' },
+            { l:'91%', t:'45%', e:'💐', d:'1.5s', dur:'3s'   },
+            { l:'96%', t:'57%', e:'🌺', d:'0.7s', dur:'2.7s' },
+            { l:'2%',  t:'57%', e:'🌻', d:'1.9s', dur:'3.2s' },
+          ].map((f,i) => (
+            <span key={i} style={{ position:'absolute', left:f.l, top:f.t, fontSize:'min(2.8vw,20px)', pointerEvents:'none', zIndex:3, filter:'drop-shadow(0 2px 5px rgba(0,0,0,0.4))', animation:`sway ${f.dur} ${f.d} infinite ease-in-out`, display:'inline-block', transformOrigin:'bottom center', userSelect:'none' }}>{f.e}</span>
+          ))}
+
+          {/* ── Butterflies ── */}
+          {[
+            { l:'22%', t:'27%', d:'0s',   dur:'4.8s', a:'flutter'  },
+            { l:'57%', t:'31%', d:'1.6s', dur:'5.5s', a:'flutter2' },
+            { l:'76%', t:'23%', d:'3s',   dur:'4.2s', a:'flutter'  },
+          ].map((b,i) => (
+            <span key={i} style={{ position:'absolute', left:b.l, top:b.t, fontSize:'min(2.5vw,18px)', pointerEvents:'none', zIndex:6, filter:'drop-shadow(0 1px 3px rgba(0,0,0,0.3))', animation:`${b.a} ${b.dur} ${b.d} infinite ease-in-out`, display:'inline-block', userSelect:'none' }}>🦋</span>
+          ))}
+
+          {/* ── Bee ── */}
+          <span style={{ position:'absolute', left:'84%', top:'36%', fontSize:'min(2vw,15px)', pointerEvents:'none', zIndex:6, animation:'beehover 3.4s 0.5s infinite ease-in-out', display:'inline-block', userSelect:'none' }}>🐝</span>
+
+          {/* ── Garden sign ── */}
+          <div style={{ position:'absolute', top:8, left:'50%', transform:'translateX(-50%)', background:'linear-gradient(135deg, rgba(100,60,15,0.94), rgba(70,40,10,0.94))', border:'2px solid rgba(200,155,60,0.65)', borderRadius:8, padding:'6px 16px', whiteSpace:'nowrap', pointerEvents:'none', zIndex:20, boxShadow:'0 3px 14px rgba(0,0,0,0.55)' }}>
+            <span style={{ fontFamily:"'Press Start 2P', monospace", fontSize:7, color:'#f0d070', letterSpacing:'0.14em', textShadow:'0 0 10px rgba(240,208,112,0.7)' }}>✨ ZEN GARDEN ✨</span>
+          </div>
+
+          {/* ── Admin drag hint ── */}
           {isAdmin && plants.length > 0 && !isDragging && (
-            <div style={{ position: 'absolute', bottom: '18%', right: 12, background: 'rgba(0,0,0,0.55)', color: 'rgba(240,232,216,0.55)', fontFamily: 'Inter, sans-serif', fontSize: 10, padding: '4px 10px', borderRadius: 6, pointerEvents: 'none', backdropFilter: 'blur(2px)' }}>
-              drag plants to reposition
+            <div style={{ position:'absolute', bottom:'16%', right:10, background:'rgba(0,0,0,0.62)', color:'rgba(240,232,216,0.5)', fontFamily:'Inter, sans-serif', fontSize:10, padding:'4px 10px', borderRadius:6, pointerEvents:'none', backdropFilter:'blur(3px)', zIndex:20 }}>
+              drag to reposition
             </div>
           )}
 
-          {/* Saving indicator */}
+          {/* ── Saving indicator ── */}
           {saving && (
-            <div style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(200,155,60,0.2)', border: '1px solid rgba(200,155,60,0.4)', color: S.gold, fontFamily: 'Inter, sans-serif', fontSize: 11, padding: '4px 10px', borderRadius: 6 }}>Saving…</div>
+            <div style={{ position:'absolute', top:10, right:10, background:'rgba(200,155,60,0.2)', border:'1px solid rgba(200,155,60,0.4)', color:S.gold, fontFamily:'Inter, sans-serif', fontSize:11, padding:'4px 10px', borderRadius:6, zIndex:20 }}>Saving…</div>
           )}
 
           {/* Plant nodes */}
@@ -809,7 +930,7 @@ export default function GardenYard({ initialPlants, initialTypes, isAdmin }: {
                   position: 'absolute',
                   left: `${xPct}%`, top: `${yPct}%`,
                   transform: 'translate(-50%, -50%)',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0,
                   zIndex: isThisDragging ? 30 : 10,
                   cursor: isAdmin ? (isThisDragging ? 'grabbing' : 'grab') : 'pointer',
                   userSelect: 'none',
@@ -820,28 +941,46 @@ export default function GardenYard({ initialPlants, initialTypes, isAdmin }: {
                 onTouchStart={e => startDrag(e, plant)}
                 onClick={() => handlePlantClick(plant)}
               >
-                {/* Circle */}
-                <div style={{
-                  width: 58, height: 58, borderRadius: '50%',
-                  background: 'radial-gradient(ellipse at 50% 30%, #fffbf0, #e8d4a0)',
-                  border: `3px solid ${info.color}`,
-                  boxShadow: `0 4px 14px rgba(0,0,0,0.55), 0 0 14px ${info.glow}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  position: 'relative', overflow: 'hidden',
-                  transform: isThisDragging ? 'scale(1.12)' : 'scale(1)',
-                  transition: isThisDragging ? 'none' : 'transform 0.12s',
-                }}>
-                  {img
-                    ? <img src={img} alt="" style={{ width: 36, height: 36, objectFit: 'contain' }} />
-                    : <span style={{ fontSize: 26, lineHeight: 1 }}>{plant.plantType?.icon ?? '🌱'}</span>}
-                  {plant.harvestStatus && <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'rgba(255,220,0,0.18)' }} />}
-                </div>
-                {/* Name + bed tag */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                  <div style={{ background: 'rgba(10,6,2,0.82)', color: '#f0e8d8', fontSize: 9, padding: '2px 7px', borderRadius: 5, fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', backdropFilter: 'blur(3px)', boxShadow: '0 1px 5px rgba(0,0,0,0.5)' }}>
-                    {dname.length > 12 ? dname.slice(0, 12) + '…' : dname}
+                {/* Plant circle */}
+                <div style={{ position:'relative' }}>
+                  <div style={{
+                    width: 66, height: 66, borderRadius: '50%',
+                    background: 'radial-gradient(ellipse at 42% 28%, #fffff8, #f0e8c8)',
+                    border: `3px solid ${info.color}`,
+                    boxShadow: stage === 6
+                      ? `0 4px 18px rgba(0,0,0,0.55), 0 0 26px ${info.glow}, 0 0 44px rgba(224,192,32,0.3)`
+                      : `0 4px 16px rgba(0,0,0,0.55), 0 0 16px ${info.glow}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    position: 'relative', overflow: 'hidden',
+                    transform: isThisDragging ? 'scale(1.14)' : 'scale(1)',
+                    transition: isThisDragging ? 'none' : 'transform 0.15s, box-shadow 0.3s',
+                    animation: stage === 6 && !isThisDragging ? 'harvest-glow 2.5s infinite ease-in-out' : undefined,
+                  }}>
+                    {img
+                      ? <img src={img} alt="" style={{ width: 42, height: 42, objectFit: 'contain' }} />
+                      : <span style={{ fontSize: 30, lineHeight: 1 }}>{plant.plantType?.icon ?? '🌱'}</span>}
+                    {plant.harvestStatus && <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'rgba(255,220,0,0.12)' }} />}
                   </div>
-                  <div style={{ background: 'rgba(40,80,20,0.75)', color: '#aae88a', fontSize: 8, padding: '1px 6px', borderRadius: 4, fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap', backdropFilter: 'blur(2px)' }}>
+                  {/* Stage badge */}
+                  <div style={{
+                    position: 'absolute', top: -4, right: -4,
+                    width: 22, height: 22, borderRadius: '50%',
+                    background: `radial-gradient(circle at 40% 35%, ${info.color}ee, ${info.color}88)`,
+                    fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: `0 2px 6px rgba(0,0,0,0.55), 0 0 8px ${info.glow}`,
+                    border: '1.5px solid rgba(0,0,0,0.3)',
+                  }}>{info.emoji}</div>
+                </div>
+                {/* Stem */}
+                <div style={{ width: 3, height: 9, background: 'linear-gradient(180deg, #5a9a28, #3a6010)', borderRadius: '0 0 2px 2px', marginTop: -1 }} />
+                {/* Ground shadow */}
+                <div style={{ width: 36, height: 6, borderRadius: '50%', background: 'rgba(0,0,0,0.22)', filter: 'blur(3px)', marginTop: -2 }} />
+                {/* Labels */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, marginTop: 4 }}>
+                  <div style={{ background: 'rgba(8,5,1,0.9)', color: '#f5eedc', fontSize: 9, padding: '2px 8px', borderRadius: 5, fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap', maxWidth: 98, overflow: 'hidden', textOverflow: 'ellipsis', backdropFilter: 'blur(4px)', boxShadow: '0 2px 6px rgba(0,0,0,0.65)', fontWeight: 700 }}>
+                    {dname.length > 13 ? dname.slice(0, 13) + '…' : dname}
+                  </div>
+                  <div style={{ background: 'rgba(18,48,8,0.85)', color: '#90dd70', fontSize: 8, padding: '1px 7px', borderRadius: 4, fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap', backdropFilter: 'blur(3px)', fontWeight: 600 }}>
                     {bed.icon} {bed.label}
                   </div>
                 </div>
@@ -851,10 +990,16 @@ export default function GardenYard({ initialPlants, initialTypes, isAdmin }: {
 
           {/* Empty state */}
           {plants.length === 0 && (
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, pointerEvents: 'none' }}>
-              <span style={{ fontSize: 40, filter: 'drop-shadow(0 3px 8px rgba(0,0,0,0.5))' }}>🌱</span>
-              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: 'rgba(240,232,216,0.6)', textShadow: '0 1px 4px rgba(0,0,0,0.7)' }}>
-                {isAdmin ? 'The garden is empty — add some plants!' : 'The garden is empty'}
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, pointerEvents: 'none', zIndex: 20 }}>
+              <div style={{ display: 'flex', gap: 10 }}>
+                {['🌱','🌻','🌷','🌿','🍀'].map((e,i) => (
+                  <span key={i} style={{ fontSize:'min(6vw,32px)', filter:'drop-shadow(0 3px 8px rgba(0,0,0,0.6))', animation:`sway ${1.8+i*0.3}s ${i*0.4}s infinite ease-in-out`, display:'inline-block', transformOrigin:'bottom center', userSelect:'none' }}>{e}</span>
+                ))}
+              </div>
+              <div style={{ background:'rgba(0,0,0,0.65)', backdropFilter:'blur(8px)', padding:'12px 24px', borderRadius:12, border:'1px solid rgba(200,155,60,0.35)', boxShadow:'0 4px 20px rgba(0,0,0,0.45)' }}>
+                <div style={{ fontFamily:'Inter, sans-serif', fontSize:14, fontWeight:600, color:'rgba(240,232,216,0.92)', textAlign:'center' }}>
+                  {isAdmin ? '✨ Add your first plant to get growing!' : '🌸 This garden is waiting to bloom'}
+                </div>
               </div>
             </div>
           )}
