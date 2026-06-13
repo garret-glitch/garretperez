@@ -277,24 +277,6 @@ export default function SidebarFunGame() {
       </div>
 
 
-      {/* Cool Items + Cool People — under Games & Entertainment */}
-      <div className="shrink-0" style={{ borderTop: '1px solid rgba(200,155,60,0.15)' }}>
-        <Link href="/skills/cool-items"
-          className="flex items-center gap-2.5 px-3 py-2.5 hover:opacity-80 transition-opacity"
-          style={{ borderLeft: '3px solid transparent' }}>
-          <span className="shrink-0 flex items-center justify-center text-base"
-            style={{ width: 32, height: 32, background: '#1a3a5a', borderRadius: 8 }}>💎</span>
-          <div className="text-[11px] truncate" style={{ color: '#f0d898' }}>Cool Items</div>
-        </Link>
-        <Link href="/skills/cool-people"
-          className="flex items-center gap-2.5 px-3 py-2.5 hover:opacity-80 transition-opacity"
-          style={{ borderLeft: '3px solid transparent' }}>
-          <span className="shrink-0 flex items-center justify-center text-base"
-            style={{ width: 32, height: 32, background: '#4a1a5a', borderRadius: 8 }}>🌟</span>
-          <div className="text-[11px] truncate" style={{ color: '#f0d898' }}>Cool People</div>
-        </Link>
-      </div>
-
       <div className="flex-1" />
     </div>
   )
