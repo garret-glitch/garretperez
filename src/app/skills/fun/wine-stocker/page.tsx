@@ -1112,7 +1112,7 @@ export default function WineStockerRush() {
             padding: '16px 18px 18px', gap: 12,
           }}>
 
-            {/* ── Title ── */}
+            {/* ── Title + Start ── */}
             <div style={{ textAlign: 'center', flexShrink: 0 }}>
               <div style={{ fontSize: 36, lineHeight: 1, marginBottom: 6 }}>🍷</div>
               <h1 style={{
@@ -1121,9 +1121,12 @@ export default function WineStockerRush() {
               }}>
                 Wine Rush
               </h1>
-              <p className="body-text" style={{ color: 'var(--text-3)', fontSize: 10, margin: '4px 0 0' }}>
+              <p className="body-text" style={{ color: 'var(--text-3)', fontSize: 10, margin: '4px 0 8px' }}>
                 Stock the shelves. Survive the manager. Don&apos;t get fired.
               </p>
+              <button onClick={startGame} className="osrs-btn" style={{ padding: '10px 40px' }}>
+                Start Shift
+              </button>
             </div>
 
             {/* ── Two-column body ── */}
@@ -1250,10 +1253,6 @@ export default function WineStockerRush() {
               </div>
             </div>
 
-            {/* ── Start button ── */}
-            <button onClick={startGame} className="osrs-btn" style={{ padding: '10px 40px', flexShrink: 0 }}>
-              Start Shift
-            </button>
           </div>
         )}
 
