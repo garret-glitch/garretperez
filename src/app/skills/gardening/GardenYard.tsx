@@ -341,7 +341,6 @@ function PlantPopup({ plant, isAdmin, onClose, onUpdate, onDelete }: {
 function AddPlantModal({ plantTypes, onClose, onAdd }: { plantTypes: PlantType[]; onClose: () => void; onAdd: (p: YardPlant) => void }) {
   const [bedType,     setBedType]     = useState('RAISED_BED')
   const [plantTypeId, setPlantTypeId] = useState('')
-  const [name,        setName]        = useState('')
   const [growthStage, setGrowthStage] = useState(1)
   const [datePlanted, setDatePlanted] = useState('')
   const [notes,       setNotes]       = useState('')
@@ -350,15 +349,14 @@ function AddPlantModal({ plantTypes, onClose, onAdd }: { plantTypes: PlantType[]
   const [err,         setErr]         = useState('')
 
   const selectedType = plantTypes.find(t => t.id === plantTypeId) ?? null
-  const derivedName  = name.trim() || selectedType?.name || ''
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!derivedName) { setErr('Choose a plant type or enter a name.'); return }
+    if (!selectedType) { setErr('Choose a plant type.'); return }
     setSaving(true); setErr('')
     const res = await fetch('/api/garden/yard-plants', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: derivedName, bedType, plantTypeId, growthStage, xPos: 50, yPos: 50, datePlanted, notes, isAutoGrowth }),
+      body: JSON.stringify({ name: selectedType.name, bedType, plantTypeId, growthStage, xPos: 50, yPos: 50, datePlanted, notes, isAutoGrowth }),
     })
     if (res.ok) { onAdd((await res.json()).plant); onClose() }
     else { setErr('Failed to add plant.'); setSaving(false) }
@@ -387,14 +385,8 @@ function AddPlantModal({ plantTypes, onClose, onAdd }: { plantTypes: PlantType[]
             <label style={labelStyle}>Plant</label>
             <select value={plantTypeId} onChange={e => setPlantTypeId(e.target.value)} style={inputStyle}>
               <option value="">— Select a plant —</option>
-              {plantTypes.map(t => <option key={t.id} value={t.id}>{t.icon} {t.name} · {CATEGORY_LABELS[t.category] ?? t.category}</option>)}
+              {plantTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
-          </div>
-
-          {/* Optional custom name */}
-          <div>
-            <label style={labelStyle}>Custom Name <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional — defaults to plant type)</span></label>
-            <input value={name} onChange={e => setName(e.target.value)} placeholder={selectedType?.name ?? 'e.g. Cherokee Purple'} maxLength={80} style={inputStyle} />
           </div>
 
           {/* Growth stage */}
@@ -434,8 +426,8 @@ function AddPlantModal({ plantTypes, onClose, onAdd }: { plantTypes: PlantType[]
 
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <button type="button" onClick={onClose} style={{ padding: '10px 18px', background: 'transparent', border: '1px solid rgba(200,155,60,0.2)', color: S.text4, fontFamily: 'Inter, sans-serif', fontSize: 14, cursor: 'pointer', borderRadius: 8 }}>Cancel</button>
-            <button type="submit" disabled={saving || !derivedName}
-              style={{ padding: '10px 22px', background: (saving || !derivedName) ? 'rgba(200,155,60,0.15)' : 'linear-gradient(135deg, #c89b3c, #a07828)', border: 'none', color: (saving || !derivedName) ? 'rgba(200,155,60,0.35)' : '#0a0600', fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 700, cursor: (saving || !derivedName) ? 'not-allowed' : 'pointer', borderRadius: 8 }}>
+            <button type="submit" disabled={saving || !selectedType}
+              style={{ padding: '10px 22px', background: (saving || !selectedType) ? 'rgba(200,155,60,0.15)' : 'linear-gradient(135deg, #c89b3c, #a07828)', border: 'none', color: (saving || !selectedType) ? 'rgba(200,155,60,0.35)' : '#0a0600', fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 700, cursor: (saving || !selectedType) ? 'not-allowed' : 'pointer', borderRadius: 8 }}>
               {saving ? 'Planting…' : '🌱 Plant It'}
             </button>
           </div>
@@ -448,7 +440,6 @@ function AddPlantModal({ plantTypes, onClose, onAdd }: { plantTypes: PlantType[]
 // ── EditPlantModal ─────────────────────────────────────────────────
 function EditPlantModal({ plant, plantTypes, onClose, onSave }: { plant: YardPlant; plantTypes: PlantType[]; onClose: () => void; onSave: (p: YardPlant) => void }) {
   const [bedType,     setBedType]  = useState(plant.bedType || 'RAISED_BED')
-  const [name,        setName]     = useState(plant.name)
   const [plantTypeId, setTypeId]   = useState(plant.plantTypeId ?? '')
   const [datePlanted, setDate]     = useState(plant.datePlanted ? plant.datePlanted.slice(0, 10) : '')
   const [notes,       setNotes]    = useState(plant.notes ?? '')
@@ -459,11 +450,10 @@ function EditPlantModal({ plant, plantTypes, onClose, onSave }: { plant: YardPla
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!name.trim() && !selectedType) { setErr('Name required'); return }
     setSaving(true); setErr('')
     const res = await fetch(`/api/garden/yard-plants/${plant.id}`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: name.trim() || selectedType?.name || plant.name, bedType, plantTypeId: plantTypeId || null, datePlanted: datePlanted || null, notes, isAutoGrowth }),
+      body: JSON.stringify({ name: selectedType?.name || plant.name, bedType, plantTypeId: plantTypeId || null, datePlanted: datePlanted || null, notes, isAutoGrowth }),
     })
     if (res.ok) { onSave(await res.json()); onClose() }
     else { setErr('Failed to save.'); setSaving(false) }
@@ -481,10 +471,9 @@ function EditPlantModal({ plant, plantTypes, onClose, onSave }: { plant: YardPla
           <div><label style={labelStyle}>Plant</label>
             <select value={plantTypeId} onChange={e => setTypeId(e.target.value)} style={inputStyle}>
               <option value="">— No type —</option>
-              {plantTypes.map(t => <option key={t.id} value={t.id}>{t.icon} {t.name}</option>)}
+              {plantTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
           </div>
-          <div><label style={labelStyle}>Custom Name</label><input value={name} onChange={e => setName(e.target.value)} placeholder={selectedType?.name ?? 'Plant name'} style={inputStyle} /></div>
           <div><label style={labelStyle}>Date Planted</label><input type="date" value={datePlanted} onChange={e => setDate(e.target.value)} style={inputStyle} /></div>
           {selectedType?.autoGrowthDays && (
             <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
