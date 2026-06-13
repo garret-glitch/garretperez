@@ -3,7 +3,6 @@ import { prisma } from '@/lib/prisma'
 import { xpToLevel } from '@/lib/xp'
 import { getCommunityXpAll } from '@/lib/community-xp'
 import Link from 'next/link'
-import SidebarFunGame from './SidebarFunGame'
 import SkillsPanelClient, { DEFAULT_CHAN_ORDER, type ChanKey } from './SkillsPanelClient'
 
 export default async function SkillsPanel() {
@@ -77,7 +76,6 @@ export default async function SkillsPanel() {
             isAdmin={isAdmin}
           />
         </div>
-        <SidebarFunGame />
       </div>
 
     </aside>
