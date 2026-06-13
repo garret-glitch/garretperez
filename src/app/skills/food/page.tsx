@@ -74,6 +74,7 @@ const WINES = [
     id: 'matua',
     name: 'Matua Sauvignon Blanc',
     image: 'https://www.kenswineguide.com/images_wine/Matua-2023-Sauvignon-Blanc.gif',
+    noMask: true,
     origin: 'Marlborough, New Zealand',
     varietal: '100% Sauvignon Blanc',
     abv: '13%',
@@ -86,7 +87,7 @@ const WINES = [
   {
     id: 'bonterra',
     name: 'Bonterra Cabernet Sauvignon',
-    image: '/wines/bonterra-cab.png',
+    image: '/wines/bonterra-cab.webp',
     origin: 'Mendocino County, California',
     varietal: '100% Cabernet Sauvignon',
     abv: '13.5%',
@@ -99,7 +100,7 @@ const WINES = [
   {
     id: 'breadandbutter',
     name: 'Bread & Butter Chardonnay',
-    image: '/wines/bread-and-butter-chard.png',
+    image: '/wines/bread-and-butter-chard.jpg',
     origin: 'California',
     varietal: '100% Chardonnay',
     abv: '13.5%',
@@ -112,7 +113,7 @@ const WINES = [
   {
     id: 'bogle',
     name: 'Bogle Chardonnay',
-    image: '/wines/bogle-chard.png',
+    image: '/wines/bogle-chard.jpg',
     origin: 'California',
     varietal: '100% Chardonnay',
     abv: '13.5%',
@@ -237,8 +238,10 @@ export default async function FoodPage() {
                     height: 200, width: 'auto', maxWidth: 130,
                     objectFit: 'contain', display: 'block',
                     filter: 'drop-shadow(0 10px 22px rgba(0,0,0,0.75)) drop-shadow(0 4px 8px rgba(0,0,0,0.5))',
-                    maskImage: 'radial-gradient(ellipse 52% 92% at 50% 50%, black 30%, transparent 72%)',
-                    WebkitMaskImage: 'radial-gradient(ellipse 52% 92% at 50% 50%, black 30%, transparent 72%)',
+                    ...(wine.noMask ? {} : {
+                      maskImage: 'radial-gradient(ellipse 52% 92% at 50% 50%, black 30%, transparent 72%)',
+                      WebkitMaskImage: 'radial-gradient(ellipse 52% 92% at 50% 50%, black 30%, transparent 72%)',
+                    }),
                     position: 'relative', zIndex: 1,
                   }}
                 />
