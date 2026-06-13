@@ -362,3 +362,17 @@ model GameLike {
   @@unique([userId, gameHref])
   @@index([gameHref])
 }
+
+model TravelPin {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  reason    String   @db.Text @default("")
+  emoji     String   @default("📍")
+  x         Float
+  y         Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}

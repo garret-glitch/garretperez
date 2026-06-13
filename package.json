@@ -43,7 +43,8 @@
     "prisma": "^5.22.0",
     "react": "^18",
     "react-colorful": "^5.7.0",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "react-simple-maps": "^3.0.0"
   },
   "devDependencies": {
     "@netlify/plugin-nextjs": "^5.15.11",
