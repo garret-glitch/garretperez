@@ -10,6 +10,7 @@ import PostForm from '@/components/PostForm'
 import ReplyForm from '@/components/ReplyForm'
 import UpvoteButton from '@/components/UpvoteButton'
 import BusinessCardsSection from '@/components/BusinessCardsSection'
+import YoutubeChannelsSection from '@/components/YoutubeChannelsSection'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -22,9 +23,10 @@ export default async function CoolPeoplePage() {
   let communityMemberCount = 0
   let posts: any[] = []
   let cards: any[] = []
+  let channels: any[] = []
 
   try {
-    const [communityData, postRows, rawCards] = await Promise.all([
+    const [communityData, postRows, rawCards, rawChannels] = await Promise.all([
       getCommunityXpForSkill(skillMeta.dbEnum as SkillType),
       (prisma as any).post.findMany({
         where: { skill: skillMeta.dbEnum as SkillType },
@@ -45,6 +47,10 @@ export default async function CoolPeoplePage() {
         },
         orderBy: { createdAt: 'asc' },
       }),
+      (prisma as any).youtubeChannel.findMany({
+        include: { user: { select: { id: true, username: true } } },
+        orderBy: { createdAt: 'asc' },
+      }),
     ])
 
     communityXp = communityData.xp
@@ -60,11 +66,20 @@ export default async function CoolPeoplePage() {
         user: { id: card.user.id, username: card.user.username, level: xpToLevel(totalXp) },
       }
     })
+
+    channels = rawChannels.map((ch: any) => ({
+      ...ch,
+      createdAt: ch.createdAt.toISOString(),
+      updatedAt: undefined,
+    }))
   } catch { /* DB not ready */ }
 
   const myCard = session?.user?.id
     ? cards.find((c: any) => c.user.id === session.user.id) ?? null
     : null
+
+  const uid = session?.user?.id ?? null
+  const isAdmin = session?.user?.role === 'ADMIN'
 
   return (
     <div className="space-y-4">
@@ -82,8 +97,15 @@ export default async function CoolPeoplePage() {
       <BusinessCardsSection
         cards={cards}
         myCard={myCard}
-        userId={session?.user?.id ?? null}
-        isAdmin={session?.user?.role === 'ADMIN'}
+        userId={uid}
+        isAdmin={isAdmin}
+      />
+
+      {/* YouTube Channels */}
+      <YoutubeChannelsSection
+        channels={channels}
+        userId={uid}
+        isAdmin={isAdmin}
       />
 
       {/* Posts */}
@@ -106,8 +128,8 @@ export default async function CoolPeoplePage() {
         <div className="space-y-3">
           {posts.map((post: any) => {
             const upvoteCount = post.upvotes.length
-            const hasUpvoted = session?.user?.id
-              ? post.upvotes.some((u: { userId: string }) => u.userId === session.user!.id)
+            const hasUpvoted = uid
+              ? post.upvotes.some((u: { userId: string }) => u.userId === uid)
               : false
             return (
               <div key={post.id} className="osrs-panel-dark rounded-xl" style={{ overflow: 'hidden' }}>

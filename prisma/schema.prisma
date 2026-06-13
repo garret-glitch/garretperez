@@ -44,6 +44,7 @@ model User {
   wineComments        WineComment[]
   gameLikes           GameLike[]
   businessCard        BusinessCard?
+  youtubeChannels     YoutubeChannel[]
 }
 
 model Account {
@@ -427,6 +428,19 @@ model TravelPin {
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+}
+
+model YoutubeChannel {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channelName String
+  channelUrl  String
+  description String?  @db.Text
+  category    String?
+  accentColor String   @default("#c89b3c")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model BusinessCard {
