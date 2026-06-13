@@ -62,7 +62,7 @@ function FeaturedGameCard({
   const g = game.glow
 
   const chips = isWine
-    ? [{ icon: '🍷', label: '6 wines' }, { icon: '👔', label: 'Beat the boss' }, { icon: '⚡', label: '5 power-ups' }, { icon: '🏆', label: 'Leaderboard' }]
+    ? [{ icon: '🍷', label: '6 wines' }, { icon: '⚡', label: '5 power-ups' }, { icon: '🏆', label: 'Leaderboard' }]
     : isLumina
       ? [{ icon: '✦', label: 'Flow puzzle' }, { icon: '🎯', label: 'Endless play' }, { icon: '🧩', label: 'Brain training' }, { icon: '🏆', label: 'Leaderboard' }]
       : [{ icon: game.icon, label: game.xp }]
