@@ -5,6 +5,7 @@ import { getCommunityXpForSkill } from '@/lib/community-xp'
 import SkillHeroBar from '@/components/SkillHeroBar'
 import { SkillType } from '@prisma/client'
 import Link from 'next/link'
+import SeedButton from './SeedButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -101,6 +102,7 @@ export default async function ProjectsPage() {
           style={{ padding: 32, textAlign: 'center', fontSize: 9, fontFamily: "'Press Start 2P', monospace", color: 'var(--text-2)' }}
         >
           No projects yet — check back soon!
+          {isAdmin && <SeedButton />}
         </div>
       ) : (
         <div
