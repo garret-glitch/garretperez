@@ -146,18 +146,9 @@ export default function BusinessCardDisplay({
             )}
 
             {/* Bottom row */}
-            <div style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
-              marginTop: 'auto', paddingTop: 8, position: 'relative',
-            }}>
+            <div style={{ marginTop: 'auto', paddingTop: 8, position: 'relative' }}>
               <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 5, color: '#504030' }}>
                 @{card.user.username}
-              </span>
-              <span style={{
-                fontFamily: "'Press Start 2P', monospace", fontSize: 5,
-                color: ac, border: `1px solid ${ac}40`, padding: '2px 6px', borderRadius: 2,
-              }}>
-                ⚔ LVL {card.user.level}
               </span>
             </div>
 
