@@ -804,11 +804,6 @@ export default function GardenYard({ initialPlants, initialTypes, isAdmin }: {
           {/* ── Sky ── */}
           <div style={{ position:'absolute', top:0, left:0, right:0, height:'20%', background:'linear-gradient(180deg, #6aaed6 0%, #9ecde0 50%, #c0dda8 100%)', pointerEvents:'none', zIndex:0 }} />
 
-          {/* ── Far background trees ── */}
-          {[3,9,15,22,68,74,80,87,93].map((l,i) => (
-            <span key={i} style={{ position:'absolute', left:`${l}%`, top:'9%', fontSize:'min(3.5vw,26px)', pointerEvents:'none', zIndex:1, filter:'brightness(0.45) saturate(0.6)', opacity:0.75, userSelect:'none' }}>🌲</span>
-          ))}
-
           {/* ── Main grass ── */}
           <div style={{ position:'absolute', top:'18%', bottom:'13%', left:0, right:0, background:'linear-gradient(180deg, #5aaa3e 0%, #42902e 40%, #307020 80%, #266018 100%)', pointerEvents:'none', zIndex:0 }} />
 
@@ -868,20 +863,6 @@ export default function GardenYard({ initialPlants, initialTypes, isAdmin }: {
               <div key={i} style={{ position:'absolute', bottom:0, left:`${(i / 17) * 100}%`, width:'4px', height:'220%', background:'linear-gradient(180deg, #b87a44, #6b4020)', borderRadius:'3px 3px 0 0', transform:'translateX(-50%)', boxShadow:'1px 0 3px rgba(0,0,0,0.3)' }} />
             ))}
           </div>
-
-          {/* ── Decorative border flowers ── */}
-          {[
-            { l:'1%',  t:'24%', e:'🌸', d:'0s',   dur:'2.2s' },
-            { l:'6%',  t:'34%', e:'🌼', d:'0.6s', dur:'2.8s' },
-            { l:'3%',  t:'45%', e:'🌺', d:'1.2s', dur:'2.5s' },
-            { l:'88%', t:'23%', e:'🌸', d:'0.3s', dur:'2.4s' },
-            { l:'93%', t:'34%', e:'🌼', d:'1s',   dur:'2.1s' },
-            { l:'91%', t:'45%', e:'💐', d:'1.5s', dur:'3s'   },
-            { l:'96%', t:'57%', e:'🌺', d:'0.7s', dur:'2.7s' },
-            { l:'2%',  t:'57%', e:'🌻', d:'1.9s', dur:'3.2s' },
-          ].map((f,i) => (
-            <span key={i} style={{ position:'absolute', left:f.l, top:f.t, fontSize:'min(2.8vw,20px)', pointerEvents:'none', zIndex:3, filter:'drop-shadow(0 2px 5px rgba(0,0,0,0.4))', animation:`sway ${f.dur} ${f.d} infinite ease-in-out`, display:'inline-block', transformOrigin:'bottom center', userSelect:'none' }}>{f.e}</span>
-          ))}
 
           {/* ── Butterflies ── */}
           {[
