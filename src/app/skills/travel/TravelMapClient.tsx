@@ -240,9 +240,9 @@ export default function TravelMapClient({ initialPins, isLoggedIn, userId }: Pro
         </div>
 
         {/* ── Map area ──
-            The container is position:relative with minWidth:0 + overflow:hidden.
-            ComposableMap gets width:100% height:auto so it scales to the container.
-            The pin overlay is position:absolute inset:0 (same size as the rendered SVG). */}
+            Inner div uses CSS aspect-ratio so height = width × (svgH/800) — no SVG height:auto quirks.
+            SVG is position:absolute inset:0 height:100% to fill the aspect-ratio container.
+            Pin overlay is also position:absolute inset:0, so percentages align with the SVG. */}
         <div
           ref={mapRef}
           style={{
@@ -255,13 +255,13 @@ export default function TravelMapClient({ initialPins, isLoggedIn, userId }: Pro
           }}
         >
           {/* Fade wrapper — opacity animates on view switch */}
-          <div style={{ opacity: transitioning ? 0 : 1, transition: 'opacity 0.16s ease', position: 'relative', lineHeight: 0 }}>
+          <div style={{ opacity: transitioning ? 0 : 1, transition: 'opacity 0.16s ease', position: 'relative', aspectRatio: mapView === 'world' ? '800 / 260' : '800 / 500' }}>
 
             {mapView === 'world' ? (
               <ComposableMap
                 width={800} height={260}
                 projection="geoEqualEarth"
-                style={{ width: '100%', height: 'auto', display: 'block' }}
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }}
                 onClick={handleMapClick}
               >
                 <rect width={800} height={260} fill="#05050e" />
@@ -298,7 +298,7 @@ export default function TravelMapClient({ initialPins, isLoggedIn, userId }: Pro
               <ComposableMap
                 width={800} height={500}
                 projection="geoAlbersUsa"
-                style={{ width: '100%', height: 'auto', display: 'block' }}
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }}
                 onClick={handleMapClick}
               >
                 <rect width={800} height={500} fill="#05050e" />
