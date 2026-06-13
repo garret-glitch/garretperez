@@ -26,6 +26,9 @@ export default async function SiteHeader() {
         <Link href="/resume" className="text-[8px] transition-colors hover:opacity-80" style={{ color: '#c8a870' }}>
           Resume
         </Link>
+        <Link href="/cards" className="text-[8px] transition-colors hover:opacity-80" style={{ color: '#c8a870' }}>
+          Cards
+        </Link>
         {isAdmin && (
           <Link href="/admin" className="text-[8px]" style={{ color: '#e8c060' }}>
             Admin

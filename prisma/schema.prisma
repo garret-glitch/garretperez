@@ -43,6 +43,7 @@ model User {
   wineRatings         WineRating[]
   wineComments        WineComment[]
   gameLikes           GameLike[]
+  businessCard        BusinessCard?
 }
 
 model Account {
@@ -397,6 +398,7 @@ model GardenPlantType {
 model GardenYardPlant {
   id            String           @id @default(cuid())
   name          String
+  bedType       String           @default("RAISED_BED")
   plantTypeId   String?
   plantType     GardenPlantType? @relation(fields: [plantTypeId], references: [id], onDelete: SetNull)
   growthStage   Int              @default(1)
@@ -425,4 +427,21 @@ model TravelPin {
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+}
+
+model BusinessCard {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  title       String?
+  company     String?
+  email       String?
+  phone       String?
+  linkedin    String?
+  website     String?
+  tagline     String?
+  accentColor String   @default("#c89b3c")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

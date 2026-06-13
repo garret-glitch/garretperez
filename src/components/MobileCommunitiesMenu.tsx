@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   Heart, Hammer, Briefcase, Users, Fish, Wine, Leaf, Compass, Gamepad2,
-  Home, FileText, Menu, X, Scroll,
+  Home, FileText, Menu, X, Scroll, CreditCard,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -12,7 +12,8 @@ interface NavItem { label: string; Icon: LucideIcon; href: string; bg: string }
 
 const NAV_ITEMS: NavItem[] = [
   { label: 'Home',   Icon: Home,     href: '/',       bg: '#241a08' },
-  { label: 'Resume', Icon: FileText, href: '/resume', bg: '#241a08' },
+  { label: 'Resume', Icon: FileText,   href: '/resume', bg: '#241a08' },
+  { label: 'Cards',  Icon: CreditCard, href: '/cards',  bg: '#1a1432' },
 ]
 
 const COMMUNITIES: NavItem[] = [
