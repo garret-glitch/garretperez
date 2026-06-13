@@ -18,7 +18,7 @@ const v = (x: number, y: number): V2 => ({ x, y })
 const dist = (a: V2, b: V2) => Math.hypot(a.x - b.x, a.y - b.y)
 const norm = (d: V2): V2 => { const m = Math.hypot(d.x, d.y) || 1; return v(d.x / m, d.y / m) }
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n))
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t
+
 const rnd = (a: number, b: number) => a + Math.random() * (b - a)
 const rndI = (a: number, b: number) => Math.floor(rnd(a, b + 0.99))
 
