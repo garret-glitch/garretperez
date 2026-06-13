@@ -1121,9 +1121,37 @@ export default function WineStockerRush() {
               }}>
                 Wine Rush
               </h1>
-              <p className="body-text" style={{ color: 'var(--text-3)', fontSize: 10, margin: '4px 0 8px' }}>
+              <p className="body-text" style={{ color: 'var(--text-3)', fontSize: 10, margin: '4px 0 10px' }}>
                 Stock the shelves. Survive the manager. Don&apos;t get fired.
               </p>
+
+              {/* ── Quick controls strip ── */}
+              <div style={{
+                display: 'flex', justifyContent: 'center', gap: 16, flexWrap: 'wrap',
+                marginBottom: 12,
+              }}>
+                {([
+                  { keys: ['↑','↓','←','→'], label: 'Move' },
+                  { keys: ['SPACE'], label: 'Run' },
+                ] as { keys: string[]; label: string }[]).map(({ keys, label }) => (
+                  <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ display: 'flex', gap: 3 }}>
+                      {keys.map(k => (
+                        <span key={k} style={{
+                          fontFamily: '"Press Start 2P", monospace', fontSize: 7,
+                          color: '#c89b3c', background: 'rgba(200,155,60,0.12)',
+                          border: '1px solid rgba(200,155,60,0.42)',
+                          borderBottom: '3px solid rgba(200,155,60,0.42)',
+                          padding: '4px 7px', borderRadius: 5,
+                          display: 'inline-block', lineHeight: 1,
+                        }}>{k}</span>
+                      ))}
+                    </div>
+                    <span className="body-text" style={{ color: 'var(--text-2)', fontSize: 10 }}>{label}</span>
+                  </div>
+                ))}
+              </div>
+
               <button onClick={startGame} className="osrs-btn" style={{ padding: '10px 40px' }}>
                 Start Shift
               </button>
