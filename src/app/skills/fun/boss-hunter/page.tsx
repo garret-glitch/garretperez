@@ -1705,6 +1705,60 @@ export default function BossHunter() {
     )
   }, [])
 
+  const handleTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault()
+    const canvas = canvasRef.current
+    const touch = e.touches[0]
+    if (!canvas || !touch) return
+    const rect = canvas.getBoundingClientRect()
+    const gx = (touch.clientX - rect.left) * (CW / rect.width)
+    const gy = (touch.clientY - rect.top) * (CH / rect.height)
+    mouseRef.current = v(gx, gy)
+    const g = gsRef.current
+    if (g?.phase === 'playing') g.player.targetPos = v(gx, gy)
+  }, [])
+
+  const handleTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault()
+    const canvas = canvasRef.current
+    const touch = e.touches[0]
+    if (!canvas || !touch) return
+    const rect = canvas.getBoundingClientRect()
+    const gx = (touch.clientX - rect.left) * (CW / rect.width)
+    const gy = (touch.clientY - rect.top) * (CH / rect.height)
+    mouseRef.current = v(gx, gy)
+    const g = gsRef.current
+    if (g?.phase === 'playing') g.player.targetPos = v(gx, gy)
+  }, [])
+
+  const triggerDodge = useCallback(() => {
+    const g = gsRef.current
+    if (!g || g.phase !== 'playing') return
+    const p = g.player
+    if (p.dodgeChargeMode) {
+      if (p.featherCharges > 0) {
+        p.featherCharges--
+        const emptyIdx = p.featherRecharge.findIndex((r: number) => r <= 0)
+        if (emptyIdx >= 0) p.featherRecharge[emptyIdx] = 1.8
+        const dir = p.targetPos ? norm(v(p.targetPos.x - p.pos.x, p.targetPos.y - p.pos.y)) : v(1, 0)
+        p.dodgeTimer = DODGE_DUR
+        p.dodgeVel = v(dir.x * 460, dir.y * 460)
+        p.webTrapPlaced = false
+      }
+    } else if (p.dodgeCd <= 0) {
+      const dir = p.targetPos ? norm(v(p.targetPos.x - p.pos.x, p.targetPos.y - p.pos.y)) : v(1, 0)
+      p.dodgeTimer = DODGE_DUR
+      p.dodgeVel = v(dir.x * 460, dir.y * 460)
+      p.dodgeCd = DODGE_CD
+      p.iframeTimer = IFRAME_DUR
+      p.webTrapPlaced = false
+    }
+  }, [])
+
+  const triggerAbility = useCallback((idx: number) => {
+    if (gsRef.current?.phase === 'playing') pendingAbilityRef.current = idx
+  }, [])
+
   const cardStyle = (active: boolean, color: string): React.CSSProperties => ({
     background: active ? `${color}22` : 'rgba(20,15,30,0.8)',
     border: `2px solid ${active ? color : 'rgba(80,60,40,0.4)'}`,
@@ -1737,10 +1791,13 @@ export default function BossHunter() {
           onClick={handleCanvasClick}
           onMouseMove={handleMouseMove}
           onContextMenu={handleContextMenu}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
           style={{
             display: 'block', width: '100%', height: 'auto',
             border: '2px solid var(--border)', borderRadius: 8,
             background: '#0d0d14', cursor: 'crosshair',
+            touchAction: 'none',
           }}
         />
 
@@ -1966,6 +2023,56 @@ export default function BossHunter() {
           </div>
         )}
       </div>
+
+      {/* ── MOBILE CONTROLS ── */}
+      {screen === 'playing' && (() => {
+        const clsDef = CLASS_DEFS.find(c => c.id === selectedClass)!
+        const btnBase: React.CSSProperties = {
+          flex: 1, borderRadius: 8, cursor: 'pointer',
+          fontFamily: '"Press Start 2P", monospace', fontSize: 7,
+          padding: '10px 4px', lineHeight: 1.5,
+          touchAction: 'none',
+          WebkitUserSelect: 'none',
+          userSelect: 'none',
+        }
+        return (
+          <div style={{ maxWidth: 1100, margin: '0 auto', width: '100%' }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {clsDef.abilities.map((ab, i) => (
+                <button
+                  key={ab.key}
+                  onPointerDown={e => { e.preventDefault(); triggerAbility(i) }}
+                  style={{
+                    ...btnBase,
+                    background: `${clsDef.color}22`,
+                    border: `2px solid ${clsDef.color}66`,
+                    color: clsDef.color,
+                  }}
+                >
+                  <div style={{ fontSize: 14, marginBottom: 3 }}>{['Q','W','E','R'][i]}</div>
+                  <div style={{ fontSize: 5, color: 'var(--text-2)', fontFamily: 'Inter, sans-serif', lineHeight: 1.2 }}>{ab.name}</div>
+                </button>
+              ))}
+              <button
+                onPointerDown={e => { e.preventDefault(); triggerDodge() }}
+                style={{
+                  ...btnBase,
+                  flex: 'none', minWidth: 56,
+                  background: 'rgba(60,60,80,0.4)',
+                  border: '2px solid rgba(140,130,160,0.35)',
+                  color: '#b0a8c0',
+                }}
+              >
+                <div style={{ fontSize: 14, marginBottom: 3 }}>💨</div>
+                <div>DODGE</div>
+              </button>
+            </div>
+            <p className="body-text" style={{ color: 'var(--text-3)', fontSize: 9, textAlign: 'center', margin: '5px 0 0' }}>
+              Tap canvas to move · Buttons trigger abilities &amp; dodge
+            </p>
+          </div>
+        )
+      })()}
 
       {(screen === 'menu' || screen === 'hunt_select' || screen === 'defeat') && (
         <GameLeaderboard game="boss-hunter" scoreLabel="pts" refreshKey={refreshKey} />
