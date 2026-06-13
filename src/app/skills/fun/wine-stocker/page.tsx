@@ -1148,7 +1148,7 @@ export default function WineStockerRush() {
                   </div>
                   {([
                     ['WASD / Arrows', 'Move'],
-                    ['Shift / Space', 'Sprint (watch stamina!)'],
+                    ['Space / Shift', 'Hold to run (uses stamina)'],
                     ['← Walk left', 'Enter stockroom · grab cases'],
                     ['Walk near shelf', 'Auto-restock while carrying'],
                   ] as [string, string][]).map(([key, desc]) => (
