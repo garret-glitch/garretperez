@@ -138,23 +138,10 @@ export default async function ProjectsPage() {
                 style={{ textDecoration: 'none', display: 'block' }}
               >
                 <div
-                  className="rp-card"
+                  className="rp-card group cursor-pointer transition-all duration-200 hover:border-[rgba(200,155,60,0.45)] hover:shadow-[0_0_18px_rgba(200,155,60,0.12)]"
                   style={{
                     overflow: 'hidden',
                     borderRadius: 12,
-                    transition: 'border-color 0.2s, box-shadow 0.2s',
-                    cursor: 'pointer',
-                    border: '1px solid var(--border)',
-                  }}
-                  onMouseEnter={(e) => {
-                    const el = e.currentTarget as HTMLDivElement
-                    el.style.borderColor = 'rgba(200,155,60,0.45)'
-                    el.style.boxShadow = '0 0 18px rgba(200,155,60,0.12)'
-                  }}
-                  onMouseLeave={(e) => {
-                    const el = e.currentTarget as HTMLDivElement
-                    el.style.borderColor = 'var(--border)'
-                    el.style.boxShadow = 'none'
                   }}
                 >
                   {/* Cover image / placeholder */}

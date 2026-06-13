@@ -46,6 +46,13 @@ const PRIORITY_CATEGORIES: Array<{
   { priority: 4, label: 'Nice-to-Have', color: '#6b7280' },
 ]
 
+const ZONE_LEGEND = [
+  { dot: '🔴', label: 'Safety',       color: '#ef4444', priority: 1 },
+  { dot: '🟡', label: 'Reliability',  color: '#f59e0b', priority: 2 },
+  { dot: '🔵', label: 'Comfort',      color: '#60a5fa', priority: 3 },
+  { dot: '⬜', label: 'Nice-to-Have', color: '#6b7280', priority: 4 },
+]
+
 function getStatusIndicator(item: string): { symbol: string; color: string } {
   const lower = item.toLowerCase()
   if (
@@ -62,6 +69,240 @@ function getStatusIndicator(item: string): { symbol: string; color: string } {
     return { symbol: '✗', color: '#ef4444' }
   }
   return { symbol: '·', color: '#a09880' }
+}
+
+interface ZoneState {
+  color: string
+  allDone: boolean
+  total: number
+  done: number
+}
+
+function useZoneStates(tasks: ProjectTask[]): Record<number, ZoneState> {
+  const zones: Record<number, ZoneState> = {}
+  for (const pc of PRIORITY_CATEGORIES) {
+    const catTasks = tasks.filter((t) => t.priority === pc.priority)
+    const doneCnt = catTasks.filter((t) => t.done).length
+    const allDone = catTasks.length > 0 && doneCnt === catTasks.length
+    zones[pc.priority] = {
+      color: allDone ? '#22c55e' : pc.color,
+      allDone,
+      total: catTasks.length,
+      done: doneCnt,
+    }
+  }
+  return zones
+}
+
+interface MustangSVGProps {
+  zones: Record<number, ZoneState>
+}
+
+function MustangSVG({ zones }: MustangSVGProps) {
+  const safetyColor = zones[1].color
+  const reliabilityColor = zones[2].color
+  const comfortColor = zones[3].color
+  const niceColor = zones[4].color
+
+  const safetyDone = zones[1].allDone
+  const reliabilityDone = zones[2].allDone
+  const comfortDone = zones[3].allDone
+  const niceDone = zones[4].allDone
+
+  function glowId(priority: number): string {
+    return `glow-p${priority}`
+  }
+
+  function glowFilter(color: string, id: string, isDone: boolean) {
+    const spread = isDone ? 3 : 6
+    const intensity = isDone ? 1.2 : 2.0
+    return (
+      <filter id={id} x="-30%" y="-30%" width="160%" height="160%" filterUnits="userSpaceOnUse">
+        <feGaussianBlur stdDeviation={spread} result="blur" />
+        <feColorMatrix
+          in="blur"
+          type="matrix"
+          values={`0 0 0 0 ${parseInt(color.slice(1, 3), 16) / 255}
+                   0 0 0 0 ${parseInt(color.slice(3, 5), 16) / 255}
+                   0 0 0 0 ${parseInt(color.slice(5, 7), 16) / 255}
+                   0 0 0 ${intensity} 0`}
+          result="coloredBlur"
+        />
+        <feMerge>
+          <feMergeNode in="coloredBlur" />
+          <feMergeNode in="SourceGraphic" />
+        </feMerge>
+      </filter>
+    )
+  }
+
+  const pulseStyle = `
+    @keyframes svgPulse {
+      0%   { opacity: 0.6; }
+      50%  { opacity: 1.0; }
+      100% { opacity: 0.6; }
+    }
+    .zone-pulse { animation: svgPulse 2s ease-in-out infinite; }
+  `
+
+  const wheelFill = (isDone: boolean, baseColor: string) => isDone ? '#22c55e' : baseColor
+  const rimOpacity = 0.6
+
+  return (
+    <div style={{ width: '100%', maxWidth: 460 }}>
+      <svg
+        viewBox="0 0 460 210"
+        xmlns="http://www.w3.org/2000/svg"
+        style={{ width: '100%', height: 'auto', display: 'block' }}
+      >
+        <defs>
+          <radialGradient id="bgGrad" cx="50%" cy="50%" r="70%">
+            <stop offset="0%" stopColor="#1a1830" />
+            <stop offset="100%" stopColor="#0d0d14" />
+          </radialGradient>
+          {glowFilter(reliabilityColor, glowId(2), reliabilityDone)}
+          {glowFilter(comfortColor, glowId(3), comfortDone)}
+          {glowFilter(niceColor, glowId(4), niceDone)}
+          {glowFilter(safetyColor, glowId(1), safetyDone)}
+        </defs>
+
+        <style>{pulseStyle}</style>
+
+        {/* Background */}
+        <rect width="460" height="210" fill="url(#bgGrad)" />
+
+        {/* Ground shadow */}
+        <ellipse cx="220" cy="186" rx="200" ry="7" fill="rgba(0,0,0,0.35)" />
+
+        {/* === RELIABILITY ZONE — hood / engine === */}
+        <g
+          filter={`url(#${glowId(2)})`}
+          className={reliabilityDone ? undefined : 'zone-pulse'}
+        >
+          {/* Hood surface */}
+          <rect
+            x="50" y="85" width="155" height="35"
+            rx="2"
+            fill={reliabilityColor}
+            fillOpacity="0.75"
+            stroke={reliabilityColor}
+            strokeWidth="1.5"
+          />
+          {/* Front grille / bumper face */}
+          <rect
+            x="40" y="100" width="15" height="45"
+            rx="4"
+            fill={reliabilityColor}
+            fillOpacity="0.6"
+            stroke={reliabilityColor}
+            strokeWidth="1"
+          />
+          {/* Headlight top */}
+          <rect x="44" y="104" width="7" height="5" rx="1" fill="#fef08a" fillOpacity="0.8" />
+          {/* Headlight bottom */}
+          <rect x="44" y="112" width="7" height="4" rx="1" fill="#fef08a" fillOpacity="0.5" />
+        </g>
+
+        {/* === COMFORT ZONE — cabin / roof === */}
+        <g
+          filter={`url(#${glowId(3)})`}
+          className={comfortDone ? undefined : 'zone-pulse'}
+        >
+          <polygon
+            points="180,85 200,52 270,46 300,60 305,85"
+            fill={comfortColor}
+            fillOpacity="0.7"
+            stroke={comfortColor}
+            strokeWidth="1.5"
+          />
+        </g>
+
+        {/* === NICE-TO-HAVE ZONE — rear body / trunk === */}
+        <g
+          filter={`url(#${glowId(4)})`}
+          className={niceDone ? undefined : 'zone-pulse'}
+        >
+          <polygon
+            points="305,85 330,72 375,82 390,100 390,120 305,120"
+            fill={niceColor}
+            fillOpacity="0.7"
+            stroke={niceColor}
+            strokeWidth="1.5"
+          />
+          {/* Rear bumper */}
+          <rect
+            x="390" y="110" width="12" height="28"
+            rx="3"
+            fill={niceColor}
+            fillOpacity="0.6"
+            stroke={niceColor}
+            strokeWidth="1"
+          />
+          {/* Tail light */}
+          <rect x="384" y="112" width="7" height="5" rx="1" fill="#fca5a5" fillOpacity="0.8" />
+          <rect x="384" y="119" width="7" height="4" rx="1" fill="#fca5a5" fillOpacity="0.5" />
+        </g>
+
+        {/* === CHASSIS (neutral dark) === */}
+        <rect
+          x="50" y="120" width="360" height="40"
+          rx="6"
+          fill="#1a1a28"
+          stroke="#2a2820"
+          strokeWidth="1.5"
+        />
+
+        {/* === SAFETY ZONE — wheels === */}
+        <g
+          filter={`url(#${glowId(1)})`}
+          className={safetyDone ? undefined : 'zone-pulse'}
+        >
+          {/* Front wheel */}
+          <circle cx="115" cy="154" r="30" fill={wheelFill(safetyDone, safetyColor)} fillOpacity="0.85" stroke={safetyColor} strokeWidth="1.5" />
+          <circle cx="115" cy="154" r="17" fill={safetyColor} fillOpacity={rimOpacity} stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+          {/* Front wheel spokes */}
+          <line x1="115" y1="137" x2="115" y2="143" stroke="#e8e6e0" strokeWidth="1.5" />
+          <line x1="115" y1="165" x2="115" y2="171" stroke="#e8e6e0" strokeWidth="1.5" />
+          <line x1="98" y1="154" x2="104" y2="154" stroke="#e8e6e0" strokeWidth="1.5" />
+          <line x1="126" y1="154" x2="132" y2="154" stroke="#e8e6e0" strokeWidth="1.5" />
+          <circle cx="115" cy="154" r="6" fill="#e8e6e0" />
+
+          {/* Rear wheel */}
+          <circle cx="340" cy="154" r="30" fill={wheelFill(safetyDone, safetyColor)} fillOpacity="0.85" stroke={safetyColor} strokeWidth="1.5" />
+          <circle cx="340" cy="154" r="17" fill={safetyColor} fillOpacity={rimOpacity} stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+          {/* Rear wheel spokes */}
+          <line x1="340" y1="137" x2="340" y2="143" stroke="#e8e6e0" strokeWidth="1.5" />
+          <line x1="340" y1="165" x2="340" y2="171" stroke="#e8e6e0" strokeWidth="1.5" />
+          <line x1="323" y1="154" x2="329" y2="154" stroke="#e8e6e0" strokeWidth="1.5" />
+          <line x1="351" y1="154" x2="357" y2="154" stroke="#e8e6e0" strokeWidth="1.5" />
+          <circle cx="340" cy="154" r="6" fill="#e8e6e0" />
+        </g>
+
+        {/* === WINDSHIELD === */}
+        <polygon
+          points="200,54 185,85 240,85 265,50"
+          fill="rgba(100,180,255,0.15)"
+          stroke="rgba(100,180,255,0.3)"
+          strokeWidth="1"
+        />
+
+        {/* === REAR WINDOW === */}
+        <polygon
+          points="270,48 300,62 300,85 255,85"
+          fill="rgba(100,180,255,0.12)"
+          stroke="rgba(100,180,255,0.25)"
+          strokeWidth="1"
+        />
+
+        {/* === ZONE LABELS === */}
+        <text x="117" y="200" textAnchor="middle" fontSize="6" fontFamily="'Press Start 2P', monospace" fill={safetyColor} fillOpacity="0.8">SAFETY</text>
+        <text x="340" y="200" textAnchor="middle" fontSize="6" fontFamily="'Press Start 2P', monospace" fill={safetyColor} fillOpacity="0.8">SAFETY</text>
+        <text x="122" y="78" textAnchor="middle" fontSize="6" fontFamily="'Press Start 2P', monospace" fill={reliabilityColor} fillOpacity="0.9">ENGINE</text>
+        <text x="242" y="44" textAnchor="middle" fontSize="6" fontFamily="'Press Start 2P', monospace" fill={comfortColor} fillOpacity="0.9">CABIN</text>
+        <text x="350" y="68" textAnchor="middle" fontSize="6" fontFamily="'Press Start 2P', monospace" fill={niceColor} fillOpacity="0.9">BODY</text>
+      </svg>
+    </div>
+  )
 }
 
 export default function ProjectDetailClient({
@@ -81,6 +322,8 @@ export default function ProjectDetailClient({
   const computedProgress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : project.progress
 
   const isCompleted = project.status === 'completed'
+
+  const zones = useZoneStates(tasks)
 
   async function handleToggleTask(taskId: string) {
     const updated = tasks.map((t) =>
@@ -148,7 +391,7 @@ export default function ProjectDetailClient({
   }
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 0 40px' }}>
+    <div style={{ maxWidth: 880, margin: '0 auto', padding: '0 0 40px' }}>
       {/* Back + saving indicator */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 8 }}>
         <Link
@@ -175,7 +418,7 @@ export default function ProjectDetailClient({
       {/* Project header */}
       <div
         className="rp-card"
-        style={{ padding: '24px 24px 20px', marginBottom: 20, borderRadius: 12 }}
+        style={{ padding: '24px 24px 20px', marginBottom: 16, borderRadius: 12 }}
       >
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 48, flexShrink: 0 }}>{project.icon}</span>
@@ -288,10 +531,98 @@ export default function ProjectDetailClient({
         )}
       </div>
 
-      {/* Image gallery */}
+      {/* === SECTION A: SVG Car Diagram === */}
       <div
         className="rp-card"
-        style={{ padding: '20px 20px 16px', marginBottom: 20, borderRadius: 12 }}
+        style={{ padding: '20px 20px 16px', marginBottom: 16, borderRadius: 12 }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            marginBottom: 16,
+            paddingBottom: 12,
+            borderBottom: '1px solid var(--border)',
+          }}
+        >
+          <span style={{ fontSize: 16 }}>⚒️</span>
+          <h2
+            style={{
+              fontFamily: "'Press Start 2P', monospace",
+              fontSize: 9,
+              color: 'var(--text-1)',
+              margin: 0,
+            }}
+          >
+            BUILD PROGRESS
+          </h2>
+        </div>
+
+        {/* SVG */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+          <MustangSVG zones={zones} />
+        </div>
+
+        {/* Zone legend */}
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 10,
+            justifyContent: 'center',
+          }}
+        >
+          {ZONE_LEGEND.map((z) => {
+            const zoneData = zones[z.priority]
+            const displayColor = zoneData.allDone ? '#22c55e' : z.color
+            return (
+              <div
+                key={z.priority}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: 'rgba(0,0,0,0.3)',
+                  border: `1px solid ${displayColor}33`,
+                  borderRadius: 6,
+                  padding: '6px 10px',
+                }}
+              >
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    background: displayColor,
+                    flexShrink: 0,
+                    boxShadow: `0 0 5px ${displayColor}88`,
+                    display: 'inline-block',
+                  }}
+                />
+                <span
+                  className="body-text"
+                  style={{ fontSize: 11, color: displayColor }}
+                >
+                  {z.label}
+                </span>
+                <span
+                  className="body-text"
+                  style={{ fontSize: 10, color: 'var(--text-3)' }}
+                >
+                  {zoneData.done}/{zoneData.total}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* === SECTION B: Image Gallery === */}
+      <div
+        className="rp-card"
+        style={{ padding: '20px 20px 16px', marginBottom: 16, borderRadius: 12 }}
       >
         <h2
           style={{
@@ -327,8 +658,7 @@ export default function ProjectDetailClient({
                 <img
                   src={src}
                   alt={`${project.title} photo ${i + 1}`}
-                  className="h-48 object-cover rounded-lg"
-                  style={{ minWidth: 256, display: 'block' }}
+                  style={{ width: 256, height: 192, objectFit: 'cover', display: 'block' }}
                 />
                 {isAdmin && (
                   <button
@@ -407,11 +737,11 @@ export default function ProjectDetailClient({
         )}
       </div>
 
-      {/* Specs card */}
+      {/* === SECTION C: Build Specs === */}
       {(specs.year || specs.make || specs.model || specs.engine || specs.goal || (specs.currentStatus && specs.currentStatus.length > 0)) && (
         <div
           className="rp-card"
-          style={{ padding: '20px 20px 16px', marginBottom: 20, borderRadius: 12 }}
+          style={{ padding: '20px 20px 16px', marginBottom: 16, borderRadius: 12 }}
         >
           <h2
             style={{
@@ -424,12 +754,12 @@ export default function ProjectDetailClient({
             Build Specs
           </h2>
 
-          {/* 2×2 spec grid */}
+          {/* 4-cell spec grid */}
           {(specs.year || specs.make || specs.model || specs.engine) && (
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
+                gridTemplateColumns: 'repeat(2, 1fr)',
                 gap: 10,
                 marginBottom: 16,
               }}
@@ -444,10 +774,10 @@ export default function ProjectDetailClient({
                   <div
                     key={label}
                     style={{
-                      background: 'rgba(0,0,0,0.3)',
+                      background: 'rgba(0,0,0,0.4)',
                       border: '1px solid var(--border)',
                       borderRadius: 8,
-                      padding: '10px 14px',
+                      padding: '12px 14px',
                     }}
                   >
                     <div
@@ -455,7 +785,7 @@ export default function ProjectDetailClient({
                         fontFamily: "'Press Start 2P', monospace",
                         fontSize: 6,
                         color: 'var(--text-3)',
-                        marginBottom: 5,
+                        marginBottom: 6,
                         textTransform: 'uppercase',
                         letterSpacing: '0.1em',
                       }}
@@ -464,7 +794,7 @@ export default function ProjectDetailClient({
                     </div>
                     <div
                       className="body-text"
-                      style={{ fontSize: 14, color: 'var(--text-1)', fontWeight: 600 }}
+                      style={{ fontSize: 16, color: 'var(--text-1)', fontWeight: 700 }}
                     >
                       {value}
                     </div>
@@ -479,7 +809,7 @@ export default function ProjectDetailClient({
             <div
               style={{
                 background: 'rgba(200,155,60,0.07)',
-                border: '1px solid rgba(200,155,60,0.2)',
+                border: '1px solid rgba(200,155,60,0.25)',
                 borderRadius: 8,
                 padding: '12px 14px',
                 marginBottom: 14,
@@ -543,13 +873,14 @@ export default function ProjectDetailClient({
         </div>
       )}
 
-      {/* Checklist by priority */}
+      {/* === SECTION D: Checklist by priority === */}
       {tasks.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {PRIORITY_CATEGORIES.map(({ priority, label, color }) => {
             const categoryTasks = tasks.filter((t) => t.priority === priority)
             if (categoryTasks.length === 0) return null
             const catDone = categoryTasks.filter((t) => t.done).length
+            const catProgress = Math.round((catDone / categoryTasks.length) * 100)
 
             return (
               <div
@@ -563,7 +894,7 @@ export default function ProjectDetailClient({
                     display: 'flex',
                     alignItems: 'center',
                     gap: 8,
-                    marginBottom: 14,
+                    marginBottom: 12,
                   }}
                 >
                   <span
@@ -601,6 +932,28 @@ export default function ProjectDetailClient({
                   >
                     {catDone}/{categoryTasks.length}
                   </span>
+                </div>
+
+                {/* Mini progress bar */}
+                <div
+                  style={{
+                    height: 4,
+                    background: 'rgba(0,0,0,0.4)',
+                    border: `1px solid ${color}33`,
+                    borderRadius: 3,
+                    overflow: 'hidden',
+                    marginBottom: 14,
+                  }}
+                >
+                  <div
+                    style={{
+                      height: '100%',
+                      width: `${catProgress}%`,
+                      background: color,
+                      borderRadius: 3,
+                      transition: 'width 0.4s ease',
+                    }}
+                  />
                 </div>
 
                 {/* Task rows */}
