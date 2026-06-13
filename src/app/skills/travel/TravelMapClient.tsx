@@ -240,9 +240,9 @@ export default function TravelMapClient({ initialPins, isLoggedIn, userId }: Pro
         </div>
 
         {/* ── Map area ──
-            Inner div uses CSS aspect-ratio so height = width × (svgH/800) — no SVG height:auto quirks.
-            SVG is position:absolute inset:0 height:100% to fill the aspect-ratio container.
-            Pin overlay is also position:absolute inset:0, so percentages align with the SVG. */}
+            padding-bottom drives the container height (% of width) so it scales with the layout.
+            An inner absolute div fills that space; SVG + pin overlay both live inside it.
+            mapRef.getBoundingClientRect() == the inner div == the SVG rendering area. */}
         <div
           ref={mapRef}
           style={{
@@ -254,74 +254,83 @@ export default function TravelMapClient({ initialPins, isLoggedIn, userId }: Pro
             cursor: isLoggedIn ? (draggingId ? 'grabbing' : 'crosshair') : 'default',
           }}
         >
-          {/* Fade wrapper — opacity animates on view switch */}
-          <div style={{ opacity: transitioning ? 0 : 1, transition: 'opacity 0.16s ease', position: 'relative', aspectRatio: mapView === 'world' ? '800 / 260' : '800 / 500' }}>
+          {/* padding-bottom sets height = width × ratio; opacity animates on view switch */}
+          <div style={{
+            position: 'relative',
+            width: '100%',
+            paddingBottom: mapView === 'world' ? '30%' : '44%',
+            opacity: transitioning ? 0 : 1,
+            transition: 'opacity 0.16s ease',
+          }}>
+            {/* Fills the padding-bottom space — SVG and pins both live here */}
+            <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}>
 
-            {mapView === 'world' ? (
-              <ComposableMap
-                width={800} height={260}
-                projection="geoEqualEarth"
-                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }}
-                onClick={handleMapClick}
-              >
-                <rect width={800} height={260} fill="#05050e" />
-                {[65, 130, 195].map(y => (
-                  <line key={y} x1={0} y1={y} x2={800} y2={y} stroke="rgba(200,155,60,0.04)" strokeWidth={1} />
-                ))}
-                {[100,200,300,400,500,600,700].map(x => (
-                  <line key={x} x1={x} y1={0} x2={x} y2={260} stroke="rgba(200,155,60,0.04)" strokeWidth={1} />
-                ))}
-                <Geographies geography={WORLD_GEO}>
-                  {({ geographies }: { geographies: GeoType[] }) =>
-                    geographies.map((geo: GeoType) => {
-                      const isUSA = Number(geo.id) === USA_GEO_ID
-                      return (
+              {mapView === 'world' ? (
+                <ComposableMap
+                  width={800} height={240}
+                  projection="geoEqualEarth"
+                  style={{ width: '100%', height: '100%', display: 'block' }}
+                  onClick={handleMapClick}
+                >
+                  <rect width={800} height={240} fill="#05050e" />
+                  {[60, 120, 180].map(y => (
+                    <line key={y} x1={0} y1={y} x2={800} y2={y} stroke="rgba(200,155,60,0.04)" strokeWidth={1} />
+                  ))}
+                  {[100,200,300,400,500,600,700].map(x => (
+                    <line key={x} x1={x} y1={0} x2={x} y2={240} stroke="rgba(200,155,60,0.04)" strokeWidth={1} />
+                  ))}
+                  <Geographies geography={WORLD_GEO}>
+                    {({ geographies }: { geographies: GeoType[] }) =>
+                      geographies.map((geo: GeoType) => {
+                        const isUSA = Number(geo.id) === USA_GEO_ID
+                        return (
+                          <Geography
+                            key={geo.rsmKey}
+                            geography={geo}
+                            onClick={isUSA ? (e: React.MouseEvent<SVGPathElement>) => {
+                              e.stopPropagation()
+                              switchView('usa')
+                            } : undefined}
+                            style={{
+                              default: { fill: isUSA ? '#2c2255' : '#1a1636', stroke: '#c89b3c', strokeWidth: 0.45, outline: 'none' },
+                              hover:   { fill: isUSA ? '#3d3078' : '#222048', stroke: '#e8b84b', strokeWidth: isUSA ? 1 : 0.65, outline: 'none', cursor: isUSA ? 'zoom-in' : (isLoggedIn ? 'crosshair' : 'default') },
+                              pressed: { fill: isUSA ? '#2c2255' : '#1a1636', stroke: '#c89b3c', strokeWidth: 0.45, outline: 'none' },
+                            }}
+                          />
+                        )
+                      })
+                    }
+                  </Geographies>
+                </ComposableMap>
+              ) : (
+                <ComposableMap
+                  width={800} height={352}
+                  projection="geoAlbersUsa"
+                  projectionConfig={{ scale: 720 }}
+                  style={{ width: '100%', height: '100%', display: 'block' }}
+                  onClick={handleMapClick}
+                >
+                  <rect width={800} height={352} fill="#05050e" />
+                  <Geographies geography={USA_GEO}>
+                    {({ geographies }: { geographies: GeoType[] }) =>
+                      geographies.map((geo: GeoType) => (
                         <Geography
                           key={geo.rsmKey}
                           geography={geo}
-                          onClick={isUSA ? (e: React.MouseEvent<SVGPathElement>) => {
-                            e.stopPropagation()
-                            switchView('usa')
-                          } : undefined}
                           style={{
-                            default: { fill: isUSA ? '#2c2255' : '#1a1636', stroke: '#c89b3c', strokeWidth: 0.45, outline: 'none' },
-                            hover:   { fill: isUSA ? '#3d3078' : '#222048', stroke: '#e8b84b', strokeWidth: isUSA ? 1 : 0.65, outline: 'none', cursor: isUSA ? 'zoom-in' : (isLoggedIn ? 'crosshair' : 'default') },
-                            pressed: { fill: isUSA ? '#2c2255' : '#1a1636', stroke: '#c89b3c', strokeWidth: 0.45, outline: 'none' },
+                            default: { fill: '#0f1e10', stroke: '#c89b3c', strokeWidth: 0.7, outline: 'none' },
+                            hover:   { fill: '#182c1a', stroke: '#e8b84b', strokeWidth: 1, outline: 'none', cursor: isLoggedIn ? 'crosshair' : 'default' },
+                            pressed: { fill: '#0f1e10', stroke: '#c89b3c', strokeWidth: 0.7, outline: 'none' },
                           }}
                         />
-                      )
-                    })
-                  }
-                </Geographies>
-              </ComposableMap>
-            ) : (
-              <ComposableMap
-                width={800} height={500}
-                projection="geoAlbersUsa"
-                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }}
-                onClick={handleMapClick}
-              >
-                <rect width={800} height={500} fill="#05050e" />
-                <Geographies geography={USA_GEO}>
-                  {({ geographies }: { geographies: GeoType[] }) =>
-                    geographies.map((geo: GeoType) => (
-                      <Geography
-                        key={geo.rsmKey}
-                        geography={geo}
-                        style={{
-                          default: { fill: '#0f1e10', stroke: '#c89b3c', strokeWidth: 0.7, outline: 'none' },
-                          hover:   { fill: '#182c1a', stroke: '#e8b84b', strokeWidth: 1, outline: 'none', cursor: isLoggedIn ? 'crosshair' : 'default' },
-                          pressed: { fill: '#0f1e10', stroke: '#c89b3c', strokeWidth: 0.7, outline: 'none' },
-                        }}
-                      />
-                    ))
-                  }
-                </Geographies>
-              </ComposableMap>
-            )}
+                      ))
+                    }
+                  </Geographies>
+                </ComposableMap>
+              )}
 
-            {/* Pin overlay — inset:0 fills exactly the rendered SVG area */}
-            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+              {/* Pin overlay — same position as the SVG */}
+              <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, pointerEvents: 'none' }}>
 
               {visiblePins.map(pin => {
                 const isDragging = draggingId === pin.id
@@ -381,9 +390,10 @@ export default function TravelMapClient({ initialPins, isLoggedIn, userId }: Pro
                   CLICK USA TO ZOOM IN
                 </div>
               )}
-            </div>
-          </div>
-        </div>
+              </div>{/* end pin overlay */}
+            </div>{/* end inner fill */}
+          </div>{/* end paddingBottom wrapper */}
+        </div>{/* end mapRef container */}
 
         {/* Footer */}
         <div style={{ padding: '7px 14px', borderTop: '1px solid rgba(200,155,60,0.08)', background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
