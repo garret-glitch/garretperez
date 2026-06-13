@@ -15,13 +15,14 @@ import {
   GripVertical, Home, Scroll, Star, Diamond,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import SidebarFunGame from './SidebarFunGame'
 
 export type ChanKey =
   | 'PROJECTS' | 'BUSINESS' | 'COMMUNITY'
   | 'FISHING' | 'FOOD' | 'GARDENING' | 'TRAVEL' | 'FUN'
-  | 'QUESTS' | 'COOL_PEOPLE' | 'COOL_ITEMS'
+  | 'QUESTS' | 'COOL_PEOPLE' | 'COOL_ITEMS' | 'DEMO'
 
-const CHAN: Record<ChanKey, { label: string; Icon: LucideIcon; bg: string; href: string }> = {
+const CHAN: Record<Exclude<ChanKey, 'DEMO'>, { label: string; Icon: LucideIcon; bg: string; href: string }> = {
   PROJECTS:    { label: 'Projects',    Icon: Hammer,    bg: '#382e0e', href: '/skills/projects' },
   BUSINESS:    { label: 'Business',    Icon: Briefcase, bg: '#1c2e10', href: '/skills/business' },
   COMMUNITY:   { label: 'Community',   Icon: Users,     bg: '#181e4a', href: '/skills/community' },
@@ -38,14 +39,51 @@ const CHAN: Record<ChanKey, { label: string; Icon: LucideIcon; bg: string; href:
 export const DEFAULT_CHAN_ORDER: ChanKey[] = [
   'PROJECTS', 'BUSINESS', 'COMMUNITY',
   'FISHING', 'FOOD', 'GARDENING', 'TRAVEL', 'FUN', 'QUESTS',
-  'COOL_PEOPLE', 'COOL_ITEMS',
+  'COOL_PEOPLE', 'COOL_ITEMS', 'DEMO',
 ]
+
+// ── Draggable mini-game row ───────────────────────────────────────────────────
+function DemoRow({ isAdmin }: { isAdmin: boolean }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: 'DEMO' })
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.45 : 1,
+        display: 'flex',
+        alignItems: 'flex-start',
+      }}
+    >
+      {isAdmin && (
+        <button
+          {...listeners}
+          {...attributes}
+          tabIndex={-1}
+          style={{
+            flexShrink: 0, width: 22, background: 'none', border: 'none',
+            cursor: 'grab', color: '#5a4a30', touchAction: 'none', padding: '10px 0 0',
+            display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+          }}
+        >
+          <GripVertical size={11} />
+        </button>
+      )}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <SidebarFunGame />
+      </div>
+    </div>
+  )
+}
 
 // ── Single draggable channel row ──────────────────────────────────────────────
 function ChannelRow({
   id, communityLevel, postCount, isAdmin, pathname,
 }: {
-  id: ChanKey
+  id: Exclude<ChanKey, 'DEMO'>
   communityLevel: number
   postCount: number
   isAdmin: boolean
@@ -68,7 +106,6 @@ function ChannelRow({
         opacity: isDragging ? 0.45 : 1,
       }}
     >
-      {/* Grip handle — admin only */}
       {isAdmin && (
         <button
           {...listeners}
@@ -97,7 +134,6 @@ function ChannelRow({
           minHeight: 48,
         }}
       >
-        {/* Icon box */}
         <span style={{
           flexShrink: 0, width: 34, height: 34,
           background: cfg.bg, borderRadius: 8,
@@ -106,12 +142,10 @@ function ChannelRow({
           <cfg.Icon size={18} color="#dcc898" strokeWidth={1.6} />
         </span>
 
-        {/* Label */}
         <span style={{ flex: 1, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {cfg.label}
         </span>
 
-        {/* Community level badge */}
         {id !== 'QUESTS' && (
           <span style={{
             flexShrink: 0,
@@ -128,7 +162,6 @@ function ChannelRow({
           </span>
         )}
 
-        {/* Post count — admin only */}
         {isAdmin && postCount > 0 && (
           <span style={{ flexShrink: 0, fontSize: 8, color: '#6a5030', marginLeft: 4 }}>
             {postCount}
@@ -204,16 +237,20 @@ export default function SkillsPanelClient({
         onDragEnd={handleDragEnd}
       >
         <SortableContext items={order} strategy={verticalListSortingStrategy}>
-          {order.map(key => (
-            <ChannelRow
-              key={key}
-              id={key}
-              communityLevel={communityLevels[key] ?? 1}
-              postCount={postCounts[key] ?? 0}
-              isAdmin={isAdmin}
-              pathname={pathname}
-            />
-          ))}
+          {order.map(key =>
+            key === 'DEMO'
+              ? <DemoRow key="DEMO" isAdmin={isAdmin} />
+              : (
+                <ChannelRow
+                  key={key}
+                  id={key}
+                  communityLevel={communityLevels[key] ?? 1}
+                  postCount={postCounts[key] ?? 0}
+                  isAdmin={isAdmin}
+                  pathname={pathname}
+                />
+              )
+          )}
         </SortableContext>
       </DndContext>
     </div>
