@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   Hammer, Briefcase, Users, Fish, Wine, Leaf, Compass, Gamepad2,
-  Home, FileText, Menu, X, Scroll, Star, Diamond,
+  Home, FileText, Menu, X, Scroll,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -25,8 +25,6 @@ const COMMUNITIES: NavItem[] = [
   { label: 'Adventure',   Icon: Compass,    href: '/skills/travel',   bg: '#382808' },
   { label: 'Games',       Icon: Gamepad2,   href: '/skills/fun',      bg: '#320c4a' },
   { label: 'Quests',      Icon: Scroll,     href: '/quests',             bg: '#2a1a06' },
-  { label: 'Cool People', Icon: Star,       href: '/skills/cool-people', bg: '#2e0c48' },
-  { label: 'Cool Items',  Icon: Diamond,    href: '/skills/cool-items',  bg: '#0c2040' },
 ]
 
 function NavRow({ item, active, onClick }: { item: NavItem; active: boolean; onClick: () => void }) {
