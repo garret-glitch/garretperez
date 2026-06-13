@@ -201,7 +201,9 @@ export default function SkillsPanelClient({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ order: next }),
-    }).catch(() => {})
+    })
+      .then(r => { if (!r.ok) r.text().then(t => console.error('[sidebar-save] failed', r.status, t)) })
+      .catch(e => console.error('[sidebar-save] network error', e))
   }
 
   const isHome = pathname === '/'
