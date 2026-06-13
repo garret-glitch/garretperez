@@ -1,5 +1,4 @@
 'use client'
-import { useState } from 'react'
 
 export interface CardData {
   id: string
@@ -33,31 +32,36 @@ export default function BusinessCardDisplay({
   isOwnCard?: boolean
   memberNum?: number
 }) {
-  const [flipped, setFlipped] = useState(false)
   const ac = card.accentColor
-  const hasBack = card.email || card.phone || card.linkedin || card.website
+  const uid = card.id.replace(/[^a-z0-9]/gi, '')
 
   return (
     <div style={{ width: '100%' }}>
+      <style>{`
+        .bcard-${uid}:hover .bcard-inner-${uid} {
+          transform: rotateY(180deg);
+        }
+      `}</style>
+
       {/* Perspective wrapper */}
       <div
-        onClick={() => hasBack && setFlipped(f => !f)}
+        className={`bcard-${uid}`}
         style={{
           width: '100%',
           paddingBottom: '57%',
           position: 'relative',
           perspective: '1200px',
-          cursor: hasBack ? 'pointer' : 'default',
         }}
-        title={hasBack ? 'Click to flip' : undefined}
       >
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          transformStyle: 'preserve-3d',
-          transition: 'transform 0.65s cubic-bezier(0.4, 0, 0.2, 1)',
-          transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
-        }}>
+        <div
+          className={`bcard-inner-${uid}`}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            transformStyle: 'preserve-3d',
+            transition: 'transform 0.65s cubic-bezier(0.4, 0, 0.2, 1)',
+          }}
+        >
 
           {/* ── FRONT ── */}
           <div style={{
@@ -152,16 +156,6 @@ export default function BusinessCardDisplay({
               </span>
             </div>
 
-            {/* Flip hint */}
-            {hasBack && (
-              <div style={{
-                position: 'absolute', bottom: 5, left: '50%', transform: 'translateX(-50%)',
-                fontSize: 4.5, color: '#3a2a1a',
-                fontFamily: "'Press Start 2P', monospace", whiteSpace: 'nowrap',
-              }}>
-                ↻ tap for contact
-              </div>
-            )}
           </div>
 
           {/* ── BACK ── */}
@@ -236,14 +230,6 @@ export default function BusinessCardDisplay({
               background: `linear-gradient(90deg, transparent 0%, ${ac}60 35%, ${ac}60 65%, transparent 100%)`,
             }} />
 
-            {/* Flip hint */}
-            <div style={{
-              position: 'absolute', bottom: 5, left: '50%', transform: 'translateX(-50%)',
-              fontSize: 4.5, color: '#3a2a1a',
-              fontFamily: "'Press Start 2P', monospace", whiteSpace: 'nowrap',
-            }}>
-              ↺ tap to flip
-            </div>
           </div>
         </div>
       </div>
