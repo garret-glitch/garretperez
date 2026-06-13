@@ -6,6 +6,7 @@ export interface ChannelData {
   channelUrl: string
   description: string | null
   category: string | null
+  imageUrl: string | null
   accentColor: string
   createdAt: string
   user: { id: string; username: string }
@@ -40,7 +41,7 @@ export default function YoutubeChannelCard({
       {/* Perspective wrapper */}
       <div
         className={`yt-${uid}`}
-        style={{ width: '100%', paddingBottom: '57%', position: 'relative', perspective: '1200px' }}
+        style={{ width: '100%', paddingBottom: '66%', position: 'relative', perspective: '1200px' }}
       >
         <div
           className={`yt-inner-${uid}`}
@@ -60,69 +61,108 @@ export default function YoutubeChannelCard({
             borderRadius: 8,
             overflow: 'hidden',
             boxShadow: `0 6px 28px rgba(0,0,0,0.65), 0 0 0 1px ${ac}12, inset 0 1px 0 rgba(255,255,255,0.04)`,
-            padding: '14px 16px 14px 22px',
             display: 'flex',
             flexDirection: 'column',
           }}>
             {/* Left accent bar */}
             <div style={{
-              position: 'absolute', left: 0, top: 0, bottom: 0, width: 5,
+              position: 'absolute', left: 0, top: 0, bottom: 0, width: 5, zIndex: 2,
               background: `linear-gradient(180deg, ${ac} 0%, ${ac}70 100%)`,
             }} />
 
             {/* Grid pattern */}
             <div style={{
-              position: 'absolute', inset: 0, opacity: 0.022, pointerEvents: 'none',
+              position: 'absolute', inset: 0, opacity: 0.022, pointerEvents: 'none', zIndex: 0,
               backgroundImage: `linear-gradient(${ac} 1px, transparent 1px), linear-gradient(90deg, ${ac} 1px, transparent 1px)`,
               backgroundSize: '28px 28px',
             }} />
 
-            {/* Play icon + channel name */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, position: 'relative' }}>
-              <div style={{
-                width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
-                background: `${ac}18`, border: `1.5px solid ${ac}55`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 12, paddingLeft: 2,
-              }}>
-                ▶
-              </div>
-              {channel.category && (
-                <span style={{
-                  fontFamily: "'Inter', system-ui, sans-serif", fontSize: 9,
-                  color: ac, background: `${ac}15`, border: `1px solid ${ac}35`,
-                  padding: '1px 7px', borderRadius: 10, letterSpacing: '0.04em',
-                  textTransform: 'uppercase',
-                }}>
-                  {channel.category}
-                </span>
-              )}
-            </div>
-
-            {/* Channel name */}
-            <div style={{
-              fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: '#f0d898',
-              lineHeight: 1.55, marginBottom: 6, position: 'relative',
-            }}>
-              {channel.channelName}
-            </div>
-
-            {/* Description */}
-            {channel.description && (
-              <div style={{
-                fontFamily: "'Inter', system-ui, sans-serif", fontSize: 11,
-                color: '#907858', fontStyle: 'italic', position: 'relative', flex: 1,
-                lineHeight: 1.5,
-              }}>
-                &ldquo;{channel.description}&rdquo;
+            {/* Image hero (if present) */}
+            {channel.imageUrl && (
+              <div style={{ position: 'relative', height: '44%', flexShrink: 0, marginLeft: 5 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={channel.imageUrl}
+                  alt={channel.channelName}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                />
+                {/* Bottom fade */}
+                <div style={{
+                  position: 'absolute', bottom: 0, left: 0, right: 0, height: 40,
+                  background: 'linear-gradient(to top, #12100e, transparent)',
+                  pointerEvents: 'none',
+                }} />
+                {/* Category pill over image */}
+                {channel.category && (
+                  <span style={{
+                    position: 'absolute', top: 8, left: 10,
+                    fontFamily: "'Inter', system-ui, sans-serif", fontSize: 9,
+                    color: ac, background: 'rgba(10,8,6,0.85)',
+                    border: `1px solid ${ac}50`,
+                    padding: '2px 8px', borderRadius: 10, letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
+                  }}>
+                    {channel.category}
+                  </span>
+                )}
               </div>
             )}
 
-            {/* Bottom: recommended by */}
-            <div style={{ marginTop: 'auto', paddingTop: 8, position: 'relative' }}>
-              <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 5, color: '#504030' }}>
-                rec by @{channel.user.username}
-              </span>
+            {/* Content area */}
+            <div style={{
+              flex: 1, display: 'flex', flexDirection: 'column',
+              padding: channel.imageUrl ? '10px 14px 12px 22px' : '14px 14px 12px 22px',
+              position: 'relative', zIndex: 1, minHeight: 0,
+            }}>
+              {/* Play icon + category (no-image only) */}
+              {!channel.imageUrl && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                  <div style={{
+                    width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
+                    background: `${ac}18`, border: `1.5px solid ${ac}55`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 12, paddingLeft: 2,
+                  }}>
+                    ▶
+                  </div>
+                  {channel.category && (
+                    <span style={{
+                      fontFamily: "'Inter', system-ui, sans-serif", fontSize: 9,
+                      color: ac, background: `${ac}15`, border: `1px solid ${ac}35`,
+                      padding: '1px 7px', borderRadius: 10, letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                    }}>
+                      {channel.category}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Channel name */}
+              <div style={{
+                fontFamily: "'Press Start 2P', monospace", fontSize: 8, color: '#f0d898',
+                lineHeight: 1.5, marginBottom: 5,
+              }}>
+                {channel.channelName}
+              </div>
+
+              {/* Description */}
+              {channel.description && (
+                <div style={{
+                  fontFamily: "'Inter', system-ui, sans-serif", fontSize: 11,
+                  color: '#907858', fontStyle: 'italic',
+                  lineHeight: 1.5, flex: 1,
+                }}>
+                  &ldquo;{channel.description}&rdquo;
+                </div>
+              )}
+
+              {/* Bottom: recommended by */}
+              <div style={{ marginTop: 'auto', paddingTop: 6 }}>
+                <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 5, color: '#504030' }}>
+                  rec by @{channel.user.username}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -184,7 +224,6 @@ export default function YoutubeChannelCard({
                 alignItems: 'center',
                 gap: 6,
                 boxShadow: `0 2px 12px ${ac}40`,
-                transition: 'filter 0.15s',
               }}
             >
               ▶ Watch on YouTube

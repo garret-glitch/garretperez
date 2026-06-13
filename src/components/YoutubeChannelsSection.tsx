@@ -1,5 +1,5 @@
 'use client'
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import YoutubeChannelCard, { type ChannelData } from './YoutubeChannelCard'
 
@@ -41,6 +41,31 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   )
 }
 
+function compressImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = ev => {
+      const img = new Image()
+      img.onload = () => {
+        const MAX = 1200
+        let { width, height } = img
+        if (width > MAX || height > MAX) {
+          if (width > height) { height = Math.round(height * MAX / width); width = MAX }
+          else { width = Math.round(width * MAX / height); height = MAX }
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = width; canvas.height = height
+        canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+        resolve(canvas.toDataURL('image/jpeg', 0.78))
+      }
+      img.onerror = reject
+      img.src = ev.target?.result as string
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
 export default function YoutubeChannelsSection({
   channels,
   userId,
@@ -56,11 +81,24 @@ export default function YoutubeChannelsSection({
   const [form, setForm] = useState<FormState>(blank)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [imgSrc, setImgSrc] = useState<string | null>(null)
+  const [imgLoading, setImgLoading] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
 
   const set = (k: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }))
 
-  function openForm() { setForm(blank); setError(''); setShowForm(true) }
+  function openForm() { setForm(blank); setImgSrc(null); setError(''); setShowForm(true) }
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImgLoading(true)
+    try { setImgSrc(await compressImage(file)) }
+    catch { setError('Image failed to load.') }
+    finally { setImgLoading(false) }
+    e.target.value = ''
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -71,10 +109,10 @@ export default function YoutubeChannelsSection({
       const res = await fetch('/api/youtube-channels', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, imageUrl: imgSrc }),
       })
       if (!res.ok) { const j = await res.json(); setError(j.error || 'Failed to save.') }
-      else { setForm(blank); setShowForm(false); startTransition(() => router.refresh()) }
+      else { setForm(blank); setImgSrc(null); setShowForm(false); startTransition(() => router.refresh()) }
     } catch { setError('Network error.') }
     finally { setSaving(false) }
   }
@@ -181,6 +219,44 @@ export default function YoutubeChannelsSection({
               </Field>
             </div>
 
+            {/* Photo upload */}
+            <div style={{ marginBottom: 18 }}>
+              <label style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 6, color: '#907848', display: 'block', marginBottom: 8 }}>
+                Channel Photo (optional)
+              </label>
+              <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} />
+              {imgSrc ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={imgSrc} alt="preview" style={{ width: 90, height: 60, objectFit: 'cover', borderRadius: 4, border: `1px solid ${ac}40` }} />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button type="button" onClick={() => fileRef.current?.click()}
+                      style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 6, color: '#c8a870', background: 'transparent', border: '1px solid #3a2a18', padding: '4px 10px', borderRadius: 3, cursor: 'pointer' }}>
+                      Change
+                    </button>
+                    <button type="button" onClick={() => setImgSrc(null)}
+                      style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 6, color: '#7a2020', background: 'transparent', border: '1px solid #3a1010', padding: '4px 10px', borderRadius: 3, cursor: 'pointer' }}>
+                      ✕ Remove
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={imgLoading}
+                  style={{
+                    width: '100%', padding: '18px 0', borderRadius: 4, cursor: 'pointer',
+                    border: `2px dashed rgba(200,155,60,0.22)`, background: 'rgba(200,155,60,0.04)',
+                    color: '#907848', fontFamily: "'Press Start 2P', monospace", fontSize: 6.5,
+                    opacity: imgLoading ? 0.6 : 1,
+                  }}
+                >
+                  {imgLoading ? '⏳ Loading…' : '📷 Upload Photo'}
+                </button>
+              )}
+            </div>
+
             {/* Color picker */}
             <div style={{ marginBottom: 18 }}>
               <label style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 6, color: '#907848', display: 'block', marginBottom: 8 }}>Card Color</label>
@@ -213,6 +289,7 @@ export default function YoutubeChannelsSection({
                     channelUrl: form.channelUrl || '#',
                     description: form.description || null,
                     category: form.category || null,
+                    imageUrl: imgSrc,
                     accentColor: form.accentColor,
                     createdAt: new Date().toISOString(),
                     user: { id: '', username: 'you' },
