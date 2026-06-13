@@ -18,7 +18,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const body = await req.json() as { name?: string; reason?: string; emoji?: string }
+  const body = await req.json() as { name?: string; reason?: string; emoji?: string; x?: number; y?: number }
 
   const pin = await (prisma as any).travelPin.update({
     where: { id: params.id },
@@ -26,6 +26,8 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       ...(body.name !== undefined && { name: String(body.name).slice(0, 100) }),
       ...(body.reason !== undefined && { reason: String(body.reason).slice(0, 500) }),
       ...(body.emoji !== undefined && { emoji: String(body.emoji).slice(0, 8) }),
+      ...(body.x !== undefined && { x: Number(body.x) }),
+      ...(body.y !== undefined && { y: Number(body.y) }),
     },
   })
 
