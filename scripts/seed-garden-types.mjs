@@ -1,0 +1,273 @@
+// Run: node scripts/seed-garden-types.mjs
+import { PrismaClient } from '@prisma/client'
+
+const prisma = new PrismaClient()
+
+const PLANT_TYPES = [
+  // ── Vegetables ──────────────────────────────────────────────────
+  {
+    name: 'Tomato',
+    category: 'RAISED_BED',
+    icon: '🍅',
+    description: 'A classic garden staple producing juicy red fruits perfect for salads, sauces, and fresh snacking.',
+    careInstructions: 'Stake or cage when 12 inches tall. Water consistently to prevent blossom end rot. Remove suckers growing between stem and branches for better fruit production. Watch for hornworms.',
+    waterNeeds: 'Every 2–3 days',
+    sunNeeds: 'Full Sun',
+    daysToHarvest: 75,
+    autoGrowthDays: 12,
+  },
+  {
+    name: 'Onion',
+    category: 'RAISED_BED',
+    icon: '🧅',
+    description: 'A versatile bulb vegetable with a rich pungent flavor that forms the flavor base of cuisines worldwide.',
+    careInstructions: 'Plant bulbs 1 inch deep, 4–6 inches apart. Stop watering when tops begin to fall over naturally. After harvest, cure bulbs in a warm dry place with good airflow for 2–3 weeks.',
+    waterNeeds: 'Every 3–4 days',
+    sunNeeds: 'Full Sun',
+    daysToHarvest: 100,
+    autoGrowthDays: 17,
+  },
+  {
+    name: 'Strawberry',
+    category: 'RAISED_BED',
+    icon: '🍓',
+    description: 'Sweet, juicy berries that thrive in raised beds or containers and spread readily via runners.',
+    careInstructions: 'Keep soil consistently moist but never waterlogged. Remove runners unless propagating. Mulch around plants to retain moisture and keep fruit clean. Renew beds every 3 years.',
+    waterNeeds: 'Every 2–3 days',
+    sunNeeds: 'Full Sun',
+    daysToHarvest: 60,
+    autoGrowthDays: 10,
+  },
+  {
+    name: 'Bell Pepper',
+    category: 'RAISED_BED',
+    icon: '🫑',
+    description: 'Sweet, colorful peppers that mature from green to red, yellow, or orange — each stage has a distinct flavor.',
+    careInstructions: 'Plant in warm soil after last frost. Support heavy fruit with stakes. Pick peppers regularly to keep the plant producing. Green is unripe; wait for full color for sweetest flavor.',
+    waterNeeds: 'Every 2–3 days',
+    sunNeeds: 'Full Sun',
+    daysToHarvest: 70,
+    autoGrowthDays: 12,
+  },
+  {
+    name: 'Jalapeño',
+    category: 'POTTED',
+    icon: '🌶️',
+    description: 'A popular medium-heat chili pepper that\'s excellent fresh, pickled, or smoked into chipotles.',
+    careInstructions: 'Allow soil to dry slightly between waterings — overwatering causes root rot. Harvest when firm and dark green for medium heat, or leave to turn red for more heat and a hint of sweetness.',
+    waterNeeds: 'Every 2–3 days',
+    sunNeeds: 'Full Sun',
+    daysToHarvest: 75,
+    autoGrowthDays: 12,
+  },
+  // ── Trees ───────────────────────────────────────────────────────
+  {
+    name: 'Lemon Tree',
+    category: 'TREE',
+    icon: '🍋',
+    description: 'A fragrant, glossy-leafed citrus tree that produces bright yellow lemons and perfumes the air with blossoms.',
+    careInstructions: 'Plant in well-draining soil with at least 8 hours of sun. Fertilize with citrus food 3–4 times per year. Protect from frost below 25°F. Prune only to shape and remove dead wood.',
+    waterNeeds: 'Every 5–7 days',
+    sunNeeds: 'Full Sun',
+    daysToHarvest: 365,
+    autoGrowthDays: 60,
+  },
+  {
+    name: 'Peach Tree',
+    category: 'TREE',
+    icon: '🍑',
+    description: 'A deciduous fruit tree producing sweet, fuzzy stone fruits that ripen in summer and perfume the whole garden.',
+    careInstructions: 'Thin fruits to 6 inches apart after fruit set for larger peaches. Prune to an open vase shape each winter. Watch for peach leaf curl — treat with copper fungicide in fall and early spring.',
+    waterNeeds: 'Once a week',
+    sunNeeds: 'Full Sun',
+    daysToHarvest: 200,
+    autoGrowthDays: 33,
+  },
+  {
+    name: 'Oak Tree',
+    category: 'TREE',
+    icon: '🌳',
+    description: 'A majestic long-lived hardwood that provides deep shade and supports hundreds of wildlife species with its acorns.',
+    careInstructions: 'Water deeply but infrequently to encourage a deep, drought-resistant root system. Avoid fertilizing young trees excessively. Allow fallen leaves to decompose in place as natural mulch. Be patient — oaks are worth the wait.',
+    waterNeeds: 'Once a week when young',
+    sunNeeds: 'Full Sun',
+    daysToHarvest: 730,
+    autoGrowthDays: 120,
+  },
+  // ── Berry Bushes ─────────────────────────────────────────────────
+  {
+    name: 'Blackberry',
+    category: 'BERRY_BUSH',
+    icon: '🖤',
+    description: 'A thorny bramble that produces sweet-tart dark berries excellent for jams, cobblers, and fresh eating.',
+    careInstructions: 'Train canes on a trellis or fence. Cut back old canes to the ground after fruiting — they won\'t fruit again. New canes produce next year\'s crop. Wear gloves — thorns are very sharp!',
+    waterNeeds: 'Every 3–4 days',
+    sunNeeds: 'Full Sun',
+    daysToHarvest: 90,
+    autoGrowthDays: 15,
+  },
+  {
+    name: 'Blueberry',
+    category: 'BERRY_BUSH',
+    icon: '🫐',
+    description: 'Small, antioxidant-rich berries that grow on attractive shrubs with beautiful red-orange fall foliage.',
+    careInstructions: 'Requires acidic soil (pH 4.5–5.5) — amend with sulfur or peat moss if needed. Plant at least two varieties for better cross-pollination and larger yields. Net plants to protect berries from birds.',
+    waterNeeds: 'Every 3–4 days',
+    sunNeeds: 'Full Sun',
+    daysToHarvest: 90,
+    autoGrowthDays: 15,
+  },
+  // ── Vine / Exotic ─────────────────────────────────────────────────
+  {
+    name: 'Dragon Fruit',
+    category: 'VINE',
+    icon: '🌵',
+    description: 'A spectacular climbing cactus from the tropics producing vibrant pink-skinned fruit with sweet white or red flesh.',
+    careInstructions: 'Needs a sturdy post or trellis for support as it climbs. Water sparingly — it\'s a cactus, and root rot is the #1 killer. Protect from frost. First fruit may take 1–2 years but it\'s worth it.',
+    waterNeeds: 'Every 5–7 days',
+    sunNeeds: 'Full Sun',
+    daysToHarvest: 180,
+    autoGrowthDays: 30,
+  },
+  // ── Herbs ────────────────────────────────────────────────────────
+  {
+    name: 'Basil',
+    category: 'HERB',
+    icon: '🌿',
+    description: 'A fragrant, fast-growing culinary herb with bright green leaves essential for pesto, pasta, and Mediterranean cooking.',
+    careInstructions: 'Pinch off flower buds immediately to keep leaves large and flavorful. Harvest from the top down, never taking more than 1/3 of the plant at a time. Bring indoors or take cuttings before frost.',
+    waterNeeds: 'Every 1–2 days',
+    sunNeeds: 'Full Sun',
+    daysToHarvest: 30,
+    autoGrowthDays: 5,
+  },
+  // ── Flowers ──────────────────────────────────────────────────────
+  {
+    name: 'Rose',
+    category: 'RAISED_BED',
+    icon: '🌹',
+    description: 'The quintessential garden flower with velvety petals and a classic fragrance. Available in hundreds of varieties and colors.',
+    careInstructions: 'Prune in early spring by cutting to outward-facing buds. Deadhead spent blooms to encourage repeat flowering. Apply mulch to keep roots cool and moist. Watch for black spot and aphids.',
+    waterNeeds: 'Every 3 days',
+    sunNeeds: 'Full Sun',
+    daysToHarvest: 90,
+    autoGrowthDays: 15,
+  },
+  {
+    name: 'Sunflower',
+    category: 'RAISED_BED',
+    icon: '🌻',
+    description: 'A towering cheerful annual that tracks the sun and produces enormous seed-filled heads beloved by birds and people alike.',
+    careInstructions: 'Plant seeds directly — sunflowers dislike being transplanted. Stake tall varieties when 2 feet high. Allow heads to fully dry on the plant for edible seeds. Leave a few heads for birds in fall.',
+    waterNeeds: 'Every 3 days',
+    sunNeeds: 'Full Sun',
+    daysToHarvest: 85,
+    autoGrowthDays: 14,
+  },
+  {
+    name: 'Lavender',
+    category: 'POTTED',
+    icon: '🪻',
+    description: 'A fragrant, drought-tolerant herb/flower with silvery foliage and spikes of purple blooms that attract bees and butterflies.',
+    careInstructions: 'Plant in well-draining soil — lavender hates wet roots. Prune by 1/3 after blooming to keep plant bushy. Do NOT cut into old wood. Excellent in pots. Harvest stems just as flowers open for longest fragrance.',
+    waterNeeds: 'Every 7–10 days',
+    sunNeeds: 'Full Sun',
+    daysToHarvest: 90,
+    autoGrowthDays: 15,
+  },
+  {
+    name: 'Daisy',
+    category: 'POTTED',
+    icon: '🌼',
+    description: 'A cheerful, classic flower with bright white or yellow petals radiating from a golden center — a garden icon.',
+    careInstructions: 'Deadhead spent flowers regularly to extend the blooming season. Divide clumps every 2–3 years to keep plants vigorous. In hot climates, provide some afternoon shade to prevent wilting.',
+    waterNeeds: 'Every 2–3 days',
+    sunNeeds: 'Full Sun',
+    daysToHarvest: 60,
+    autoGrowthDays: 10,
+  },
+  {
+    name: 'Marigold',
+    category: 'POTTED',
+    icon: '🏵️',
+    description: 'A vibrant, easy-to-grow annual in shades of orange, gold, and yellow that also repels garden pests naturally.',
+    careInstructions: 'Deadhead regularly to keep blooming all season. Plant near vegetables to deter aphids and whitefly. Extremely heat tolerant. Direct-sow seeds in spring after last frost for best results.',
+    waterNeeds: 'Every 2–3 days',
+    sunNeeds: 'Full Sun',
+    daysToHarvest: 50,
+    autoGrowthDays: 8,
+  },
+  {
+    name: 'Tulip',
+    category: 'RAISED_BED',
+    icon: '🌷',
+    description: 'Elegant cup-shaped flowers that herald spring\'s arrival in a stunning array of colors, from pure white to near-black.',
+    careInstructions: 'Plant bulbs in fall, 6–8 inches deep, pointy side up. Requires a cold winter period to bloom. Allow foliage to die back naturally after bloom — the bulb is storing energy for next year.',
+    waterNeeds: 'Every 3–4 days',
+    sunNeeds: 'Full Sun',
+    daysToHarvest: 90,
+    autoGrowthDays: 15,
+  },
+  {
+    name: 'Lily',
+    category: 'RAISED_BED',
+    icon: '🌸',
+    description: 'Tall, elegant flowers with large trumpet-shaped blooms and a heady fragrance that fills the garden in midsummer.',
+    careInstructions: 'Plant bulbs in fall in well-draining soil. Keep the base shaded while tops enjoy full sun. Stake tall varieties. Do not remove foliage until fully yellow — the bulb needs it to recharge for next year.',
+    waterNeeds: 'Every 3 days',
+    sunNeeds: 'Partial Shade',
+    daysToHarvest: 120,
+    autoGrowthDays: 20,
+  },
+  {
+    name: 'Orchid',
+    category: 'POTTED',
+    icon: '🪷',
+    description: 'A sophisticated exotic flower with intricate blooms that can last for months — one of the most diverse plant families on Earth.',
+    careInstructions: 'Water weekly by soaking the pot and letting it drain fully — never let roots sit in water. Bright indirect light is ideal. Fertilize lightly with orchid food every 2 weeks when growing. Repot every 2 years.',
+    waterNeeds: 'Once a week',
+    sunNeeds: 'Partial Shade',
+    daysToHarvest: 90,
+    autoGrowthDays: 15,
+  },
+  {
+    name: 'Hibiscus',
+    category: 'POTTED',
+    icon: '🌺',
+    description: 'A tropical showstopper with enormous, paper-thin blooms in bold reds, pinks, and oranges that attract hummingbirds.',
+    careInstructions: 'Keep soil consistently moist. Feed with high-potassium fertilizer every 2 weeks during growing season to maximize blooming. Bring indoors before frost in cold climates. Prune in early spring.',
+    waterNeeds: 'Every 2–3 days',
+    sunNeeds: 'Full Sun',
+    daysToHarvest: 120,
+    autoGrowthDays: 20,
+  },
+  {
+    name: 'Peony',
+    category: 'RAISED_BED',
+    icon: '💐',
+    description: 'A beloved, long-lived perennial with enormous, lush blossoms and a heavenly fragrance — blooms can last decades in the same spot.',
+    careInstructions: 'Plant eyes (pink buds) no more than 1–2 inches below the soil — too deep and they won\'t bloom. Provide support rings before blooms open as the heavy flowers cause stems to flop. Divide only if performance declines after many years.',
+    waterNeeds: 'Every 3–4 days',
+    sunNeeds: 'Full Sun',
+    daysToHarvest: 180,
+    autoGrowthDays: 30,
+  },
+]
+
+async function main() {
+  console.log(`Seeding ${PLANT_TYPES.length} garden plant types…`)
+
+  for (const type of PLANT_TYPES) {
+    const existing = await prisma.gardenPlantType.findFirst({ where: { name: type.name } })
+    if (existing) {
+      console.log(`  ↷  skipped (already exists): ${type.icon} ${type.name}`)
+      continue
+    }
+    await prisma.gardenPlantType.create({ data: type })
+    console.log(`  ✓  created: ${type.icon} ${type.name}`)
+  }
+
+  console.log('\nDone! All plant types seeded.')
+}
+
+main().catch(e => { console.error(e); process.exit(1) }).finally(() => prisma.$disconnect())
