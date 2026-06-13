@@ -20,29 +20,26 @@ import SidebarFunGame from './SidebarFunGame'
 export type ChanKey =
   | 'PROJECTS' | 'BUSINESS' | 'COMMUNITY'
   | 'FISHING' | 'FOOD' | 'GARDENING' | 'TRAVEL' | 'FUN'
-  | 'QUESTS' | 'DEMO'
+  | 'QUESTS' | 'COOL_PEOPLE' | 'COOL_ITEMS' | 'DEMO'
 
 const CHAN: Record<Exclude<ChanKey, 'DEMO'>, { label: string; Icon: LucideIcon; bg: string; href: string }> = {
-  PROJECTS:  { label: 'Projects',    Icon: Hammer,    bg: '#382e0e', href: '/skills/projects' },
-  BUSINESS:  { label: 'Business',    Icon: Briefcase, bg: '#1c2e10', href: '/skills/business' },
-  COMMUNITY: { label: 'Community',   Icon: Users,     bg: '#181e4a', href: '/skills/community' },
-  FISHING:   { label: 'Fishing',     Icon: Fish,      bg: '#0e2c48', href: '/skills/fishing' },
-  FOOD:      { label: 'Food & Wine', Icon: Wine,      bg: '#4e2006', href: '/skills/food' },
-  GARDENING: { label: 'Gardening',   Icon: Leaf,      bg: '#0e3810', href: '/skills/gardening' },
-  TRAVEL:    { label: 'Adventure',   Icon: Compass,   bg: '#382808', href: '/skills/travel' },
-  FUN:       { label: 'Games',       Icon: Gamepad2,  bg: '#320c4a', href: '/skills/fun' },
-  QUESTS:    { label: 'Quests',      Icon: Scroll,    bg: '#2a1a06', href: '/quests' },
+  PROJECTS:    { label: 'Projects',    Icon: Hammer,      bg: '#382e0e', href: '/skills/projects' },
+  BUSINESS:    { label: 'Business',    Icon: Briefcase,   bg: '#1c2e10', href: '/skills/business' },
+  COMMUNITY:   { label: 'Community',   Icon: Users,       bg: '#181e4a', href: '/skills/community' },
+  FISHING:     { label: 'Fishing',     Icon: Fish,        bg: '#0e2c48', href: '/skills/fishing' },
+  FOOD:        { label: 'Food & Wine', Icon: Wine,        bg: '#4e2006', href: '/skills/food' },
+  GARDENING:   { label: 'Gardening',   Icon: Leaf,        bg: '#0e3810', href: '/skills/gardening' },
+  TRAVEL:      { label: 'Adventure',   Icon: Compass,     bg: '#382808', href: '/skills/travel' },
+  FUN:         { label: 'Games',       Icon: Gamepad2,    bg: '#320c4a', href: '/skills/fun' },
+  QUESTS:      { label: 'Quests',      Icon: Scroll,      bg: '#2a1a06', href: '/quests' },
+  COOL_PEOPLE: { label: 'Cool People', Icon: UserCheck,   bg: '#2e0c48', href: '/skills/cool-people' },
+  COOL_ITEMS:  { label: 'Cool Items',  Icon: ShoppingBag, bg: '#0c2040', href: '/skills/cool-items' },
 }
-
-// Cool People and Cool Items are hardcoded — never in the DB order, never near DEMO
-const PINNED = [
-  { key: 'COOL_PEOPLE', label: 'Cool People', Icon: UserCheck,   bg: '#2e0c48', href: '/skills/cool-people' },
-  { key: 'COOL_ITEMS',  label: 'Cool Items',  Icon: ShoppingBag, bg: '#0c2040', href: '/skills/cool-items' },
-] as const
 
 export const DEFAULT_CHAN_ORDER: ChanKey[] = [
   'PROJECTS', 'BUSINESS', 'COMMUNITY',
-  'FISHING', 'FOOD', 'GARDENING', 'TRAVEL', 'FUN', 'QUESTS', 'DEMO',
+  'FISHING', 'FOOD', 'GARDENING', 'TRAVEL', 'FUN', 'QUESTS',
+  'COOL_PEOPLE', 'COOL_ITEMS', 'DEMO',
 ]
 
 // ── Draggable mini-game row ───────────────────────────────────────────────────
@@ -123,11 +120,14 @@ function ChannelRow({
           <GripVertical size={11} />
         </button>
       )}
+
       <Link
         href={cfg.href}
         className="guild-channel"
         style={{
-          flex: 1, paddingLeft: 8, paddingRight: 12,
+          flex: 1,
+          paddingLeft: 8,
+          paddingRight: 12,
           borderLeftColor: isActive ? '#c89b3c' : 'transparent',
           background: isActive ? 'rgba(200,155,60,0.1)' : undefined,
           color: isActive ? '#f0d898' : undefined,
@@ -141,19 +141,27 @@ function ChannelRow({
         }}>
           <cfg.Icon size={18} color="#dcc898" strokeWidth={1.6} />
         </span>
+
         <span style={{ flex: 1, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {cfg.label}
         </span>
+
         {id !== 'QUESTS' && (
           <span style={{
-            flexShrink: 0, background: 'rgba(200,155,60,0.13)',
-            border: '1px solid rgba(200,155,60,0.32)', borderRadius: 4,
-            padding: '2px 6px', fontSize: 9,
-            fontFamily: "'Press Start 2P', monospace", color: '#c89b3c', letterSpacing: '0.03em',
+            flexShrink: 0,
+            background: 'rgba(200,155,60,0.13)',
+            border: '1px solid rgba(200,155,60,0.32)',
+            borderRadius: 4,
+            padding: '2px 6px',
+            fontSize: 9,
+            fontFamily: "'Press Start 2P', monospace",
+            color: '#c89b3c',
+            letterSpacing: '0.03em',
           }}>
             {communityLevel}
           </span>
         )}
+
         {isAdmin && postCount > 0 && (
           <span style={{ flexShrink: 0, fontSize: 8, color: '#6a5030', marginLeft: 4 }}>
             {postCount}
@@ -161,37 +169,6 @@ function ChannelRow({
         )}
       </Link>
     </div>
-  )
-}
-
-// ── Static pinned channel row (not draggable, not in DB order) ────────────────
-function StaticRow({ label, Icon, bg, href, pathname }: {
-  label: string; Icon: LucideIcon; bg: string; href: string; pathname: string
-}) {
-  const isActive = pathname === href || pathname.startsWith(href + '/')
-  return (
-    <Link
-      href={href}
-      className="guild-channel"
-      style={{
-        paddingLeft: 14, paddingRight: 12,
-        borderLeftColor: isActive ? '#c89b3c' : 'transparent',
-        background: isActive ? 'rgba(200,155,60,0.1)' : undefined,
-        color: isActive ? '#f0d898' : undefined,
-        minHeight: 48,
-      }}
-    >
-      <span style={{
-        flexShrink: 0, width: 34, height: 34,
-        background: bg, borderRadius: 8,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        <Icon size={18} color="#dcc898" strokeWidth={1.6} />
-      </span>
-      <span style={{ flex: 1, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {label}
-      </span>
-    </Link>
   )
 }
 
@@ -252,11 +229,6 @@ export default function SkillsPanelClient({
       <div style={{ padding: '10px 14px 6px', fontSize: 9, color: '#a07848', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: "'Press Start 2P', monospace" }}>
         ⚔ Communities
       </div>
-
-      {/* Cool People + Cool Items — hardcoded, never in drag order */}
-      {PINNED.map(p => (
-        <StaticRow key={p.key} label={p.label} Icon={p.Icon} bg={p.bg} href={p.href} pathname={pathname} />
-      ))}
 
       {/* Draggable community channels */}
       <DndContext

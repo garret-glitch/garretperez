@@ -38,9 +38,28 @@ export default async function SkillsPanel() {
         if (Array.isArray(parsed) && parsed.length > 0) {
           const filtered = parsed.filter((k: string) => DEFAULT_CHAN_ORDER.includes(k as ChanKey))
           const deduped = filtered.filter((k: string, i: number) => filtered.indexOf(k) === i)
-          if (deduped.length > 0) {
+
+          // Detect stale/corrupt order: duplicates or Cool People/Items bunched with DEMO
+          const demoPos = deduped.indexOf('DEMO')
+          const cpPos = deduped.indexOf('COOL_PEOPLE')
+          const ciPos = deduped.indexOf('COOL_ITEMS')
+          const stale =
+            filtered.length !== deduped.length ||
+            (demoPos !== -1 && cpPos !== -1 && Math.abs(demoPos - cpPos) <= 2) ||
+            (demoPos !== -1 && ciPos !== -1 && Math.abs(demoPos - ciPos) <= 2)
+
+          if (stale) {
+            // Reset DB to clean default order
+            await (prisma as any).siteSetting.upsert({
+              where: { key: 'skills:order' },
+              update: { value: JSON.stringify(DEFAULT_CHAN_ORDER) },
+              create: { key: 'skills:order', value: JSON.stringify(DEFAULT_CHAN_ORDER) },
+            })
+            channelOrder = DEFAULT_CHAN_ORDER
+          } else if (deduped.length > 0) {
             const missing = DEFAULT_CHAN_ORDER.filter(k => !deduped.includes(k))
             const merged = [...deduped, ...missing]
+            // Always pin DEMO to the very end
             channelOrder = [...merged.filter(k => k !== 'DEMO'), 'DEMO'] as ChanKey[]
           }
         }
