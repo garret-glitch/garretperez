@@ -269,6 +269,7 @@ export default function TravelMapClient({ initialPins, isLoggedIn, userId }: Pro
                 <ComposableMap
                   width={800} height={240}
                   projection="geoEqualEarth"
+                  projectionConfig={{ scale: 77 }}
                   style={{ width: '100%', height: '100%', display: 'block' }}
                   onClick={handleMapClick}
                 >
