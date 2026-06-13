@@ -224,6 +224,17 @@ export default function SidebarFunGame() {
 
       {/* Mini game canvas */}
       <div className="px-2 pt-2 pb-0.5 shrink-0">
+        {/* Demo label */}
+        <div className="flex items-center justify-between mb-1 px-0.5">
+          <span style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 6, color: 'var(--text-3)', letterSpacing: 1 }}>
+            🎮 MINI GAME
+          </span>
+          <span style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 5, color: 'var(--gold)',
+            background: 'rgba(200,155,60,0.12)', border: '1px solid rgba(200,155,60,0.3)',
+            borderRadius: 4, padding: '1px 5px', letterSpacing: 1 }}>
+            DEMO
+          </span>
+        </div>
         <canvas
           ref={cvs}
           width={W}
@@ -256,6 +267,13 @@ export default function SidebarFunGame() {
             <span className="text-[9px]" style={{ color: 'var(--text-3)' }}>drag · dodge 🔴 · collect ⭐</span>
           )}
         </div>
+        <Link href="/skills/fun"
+          className="flex items-center justify-center gap-1 py-1.5 rounded hover:opacity-80 transition-opacity"
+          style={{ background: 'rgba(200,155,60,0.08)', border: '1px solid rgba(200,155,60,0.2)', marginTop: 2 }}>
+          <span style={{ fontFamily: '"Press Start 2P", monospace', fontSize: 6, color: 'var(--gold)' }}>
+            ▶ PLAY FULL GAMES
+          </span>
+        </Link>
       </div>
 
 
