@@ -1,5 +1,5 @@
 declare module 'react-simple-maps' {
-  import { ComponentType, SVGProps, MouseEventHandler } from 'react'
+  import { ComponentType, SVGProps } from 'react'
 
   export interface ComposableMapProps extends SVGProps<SVGSVGElement> {
     width?: number
@@ -7,7 +7,7 @@ declare module 'react-simple-maps' {
     projection?: string
     projectionConfig?: Record<string, unknown>
     style?: React.CSSProperties
-    onClick?: MouseEventHandler<SVGSVGElement>
+    onClick?: React.MouseEventHandler<SVGSVGElement>
   }
 
   export interface GeographiesProps {
@@ -17,6 +17,8 @@ declare module 'react-simple-maps' {
 
   export interface Geography {
     rsmKey: string
+    id?: number | string
+    properties?: Record<string, unknown>
     [key: string]: unknown
   }
 
@@ -27,12 +29,14 @@ declare module 'react-simple-maps' {
       hover?: React.CSSProperties
       pressed?: React.CSSProperties
     }
-    [key: string]: unknown
+    onClick?: React.MouseEventHandler<SVGPathElement>
+    onMouseEnter?: React.MouseEventHandler<SVGPathElement>
+    onMouseLeave?: React.MouseEventHandler<SVGPathElement>
   }
 
   export const ComposableMap: ComponentType<ComposableMapProps>
   export const Geographies: ComponentType<GeographiesProps>
   export const Geography: ComponentType<GeographyProps>
-  export const Marker: ComponentType<{ coordinates: [number, number]; [key: string]: unknown }>
+  export const Marker: ComponentType<{ coordinates: [number, number]; children?: React.ReactNode }>
   export const ZoomableGroup: ComponentType<{ [key: string]: unknown }>
 }

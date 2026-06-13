@@ -25,10 +25,11 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json()
-  const { name, reason, emoji, x, y } = body as {
+  const { name, reason, emoji, mapView, x, y } = body as {
     name?: string
     reason?: string
     emoji?: string
+    mapView?: string
     x?: number
     y?: number
   }
@@ -43,6 +44,7 @@ export async function POST(req: NextRequest) {
       name: String(name).slice(0, 100),
       reason: String(reason ?? '').slice(0, 500),
       emoji: String(emoji ?? '📍').slice(0, 8),
+      mapView: mapView === 'usa' ? 'usa' : 'world',
       x,
       y,
     },

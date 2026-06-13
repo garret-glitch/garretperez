@@ -369,6 +369,7 @@ model TravelPin {
   name      String
   reason    String   @db.Text @default("")
   emoji     String   @default("📍")
+  mapView   String   @default("world")
   x         Float
   y         Float
   createdAt DateTime @default(now())

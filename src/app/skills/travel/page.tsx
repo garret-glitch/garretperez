@@ -30,7 +30,7 @@ export default async function TravelPage() {
     upvotes: Array<{ userId: string }>
   }> = []
   let initialPins: Array<{
-    id: string; userId: string; name: string; reason: string; emoji: string; x: number; y: number; createdAt: string
+    id: string; userId: string; name: string; reason: string; emoji: string; mapView: string; x: number; y: number; createdAt: string
   }> = []
 
   try {

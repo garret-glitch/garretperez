@@ -13,12 +13,16 @@ const TRAVEL_EMOJIS = [
   '🏕️','🌍','🗺️','⭐',
 ]
 
+// ISO-3166-1 numeric id for USA in world-atlas topojson
+const USA_GEO_ID = 840
+
 interface TravelPin {
   id: string
   userId: string
   name: string
   reason: string
   emoji: string
+  mapView: string
   x: number
   y: number
   createdAt: string
@@ -33,43 +37,11 @@ interface Props {
 type Mode    = 'normal' | 'adding' | 'viewing' | 'editing'
 type MapView = 'world' | 'usa'
 
-// Per-view config
-const MAP: Record<MapView, {
-  geoUrl: string
-  projection: string
-  projectionConfig?: Record<string, unknown>
-  svgW: number
-  svgH: number
-  fill: string
-  hoverFill: string
-  strokeW: number
-  label: string
-  hint: string
-}> = {
-  world: {
-    geoUrl: WORLD_GEO,
-    projection: 'geoEqualEarth',
-    svgW: 800, svgH: 340,
-    fill: '#1a1630', hoverFill: '#22203c',
-    strokeW: 0.5,
-    label: '🌍 World',
-    hint: 'Click anywhere to drop a pin',
-  },
-  usa: {
-    geoUrl: USA_GEO,
-    projection: 'geoAlbersUsa',
-    projectionConfig: { scale: 900 },
-    svgW: 800, svgH: 500,
-    fill: '#0f1f10', hoverFill: '#18301a',
-    strokeW: 0.9,
-    label: '🇺🇸 USA',
-    hint: 'Click a state to drop a pin',
-  },
-}
-
 export default function TravelMapClient({ initialPins, isLoggedIn, userId }: Props) {
   const [pins, setPins] = useState<TravelPin[]>(initialPins)
   const [mapView, setMapView] = useState<MapView>('world')
+  const [transitioning, setTransitioning] = useState(false)
+
   const [mode, setMode] = useState<Mode>('normal')
   const [pendingPos, setPendingPos] = useState<{ x: number; y: number } | null>(null)
   const [activePin, setActivePin] = useState<TravelPin | null>(null)
@@ -83,9 +55,24 @@ export default function TravelMapClient({ initialPins, isLoggedIn, userId }: Pro
   const hasDraggedRef = useRef(false)
   const dragStartRef = useRef<{ x: number; y: number } | null>(null)
 
-  const cfg = MAP[mapView]
-  // paddingBottom keeps the SVG aspect ratio so the map fills correctly
-  const mapPad = `${(cfg.svgH / cfg.svgW) * 100}%`
+  // Pins for current view
+  const visiblePins = pins.filter(p => (p.mapView ?? 'world') === mapView)
+  const worldCount  = pins.filter(p => (p.mapView ?? 'world') === 'world').length
+  const usaCount    = pins.filter(p => p.mapView === 'usa').length
+
+  // World map: 32% aspect ratio (compact globe)
+  // USA map:   62.5% (natural Albers USA aspect ratio)
+  const mapPad = mapView === 'world' ? '32%' : '62.5%'
+
+  function switchView(view: MapView) {
+    if (view === mapView) return
+    setTransitioning(true)
+    setTimeout(() => {
+      setMapView(view)
+      closeAll()
+      setTransitioning(false)
+    }, 160)
+  }
 
   const closeAll = useCallback(() => {
     setMode('normal')
@@ -103,6 +90,7 @@ export default function TravelMapClient({ initialPins, isLoggedIn, userId }: Pro
     }
   }
 
+  // Click on the SVG background (not on a Geography that stopped propagation)
   function handleMapClick(e: React.MouseEvent<SVGSVGElement>) {
     if (!isLoggedIn) return
     if (draggingId) return
@@ -114,7 +102,7 @@ export default function TravelMapClient({ initialPins, isLoggedIn, userId }: Pro
     setMode('adding')
   }
 
-  // ── Pin drag handlers ──────────────────────────────────────
+  // ── Drag ──────────────────────────────────────────────────────
   function onPinDown(pin: TravelPin, e: React.PointerEvent<HTMLButtonElement>) {
     if (!isLoggedIn || pin.userId !== userId || mode !== 'normal') return
     e.stopPropagation()
@@ -143,11 +131,7 @@ export default function TravelMapClient({ initialPins, isLoggedIn, userId }: Pro
     setDraggingId(null)
     setDragPos(null)
     dragStartRef.current = null
-
-    if (!moved) {
-      setActivePin(pin); setMode('viewing')
-      return
-    }
+    if (!moved) { setActivePin(pin); setMode('viewing'); return }
     if (!finalPos) return
     setPins(prev => prev.map(p => p.id === pin.id ? { ...p, ...finalPos } : p))
     try {
@@ -174,9 +158,19 @@ export default function TravelMapClient({ initialPins, isLoggedIn, userId }: Pro
       const res = await fetch('/api/travel-pins', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, name: form.name.trim(), reason: form.reason.trim(), ...pendingPos }),
+        body: JSON.stringify({
+          ...form,
+          name: form.name.trim(),
+          reason: form.reason.trim(),
+          mapView,
+          ...pendingPos,
+        }),
       })
-      if (res.ok) { const pin = await res.json(); setPins(prev => [pin, ...prev]); closeAll() }
+      if (res.ok) {
+        const pin = await res.json()
+        setPins(prev => [pin, ...prev])
+        closeAll()
+      }
     } catch { /**/ } finally { setSaving(false) }
   }
 
@@ -208,106 +202,198 @@ export default function TravelMapClient({ initialPins, isLoggedIn, userId }: Pro
   const showFormModal = mode === 'adding' || mode === 'editing'
   const showViewModal = mode === 'viewing' && activePin !== null
 
-  return (
-    <div>
-      {/* ── MAP CARD ── */}
-      <div className="rp-card" style={{ padding: '14px 14px 12px', borderRadius: 14, marginBottom: 14 }}>
+  // ── Shared button styles ────────────────────────────────────────
+  const tabBtn = (active: boolean): React.CSSProperties => ({
+    fontFamily: "'Press Start 2P', monospace",
+    fontSize: 6,
+    padding: '5px 10px',
+    borderRadius: 6,
+    border: active ? '1px solid rgba(200,155,60,0.5)' : '1px solid transparent',
+    background: active ? 'rgba(200,155,60,0.14)' : 'transparent',
+    color: active ? '#c89b3c' : 'rgba(160,152,128,0.6)',
+    cursor: 'pointer',
+    transition: 'all 0.14s ease',
+    whiteSpace: 'nowrap' as const,
+  })
 
-        {/* Header row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-          <span style={{ fontSize: 16 }}>🗺️</span>
-          <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 8, color: 'var(--text-1)', flex: 1 }}>
-            Adventure Map
-          </span>
-          {/* Map toggle tabs */}
-          <div style={{ display: 'flex', gap: 4, background: 'rgba(0,0,0,0.4)', borderRadius: 8, padding: 3, border: '1px solid rgba(200,155,60,0.15)' }}>
-            {(['world','usa'] as MapView[]).map(v => (
-              <button
-                key={v}
-                onClick={() => setMapView(v)}
-                style={{
-                  fontFamily: "'Press Start 2P', monospace",
-                  fontSize: 6,
-                  padding: '5px 9px',
-                  borderRadius: 6,
-                  border: 'none',
-                  background: mapView === v ? 'rgba(200,155,60,0.2)' : 'transparent',
-                  color: mapView === v ? 'var(--gold)' : 'var(--text-3)',
-                  cursor: 'pointer',
-                  boxShadow: mapView === v ? 'inset 0 0 0 1px rgba(200,155,60,0.5)' : 'none',
-                  transition: 'all 0.15s ease',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {MAP[v].label}
-              </button>
-            ))}
-          </div>
-          {pins.length > 0 && (
-            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 6, color: 'var(--gold)', background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.3)', borderRadius: 5, padding: '3px 6px', whiteSpace: 'nowrap' }}>
-              {pins.length} {pins.length === 1 ? 'pin' : 'pins'}
-            </span>
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+      {/* ── MAP CARD ─────────────────────────────────────────────── */}
+      <div style={{
+        background: 'var(--bg-card)',
+        border: '1px solid rgba(200,155,60,0.18)',
+        borderRadius: 14,
+        overflow: 'hidden',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+      }}>
+
+        {/* ── Header bar ── */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          padding: '10px 14px',
+          borderBottom: '1px solid rgba(200,155,60,0.1)',
+          background: 'rgba(0,0,0,0.25)',
+        }}>
+          {/* Back button (USA view) */}
+          {mapView === 'usa' ? (
+            <button
+              onClick={() => switchView('world')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                background: 'none', border: 'none',
+                color: 'var(--text-3)',
+                cursor: 'pointer', padding: 0,
+                fontFamily: "'Press Start 2P', monospace", fontSize: 6,
+                transition: 'color 0.15s ease',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.color = 'var(--gold)')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-3)')}
+            >
+              ← World
+            </button>
+          ) : (
+            <span style={{ fontSize: 14 }}>🗺️</span>
           )}
+
+          {/* Breadcrumb */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
+            {mapView === 'usa' && (
+              <span style={{ color: 'rgba(200,155,60,0.4)', fontSize: 10, fontFamily: 'monospace' }}>/</span>
+            )}
+            <span style={{
+              fontFamily: "'Press Start 2P', monospace",
+              fontSize: 7,
+              color: 'var(--text-1)',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+              {mapView === 'world' ? 'Adventure Map' : '🇺🇸 United States'}
+            </span>
+          </div>
+
+          {/* Pin count badges */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            {worldCount > 0 && mapView === 'world' && (
+              <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 5, color: 'var(--gold)', background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.25)', borderRadius: 4, padding: '3px 6px', whiteSpace: 'nowrap' }}>
+                {worldCount} 🌍
+              </span>
+            )}
+            {usaCount > 0 && mapView === 'usa' && (
+              <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 5, color: 'var(--gold)', background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.25)', borderRadius: 4, padding: '3px 6px', whiteSpace: 'nowrap' }}>
+                {usaCount} 🇺🇸
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Map container — aspect ratio matches the active SVG viewBox */}
+        {/* ── Map ── */}
         <div
           ref={mapRef}
           style={{
             position: 'relative',
             width: '100%',
             paddingBottom: mapPad,
-            background: '#06060f',
-            borderRadius: 10,
-            overflow: 'hidden',
-            border: '1px solid rgba(200,155,60,0.22)',
-            boxShadow: 'inset 0 0 40px rgba(0,0,0,0.7)',
+            background: '#05050e',
             cursor: isLoggedIn ? (draggingId ? 'grabbing' : 'crosshair') : 'default',
+            transition: 'padding-bottom 0.25s ease',
           }}
         >
-          <div style={{ position: 'absolute', inset: 0 }}>
-            <ComposableMap
-              width={cfg.svgW}
-              height={cfg.svgH}
-              projection={cfg.projection}
-              projectionConfig={cfg.projectionConfig}
-              style={{ width: '100%', height: '100%' }}
-              onClick={handleMapClick}
-            >
-              {/* Ocean / bg */}
-              <rect width={cfg.svgW} height={cfg.svgH} fill="#06060f" />
+          <div style={{
+            position: 'absolute', inset: 0,
+            opacity: transitioning ? 0 : 1,
+            transition: 'opacity 0.16s ease',
+          }}>
+            {mapView === 'world' ? (
+              /* ── WORLD MAP ── */
+              <ComposableMap
+                width={800}
+                height={256}
+                projection="geoEqualEarth"
+                style={{ width: '100%', height: '100%' }}
+                onClick={handleMapClick}
+              >
+                <rect width={800} height={256} fill="#05050e" />
 
-              {/* Grid lines — world only */}
-              {mapView === 'world' && (
-                <>
-                  {[68, 136, 204, 272].map(y => (
-                    <line key={y} x1={0} y1={y} x2={800} y2={y} stroke="rgba(200,155,60,0.05)" strokeWidth={1} />
-                  ))}
-                  {[100,200,300,400,500,600,700].map(x => (
-                    <line key={x} x1={x} y1={0} x2={x} y2={340} stroke="rgba(200,155,60,0.05)" strokeWidth={1} />
-                  ))}
-                </>
-              )}
+                {/* Subtle meridian grid */}
+                {[64, 128, 192].map(y => (
+                  <line key={y} x1={0} y1={y} x2={800} y2={y} stroke="rgba(200,155,60,0.04)" strokeWidth={1} />
+                ))}
+                {[100,200,300,400,500,600,700].map(x => (
+                  <line key={x} x1={x} y1={0} x2={x} y2={256} stroke="rgba(200,155,60,0.04)" strokeWidth={1} />
+                ))}
 
-              <Geographies geography={cfg.geoUrl}>
-                {({ geographies }: { geographies: GeoType[] }) =>
-                  geographies.map((geo: GeoType) => (
-                    <Geography
-                      key={geo.rsmKey}
-                      geography={geo}
-                      style={{
-                        default: { fill: cfg.fill, stroke: '#c89b3c', strokeWidth: cfg.strokeW, outline: 'none' },
-                        hover:   { fill: cfg.hoverFill, stroke: '#e8b84b', strokeWidth: cfg.strokeW + 0.3, outline: 'none', cursor: isLoggedIn ? 'crosshair' : 'default' },
-                        pressed: { fill: cfg.fill, stroke: '#c89b3c', strokeWidth: cfg.strokeW, outline: 'none' },
-                      }}
-                    />
-                  ))
-                }
-              </Geographies>
-            </ComposableMap>
+                <Geographies geography={WORLD_GEO}>
+                  {({ geographies }: { geographies: GeoType[] }) =>
+                    geographies.map((geo: GeoType) => {
+                      const isUSA = Number(geo.id) === USA_GEO_ID
+                      return (
+                        <Geography
+                          key={geo.rsmKey}
+                          geography={geo}
+                          onClick={isUSA ? (e: React.MouseEvent<SVGPathElement>) => {
+                            e.stopPropagation()
+                            switchView('usa')
+                          } : undefined}
+                          style={{
+                            default: {
+                              fill: isUSA ? '#2c2255' : '#1a1636',
+                              stroke: '#c89b3c',
+                              strokeWidth: 0.45,
+                              outline: 'none',
+                            },
+                            hover: {
+                              fill: isUSA ? '#3d3078' : '#222048',
+                              stroke: '#e8b84b',
+                              strokeWidth: isUSA ? 1 : 0.65,
+                              outline: 'none',
+                              cursor: isUSA ? 'zoom-in' : (isLoggedIn ? 'crosshair' : 'default'),
+                            },
+                            pressed: {
+                              fill: isUSA ? '#2c2255' : '#1a1636',
+                              stroke: '#c89b3c',
+                              strokeWidth: 0.45,
+                              outline: 'none',
+                            },
+                          }}
+                        />
+                      )
+                    })
+                  }
+                </Geographies>
+              </ComposableMap>
+            ) : (
+              /* ── USA MAP ── */
+              <ComposableMap
+                width={800}
+                height={500}
+                projection="geoAlbersUsa"
+                style={{ width: '100%', height: '100%' }}
+                onClick={handleMapClick}
+              >
+                <rect width={800} height={500} fill="#05050e" />
 
-            {/* Pin overlay */}
-            {pins.map(pin => {
+                <Geographies geography={USA_GEO}>
+                  {({ geographies }: { geographies: GeoType[] }) =>
+                    geographies.map((geo: GeoType) => (
+                      <Geography
+                        key={geo.rsmKey}
+                        geography={geo}
+                        style={{
+                          default: { fill: '#0f1e10', stroke: '#c89b3c', strokeWidth: 0.7, outline: 'none' },
+                          hover:   { fill: '#182c1a', stroke: '#e8b84b', strokeWidth: 1, outline: 'none', cursor: isLoggedIn ? 'crosshair' : 'default' },
+                          pressed: { fill: '#0f1e10', stroke: '#c89b3c', strokeWidth: 0.7, outline: 'none' },
+                        }}
+                      />
+                    ))
+                  }
+                </Geographies>
+              </ComposableMap>
+            )}
+
+            {/* ── Pin overlay ── */}
+            {visiblePins.map(pin => {
               const isDragging = draggingId === pin.id
               const pos = isDragging && dragPos ? dragPos : { x: pin.x, y: pin.y }
               const isOwner = !!(userId && pin.userId === userId)
@@ -316,45 +402,42 @@ export default function TravelMapClient({ initialPins, isLoggedIn, userId }: Pro
                   key={pin.id}
                   onPointerDown={isOwner ? e => onPinDown(pin, e) : undefined}
                   onPointerMove={isOwner ? e => onPinMove(pin, e) : undefined}
-                  onPointerUp={e => {
-                    if (isOwner) { onPinUp(pin, e) }
-                    else { e.stopPropagation(); setActivePin(pin); setMode('viewing') }
-                  }}
+                  onPointerUp={e => isOwner ? onPinUp(pin, e) : (e.stopPropagation(), setActivePin(pin), setMode('viewing'))}
                   title={pin.name}
                   style={{
                     position: 'absolute',
                     left: `${pos.x}%`, top: `${pos.y}%`,
-                    transform: isDragging ? 'translate(-50%,-115%) scale(1.45)' : 'translate(-50%,-100%)',
+                    transform: isDragging ? 'translate(-50%,-118%) scale(1.5)' : 'translate(-50%,-100%)',
                     border: 'none', background: 'none', padding: 0,
                     zIndex: isDragging ? 30 : 10,
+                    fontSize: 17,
                     lineHeight: 1,
-                    fontSize: 18,
                     filter: isDragging
-                      ? 'drop-shadow(0 6px 12px rgba(200,155,60,0.9))'
-                      : 'drop-shadow(0 2px 5px rgba(0,0,0,0.9))',
+                      ? 'drop-shadow(0 6px 14px rgba(200,155,60,0.95))'
+                      : 'drop-shadow(0 1px 4px rgba(0,0,0,1))',
                     transition: isDragging ? 'none' : 'transform 0.12s ease, filter 0.12s ease',
                     cursor: isOwner ? (isDragging ? 'grabbing' : 'grab') : 'pointer',
-                    minWidth: 26, minHeight: 26,
                     display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+                    minWidth: 24, minHeight: 24,
                     touchAction: 'none',
                   }}
                   onMouseEnter={e => {
                     if (isDragging) return
-                    e.currentTarget.style.transform = 'translate(-50%,-108%) scale(1.28)'
-                    e.currentTarget.style.filter = 'drop-shadow(0 3px 8px rgba(200,155,60,0.65))'
+                    e.currentTarget.style.transform = 'translate(-50%,-108%) scale(1.25)'
+                    e.currentTarget.style.filter = 'drop-shadow(0 3px 8px rgba(200,155,60,0.7))'
                   }}
                   onMouseLeave={e => {
                     if (isDragging) return
                     e.currentTarget.style.transform = 'translate(-50%,-100%) scale(1)'
-                    e.currentTarget.style.filter = 'drop-shadow(0 2px 5px rgba(0,0,0,0.9))'
+                    e.currentTarget.style.filter = 'drop-shadow(0 1px 4px rgba(0,0,0,1))'
                   }}
                 >
                   {pin.emoji}
-                  <div style={{
+                  <span style={{
                     position: 'absolute', bottom: -4, left: '50%',
-                    transform: 'translateX(-50%)', width: 2, height: 5,
-                    background: isDragging ? '#c89b3c' : 'rgba(200,155,60,0.6)',
-                    borderRadius: 1,
+                    transform: 'translateX(-50%)', width: 1.5, height: 5,
+                    background: isDragging ? '#c89b3c' : 'rgba(200,155,60,0.55)',
+                    display: 'block',
                   }} />
                 </button>
               )
@@ -365,9 +448,9 @@ export default function TravelMapClient({ initialPins, isLoggedIn, userId }: Pro
               <div style={{
                 position: 'absolute',
                 left: `${pendingPos.x}%`, top: `${pendingPos.y}%`,
-                transform: 'translate(-50%,-110%)',
+                transform: 'translate(-50%,-112%)',
                 zIndex: 20, pointerEvents: 'none',
-                fontSize: 22,
+                fontSize: 20,
                 filter: 'drop-shadow(0 0 8px rgba(200,155,60,0.9))',
               }}>
                 {form.emoji}
@@ -375,77 +458,153 @@ export default function TravelMapClient({ initialPins, isLoggedIn, userId }: Pro
             )}
           </div>
 
-          {/* Watermark */}
-          <div style={{ position: 'absolute', bottom: 5, right: 7, fontFamily: "'Press Start 2P', monospace", fontSize: 5, color: 'rgba(200,155,60,0.2)', pointerEvents: 'none' }}>
-            {mapView === 'world' ? 'WORLD MAP' : 'USA MAP'}
-          </div>
+          {/* USA click hint — world view only */}
+          {mapView === 'world' && !transitioning && (
+            <div style={{
+              position: 'absolute', bottom: 6, left: '50%',
+              transform: 'translateX(-50%)',
+              fontFamily: "'Press Start 2P', monospace",
+              fontSize: 5,
+              color: 'rgba(200,155,60,0.3)',
+              pointerEvents: 'none',
+              whiteSpace: 'nowrap',
+            }}>
+              CLICK USA TO ZOOM IN
+            </div>
+          )}
         </div>
 
-        {/* Hint */}
-        <div style={{ marginTop: 7, textAlign: 'center' }}>
-          {isLoggedIn ? (
-            <span className="body-text" style={{ fontSize: 10, color: 'var(--text-3)' }}>
-              {cfg.hint} · Drag to move ✈️
-            </span>
-          ) : (
-            <span className="body-text" style={{ fontSize: 10, color: 'var(--text-3)' }}>
-              <Link href="/login" style={{ color: 'var(--gold)', textDecoration: 'none' }}>Log in</Link>
-              {' '}to pin your favorite places
-            </span>
-          )}
+        {/* ── Footer bar ── */}
+        <div style={{
+          padding: '7px 14px',
+          borderTop: '1px solid rgba(200,155,60,0.08)',
+          background: 'rgba(0,0,0,0.2)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 10,
+          flexWrap: 'wrap',
+        }}>
+          <span className="body-text" style={{ fontSize: 10, color: 'var(--text-3)' }}>
+            {isLoggedIn
+              ? mapView === 'world'
+                ? 'Click a country to explore · Click to pin'
+                : 'Click a state to pin · Drag pins to move'
+              : <><Link href="/login" style={{ color: 'var(--gold)', textDecoration: 'none' }}>Log in</Link> to pin your favorite places</>
+            }
+          </span>
+          {/* Quick view switcher */}
+          <div style={{ display: 'flex', gap: 3 }}>
+            <button style={tabBtn(mapView === 'world')} onClick={() => switchView('world')}>🌍</button>
+            <button style={tabBtn(mapView === 'usa')} onClick={() => switchView('usa')}>🇺🇸</button>
+          </div>
         </div>
       </div>
 
-      {/* ── ADVENTURE SPOTS ── */}
-      {isLoggedIn && pins.length === 0 && (
-        <div className="rp-card" style={{ padding: 24, borderRadius: 14, textAlign: 'center', border: '1px dashed rgba(200,155,60,0.22)', marginBottom: 14 }}>
-          <div style={{ fontSize: 36, marginBottom: 10 }}>🌍</div>
-          <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 8, color: 'var(--text-2)', marginBottom: 6 }}>Your adventure awaits!</div>
-          <p className="body-text" style={{ fontSize: 12, color: 'var(--text-3)', margin: 0 }}>Tap the map above to mark a favorite place or dream destination.</p>
+      {/* ── EMPTY STATE ─────────────────────────────────────────── */}
+      {isLoggedIn && visiblePins.length === 0 && (
+        <div style={{
+          background: 'var(--bg-card)',
+          border: '1px dashed rgba(200,155,60,0.2)',
+          borderRadius: 12,
+          padding: '22px 20px',
+          textAlign: 'center',
+        }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>
+            {mapView === 'world' ? '🌍' : '🇺🇸'}
+          </div>
+          <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: 'var(--text-2)', marginBottom: 6 }}>
+            {mapView === 'world' ? 'No world pins yet' : 'No USA pins yet'}
+          </div>
+          <p className="body-text" style={{ fontSize: 11, color: 'var(--text-3)', margin: 0 }}>
+            {mapView === 'world'
+              ? 'Click anywhere on the map to mark a place'
+              : 'Click a state to drop your first USA pin'}
+          </p>
         </div>
       )}
 
-      {pins.length > 0 && (
-        <div className="rp-card" style={{ padding: '14px 14px 16px', borderRadius: 14, marginBottom: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <span style={{ fontSize: 15 }}>📍</span>
-            <h2 style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 8, color: 'var(--text-1)', margin: 0 }}>
-              Favorite Adventure Spots
-            </h2>
+      {/* ── ADVENTURE SPOTS ─────────────────────────────────────── */}
+      {visiblePins.length > 0 && (
+        <div style={{
+          background: 'var(--bg-card)',
+          border: '1px solid rgba(200,155,60,0.15)',
+          borderRadius: 12,
+          overflow: 'hidden',
+        }}>
+          {/* Section header */}
+          <div style={{
+            padding: '10px 14px',
+            borderBottom: '1px solid rgba(200,155,60,0.08)',
+            display: 'flex', alignItems: 'center', gap: 8,
+            background: 'rgba(0,0,0,0.2)',
+          }}>
+            <span style={{ fontSize: 13 }}>📍</span>
+            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: 'var(--text-1)', flex: 1 }}>
+              {mapView === 'world' ? 'World Destinations' : 'USA Destinations'}
+            </span>
+            <span className="body-text" style={{ fontSize: 10, color: 'var(--text-3)' }}>
+              {visiblePins.length} {visiblePins.length === 1 ? 'place' : 'places'}
+            </span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 10 }}>
-            {pins.map(pin => (
-              <div key={pin.id} style={{ background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(200,155,60,0.16)', borderRadius: 11, padding: 13, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                  <div style={{ width: 40, height: 40, flexShrink: 0, borderRadius: 9, background: 'rgba(200,155,60,0.08)', border: '1px solid rgba(200,155,60,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
+          {/* Cards grid */}
+          <div style={{ padding: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 9 }}>
+            {visiblePins.map(pin => (
+              <div key={pin.id} style={{
+                background: 'rgba(0,0,0,0.3)',
+                border: '1px solid rgba(200,155,60,0.12)',
+                borderRadius: 10,
+                padding: 12,
+                display: 'flex', flexDirection: 'column', gap: 8,
+              }}>
+                {/* Top */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+                  <div style={{
+                    width: 38, height: 38, flexShrink: 0,
+                    borderRadius: 9, background: 'rgba(200,155,60,0.07)',
+                    border: '1px solid rgba(200,155,60,0.16)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 20,
+                  }}>
                     {pin.emoji}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: 'var(--gold)', lineHeight: 1.5, wordBreak: 'break-word', marginBottom: 3 }}>
+                    <div style={{
+                      fontFamily: "'Press Start 2P', monospace",
+                      fontSize: 6, color: 'var(--gold)',
+                      lineHeight: 1.5, wordBreak: 'break-word', marginBottom: 3,
+                    }}>
                       {pin.name}
                     </div>
-                    <div className="body-text" style={{ fontSize: 10, color: 'var(--text-3)' }}>
+                    <div className="body-text" style={{ fontSize: 9, color: 'var(--text-3)' }}>
                       {new Date(pin.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </div>
                   </div>
                 </div>
 
+                {/* Reason */}
                 {pin.reason && (
-                  <div style={{ borderLeft: '2px solid rgba(200,155,60,0.38)', paddingLeft: 9 }}>
-                    <p className="body-text" style={{ fontSize: 11, color: 'var(--text-2)', margin: 0, lineHeight: 1.6, fontStyle: 'italic' }}>
-                      &ldquo;{pin.reason}&rdquo;
-                    </p>
-                  </div>
+                  <p className="body-text" style={{
+                    fontSize: 11, color: 'var(--text-2)', margin: 0,
+                    lineHeight: 1.55, fontStyle: 'italic',
+                    borderLeft: '2px solid rgba(200,155,60,0.3)',
+                    paddingLeft: 8,
+                  }}>
+                    &ldquo;{pin.reason}&rdquo;
+                  </p>
                 )}
 
+                {/* Owner actions */}
                 {userId && pin.userId === userId && (
                   <div style={{ display: 'flex', gap: 5 }}>
-                    <button onClick={() => handleEditPin(pin)} className="body-text" style={{ flex: 1, fontSize: 10, padding: '5px 0', background: 'rgba(200,155,60,0.07)', border: '1px solid rgba(200,155,60,0.25)', borderRadius: 7, color: 'var(--gold)', cursor: 'pointer' }}>
+                    <button onClick={() => handleEditPin(pin)} className="body-text"
+                      style={{ flex: 1, fontSize: 10, padding: '5px 0', background: 'rgba(200,155,60,0.07)', border: '1px solid rgba(200,155,60,0.22)', borderRadius: 6, color: 'var(--gold)', cursor: 'pointer' }}>
                       ✏️ Edit
                     </button>
-                    <button onClick={() => handleDeletePin(pin)} disabled={saving} className="body-text" style={{ flex: 1, fontSize: 10, padding: '5px 0', background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 7, color: '#ef4444', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1 }}>
-                      🗑 Delete
+                    <button onClick={() => handleDeletePin(pin)} disabled={saving} className="body-text"
+                      style={{ flex: 1, fontSize: 10, padding: '5px 0', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.18)', borderRadius: 6, color: '#ef4444', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.55 : 1 }}>
+                      🗑️ Delete
                     </button>
                   </div>
                 )}
@@ -455,44 +614,55 @@ export default function TravelMapClient({ initialPins, isLoggedIn, userId }: Pro
         </div>
       )}
 
-      {/* ── ADD / EDIT MODAL ── */}
+      {/* ── ADD / EDIT MODAL ─────────────────────────────────────── */}
       {showFormModal && (
-        <div onClick={closeAll} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '0 16px' }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-elevated)', border: '1px solid rgba(200,155,60,0.4)', borderRadius: 16, padding: '20px 18px', width: '100%', maxWidth: 390, boxShadow: '0 0 60px rgba(0,0,0,0.9)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-              <span style={{ fontSize: 22 }}>{form.emoji}</span>
-              <h3 style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: 'var(--gold)', margin: 0 }}>
-                {mode === 'editing' ? 'Edit Destination' : 'New Pin'}
+        <div onClick={closeAll} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.78)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '0 16px' }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: 'var(--bg-elevated)',
+            border: '1px solid rgba(200,155,60,0.35)',
+            borderRadius: 14, padding: '18px 16px',
+            width: '100%', maxWidth: 380,
+            boxShadow: '0 0 80px rgba(0,0,0,0.9)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 14 }}>
+              <span style={{ fontSize: 20 }}>{form.emoji}</span>
+              <h3 style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 8, color: 'var(--gold)', margin: 0 }}>
+                {mode === 'editing' ? 'Edit Destination' : `New ${mapView === 'usa' ? 'USA' : 'World'} Pin`}
               </h3>
             </div>
 
-            <div style={{ marginBottom: 13 }}>
-              <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 6, color: 'var(--text-3)', marginBottom: 7, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Icon</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 5, color: 'var(--text-3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Icon</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                 {TRAVEL_EMOJIS.map(emoji => (
-                  <button key={emoji} onClick={() => setForm(f => ({ ...f, emoji }))} style={{ width: 36, height: 36, fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: form.emoji === emoji ? '2px solid #c89b3c' : '1px solid rgba(42,40,32,1)', background: form.emoji === emoji ? 'rgba(200,155,60,0.18)' : 'rgba(0,0,0,0.3)', cursor: 'pointer', boxShadow: form.emoji === emoji ? '0 0 7px rgba(200,155,60,0.3)' : 'none' }}>
+                  <button key={emoji} onClick={() => setForm(f => ({ ...f, emoji }))}
+                    style={{ width: 34, height: 34, fontSize: 17, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 7, border: form.emoji === emoji ? '2px solid #c89b3c' : '1px solid rgba(42,40,32,1)', background: form.emoji === emoji ? 'rgba(200,155,60,0.15)' : 'rgba(0,0,0,0.3)', cursor: 'pointer' }}>
                     {emoji}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div style={{ marginBottom: 10 }}>
-              <label style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 6, color: 'var(--text-3)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Place Name *</label>
-              <input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Amalfi Coast, Italy" maxLength={100} autoFocus className="osrs-input body-text" style={{ width: '100%', fontSize: 13, padding: '9px 11px', borderRadius: 9, boxSizing: 'border-box' }} />
+            <div style={{ marginBottom: 9 }}>
+              <label style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 5, color: 'var(--text-3)', display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Place Name *</label>
+              <input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Amalfi Coast, Italy" maxLength={100} autoFocus className="osrs-input body-text"
+                style={{ width: '100%', fontSize: 12, padding: '8px 11px', borderRadius: 8, boxSizing: 'border-box' }} />
             </div>
 
-            <div style={{ marginBottom: 18 }}>
-              <label style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 6, color: 'var(--text-3)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Why This Place?</label>
-              <textarea value={form.reason} onChange={e => setForm(f => ({ ...f, reason: e.target.value }))} placeholder="A dream destination, a memory, or why it is special..." maxLength={500} rows={3} className="osrs-input body-text" style={{ width: '100%', fontSize: 13, padding: '9px 11px', borderRadius: 9, resize: 'vertical', boxSizing: 'border-box' }} />
-              <div className="body-text" style={{ fontSize: 10, color: 'var(--text-3)', textAlign: 'right', marginTop: 3 }}>{form.reason.length}/500</div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 5, color: 'var(--text-3)', display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Why This Place?</label>
+              <textarea value={form.reason} onChange={e => setForm(f => ({ ...f, reason: e.target.value }))} placeholder="A dream destination, a memory, or why it is special..." maxLength={500} rows={3} className="osrs-input body-text"
+                style={{ width: '100%', fontSize: 12, padding: '8px 11px', borderRadius: 8, resize: 'vertical', boxSizing: 'border-box' }} />
+              <div className="body-text" style={{ fontSize: 9, color: 'var(--text-3)', textAlign: 'right', marginTop: 2 }}>{form.reason.length}/500</div>
             </div>
 
-            <div style={{ display: 'flex', gap: 9 }}>
-              <button onClick={mode === 'editing' ? handleSaveEdit : handleSaveNew} disabled={saving || !form.name.trim()} className="osrs-btn" style={{ flex: 1, fontSize: 8, padding: '10px 0', cursor: saving || !form.name.trim() ? 'not-allowed' : 'pointer', opacity: saving || !form.name.trim() ? 0.55 : 1 }}>
-                {saving ? 'Saving...' : mode === 'editing' ? 'Update Pin' : 'Drop Pin!'}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={mode === 'editing' ? handleSaveEdit : handleSaveNew} disabled={saving || !form.name.trim()} className="osrs-btn"
+                style={{ flex: 1, fontSize: 7, padding: '9px 0', cursor: saving || !form.name.trim() ? 'not-allowed' : 'pointer', opacity: saving || !form.name.trim() ? 0.5 : 1 }}>
+                {saving ? 'Saving...' : mode === 'editing' ? 'Update' : 'Drop Pin!'}
               </button>
-              <button onClick={closeAll} className="body-text" style={{ padding: '10px 15px', background: 'rgba(0,0,0,0.4)', border: '1px solid var(--border)', borderRadius: 9, color: 'var(--text-2)', cursor: 'pointer', fontSize: 13 }}>
+              <button onClick={closeAll} className="body-text"
+                style={{ padding: '9px 14px', background: 'rgba(0,0,0,0.4)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text-2)', cursor: 'pointer', fontSize: 12 }}>
                 Cancel
               </button>
             </div>
@@ -500,40 +670,49 @@ export default function TravelMapClient({ initialPins, isLoggedIn, userId }: Pro
         </div>
       )}
 
-      {/* ── VIEW PIN MODAL ── */}
+      {/* ── VIEW PIN MODAL ───────────────────────────────────────── */}
       {showViewModal && activePin && (
-        <div onClick={closeAll} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '0 16px' }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-elevated)', border: '1px solid rgba(200,155,60,0.4)', borderRadius: 16, padding: '20px 18px', width: '100%', maxWidth: 350, boxShadow: '0 0 60px rgba(0,0,0,0.9)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 13 }}>
-              <div style={{ width: 50, height: 50, borderRadius: 12, background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, flexShrink: 0 }}>
+        <div onClick={closeAll} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '0 16px' }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: 'var(--bg-elevated)',
+            border: '1px solid rgba(200,155,60,0.35)',
+            borderRadius: 14, padding: '18px 16px',
+            width: '100%', maxWidth: 340,
+            boxShadow: '0 0 80px rgba(0,0,0,0.9)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 12 }}>
+              <div style={{ width: 46, height: 46, borderRadius: 11, background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.28)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>
                 {activePin.emoji}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 8, color: 'var(--gold)', lineHeight: 1.5, wordBreak: 'break-word', marginBottom: 4 }}>
+                <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 8, color: 'var(--gold)', lineHeight: 1.5, wordBreak: 'break-word', marginBottom: 3 }}>
                   {activePin.name}
                 </div>
-                <div className="body-text" style={{ fontSize: 10, color: 'var(--text-3)' }}>
+                <div className="body-text" style={{ fontSize: 9, color: 'var(--text-3)' }}>
                   {new Date(activePin.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                 </div>
               </div>
             </div>
 
             {activePin.reason && (
-              <div style={{ borderLeft: '3px solid rgba(200,155,60,0.5)', paddingLeft: 12, marginBottom: 16 }}>
-                <p className="body-text" style={{ fontSize: 13, color: 'var(--text-1)', margin: 0, lineHeight: 1.65, fontStyle: 'italic' }}>
-                  &ldquo;{activePin.reason}&rdquo;
-                </p>
-              </div>
+              <p className="body-text" style={{
+                fontSize: 12, color: 'var(--text-1)', margin: '0 0 14px',
+                lineHeight: 1.65, fontStyle: 'italic',
+                borderLeft: '2px solid rgba(200,155,60,0.45)',
+                paddingLeft: 11,
+              }}>
+                &ldquo;{activePin.reason}&rdquo;
+              </p>
             )}
 
             <div style={{ display: 'flex', gap: 7 }}>
               {userId && activePin.userId === userId && (
                 <>
-                  <button onClick={() => handleEditPin(activePin)} className="body-text" style={{ flex: 1, fontSize: 12, padding: '8px 0', background: 'rgba(200,155,60,0.1)', border: '1px solid rgba(200,155,60,0.3)', borderRadius: 9, color: 'var(--gold)', cursor: 'pointer' }}>✏️ Edit</button>
-                  <button onClick={() => handleDeletePin(activePin)} disabled={saving} className="body-text" style={{ flex: 1, fontSize: 12, padding: '8px 0', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 9, color: '#ef4444', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1 }}>🗑 Delete</button>
+                  <button onClick={() => handleEditPin(activePin)} className="body-text" style={{ flex: 1, fontSize: 11, padding: '8px 0', background: 'rgba(200,155,60,0.09)', border: '1px solid rgba(200,155,60,0.28)', borderRadius: 8, color: 'var(--gold)', cursor: 'pointer' }}>✏️ Edit</button>
+                  <button onClick={() => handleDeletePin(activePin)} disabled={saving} className="body-text" style={{ flex: 1, fontSize: 11, padding: '8px 0', background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.22)', borderRadius: 8, color: '#ef4444', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.55 : 1 }}>🗑️ Delete</button>
                 </>
               )}
-              <button onClick={closeAll} className="body-text" style={{ flex: 1, padding: '8px 0', background: 'rgba(0,0,0,0.4)', border: '1px solid var(--border)', borderRadius: 9, color: 'var(--text-2)', cursor: 'pointer', fontSize: 12 }}>Close</button>
+              <button onClick={closeAll} className="body-text" style={{ flex: 1, padding: '8px 0', background: 'rgba(0,0,0,0.4)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text-2)', cursor: 'pointer', fontSize: 11 }}>Close</button>
             </div>
           </div>
         </div>
