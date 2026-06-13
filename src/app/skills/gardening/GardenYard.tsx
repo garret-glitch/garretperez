@@ -169,6 +169,7 @@ function PlantPopup({ plant, isAdmin, onClose, onUpdate, onDelete }: {
   const [editNotes, setEditNotes]         = useState(plant.notes ?? '')
   const [editHarvested, setEditHarvested] = useState(plant.harvestStatus)
   const [localPhotos, setLocalPhotos]     = useState<string[]>(initPhotos)
+  const [lightbox, setLightbox]           = useState<string | null>(null)
   const [saving, setSaving]   = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -287,7 +288,8 @@ function PlantPopup({ plant, isAdmin, onClose, onUpdate, onDelete }: {
                 {localPhotos.map((src, i) => (
                   <div key={i} style={{ position: 'relative', flexShrink: 0 }}>
                     {src
-                      ? <img src={src} alt="" style={{ width: 90, height: 90, objectFit: 'cover', borderRadius: 10, border: '1px solid rgba(200,155,60,0.2)', display: 'block' }} />
+                      ? <img src={src} alt="" onClick={() => setLightbox(src)}
+                          style={{ width: 90, height: 90, objectFit: 'cover', borderRadius: 10, border: '1px solid rgba(200,155,60,0.2)', display: 'block', cursor: 'zoom-in' }} />
                       : <div style={{ width: 90, height: 90, borderRadius: 10, background: '#1c1610', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>⏳</div>}
                     {isAdmin && src && (
                       <button type="button" onClick={() => handleRemovePhoto(i)}
@@ -353,6 +355,16 @@ function PlantPopup({ plant, isAdmin, onClose, onUpdate, onDelete }: {
           )}
         </div>
       </div>
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div onClick={() => setLightbox(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, cursor: 'zoom-out' }}>
+          <img src={lightbox} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 12, boxShadow: '0 8px 60px rgba(0,0,0,0.8)' }} onClick={e => e.stopPropagation()} />
+          <button onClick={() => setLightbox(null)}
+            style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.12)', border: 'none', color: '#fff', fontSize: 20, width: 36, height: 36, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+        </div>
+      )}
     </div>
   )
 }
