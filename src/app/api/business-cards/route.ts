@@ -33,7 +33,7 @@ export async function POST(req: Request) {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
-    const { name, title, company, email, phone, linkedin, website, tagline, accentColor } = await req.json()
+    const { name, title, company, email, phone, linkedin, website, tagline, imageUrl, accentColor } = await req.json()
     if (!name?.trim()) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
 
     const color = ALLOWED_COLORS.includes(accentColor) ? accentColor : '#c89b3c'
@@ -47,6 +47,7 @@ export async function POST(req: Request) {
       linkedin: linkedin?.trim().slice(0, 100) || null,
       website: website?.trim().slice(0, 120) || null,
       tagline: tagline?.trim().slice(0, 100) || null,
+      imageUrl: imageUrl || null,
       accentColor: color,
     }
 

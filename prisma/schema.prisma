@@ -456,6 +456,7 @@ model BusinessCard {
   linkedin    String?
   website     String?
   tagline     String?
+  imageUrl    String?  @db.Text
   accentColor String   @default("#c89b3c")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

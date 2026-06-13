@@ -385,6 +385,7 @@ export default function CardsPageClient({
                     linkedin: form.linkedin || null,
                     website: form.website || null,
                     tagline: form.tagline || null,
+                    imageUrl: null,
                     createdAt: new Date().toISOString(),
                     user: { id: '', username: 'you', level: 1 },
                   }}

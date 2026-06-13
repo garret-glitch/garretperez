@@ -1,5 +1,5 @@
 'use client'
-import { useState, useTransition } from 'react'
+import { useState, useRef, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import BusinessCardDisplay, { type CardData } from './BusinessCardDisplay'
 
@@ -11,6 +11,28 @@ const ACCENT_COLORS = [
   { value: '#ef4444', label: 'Ruby' },
   { value: '#f97316', label: 'Amber' },
 ]
+
+async function compressImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = e => {
+      const img = new Image()
+      img.onload = () => {
+        const MAX = 1200
+        const scale = Math.min(1, MAX / Math.max(img.width, img.height))
+        const canvas = document.createElement('canvas')
+        canvas.width  = Math.round(img.width  * scale)
+        canvas.height = Math.round(img.height * scale)
+        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
+        resolve(canvas.toDataURL('image/jpeg', 0.78))
+      }
+      img.onerror = reject
+      img.src = e.target?.result as string
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
 
 interface FormState {
   name: string
@@ -74,15 +96,35 @@ export default function BusinessCardsSection({
 }) {
   const router = useRouter()
   const [, startTransition] = useTransition()
+  const fileRef = useRef<HTMLInputElement>(null)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState<FormState>(() => blankForm(myCard))
+  const [imgSrc, setImgSrc] = useState<string | null>(myCard?.imageUrl ?? null)
+  const [imgLoading, setImgLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
   const set = (k: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }))
 
-  function openForm() { setForm(blankForm(myCard)); setError(''); setShowForm(true) }
+  function openForm() {
+    setForm(blankForm(myCard))
+    setImgSrc(myCard?.imageUrl ?? null)
+    setError('')
+    setShowForm(true)
+  }
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) { setError('Please select an image file.'); return }
+    if (file.size > 10 * 1024 * 1024) { setError('Image must be under 10 MB.'); return }
+    setImgLoading(true)
+    try { setImgSrc(await compressImage(file)) }
+    catch { setError('Could not load image.') }
+    setImgLoading(false)
+    e.target.value = ''
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -92,7 +134,7 @@ export default function BusinessCardsSection({
       const res = await fetch('/api/business-cards', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, imageUrl: imgSrc }),
       })
       if (!res.ok) { const j = await res.json(); setError(j.error || 'Failed to save.') }
       else { setShowForm(false); startTransition(() => router.refresh()) }
@@ -216,7 +258,55 @@ export default function BusinessCardsSection({
             <button onClick={() => setShowForm(false)} style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: '#907848', background: 'transparent', border: '1px solid #3a2a18', padding: '4px 9px', borderRadius: 3, cursor: 'pointer' }}>✕</button>
           </div>
 
+          <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} />
+
           <form onSubmit={handleSubmit}>
+            {/* Photo upload */}
+            <div style={{ marginBottom: 18 }}>
+              <label style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 6, color: '#907848', display: 'block', marginBottom: 8 }}>
+                Card Photo (optional)
+              </label>
+              {imgSrc ? (
+                <div style={{ position: 'relative', display: 'inline-block' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={imgSrc} alt="Card preview" style={{
+                    width: '100%', maxWidth: 300, maxHeight: 180,
+                    objectFit: 'cover', display: 'block', borderRadius: 4,
+                    border: `1px solid ${ac}40`,
+                  }} />
+                  <button type="button" onClick={() => setImgSrc(null)} style={{
+                    position: 'absolute', top: 6, right: 6,
+                    width: 26, height: 26, borderRadius: '50%',
+                    background: 'rgba(0,0,0,0.8)', border: 'none',
+                    color: '#e8e6e0', fontSize: 13, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>✕</button>
+                  <button type="button" onClick={() => fileRef.current?.click()} style={{
+                    marginTop: 6, display: 'block', padding: '5px 12px',
+                    background: 'transparent', border: `1px solid ${ac}40`,
+                    color: '#c8a870', fontFamily: 'Inter, sans-serif', fontSize: 12, cursor: 'pointer', borderRadius: 3,
+                  }}>📷 Change Photo</button>
+                </div>
+              ) : (
+                <button type="button" onClick={() => fileRef.current?.click()} disabled={imgLoading}
+                  style={{
+                    width: '100%', maxWidth: 300, padding: '22px 20px',
+                    background: '#1c1812', border: `2px dashed rgba(200,155,60,0.22)`,
+                    color: '#907848', cursor: 'pointer', borderRadius: 4,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+                  }}
+                  onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(200,155,60,0.5)' }}
+                  onMouseOut={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(200,155,60,0.22)' }}
+                >
+                  <span style={{ fontSize: 24 }}>📷</span>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 600 }}>
+                    {imgLoading ? 'Loading...' : 'Add Card Photo'}
+                  </span>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11 }}>Headshot, logo, or banner · optional</span>
+                </button>
+              )}
+            </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14, marginBottom: 18 }}>
               <Field label="Name *">
                 <input value={form.name} onChange={set('name')} maxLength={60} placeholder="Your full name" required style={inputCss} />
@@ -276,6 +366,7 @@ export default function BusinessCardsSection({
                     email: form.email || null, phone: form.phone || null,
                     linkedin: form.linkedin || null, website: form.website || null,
                     tagline: form.tagline || null,
+                    imageUrl: imgSrc,
                     createdAt: new Date().toISOString(),
                     user: { id: '', username: 'you', level: 1 },
                   }}

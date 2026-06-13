@@ -10,6 +10,7 @@ export interface CardData {
   linkedin: string | null
   website: string | null
   tagline: string | null
+  imageUrl: string | null
   accentColor: string
   createdAt: string
   user: { id: string; username: string; level: number }
@@ -46,18 +47,12 @@ export default function BusinessCardDisplay({
       {/* Perspective wrapper */}
       <div
         className={`bcard-${uid}`}
-        style={{
-          width: '100%',
-          paddingBottom: '57%',
-          position: 'relative',
-          perspective: '1200px',
-        }}
+        style={{ width: '100%', paddingBottom: '66%', position: 'relative', perspective: '1200px' }}
       >
         <div
           className={`bcard-inner-${uid}`}
           style={{
-            position: 'absolute',
-            inset: 0,
+            position: 'absolute', inset: 0,
             transformStyle: 'preserve-3d',
             transition: 'transform 0.65s cubic-bezier(0.4, 0, 0.2, 1)',
           }}
@@ -73,89 +68,123 @@ export default function BusinessCardDisplay({
             borderRadius: 8,
             overflow: 'hidden',
             boxShadow: `0 6px 28px rgba(0,0,0,0.65), 0 0 0 1px ${ac}12, inset 0 1px 0 rgba(255,255,255,0.04)`,
-            padding: '14px 16px 14px 22px',
             display: 'flex',
             flexDirection: 'column',
           }}>
             {/* Left accent bar */}
             <div style={{
-              position: 'absolute', left: 0, top: 0, bottom: 0, width: 5,
+              position: 'absolute', left: 0, top: 0, bottom: 0, width: 5, zIndex: 2,
               background: `linear-gradient(180deg, ${ac} 0%, ${ac}70 100%)`,
             }} />
 
             {/* Grid pattern */}
             <div style={{
-              position: 'absolute', inset: 0, opacity: 0.022, pointerEvents: 'none',
+              position: 'absolute', inset: 0, opacity: 0.022, pointerEvents: 'none', zIndex: 0,
               backgroundImage: `linear-gradient(${ac} 1px, transparent 1px), linear-gradient(90deg, ${ac} 1px, transparent 1px)`,
               backgroundSize: '28px 28px',
             }} />
 
-            {/* Member number chip */}
-            {memberNum !== undefined && (
-              <div style={{
-                position: 'absolute', top: 10, right: 12,
-                fontFamily: "'Press Start 2P', monospace", fontSize: 5,
-                color: `${ac}90`, letterSpacing: '0.04em',
-              }}>
-                #{String(memberNum).padStart(3, '0')}
+            {/* Image hero (if present) */}
+            {card.imageUrl && (
+              <div style={{ position: 'relative', height: '44%', flexShrink: 0, marginLeft: 5 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={card.imageUrl}
+                  alt={card.name}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                />
+                {/* Bottom fade into card bg */}
+                <div style={{
+                  position: 'absolute', bottom: 0, left: 0, right: 0, height: 40,
+                  background: 'linear-gradient(to top, #12100e, transparent)',
+                  pointerEvents: 'none',
+                }} />
+                {/* Member number over image */}
+                {memberNum !== undefined && (
+                  <div style={{
+                    position: 'absolute', top: 8, right: 10,
+                    fontFamily: "'Press Start 2P', monospace", fontSize: 5,
+                    color: `${ac}cc`, background: 'rgba(10,8,6,0.85)',
+                    border: `1px solid ${ac}40`, padding: '2px 6px', borderRadius: 2,
+                  }}>
+                    #{String(memberNum).padStart(3, '0')}
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Logo + company */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, position: 'relative' }}>
-              <div style={{
-                width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
-                background: `${ac}18`, border: `1.5px solid ${ac}55`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontFamily: "'Press Start 2P', monospace", fontSize: 8, color: ac,
-              }}>
-                {initials(card.name)}
-              </div>
-              {card.company && (
-                <span style={{
-                  fontFamily: "'Inter', system-ui, sans-serif", fontSize: 9.5, color: '#907858',
-                  letterSpacing: '0.06em', textTransform: 'uppercase',
-                }}>
-                  {card.company}
-                </span>
-              )}
-            </div>
-
-            {/* Name */}
+            {/* Content area */}
             <div style={{
-              fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: '#f0d898',
-              lineHeight: 1.55, marginBottom: 5, position: 'relative',
+              flex: 1, display: 'flex', flexDirection: 'column',
+              padding: card.imageUrl ? '10px 14px 12px 22px' : '14px 14px 12px 22px',
+              position: 'relative', zIndex: 1, minHeight: 0,
             }}>
-              {card.name}
-            </div>
+              {/* Member number (no-image position) */}
+              {!card.imageUrl && memberNum !== undefined && (
+                <div style={{
+                  position: 'absolute', top: 10, right: 12,
+                  fontFamily: "'Press Start 2P', monospace", fontSize: 5,
+                  color: `${ac}90`, letterSpacing: '0.04em',
+                }}>
+                  #{String(memberNum).padStart(3, '0')}
+                </div>
+              )}
 
-            {/* Title */}
-            {card.title && (
-              <div style={{
-                fontFamily: "'Inter', system-ui, sans-serif", fontSize: 11,
-                color: ac, fontWeight: 600, marginBottom: 6, position: 'relative',
-              }}>
-                {card.title}
+              {/* Logo circle + company */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <div style={{
+                  width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+                  background: `${ac}18`, border: `1.5px solid ${ac}55`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: ac,
+                }}>
+                  {initials(card.name)}
+                </div>
+                {card.company && (
+                  <span style={{
+                    fontFamily: "'Inter', system-ui, sans-serif", fontSize: 9.5, color: '#907858',
+                    letterSpacing: '0.06em', textTransform: 'uppercase',
+                  }}>
+                    {card.company}
+                  </span>
+                )}
               </div>
-            )}
 
-            {/* Tagline */}
-            {card.tagline && (
+              {/* Name */}
               <div style={{
-                fontFamily: "'Inter', system-ui, sans-serif", fontSize: 10,
-                color: '#786850', fontStyle: 'italic', position: 'relative', flex: 1,
+                fontFamily: "'Press Start 2P', monospace", fontSize: 8, color: '#f0d898',
+                lineHeight: 1.5, marginBottom: 4,
               }}>
-                &ldquo;{card.tagline}&rdquo;
+                {card.name}
               </div>
-            )}
 
-            {/* Bottom row */}
-            <div style={{ marginTop: 'auto', paddingTop: 8, position: 'relative' }}>
-              <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 5, color: '#504030' }}>
-                @{card.user.username}
-              </span>
+              {/* Title */}
+              {card.title && (
+                <div style={{
+                  fontFamily: "'Inter', system-ui, sans-serif", fontSize: 11,
+                  color: ac, fontWeight: 600, marginBottom: 4,
+                }}>
+                  {card.title}
+                </div>
+              )}
+
+              {/* Tagline */}
+              {card.tagline && (
+                <div style={{
+                  fontFamily: "'Inter', system-ui, sans-serif", fontSize: 10,
+                  color: '#786850', fontStyle: 'italic', flex: 1,
+                }}>
+                  &ldquo;{card.tagline}&rdquo;
+                </div>
+              )}
+
+              {/* Bottom row */}
+              <div style={{ marginTop: 'auto', paddingTop: 6 }}>
+                <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 5, color: '#504030' }}>
+                  @{card.user.username}
+                </span>
+              </div>
             </div>
-
           </div>
 
           {/* ── BACK ── */}
@@ -229,7 +258,6 @@ export default function BusinessCardDisplay({
               position: 'absolute', bottom: 0, left: 0, right: 0, height: 3,
               background: `linear-gradient(90deg, transparent 0%, ${ac}60 35%, ${ac}60 65%, transparent 100%)`,
             }} />
-
           </div>
         </div>
       </div>
