@@ -191,13 +191,33 @@ function PlantPopup({ plant, isAdmin, onClose, onUpdate, onDelete }: {
     setDeleting(false)
   }
 
+  async function savePhotos(photos: string[]) {
+    await fetch(`/api/garden/yard-plants/${plant.id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ photos }),
+    })
+  }
+
   async function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; if (!file) return
     if (file.size > 3_000_000) { alert('Max 3 MB'); return }
-    setUploading(true); setLocalPhotos(p => [...p, ''])
+    setUploading(true)
+    setLocalPhotos(p => { const next = [...p, '']; return next })
     const b64 = await toBase64(file)
-    setLocalPhotos(p => { const n = [...p]; n[n.length - 1] = b64; return n })
+    setLocalPhotos(p => {
+      const next = [...p]; next[next.length - 1] = b64
+      savePhotos(next.filter(Boolean))
+      return next
+    })
     setUploading(false); e.target.value = ''
+  }
+
+  function handleRemovePhoto(i: number) {
+    setLocalPhotos(p => {
+      const next = p.filter((_, j) => j !== i)
+      savePhotos(next)
+      return next
+    })
   }
 
   return (
@@ -259,12 +279,31 @@ function PlantPopup({ plant, isAdmin, onClose, onUpdate, onDelete }: {
           {plant.plantType?.careInstructions && <div><div style={labelStyle}>Care Instructions</div><p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: S.text3, lineHeight: 1.65, margin: 0 }}>{plant.plantType.careInstructions}</p></div>}
           {plant.plantType?.description && <div><div style={labelStyle}>About This Plant</div><p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: S.text3, lineHeight: 1.65, margin: 0 }}>{plant.plantType.description}</p></div>}
 
-          {/* Photos */}
-          {initPhotos.length > 0 && !editMode && (
+          {/* Photos — always visible; admin can add/remove inline */}
+          {(localPhotos.length > 0 || isAdmin) && (
             <div>
               <div style={labelStyle}>Photos</div>
-              <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
-                {initPhotos.map((src, i) => <img key={i} src={src} alt="" style={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 10, flexShrink: 0, border: '1px solid rgba(200,155,60,0.2)' }} />)}
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {localPhotos.map((src, i) => (
+                  <div key={i} style={{ position: 'relative', flexShrink: 0 }}>
+                    {src
+                      ? <img src={src} alt="" style={{ width: 90, height: 90, objectFit: 'cover', borderRadius: 10, border: '1px solid rgba(200,155,60,0.2)', display: 'block' }} />
+                      : <div style={{ width: 90, height: 90, borderRadius: 10, background: '#1c1610', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>⏳</div>}
+                    {isAdmin && src && (
+                      <button type="button" onClick={() => handleRemovePhoto(i)}
+                        style={{ position: 'absolute', top: 3, right: 3, width: 20, height: 20, borderRadius: '50%', background: 'rgba(180,50,50,0.85)', border: 'none', color: '#fff', fontSize: 11, cursor: 'pointer', padding: 0, lineHeight: '20px', textAlign: 'center' }}>✕</button>
+                    )}
+                  </div>
+                ))}
+                {isAdmin && (
+                  <>
+                    <button type="button" onClick={() => photoRef.current?.click()} disabled={uploading}
+                      style={{ width: 90, height: 90, borderRadius: 10, border: '2px dashed rgba(200,155,60,0.3)', background: 'transparent', color: S.text4, cursor: uploading ? 'wait' : 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, fontFamily: 'Inter, sans-serif', fontSize: 12 }}>
+                      <span style={{ fontSize: 24 }}>📷</span>{uploading ? '…' : 'Add Photo'}
+                    </button>
+                    <input ref={photoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhoto} />
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -291,25 +330,6 @@ function PlantPopup({ plant, isAdmin, onClose, onUpdate, onDelete }: {
               </label>
               <div><label style={labelStyle}>Notes</label>
                 <textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
-              </div>
-              {/* Photos */}
-              <div>
-                <label style={labelStyle}>Photos</label>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {localPhotos.map((src, i) => (
-                    <div key={i} style={{ position: 'relative', flexShrink: 0 }}>
-                      {src ? <img src={src} alt="" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8 }} />
-                           : <div style={{ width: 80, height: 80, borderRadius: 8, background: '#1c1610', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>⏳</div>}
-                      {src && <button type="button" onClick={() => setLocalPhotos(p => p.filter((_, j) => j !== i))}
-                        style={{ position: 'absolute', top: 2, right: 2, width: 20, height: 20, borderRadius: '50%', background: 'rgba(180,50,50,0.85)', border: 'none', color: '#fff', fontSize: 11, cursor: 'pointer', padding: 0, lineHeight: '20px', textAlign: 'center' }}>✕</button>}
-                    </div>
-                  ))}
-                  <button type="button" onClick={() => photoRef.current?.click()} disabled={uploading}
-                    style={{ width: 80, height: 80, borderRadius: 8, border: '2px dashed rgba(200,155,60,0.3)', background: 'transparent', color: S.text4, cursor: uploading ? 'wait' : 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, fontFamily: 'Inter, sans-serif', fontSize: 11 }}>
-                    <span style={{ fontSize: 22 }}>📷</span>{uploading ? '…' : 'Add'}
-                  </button>
-                  <input ref={photoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhoto} />
-                </div>
               </div>
             </div>
           )}
