@@ -12,7 +12,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import {
   Hammer, Briefcase, Users, Fish, Wine, Leaf, Compass, Gamepad2,
-  GripVertical, Home, Scroll, UserCheck, ShoppingBag,
+  GripVertical, Home, Scroll,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import SidebarFunGame from './SidebarFunGame'
@@ -20,26 +20,23 @@ import SidebarFunGame from './SidebarFunGame'
 export type ChanKey =
   | 'PROJECTS' | 'BUSINESS' | 'COMMUNITY'
   | 'FISHING' | 'FOOD' | 'GARDENING' | 'TRAVEL' | 'FUN'
-  | 'QUESTS' | 'COOL_PEOPLE' | 'COOL_ITEMS' | 'DEMO'
+  | 'QUESTS' | 'DEMO'
 
 const CHAN: Record<Exclude<ChanKey, 'DEMO'>, { label: string; Icon: LucideIcon; bg: string; href: string }> = {
-  PROJECTS:    { label: 'Projects',    Icon: Hammer,      bg: '#382e0e', href: '/skills/projects' },
-  BUSINESS:    { label: 'Business',    Icon: Briefcase,   bg: '#1c2e10', href: '/skills/business' },
-  COMMUNITY:   { label: 'Community',   Icon: Users,       bg: '#181e4a', href: '/skills/community' },
-  FISHING:     { label: 'Fishing',     Icon: Fish,        bg: '#0e2c48', href: '/skills/fishing' },
-  FOOD:        { label: 'Food & Wine', Icon: Wine,        bg: '#4e2006', href: '/skills/food' },
-  GARDENING:   { label: 'Gardening',   Icon: Leaf,        bg: '#0e3810', href: '/skills/gardening' },
-  TRAVEL:      { label: 'Adventure',   Icon: Compass,     bg: '#382808', href: '/skills/travel' },
-  FUN:         { label: 'Games',       Icon: Gamepad2,    bg: '#320c4a', href: '/skills/fun' },
-  QUESTS:      { label: 'Quests',      Icon: Scroll,      bg: '#2a1a06', href: '/quests' },
-  COOL_PEOPLE: { label: 'Cool People', Icon: UserCheck,   bg: '#2e0c48', href: '/skills/cool-people' },
-  COOL_ITEMS:  { label: 'Cool Items',  Icon: ShoppingBag, bg: '#0c2040', href: '/skills/cool-items' },
+  PROJECTS:  { label: 'Projects',    Icon: Hammer,    bg: '#382e0e', href: '/skills/projects' },
+  BUSINESS:  { label: 'Business',    Icon: Briefcase, bg: '#1c2e10', href: '/skills/business' },
+  COMMUNITY: { label: 'Community',   Icon: Users,     bg: '#181e4a', href: '/skills/community' },
+  FISHING:   { label: 'Fishing',     Icon: Fish,      bg: '#0e2c48', href: '/skills/fishing' },
+  FOOD:      { label: 'Food & Wine', Icon: Wine,      bg: '#4e2006', href: '/skills/food' },
+  GARDENING: { label: 'Gardening',   Icon: Leaf,      bg: '#0e3810', href: '/skills/gardening' },
+  TRAVEL:    { label: 'Adventure',   Icon: Compass,   bg: '#382808', href: '/skills/travel' },
+  FUN:       { label: 'Games',       Icon: Gamepad2,  bg: '#320c4a', href: '/skills/fun' },
+  QUESTS:    { label: 'Quests',      Icon: Scroll,    bg: '#2a1a06', href: '/quests' },
 }
 
 export const DEFAULT_CHAN_ORDER: ChanKey[] = [
   'PROJECTS', 'BUSINESS', 'COMMUNITY',
-  'FISHING', 'FOOD', 'GARDENING', 'TRAVEL', 'FUN', 'QUESTS',
-  'COOL_PEOPLE', 'COOL_ITEMS', 'DEMO',
+  'FISHING', 'FOOD', 'GARDENING', 'TRAVEL', 'FUN', 'QUESTS', 'DEMO',
 ]
 
 // ── Draggable mini-game row ───────────────────────────────────────────────────
