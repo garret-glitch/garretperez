@@ -70,17 +70,6 @@ export default async function SkillPage({ params }: Props) {
         isLoggedIn={!!session?.user}
       />
 
-      {session?.user ? (
-        <PostForm skillEnum={skillMeta.dbEnum} />
-      ) : (
-        <div className="osrs-panel-dark rounded-xl text-[8px] text-[#d8d8d8] text-center py-3">
-          <Link href="/login" className="text-[#a0bcd0] hover:underline">Login</Link>
-          {' '}or{' '}
-          <Link href="/register" className="text-[#a0bcd0] hover:underline">register</Link>
-          {' '}to post and earn XP!
-        </div>
-      )}
-
       {posts.length === 0 ? (
         <div className="osrs-panel rounded-xl text-[8px] text-center py-6" style={{ color: 'var(--text-2)' }}>
           No posts yet — be the first adventurer!
@@ -148,6 +137,17 @@ export default async function SkillPage({ params }: Props) {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {session?.user ? (
+        <PostForm skillEnum={skillMeta.dbEnum} />
+      ) : (
+        <div className="osrs-panel-dark rounded-xl text-[8px] text-[#d8d8d8] text-center py-3">
+          <Link href="/login" className="text-[#a0bcd0] hover:underline">Login</Link>
+          {' '}or{' '}
+          <Link href="/register" className="text-[#a0bcd0] hover:underline">register</Link>
+          {' '}to post and earn XP!
         </div>
       )}
     </div>
