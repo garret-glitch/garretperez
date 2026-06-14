@@ -989,187 +989,175 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
     if (g.webProcAnim && dist(g.webProcAnim.pos,b.pos)<50) { ctx.strokeStyle=`rgba(200,160,255,${g.webProcAnim.timer})`; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(0,0,sz+15,0,Math.PI*2); ctx.stroke() }
 
   } else if (bossId === 1) {
-    // ── LAVA DRAKE ── armored fire dragon with glowing molten body
+    // ── LAVA DRAKE ── massive coiled serpentine fire dragon
     const sz = bossDef.size
     const pulse = Math.sin(t * 4.2)
-    const wFlap = Math.sin(t * 3.1) * 0.30
-    const wspan = sz * 2.8
-    const tailW1 = Math.sin(t * 1.95) * sz * 0.30
-    const tailW2 = Math.sin(t * 1.95 - 0.95) * sz * 0.44
+    const enr = g.bossEnraged
+    // S-wave rippling through body segments
+    const w1 = Math.sin(t * 1.6) * sz * 0.18
+    const w2 = Math.sin(t * 1.6 - 0.85) * sz * 0.22
+    const w3 = Math.sin(t * 1.6 - 1.7) * sz * 0.18
 
     ctx.save(); ctx.rotate(b.angle)
-    // shadowBlur applied per-element below — no global blur that smears spines/eyes
 
-    // ── TAIL (drawn first, behind everything) ──
-    ctx.lineCap = 'round'
-    ctx.strokeStyle = hitW ? '#FFF' : (g.bossEnraged ? '#CC2000' : '#7A1800')
-    ctx.lineWidth = sz * 0.42
-    ctx.beginPath(); ctx.moveTo(-sz * 0.88, 0)
-    ctx.bezierCurveTo(-sz * 1.35, tailW1 * 0.5, -sz * 1.82, tailW1, -sz * 2.06, tailW1)
-    ctx.stroke()
-    ctx.lineWidth = sz * 0.20
-    ctx.beginPath(); ctx.moveTo(-sz * 2.06, tailW1)
-    ctx.bezierCurveTo(-sz * 2.36, tailW2, -sz * 2.68, tailW2 * 0.4, -sz * 2.88, tailW1 * 0.2)
-    ctx.stroke()
-    ctx.lineCap = 'butt'
-    // Diamond tail tip
-    ctx.fillStyle = hitW ? '#FFF' : (g.bossEnraged ? '#FF4400' : '#6A1800')
-    ctx.save(); ctx.translate(-sz * 2.88, tailW1 * 0.2)
-    ctx.rotate(Math.atan2(tailW1 * 0.2 - tailW2 * 0.4, sz * 0.22) + Math.PI)
-    ctx.beginPath(); ctx.moveTo(-16,0); ctx.lineTo(0,-11); ctx.lineTo(20,0); ctx.lineTo(0,11); ctx.closePath(); ctx.fill()
-    ctx.restore()
+    // ── COILED BODY — 8 anchor points, C-coil: head(right)→up→top→left→down→tail ──
+    const px2 = [ sz*1.44, sz*0.82+w1, -sz*0.44+w1, -sz*1.88, -sz*2.10+w2, -sz*1.48, -sz*0.05+w3, sz*0.64 ]
+    const py2 = [       0, -sz*1.74,   -sz*2.34,    -sz*1.62+w2, sz*0.06,   sz*1.74+w3, sz*2.34,   sz*1.54 ]
+    const bw2 = [ sz*0.76, sz*0.64, sz*0.53, sz*0.43, sz*0.34, sz*0.24, sz*0.15, sz*0.07 ]
+    const N2 = px2.length
+    // Segment start/end using midpoint quadratic technique
+    const sS = (i: number) => i === 0 ? { x: px2[0], y: py2[0] } : { x: (px2[i-1]+px2[i])/2, y: (py2[i-1]+py2[i])/2 }
+    const sE = (i: number) => i >= N2-2 ? { x: px2[N2-1], y: py2[N2-1] } : { x: (px2[i]+px2[i+1])/2, y: (py2[i]+py2[i+1])/2 }
 
-    // ── WINGS ──
-    const wBase = g.bossEnraged ? 'rgba(255,55,0,0.32)' : 'rgba(130,38,0,0.24)'
-    const wEdge = g.bossEnraged ? 'rgba(255,145,30,0.85)' : 'rgba(195,68,10,0.65)'
-    // Left wing
-    ctx.fillStyle = wBase; ctx.strokeStyle = wEdge; ctx.lineWidth = 2.5
-    ctx.beginPath(); ctx.moveTo(-sz*0.32, sz*0.08)
-    ctx.quadraticCurveTo(-wspan*0.52, -(sz*(1.55+wFlap)), -wspan, sz*(0.18+wFlap*0.38))
-    ctx.quadraticCurveTo(-wspan*0.5, sz*0.58, -sz*0.32, sz*0.18)
-    ctx.closePath(); ctx.fill(); ctx.stroke()
-    ctx.strokeStyle = g.bossEnraged ? 'rgba(255,130,35,0.60)' : 'rgba(165,58,8,0.50)'; ctx.lineWidth = 2
-    for (let i=1;i<=3;i++) { const f=i/4; ctx.beginPath(); ctx.moveTo(-sz*0.32,sz*0.12); ctx.quadraticCurveTo(-wspan*0.48*f,-(sz*(1.28+wFlap)*f),-wspan*f,sz*(0.14+wFlap*0.3)*f); ctx.stroke() }
+    // Pass 1: outer glow
     if (!hitW) {
-      ctx.strokeStyle = `rgba(255,175,35,${0.20+0.13*pulse})`; ctx.lineWidth = 1.2
-      for (let i=1;i<=2;i++) { const f=i/3+0.1; ctx.beginPath(); ctx.moveTo(-sz*0.36+i*6,sz*0.13); ctx.quadraticCurveTo(-wspan*0.44*f,-(sz*(1.0+wFlap)*f*0.75),-wspan*f*0.82,sz*(0.10+wFlap*0.2)*f); ctx.stroke() }
+      ctx.shadowColor = enr ? '#FF1100' : '#FF5500'; ctx.shadowBlur = enr ? 32 : 20
+      for (let i = 0; i < N2-1; i++) {
+        const s2 = sS(i), e2 = sE(i)
+        ctx.strokeStyle = enr ? 'rgba(255,28,0,0.14)' : 'rgba(210,72,0,0.11)'
+        ctx.lineWidth = bw2[i]+22; ctx.lineCap = 'round'
+        ctx.beginPath(); ctx.moveTo(s2.x,s2.y); ctx.quadraticCurveTo(px2[i],py2[i],e2.x,e2.y); ctx.stroke()
+      }
+      ctx.shadowBlur = 0
     }
-    // Right wing (mirror)
-    ctx.fillStyle = wBase; ctx.strokeStyle = wEdge; ctx.lineWidth = 2.5
-    ctx.beginPath(); ctx.moveTo(-sz*0.32,-sz*0.08)
-    ctx.quadraticCurveTo(-wspan*0.52, sz*(1.55+wFlap), -wspan, -(sz*(0.18+wFlap*0.38)))
-    ctx.quadraticCurveTo(-wspan*0.5,-sz*0.58,-sz*0.32,-sz*0.18)
-    ctx.closePath(); ctx.fill(); ctx.stroke()
-    ctx.strokeStyle = g.bossEnraged ? 'rgba(255,130,35,0.60)' : 'rgba(165,58,8,0.50)'; ctx.lineWidth = 2
-    for (let i=1;i<=3;i++) { const f=i/4; ctx.beginPath(); ctx.moveTo(-sz*0.32,-sz*0.12); ctx.quadraticCurveTo(-wspan*0.48*f,sz*(1.28+wFlap)*f,-wspan*f,-(sz*(0.14+wFlap*0.3)*f)); ctx.stroke() }
+    // Pass 2: dark outline
+    for (let i = 0; i < N2-1; i++) {
+      const s2 = sS(i), e2 = sE(i)
+      ctx.strokeStyle = hitW ? '#FFF' : (enr ? '#900D00' : '#570900')
+      ctx.lineWidth = bw2[i]+8; ctx.lineCap = 'round'
+      ctx.beginPath(); ctx.moveTo(s2.x,s2.y); ctx.quadraticCurveTo(px2[i],py2[i],e2.x,e2.y); ctx.stroke()
+    }
+    // Pass 3: main body color — bright orange-red at head, darker toward tail
+    for (let i = 0; i < N2-1; i++) {
+      const s2 = sS(i), e2 = sE(i)
+      const frac = i / Math.max(1, N2-2)
+      const rv = Math.round(hitW ? 255 : enr ? 228-frac*54 : 182-frac*52)
+      const gv = Math.round(hitW ? 255 : enr ? 50-frac*20 : 28-frac*14)
+      ctx.strokeStyle = hitW ? '#FFF' : `rgb(${rv},${gv},0)`
+      ctx.lineWidth = bw2[i]; ctx.lineCap = 'round'
+      ctx.beginPath(); ctx.moveTo(s2.x,s2.y); ctx.quadraticCurveTo(px2[i],py2[i],e2.x,e2.y); ctx.stroke()
+    }
+    // Pass 4: bright inner highlight stripe
     if (!hitW) {
-      ctx.strokeStyle = `rgba(255,175,35,${0.20+0.13*pulse})`; ctx.lineWidth = 1.2
-      for (let i=1;i<=2;i++) { const f=i/3+0.1; ctx.beginPath(); ctx.moveTo(-sz*0.36+i*6,-sz*0.13); ctx.quadraticCurveTo(-wspan*0.44*f,sz*(1.0+wFlap)*f*0.75,-wspan*f*0.82,-(sz*(0.10+wFlap*0.2)*f)); ctx.stroke() }
+      for (let i = 0; i < N2-1; i++) {
+        const s2 = sS(i), e2 = sE(i)
+        const al = Math.max(0, 0.62 - (i / Math.max(1,N2-2)) * 0.52)
+        ctx.strokeStyle = enr ? `rgba(255,152,18,${al})` : `rgba(255,172,28,${al})`
+        ctx.lineWidth = bw2[i]*0.40; ctx.lineCap = 'round'
+        ctx.beginPath(); ctx.moveTo(s2.x,s2.y); ctx.quadraticCurveTo(px2[i],py2[i],e2.x,e2.y); ctx.stroke()
+      }
     }
 
-    // ── BODY ──
-    // Hot underbelly glow
-    ctx.shadowColor = '#FF5500'; ctx.shadowBlur = 18
-    const bellyR = ctx.createRadialGradient(sz*0.05, sz*0.22, 0, sz*0.05, sz*0.22, sz*0.82)
-    bellyR.addColorStop(0, hitW ? '#FFF' : `rgba(255,${140+Math.floor(pulse*50)},0,${0.62+pulse*0.18})`)
-    bellyR.addColorStop(0.55, hitW ? '#EEE' : 'rgba(210,55,0,0.28)')
-    bellyR.addColorStop(1, 'rgba(0,0,0,0)')
-    ctx.fillStyle = bellyR; ctx.beginPath(); ctx.ellipse(sz*0.05, sz*0.22, sz*1.00, sz*0.58, 0, 0, Math.PI*2); ctx.fill()
-    ctx.shadowBlur = 0
-    // Main body — narrower than before so head visibly extends forward
-    const bG = ctx.createLinearGradient(-sz*1.12,-sz*0.64,sz*1.12,sz*0.64)
-    bG.addColorStop(0, hitW?'#FFF':(g.bossEnraged?'#CC1200':'#721600'))
-    bG.addColorStop(0.35, hitW?'#FFF':(g.bossEnraged?'#FF4200':'#BA3000'))
-    bG.addColorStop(0.65, hitW?'#FFF':(g.bossEnraged?'#CC2000':'#922200'))
-    bG.addColorStop(1, hitW?'#EEE':(g.bossEnraged?'#7A0E00':'#461000'))
-    ctx.fillStyle = bG; ctx.beginPath(); ctx.ellipse(0, 0, sz*1.12, sz*0.68, 0, 0, Math.PI*2); ctx.fill()
-    // Scale texture
+    // ── SCALE ARCS along body ──
     if (!hitW) {
-      ctx.strokeStyle = g.bossEnraged ? 'rgba(70,8,0,0.55)' : 'rgba(38,5,0,0.50)'; ctx.lineWidth = 1.2
-      for (let row=-2;row<=2;row++) {
-        const ry=row*sz*0.26, cols=8-Math.abs(row)*2, rw=sz*(1.00-Math.abs(row)*0.10)
-        for (let col=0;col<cols;col++) { const scx=-rw+col*rw*2/Math.max(1,cols-1); ctx.beginPath(); ctx.arc(scx,ry,sz*0.13,Math.PI,Math.PI*2); ctx.stroke() }
+      ctx.strokeStyle = enr ? 'rgba(72,5,0,0.52)' : 'rgba(46,5,0,0.46)'; ctx.lineWidth = 1.4
+      for (let i = 1; i < N2-1; i++) {
+        const dxa = (px2[Math.min(i+1,N2-1)]-px2[Math.max(i-1,0)])
+        const dya = (py2[Math.min(i+1,N2-1)]-py2[Math.max(i-1,0)])
+        const pa = Math.atan2(dya,dxa)+Math.PI/2
+        const hr = bw2[i]*0.44
+        for (let si = -1; si <= 1; si++) {
+          ctx.beginPath(); ctx.arc(px2[i]+Math.cos(pa)*hr*si*0.55, py2[i]+Math.sin(pa)*hr*si*0.55, hr*0.30, Math.PI*0.12, Math.PI*0.88); ctx.stroke()
+        }
       }
       // Molten crack veins
-      ctx.strokeStyle = `rgba(255,${165+Math.floor(pulse*65)},20,${0.38+pulse*0.22})`; ctx.lineWidth = 1.5
-      const crk:[number,number,number,number][] = [[-sz*0.65,-sz*0.38,-sz*0.18,sz*0.48],[-sz*0.08,-sz*0.48,sz*0.28,sz*0.36],[sz*0.52,-sz*0.28,sz*0.80,sz*0.40],[-sz*0.92,sz*0.06,-sz*0.46,-sz*0.28]]
-      crk.forEach(([x1,y1,x2,y2])=>{ ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke() })
-    }
-    // Lava drips from underbelly
-    if (!hitW) {
-      const drips:[number,number][] = [[sz*0.32,sz*0.66],[-sz*0.14,sz*0.67],[sz*0.64,sz*0.63],[-sz*0.46,sz*0.65]]
-      ctx.shadowColor = '#FF4400'; ctx.shadowBlur = 9
-      drips.forEach(([dx,dy],di) => {
-        const ph = Math.sin(t*2.1+di*2.0)*0.5+0.5
-        ctx.globalAlpha = 0.52+ph*0.38
-        ctx.fillStyle = ph>0.55?'#FFAA00':'#FF5500'
-        ctx.beginPath(); ctx.ellipse(dx, dy+ph*11, 4.5, 7+ph*11, 0, 0, Math.PI*2); ctx.fill()
-      })
-      ctx.globalAlpha = 1; ctx.shadowBlur = 0
+      ctx.strokeStyle = `rgba(255,${165+Math.floor(pulse*65)},20,${0.36+pulse*0.20})`; ctx.lineWidth = 1.5
+      for (let i = 1; i < 5; i++) {
+        ctx.beginPath(); ctx.moveTo(px2[i]*0.65, py2[i]*0.65); ctx.lineTo(px2[i]*0.84, py2[i]*0.84); ctx.stroke()
+      }
     }
 
-    // ── DORSAL SPINES ──
-    for (let i=0;i<12;i++) {
-      const spx=-sz*0.98+i*sz*0.190, sph=sz*(0.22+0.12*Math.sin(b.spinePulse+i*0.72))
+    // ── DORSAL SPINES — at body segment midpoints, oriented outward from coil ──
+    const cxC = -sz*0.26, cyC = 0  // coil centroid
+    for (let i = 0; i < N2-1; i++) {
+      const midX = (px2[i]+px2[i+1])/2, midY = (py2[i]+py2[i+1])/2
+      const tdx2 = px2[i+1]-px2[i], tdy2 = py2[i+1]-py2[i]
+      const outX = midX-cxC, outY = midY-cyC
+      const p1x = -tdy2, p1y = tdx2
+      const dot1 = outX*p1x + outY*p1y
+      const npx2 = dot1 >= 0 ? p1x : -p1x, npy2 = dot1 >= 0 ? p1y : -p1y
+      const pLen = Math.sqrt(npx2*npx2+npy2*npy2)||1
+      const nx2 = npx2/pLen, ny2 = npy2/pLen
+      const avgBW = (bw2[i]+bw2[i+1])/2
+      const sph = avgBW*(0.52+0.16*Math.sin(b.spinePulse+i*1.15))
+      const bx3 = midX+nx2*avgBW*0.49, by3 = midY+ny2*avgBW*0.49
+      const tipX = bx3+nx2*sph, tipY = by3+ny2*sph
+      const svx = -ny2, svy = nx2
       if (!hitW) {
-        ctx.shadowColor = g.bossEnraged ? '#FF6600' : '#CC4400'; ctx.shadowBlur = 6
-        ctx.fillStyle = g.bossEnraged ? `rgba(255,90,0,${0.42+0.28*Math.sin(b.spinePulse+i)})` : `rgba(215,72,0,${0.28+0.18*Math.sin(b.spinePulse+i)})`
-        ctx.beginPath(); ctx.moveTo(spx-8,-sz*0.65); ctx.lineTo(spx,-sz*0.65-sph-9); ctx.lineTo(spx+8,-sz*0.65); ctx.closePath(); ctx.fill()
+        ctx.shadowColor = enr ? '#FF6600' : '#CC4400'; ctx.shadowBlur = 5
+        ctx.fillStyle = enr ? `rgba(255,72,0,${0.42+0.2*Math.sin(b.spinePulse+i)})` : `rgba(192,54,0,${0.28+0.14*Math.sin(b.spinePulse+i)})`
+        ctx.beginPath(); ctx.moveTo(bx3+svx*9,by3+svy*9); ctx.lineTo(tipX,tipY); ctx.lineTo(bx3-svx*9,by3-svy*9); ctx.closePath(); ctx.fill()
         ctx.shadowBlur = 0
       }
-      ctx.shadowColor = g.bossEnraged ? '#FFCC00' : '#FF8800'; ctx.shadowBlur = 9
-      ctx.fillStyle = hitW?'#FFF':(g.bossEnraged?'#FFCC00':'#FF8800')
-      ctx.beginPath(); ctx.moveTo(spx-4,-sz*0.65); ctx.lineTo(spx,-sz*0.65-sph); ctx.lineTo(spx+4,-sz*0.65); ctx.closePath(); ctx.fill()
+      ctx.shadowColor = enr ? '#FFCC00' : '#FF8800'; ctx.shadowBlur = 8
+      ctx.fillStyle = hitW ? '#FFF' : (enr ? '#FFCC00' : '#FF8800')
+      ctx.beginPath(); ctx.moveTo(bx3+svx*5,by3+svy*5); ctx.lineTo(tipX,tipY); ctx.lineTo(bx3-svx*5,by3-svy*5); ctx.closePath(); ctx.fill()
       ctx.shadowBlur = 0
     }
 
-    // ── LEGS ──
+    // ── LEGS — 2 pairs, 2 legs per pair (one each side of body) ──
     ctx.lineCap = 'round'
-    for (let i=0;i<4;i++) {
-      const lx=-sz*0.68+i*sz*0.47, anim=Math.sin(t*2.5+i*1.2)*0.14
-      const lkx=lx+Math.cos(1.28+i*0.26+anim)*sz*0.42, lky=sz*0.66+Math.sin(t*2.5+i*1.2)*7
-      const lfx=lx+Math.cos(1.12+i*0.26)*sz*0.66, lfy=lky+16
-      ctx.strokeStyle=hitW?'#FFF':(g.bossEnraged?'#7A1A00':'#4E1600'); ctx.lineWidth=sz*0.17
-      ctx.beginPath(); ctx.moveTo(lx,sz*0.30); ctx.lineTo(lkx,lky); ctx.stroke()
-      ctx.strokeStyle=hitW?'#FFF':(g.bossEnraged?'#9A2200':'#6A2A00'); ctx.lineWidth=sz*0.11
-      ctx.beginPath(); ctx.moveTo(lkx,lky); ctx.lineTo(lfx,lfy); ctx.stroke()
-      ctx.lineCap='butt'; ctx.strokeStyle=hitW?'#FFF':(g.bossEnraged?'#FF7700':'#CC4400'); ctx.lineWidth=2.2
-      for (let c=0;c<3;c++) { ctx.beginPath(); ctx.moveTo(lfx,lfy); ctx.lineTo(lfx+Math.cos(0.95+c*0.30)*sz*0.30,lfy+20); ctx.stroke() }
-      ctx.lineCap='round'
+    for (const li of [1, 4]) {
+      const dxl = (px2[Math.min(li+1,N2-1)]-px2[Math.max(li-1,0)])
+      const dyl = (py2[Math.min(li+1,N2-1)]-py2[Math.max(li-1,0)])
+      const bAng = Math.atan2(dyl,dxl)
+      for (const sd of [-1, 1]) {
+        const pAng = bAng + Math.PI/2*sd
+        const anim = Math.sin(t*2.4+li*1.4+sd*0.8)*0.20
+        const baseX = px2[li]+Math.cos(pAng)*bw2[li]*0.46
+        const baseY = py2[li]+Math.sin(pAng)*bw2[li]*0.46
+        const kAng = pAng+anim
+        const kx = baseX+Math.cos(kAng)*sz*0.42, ky = baseY+Math.sin(kAng)*sz*0.42
+        const fAng = kAng+0.52
+        const fx = kx+Math.cos(fAng)*sz*0.34, fy = ky+Math.sin(fAng)*sz*0.34
+        ctx.strokeStyle = hitW?'#FFF':(enr?'#7A1A00':'#4E1600'); ctx.lineWidth = sz*0.15
+        ctx.beginPath(); ctx.moveTo(baseX,baseY); ctx.lineTo(kx,ky); ctx.stroke()
+        ctx.strokeStyle = hitW?'#FFF':(enr?'#9A2200':'#6A2A00'); ctx.lineWidth = sz*0.09
+        ctx.beginPath(); ctx.moveTo(kx,ky); ctx.lineTo(fx,fy); ctx.stroke()
+        ctx.lineCap = 'butt'; ctx.strokeStyle = hitW?'#FFF':(enr?'#FF7700':'#CC4400'); ctx.lineWidth = 1.8
+        for (let c = 0; c < 3; c++) { ctx.beginPath(); ctx.moveTo(fx,fy); ctx.lineTo(fx+Math.cos(fAng-0.4+c*0.38)*sz*0.20,fy+Math.sin(fAng-0.4+c*0.38)*sz*0.20); ctx.stroke() }
+        ctx.lineCap = 'round'
+      }
     }
     ctx.lineCap = 'butt'
 
-    // ── NECK ──
-    ctx.fillStyle = hitW?'#FFF':(g.bossEnraged?'#DD3200':'#9A2800')
-    ctx.beginPath(); ctx.ellipse(sz*0.92, 0, sz*0.40, sz*0.32, -0.18, 0, Math.PI*2); ctx.fill()
-    if (!hitW) {
-      ctx.strokeStyle=g.bossEnraged?'rgba(60,5,0,0.55)':'rgba(38,5,0,0.48)'; ctx.lineWidth=1.1
-      for (let i=0;i<5;i++) { const nx=sz*0.72+i*sz*0.08,na=-sz*0.24+i*sz*0.10; ctx.beginPath(); ctx.arc(nx,na,sz*0.08,Math.PI,Math.PI*2); ctx.stroke() }
-    }
-
-    // ── HEAD ── (moved forward — now clearly extends past body)
-    const hgrd = ctx.createRadialGradient(sz*1.48,-sz*0.04,0,sz*1.48,sz*0.06,sz*0.60)
-    hgrd.addColorStop(0, hitW?'#FFF':(g.bossEnraged?'#FF3000':'#C42600'))
-    hgrd.addColorStop(0.55, hitW?'#EEE':(g.bossEnraged?'#D82000':'#A22000'))
-    hgrd.addColorStop(1, hitW?'#DDD':(g.bossEnraged?'#801200':'#5E1000'))
-    ctx.fillStyle=hgrd; ctx.beginPath(); ctx.ellipse(sz*1.48,0,sz*0.58,sz*0.46,0,0,Math.PI*2); ctx.fill()
-    // Lower jaw
-    ctx.fillStyle=hitW?'#EEE':(g.bossEnraged?'#C42000':'#8E1C00')
-    ctx.beginPath(); ctx.ellipse(sz*1.56,sz*0.16,sz*0.46,sz*0.24,0.15,0,Math.PI*2); ctx.fill()
-    // Brow ridge
+    // ── HEAD ──
+    const headX = sz*1.48, headY = 0
+    const hgrd = ctx.createRadialGradient(headX-sz*0.08,-sz*0.04,0,headX,sz*0.06,sz*0.58)
+    hgrd.addColorStop(0, hitW?'#FFF':(enr?'#FF3000':'#C42600'))
+    hgrd.addColorStop(0.55, hitW?'#EEE':(enr?'#D82000':'#A22000'))
+    hgrd.addColorStop(1, hitW?'#DDD':(enr?'#801200':'#5E1000'))
+    ctx.fillStyle=hgrd; ctx.beginPath(); ctx.ellipse(headX,headY,sz*0.58,sz*0.46,0,0,Math.PI*2); ctx.fill()
+    ctx.fillStyle=hitW?'#EEE':(enr?'#C42000':'#8E1C00')
+    ctx.beginPath(); ctx.ellipse(headX+sz*0.08,sz*0.16,sz*0.46,sz*0.24,0.15,0,Math.PI*2); ctx.fill()
     ctx.fillStyle=hitW?'#DDD':'#6A4610'
-    ctx.beginPath(); ctx.moveTo(sz*1.10,-sz*0.25); ctx.lineTo(sz*1.50,-sz*0.22); ctx.lineTo(sz*1.46,-sz*0.09); ctx.lineTo(sz*1.06,-sz*0.13); ctx.closePath(); ctx.fill()
-
-    // ── HORNS ── (swept back from head at sz*1.48)
+    ctx.beginPath(); ctx.moveTo(headX-sz*0.38,-sz*0.25); ctx.lineTo(headX+sz*0.02,-sz*0.22); ctx.lineTo(headX-sz*0.02,-sz*0.09); ctx.lineTo(headX-sz*0.42,-sz*0.13); ctx.closePath(); ctx.fill()
+    // Horns swept back
     ctx.fillStyle=hitW?'#FFF':'#8A6510'
-    ctx.beginPath(); ctx.moveTo(sz*1.18,-sz*0.30); ctx.quadraticCurveTo(sz*0.94,-sz*0.82,sz*0.80,-sz*0.92); ctx.quadraticCurveTo(sz*0.98,-sz*0.76,sz*1.26,-sz*0.22); ctx.closePath(); ctx.fill()
-    ctx.beginPath(); ctx.moveTo(sz*1.33,-sz*0.24); ctx.quadraticCurveTo(sz*1.12,-sz*0.72,sz*1.02,-sz*0.80); ctx.quadraticCurveTo(sz*1.18,-sz*0.62,sz*1.38,-sz*0.17); ctx.closePath(); ctx.fill()
-    // Snout ridge spikes (on visible snout face)
-    ctx.fillStyle=hitW?'#EEE':(g.bossEnraged?'#D08800':'#8A5E14')
-    for (let i=0;i<5;i++) { const hx=sz*1.52+i*sz*0.07,hy=-sz*0.19+i*sz*0.09; ctx.beginPath(); ctx.moveTo(hx,hy); ctx.lineTo(hx+sz*0.16,hy-sz*0.07); ctx.lineTo(hx+sz*0.04,hy+sz*0.08); ctx.closePath(); ctx.fill() }
-
-    // ── GLOWING NOSTRILS ──
+    ctx.beginPath(); ctx.moveTo(headX-sz*0.30,-sz*0.30); ctx.quadraticCurveTo(headX-sz*0.54,-sz*0.82,headX-sz*0.68,-sz*0.92); ctx.quadraticCurveTo(headX-sz*0.50,-sz*0.76,headX-sz*0.22,-sz*0.22); ctx.closePath(); ctx.fill()
+    ctx.beginPath(); ctx.moveTo(headX-sz*0.15,-sz*0.24); ctx.quadraticCurveTo(headX-sz*0.36,-sz*0.72,headX-sz*0.46,-sz*0.80); ctx.quadraticCurveTo(headX-sz*0.30,-sz*0.62,headX-sz*0.10,-sz*0.17); ctx.closePath(); ctx.fill()
+    ctx.fillStyle=hitW?'#EEE':(enr?'#D08800':'#8A5E14')
+    for (let i=0;i<5;i++) { const hx2=headX+sz*0.04+i*sz*0.07,hy2=-sz*0.19+i*sz*0.09; ctx.beginPath(); ctx.moveTo(hx2,hy2); ctx.lineTo(hx2+sz*0.16,hy2-sz*0.07); ctx.lineTo(hx2+sz*0.04,hy2+sz*0.08); ctx.closePath(); ctx.fill() }
     if (!hitW) {
       ctx.fillStyle=`rgba(255,${110+Math.floor(pulse*70)},0,${0.50+pulse*0.22})`
       ctx.shadowColor='#FF5500'; ctx.shadowBlur=14
-      ctx.beginPath(); ctx.ellipse(sz*1.76,-sz*0.07,5,3.5,0.25,0,Math.PI*2); ctx.fill()
-      ctx.beginPath(); ctx.ellipse(sz*1.76, sz*0.08,5,3.5,-0.25,0,Math.PI*2); ctx.fill()
+      ctx.beginPath(); ctx.ellipse(headX+sz*0.28,-sz*0.07,5,3.5,0.25,0,Math.PI*2); ctx.fill()
+      ctx.beginPath(); ctx.ellipse(headX+sz*0.28, sz*0.08,5,3.5,-0.25,0,Math.PI*2); ctx.fill()
       ctx.shadowBlur=0
     }
-
-    // ── EYES (glowing, slit pupils — on the visible head face) ──
+    // Eyes — glowing green (like reference), red when enraged
     const ep=0.68+0.32*Math.sin(t*5.2)
-    ctx.shadowColor=g.bossEnraged?'#FF0000':'#FFAA00'; ctx.shadowBlur=26*ep
-    ctx.fillStyle=g.bossEnraged?`rgb(255,${Math.floor(80+90*ep)},0)`:'#FFCC00'
-    ctx.beginPath(); ctx.arc(sz*1.52,-sz*0.16,9.5,0,Math.PI*2); ctx.fill()
-    ctx.beginPath(); ctx.arc(sz*1.52, sz*0.12,9.5,0,Math.PI*2); ctx.fill()
+    ctx.shadowColor=enr?'#FF0000':'#00FF88'; ctx.shadowBlur=28*ep
+    ctx.fillStyle=enr?`rgb(255,${Math.floor(80+90*ep)},0)`:'#22FF88'
+    ctx.beginPath(); ctx.arc(headX+sz*0.04,-sz*0.16,9.5,0,Math.PI*2); ctx.fill()
+    ctx.beginPath(); ctx.arc(headX+sz*0.04, sz*0.12,9.5,0,Math.PI*2); ctx.fill()
     ctx.fillStyle='#000'; ctx.shadowBlur=0
-    ctx.beginPath(); ctx.ellipse(sz*1.54,-sz*0.16,2.5,5.5,0.18,0,Math.PI*2); ctx.fill()
-    ctx.beginPath(); ctx.ellipse(sz*1.54, sz*0.12,2.5,5.5,-0.18,0,Math.PI*2); ctx.fill()
+    ctx.beginPath(); ctx.ellipse(headX+sz*0.06,-sz*0.16,2.5,5.5,0.18,0,Math.PI*2); ctx.fill()
+    ctx.beginPath(); ctx.ellipse(headX+sz*0.06, sz*0.12,2.5,5.5,-0.18,0,Math.PI*2); ctx.fill()
 
     ctx.restore()  // end rotate(b.angle)
 
-    // ── FIRE BREATH (boss-relative space) ──
+    // ── FIRE BREATH ──
     if (!hitW) {
       const mox=Math.cos(b.angle)*sz*2.02, moy=Math.sin(b.angle)*sz*2.02
       ctx.shadowColor='#FF4400'; ctx.shadowBlur=20
@@ -1184,7 +1172,7 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
     }
 
     // ── ENRAGE AURA ──
-    if (g.bossEnraged) {
+    if (enr) {
       const ar=bossDef.size*1.65+pulse*12
       const aura=ctx.createRadialGradient(0,0,ar*0.62,0,0,ar)
       aura.addColorStop(0,`rgba(255,70,0,${0.24+pulse*0.14})`); aura.addColorStop(1,'rgba(200,0,0,0)')
