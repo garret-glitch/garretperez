@@ -817,6 +817,7 @@ export default function GardenYard({ initialPlants, initialTypes, isAdmin }: {
   const [typeForm,    setTypeForm]  = useState<PlantType | null | 'new'>(null)
   const [deletingType,setDelType]   = useState<string | null>(null)
   const [saving,      setSaving]    = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
 
   // Drag state — all refs so window handlers don't go stale
   const yardRef    = useRef<HTMLDivElement>(null)
@@ -914,20 +915,41 @@ export default function GardenYard({ initialPlants, initialTypes, isAdmin }: {
 
   return (
     <>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+      <div style={isFullscreen ? {
+        position: 'fixed', inset: 0, zIndex: 9999,
+        background: '#0d0d14', display: 'flex', flexDirection: 'column',
+      } : { display: 'flex', flexDirection: 'column', gap: 0 }}>
 
         {/* ── Yard ──────────────────────────────────────── */}
         <div
           ref={yardRef}
           style={{
-            position: 'relative', width: '100%', aspectRatio: '16/9',
-            borderRadius: '16px 16px 0 0', overflow: 'hidden',
+            position: 'relative', width: '100%',
+            ...(isFullscreen
+              ? { flex: 1, minHeight: 0 }
+              : { aspectRatio: '16/9', minHeight: 200 }),
+            borderRadius: isFullscreen ? 0 : '16px 16px 0 0', overflow: 'hidden',
             background: '#1a4a10',
-            border: '5px solid #6b4020', borderBottom: 'none', minHeight: 200,
+            border: isFullscreen ? 'none' : '5px solid #6b4020', borderBottom: 'none',
             boxShadow: '0 0 0 1px rgba(200,155,60,0.15)',
             cursor: isDragging ? 'grabbing' : 'default',
           }}
         >
+          {/* ── Fullscreen toggle button ── */}
+          <button
+            onClick={() => setIsFullscreen(f => !f)}
+            title={isFullscreen ? 'Exit fullscreen' : 'Expand garden'}
+            style={{
+              position: 'absolute', top: 8, right: 8, zIndex: 50,
+              background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
+              border: '1px solid rgba(200,155,60,0.3)', borderRadius: 7,
+              color: '#c89b3c', fontSize: 14, cursor: 'pointer',
+              width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              lineHeight: 1, padding: 0,
+            }}
+          >
+            {isFullscreen ? '✕' : '⛶'}
+          </button>
           {/* ── CSS Animations ── */}
           <style>{`
             @keyframes flutter {

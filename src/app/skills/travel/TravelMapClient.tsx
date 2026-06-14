@@ -63,6 +63,7 @@ export default function TravelMapClient({ initialPins, isLoggedIn, userId }: Pro
   const [activePin, setActivePin] = useState<TravelPin | null>(null)
   const [form, setForm] = useState({ name: '', reason: '', emoji: '📍' })
   const [saving, setSaving] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
 
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null)
@@ -227,11 +228,15 @@ export default function TravelMapClient({ initialPins, isLoggedIn, userId }: Pro
       {/* ── MAP CARD ── */}
       <div style={{
         background: 'var(--bg-card)',
-        border: '1px solid rgba(200,155,60,0.18)',
-        borderRadius: 14,
+        border: isFullscreen ? 'none' : '1px solid rgba(200,155,60,0.18)',
+        borderRadius: isFullscreen ? 0 : 14,
         overflow: 'hidden',
         minWidth: 0,
-        boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+        boxShadow: isFullscreen ? 'none' : '0 4px 24px rgba(0,0,0,0.4)',
+        ...(isFullscreen ? {
+          position: 'fixed' as const, top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999,
+          display: 'flex', flexDirection: 'column' as const,
+        } : {}),
       }}>
 
         {/* Header */}
@@ -267,6 +272,19 @@ export default function TravelMapClient({ initialPins, isLoggedIn, userId }: Pro
                 {usaCount} 🇺🇸
               </span>
             )}
+            <button
+              onClick={() => setIsFullscreen(f => !f)}
+              title={isFullscreen ? 'Exit fullscreen' : 'Expand map'}
+              style={{
+                background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
+                border: '1px solid rgba(200,155,60,0.25)', borderRadius: 6,
+                color: 'var(--gold)', fontSize: 13, cursor: 'pointer',
+                width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                lineHeight: 1, padding: 0, flexShrink: 0,
+              }}
+            >
+              {isFullscreen ? '✕' : '⛶'}
+            </button>
           </div>
         </div>
 
@@ -283,13 +301,16 @@ export default function TravelMapClient({ initialPins, isLoggedIn, userId }: Pro
             overflow: 'hidden',
             background: '#05050e',
             cursor: isLoggedIn ? (draggingId ? 'grabbing' : 'crosshair') : 'default',
+            ...(isFullscreen ? { flex: 1, minHeight: 0 } : {}),
           }}
         >
-          {/* padding-bottom sets height = width × ratio; opacity animates on view switch */}
+          {/* padding-bottom sets height = width × ratio; in fullscreen mode height fills the flex parent */}
           <div style={{
             position: 'relative',
             width: '100%',
-            paddingBottom: mapView === 'world' ? '30%' : '44%',
+            ...(isFullscreen
+              ? { height: '100%' }
+              : { paddingBottom: mapView === 'world' ? '30%' : '44%' }),
             opacity: transitioning ? 0 : 1,
             transition: 'opacity 0.16s ease',
           }}>
