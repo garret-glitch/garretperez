@@ -1278,9 +1278,8 @@ export default function BossHunter() {
     setScreen('playing')
   }, [getCls])
 
-  const gearForBoss = useCallback((bossId: BossId): GearId[] =>
-    collectedGear.filter(g => BOSS_DEFS.findIndex(b => b.rewards.includes(g)) < bossId),
-    [collectedGear])
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const gearForBoss = useCallback((_bossId: BossId): GearId[] => collectedGear, [collectedGear])
 
   useEffect(() => {
     if (screen !== 'playing') return
@@ -1462,7 +1461,6 @@ export default function BossHunter() {
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16,marginBottom:28}}>
           {BOSS_DEFS.map((b,i) => {
             const bossId = i as BossId, sel = selBoss===bossId
-            const myGear = gearForBoss(bossId)
             return (
               <div key={i} onClick={() => setSelBoss(bossId)} style={{background:sel?'#13131c':'#0d0d1a',border:`2px solid ${sel?b.color:'#2a2820'}`,borderRadius:10,padding:16,cursor:'pointer',textAlign:'left',transition:'border-color 0.2s'}}>
                 <div style={{textAlign:'center',marginBottom:12}}>
@@ -1473,17 +1471,17 @@ export default function BossHunter() {
                 <div style={{fontSize:7,color:'#8a7a60',marginBottom:8}}>HP: <span style={{color:'#E74C3C'}}>{b.hp.toLocaleString()}</span></div>
                 <div style={{fontSize:7,color:'#605848',marginBottom:6}}>GEAR REWARDS:</div>
                 {b.rewards.map(gid => {
-                  const owned = collectedGear.includes(gid), equipped = myGear.includes(gid)
+                  const owned = collectedGear.includes(gid)
                   return (
-                    <div key={gid} style={{fontSize:6,color:owned?'#27AE60':equipped?'#C89B3C':'#605848',marginBottom:3,paddingLeft:6}}>
-                      {owned?'✓ ':equipped?'→ ':'○ '}{GEAR_DEFS[gid].name}
+                    <div key={gid} style={{fontSize:6,color:owned?'#27AE60':'#605848',marginBottom:3,paddingLeft:6}}>
+                      {owned?'✓ ':'○ '}{GEAR_DEFS[gid].name}
                       {owned&&<span style={{color:'#1a5c30'}}> (owned)</span>}
                     </div>
                   )
                 })}
-                {myGear.length > 0 && (
+                {collectedGear.length > 0 && (
                   <div style={{marginTop:8,borderTop:'1px solid #2a2820',paddingTop:8,fontSize:6,color:'#C89B3C'}}>
-                    Bringing: {myGear.map(g => GEAR_DEFS[g].name).join(', ')}
+                    Bringing: {collectedGear.map(g => GEAR_DEFS[g].name).join(', ')}
                   </div>
                 )}
                 {sel && <div style={{marginTop:8,fontSize:7,color:b.color}}>&#9654; SELECTED</div>}
