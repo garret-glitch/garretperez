@@ -439,6 +439,7 @@ model YoutubeChannel {
   channelUrl  String
   description String?  @db.Text
   category    String?
+  imageUrl    String?  @db.Text
   accentColor String   @default("#c89b3c")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

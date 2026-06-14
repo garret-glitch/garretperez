@@ -23,7 +23,7 @@ export async function POST(req: Request) {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
-    const { channelName, channelUrl, description, category, accentColor } = await req.json()
+    const { channelName, channelUrl, description, category, imageUrl, accentColor } = await req.json()
 
     if (!channelName?.trim()) return NextResponse.json({ error: 'Channel name is required' }, { status: 400 })
     if (!channelUrl?.trim()) return NextResponse.json({ error: 'Channel URL is required' }, { status: 400 })
@@ -38,6 +38,7 @@ export async function POST(req: Request) {
         channelUrl: channelUrl.trim().slice(0, 200),
         description: description?.trim().slice(0, 200) || null,
         category: cat,
+        imageUrl: imageUrl || null,
         accentColor: color,
       },
     })
