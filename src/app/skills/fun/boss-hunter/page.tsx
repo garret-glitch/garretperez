@@ -1178,34 +1178,75 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
     }
     ctx.lineCap = 'butt'
 
-    // ── HEAD — triangle rotated to face movement direction (origin = b.pos) ──
+    // ── HEAD — polygon dragon head (wedge skull + jaw + teeth + horns) ──
     ctx.save(); ctx.rotate(b.angle)
-    const hBx = -sz*0.42   // back of triangle (behind head)
-    const hTx =  sz*0.50   // tip (forward toward player)
-    const hHh =  sz*0.44   // half-height of base
-    const htGrad = ctx.createLinearGradient(hBx, 0, hTx, 0)
-    htGrad.addColorStop(0,   hitW?'#BBB':(enr?'#7A0A00':'#550800'))
-    htGrad.addColorStop(0.5, hitW?'#DDD':(enr?'#9E1000':'#720C00'))
-    htGrad.addColorStop(1,   hitW?'#CCC':(enr?'#820C00':'#5E0A00'))
-    ctx.fillStyle = htGrad
+    const hx = 0   // head center = b.pos in rotated frame
+    const hGrad = ctx.createLinearGradient(hx-sz*0.50, 0, hx+sz*0.60, 0)
+    hGrad.addColorStop(0,    hitW?'#CCC':(enr?'#7A0E00':'#4A0E00'))
+    hGrad.addColorStop(0.42, hitW?'#FFF':(enr?'#DD2200':'#AA2000'))
+    hGrad.addColorStop(0.80, hitW?'#FFF':(enr?'#FF3800':'#CC2A00'))
+    hGrad.addColorStop(1,    hitW?'#EEE':(enr?'#CC2200':'#A01800'))
+    // Upper skull + snout wedge (wide back → pointed snout)
+    ctx.fillStyle = hGrad
     ctx.beginPath()
-    ctx.moveTo(hBx, -hHh); ctx.lineTo(hBx, hHh); ctx.lineTo(hTx, 0)
+    ctx.moveTo(hx-sz*0.50, -sz*0.36)
+    ctx.quadraticCurveTo(hx-sz*0.06, -sz*0.45, hx+sz*0.22, -sz*0.13)
+    ctx.lineTo(hx+sz*0.62,  sz*0.02)
+    ctx.lineTo(hx+sz*0.60,  sz*0.10)
+    ctx.lineTo(hx+sz*0.26,  sz*0.22)
+    ctx.lineTo(hx-sz*0.06,  sz*0.28)
+    ctx.lineTo(hx-sz*0.50,  sz*0.26)
     ctx.closePath(); ctx.fill()
-    ctx.strokeStyle = hitW?'#888':'#1A0200'; ctx.lineWidth = 3.5
-    ctx.lineJoin = 'round'; ctx.lineCap = 'round'
+    // Lower jaw
+    ctx.fillStyle = hitW?'#CCC':(enr?'#AA1800':'#7A1200')
     ctx.beginPath()
-    ctx.moveTo(hBx, -hHh); ctx.lineTo(hBx, hHh); ctx.lineTo(hTx, 0); ctx.closePath(); ctx.stroke()
-    ctx.lineJoin = 'miter'; ctx.lineCap = 'butt'
-    const ep = 0.65 + 0.35*Math.sin(t*5.2)
-    const eyeCol = hitW ? '#FFF' : (enr ? '#FF2200' : '#00FF88')
-    ctx.shadowColor = hitW?'#FFF':(enr?'#FF0000':'#00FF88'); ctx.shadowBlur = 24*ep
-    ctx.strokeStyle = eyeCol; ctx.lineWidth = 3.2; ctx.lineCap = 'round'
-    ctx.beginPath(); ctx.arc(-sz*0.10, -sz*0.15, 11, 0, Math.PI*2); ctx.stroke()
-    ctx.beginPath(); ctx.arc(-sz*0.10,  sz*0.15, 11, 0, Math.PI*2); ctx.stroke()
-    ctx.fillStyle = '#000'; ctx.shadowBlur = 0
-    ctx.beginPath(); ctx.arc(-sz*0.10, -sz*0.15, 3.5, 0, Math.PI*2); ctx.fill()
-    ctx.beginPath(); ctx.arc(-sz*0.10,  sz*0.15, 3.5, 0, Math.PI*2); ctx.fill()
-    ctx.lineWidth = 1; ctx.lineCap = 'butt'
+    ctx.moveTo(hx-sz*0.12,  sz*0.26)
+    ctx.lineTo(hx+sz*0.30,  sz*0.22)
+    ctx.lineTo(hx+sz*0.50,  sz*0.40)
+    ctx.lineTo(hx+sz*0.14,  sz*0.54)
+    ctx.lineTo(hx-sz*0.14,  sz*0.50)
+    ctx.closePath(); ctx.fill()
+    // Upper teeth
+    ctx.fillStyle = hitW?'#FFF':'#E8DFC2'
+    for (let i = 0; i < 5; i++) {
+      const tx = hx+sz*0.54-i*sz*0.13, ty = sz*0.10+i*sz*0.022
+      ctx.beginPath(); ctx.moveTo(tx-sz*0.05,ty); ctx.lineTo(tx,ty+sz*(0.11-i*0.014)); ctx.lineTo(tx+sz*0.05,ty); ctx.closePath(); ctx.fill()
+    }
+    // Lower teeth
+    ctx.fillStyle = hitW?'#EEE':'#D4CAB2'
+    for (let i = 0; i < 4; i++) {
+      const tx = hx+sz*0.44-i*sz*0.11, ty = sz*0.34-i*sz*0.016
+      ctx.beginPath(); ctx.moveTo(tx-sz*0.04,ty); ctx.lineTo(tx,ty-sz*(0.09-i*0.012)); ctx.lineTo(tx+sz*0.04,ty); ctx.closePath(); ctx.fill()
+    }
+    // Skull armor plates
+    if (!hitW) {
+      ctx.fillStyle = enr?'rgba(80,6,0,0.52)':'rgba(52,4,0,0.48)'
+      for (let i = 0; i < 4; i++) {
+        const hpx=hx-sz*0.38+i*sz*0.20, hpy=-sz*0.28+i*sz*0.05
+        ctx.beginPath(); ctx.moveTo(hpx,hpy); ctx.lineTo(hpx+sz*0.14,hpy+sz*0.04); ctx.lineTo(hpx+sz*0.10,hpy+sz*0.15); ctx.lineTo(hpx-sz*0.04,hpy+sz*0.11); ctx.closePath(); ctx.fill()
+      }
+    }
+    // Brow ridge
+    ctx.fillStyle = hitW?'#BBB':'#5A3808'
+    ctx.beginPath(); ctx.moveTo(hx-sz*0.18,-sz*0.20); ctx.lineTo(hx+sz*0.14,-sz*0.15); ctx.lineTo(hx+sz*0.10,-sz*0.06); ctx.lineTo(hx-sz*0.22,-sz*0.10); ctx.closePath(); ctx.fill()
+    // Swept-back horns
+    ctx.fillStyle = hitW?'#FFF':'#8A6510'
+    ctx.beginPath(); ctx.moveTo(hx-sz*0.30,-sz*0.30); ctx.quadraticCurveTo(hx-sz*0.54,-sz*0.82,hx-sz*0.68,-sz*0.92); ctx.quadraticCurveTo(hx-sz*0.50,-sz*0.76,hx-sz*0.22,-sz*0.22); ctx.closePath(); ctx.fill()
+    ctx.beginPath(); ctx.moveTo(hx-sz*0.15,-sz*0.24); ctx.quadraticCurveTo(hx-sz*0.36,-sz*0.72,hx-sz*0.46,-sz*0.80); ctx.quadraticCurveTo(hx-sz*0.30,-sz*0.62,hx-sz*0.10,-sz*0.17); ctx.closePath(); ctx.fill()
+    // Glowing nostril
+    if (!hitW) {
+      ctx.fillStyle=`rgba(255,${110+Math.floor(pulse*70)},0,${0.55+pulse*0.25})`
+      ctx.shadowColor='#FF5500'; ctx.shadowBlur=12
+      ctx.beginPath(); ctx.ellipse(hx+sz*0.54,sz*0.00,5,3.5,0.20,0,Math.PI*2); ctx.fill()
+      ctx.shadowBlur=0
+    }
+    // Single glowing green eye
+    const ep=0.68+0.32*Math.sin(t*5.2)
+    ctx.shadowColor=enr?'#FF0000':'#00FF88'; ctx.shadowBlur=26*ep
+    ctx.fillStyle=enr?`rgb(255,${Math.floor(80+90*ep)},0)`:'#22FF88'
+    ctx.beginPath(); ctx.arc(hx+sz*0.06,-sz*0.24,9,0,Math.PI*2); ctx.fill()
+    ctx.fillStyle='#000'; ctx.shadowBlur=0
+    ctx.beginPath(); ctx.ellipse(hx+sz*0.07,-sz*0.24,2.5,5.5,0.14,0,Math.PI*2); ctx.fill()
     ctx.restore()  // end head rotation
 
 
