@@ -768,7 +768,7 @@ function renderEnvObjects(ctx: CanvasRenderingContext2D, g: GS, arenaType: 'spid
       ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 6
       ctx.beginPath()
       const sides = 5+obj.variant
-      for (let i=0;i<sides;i++) { const a=i/sides*Math.PI*2, r2=obj.size*(0.7+0.3*Math.sin(a*2.3+obj.variant)); i===0?ctx.moveTo(Math.cos(a)*r2,Math.sin(a)*r2):ctx.lineTo(Math.cos(a)*r2,Math.sin(a)*r2) }
+      for (let i=0;i<sides;i++) { const a=i/sides*Math.PI*2, r2=obj.size*(0.7+0.3*Math.sin(a*2.3+obj.variant)); if(i===0) ctx.moveTo(Math.cos(a)*r2,Math.sin(a)*r2); else ctx.lineTo(Math.cos(a)*r2,Math.sin(a)*r2) }
       ctx.closePath(); ctx.fill()
       ctx.shadowBlur = 0; ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1; ctx.stroke()
     } else if (obj.type === 'bone') {
@@ -786,7 +786,7 @@ function renderEnvObjects(ctx: CanvasRenderingContext2D, g: GS, arenaType: 'spid
       const alpha = 0.18 + 0.08*Math.sin(t*1.8+obj.variant*1.4)
       ctx.strokeStyle = `rgba(170,150,210,${alpha})`; ctx.lineWidth = 0.8
       for (let i=0;i<8;i++) { const a=i/8*Math.PI*2; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(a)*obj.size,Math.sin(a)*obj.size); ctx.stroke() }
-      for (let ring=1;ring<=4;ring++) { const r2=ring/4*obj.size; ctx.beginPath(); for (let i=0;i<8;i++) { const a=i/8*Math.PI*2; i===0?ctx.moveTo(Math.cos(a)*r2,Math.sin(a)*r2):ctx.lineTo(Math.cos(a)*r2,Math.sin(a)*r2) } ctx.closePath(); ctx.stroke() }
+      for (let ring=1;ring<=4;ring++) { const r2=ring/4*obj.size; ctx.beginPath(); for (let i=0;i<8;i++) { const a=i/8*Math.PI*2; if(i===0) ctx.moveTo(Math.cos(a)*r2,Math.sin(a)*r2); else ctx.lineTo(Math.cos(a)*r2,Math.sin(a)*r2) } ctx.closePath(); ctx.stroke() }
     } else if (obj.type === 'crystal') {
       const glow = ctx.createRadialGradient(0,0,0,0,0,obj.size)
       glow.addColorStop(0,'rgba(255,130,30,0.5)'); glow.addColorStop(1,'rgba(255,80,0,0.05)')
@@ -949,7 +949,7 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, cls: ClassDef, gear:
   }
 
   ctx.save(); ctx.translate(p.pos.x, p.pos.y)
-  p.hitFlash>0 ? (ctx.shadowColor='#FF0000',ctx.shadowBlur=24) : (ctx.shadowColor=cls.color,ctx.shadowBlur=14)
+  if (p.hitFlash>0) { ctx.shadowColor='#FF0000'; ctx.shadowBlur=24 } else { ctx.shadowColor=cls.color; ctx.shadowBlur=14 }
 
   if (g.whirlwindActive) {
     const sa = t*11; ctx.save(); ctx.rotate(sa)
