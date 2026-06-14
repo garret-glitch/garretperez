@@ -271,23 +271,6 @@ export default async function FoodPage() {
                   }}
                 />
 
-                {/* Score — bottom left */}
-                <div style={{ position: 'absolute', bottom: 14, left: 15, zIndex: 3 }}>
-                  <div style={{
-                    fontFamily: "'Press Start 2P', monospace", fontSize: 24,
-                    color: S.gold, lineHeight: 1,
-                    textShadow: '0 0 18px rgba(200,155,60,0.5), 0 2px 4px rgba(0,0,0,0.8)',
-                  }}>
-                    {wine.score}
-                  </div>
-                  <div style={{
-                    fontFamily: "'Press Start 2P', monospace", fontSize: 5,
-                    color: 'rgba(200,155,60,0.5)', letterSpacing: '0.1em', marginTop: 4,
-                  }}>
-                    PTS
-                  </div>
-                </div>
-
                 {/* ABV — bottom right */}
                 <div style={{
                   position: 'absolute', bottom: 16, right: 15, zIndex: 3,
