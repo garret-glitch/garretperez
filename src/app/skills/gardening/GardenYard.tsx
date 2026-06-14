@@ -1032,22 +1032,15 @@ export default function GardenYard({ initialPlants, initialTypes, isAdmin }: {
                 {/* Plant circle */}
                 <div style={{ position:'relative' }}>
                   <div style={{
-                    width: 66, height: 66, borderRadius: '50%',
-                    background: 'radial-gradient(ellipse at 42% 28%, #fffff8, #f0e8c8)',
-                    border: `3px solid ${info.color}`,
-                    boxShadow: stage === 6
-                      ? `0 4px 18px rgba(0,0,0,0.55), 0 0 26px ${info.glow}, 0 0 44px rgba(224,192,32,0.3)`
-                      : `0 4px 16px rgba(0,0,0,0.55), 0 0 16px ${info.glow}`,
+                    width: 56, height: 56,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    position: 'relative', overflow: 'hidden',
+                    position: 'relative',
                     transform: isThisDragging ? 'scale(1.14)' : 'scale(1)',
-                    transition: isThisDragging ? 'none' : 'transform 0.15s, box-shadow 0.3s',
-                    animation: stage === 6 && !isThisDragging ? 'harvest-glow 2.5s infinite ease-in-out' : undefined,
+                    transition: isThisDragging ? 'none' : 'transform 0.15s',
                   }}>
                     {img
-                      ? <img src={img} alt="" style={{ width: 42, height: 42, objectFit: 'contain' }} />
+                      ? <img src={img} alt="" style={{ width: 48, height: 48, objectFit: 'contain' }} />
                       : <PlantStageIcon stage={stage} delay={(plant.xPos % 10) * 0.2} />}
-                    {plant.harvestStatus && <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'rgba(255,220,0,0.12)' }} />}
                   </div>
                   {/* Stage badge */}
                   <div style={{
