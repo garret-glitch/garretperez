@@ -114,19 +114,19 @@ const BOSS_DEFS: BossDef[] = [
   {
     id: 0, name: 'Spider Queen', color: '#8E44AD', icon: '🕷️', element: 'poison',
     lore: 'Ancient arachnid empress of the deep caverns. Her venom melts armor. Her webs trap the bravest hunters.',
-    hp: 8500, size: 90, enrageAt: 0.40,
+    hp: 4200, size: 90, enrageAt: 0.40,
     rewards: ['spider_fang', 'venom_bow', 'web_amulet'], arenaType: 'spider',
   },
   {
     id: 1, name: 'Lava Drake', color: '#E67E22', icon: '🐉', element: 'fire',
     lore: 'Born in the molten core. Ancient and enormous. Her fire melts stone. Her claws split mountains.',
-    hp: 13000, size: 115, enrageAt: 0.35,
+    hp: 6500, size: 115, enrageAt: 0.35,
     rewards: ['drake_sword', 'fire_staff', 'ember_armor'], arenaType: 'drake',
   },
   {
     id: 2, name: 'Storm Griffin', color: '#F1C40F', icon: '🦅', element: 'lightning',
     lore: 'Skyborn predator. Commands the storms. Every wingbeat calls lightning from dark thunderheads.',
-    hp: 20000, size: 100, enrageAt: 0.30,
+    hp: 9500, size: 100, enrageAt: 0.30,
     rewards: ['thunder_blade', 'storm_bow', 'feather_boots'], arenaType: 'griffin',
   },
 ]
