@@ -60,7 +60,7 @@ interface GS {
   attackFlash: AttackFlash | null; screenShake: number; bossDeathAnim: number
   lavaParticles: Particle[]; skyArrows: SkyArrow[]; envObjects: EnvObject[]
   nextProjId: number; nextDmgId: number; nextPartId: number; nextTrapId: number; nextZoneId: number
-  gtime: number; bossEnraged: boolean; poisonTimer: number
+  gtime: number; bossEnraged: boolean; poisonTimer: number; playerDmgFlash: number
   chainHits: number; chainResetTimer: number
   rageActive: boolean; rageTimer: number
   bullChargeDash: { active: boolean; vel: V2; timer: number }
@@ -90,7 +90,7 @@ interface BossState {
 const CLASS_DEFS: ClassDef[] = [
   {
     id: 'hunter', label: 'Hunter', color: '#2ECC71', icon: '🏹', element: 'lightning', weaponType: 'bow',
-    hp: 130, dmg: 28, range: 290, atkCd: 0.44, speed: 178,
+    hp: 130, dmg: 28, range: 480, atkCd: 0.44, speed: 178,
     desc: 'Precision archer. Power shots, traps, shadow dashes, and a rain of deadly arrows from the sky.',
     abilities: [
       { key: 'Q', name: 'Power Shot', desc: 'Massive gold arrow — 3× dmg, stuns boss 0.6s', cd: 5 },
@@ -200,7 +200,7 @@ function mkState(cls: ClassDef, boss: BossDef, gear: GearId[]): GS {
     attackFlash: null, screenShake: 0, bossDeathAnim: 0,
     lavaParticles: [], skyArrows: [], envObjects: generateEnvObjects(boss.id),
     nextProjId: 0, nextDmgId: 0, nextPartId: 0, nextTrapId: 0, nextZoneId: 0,
-    gtime: 0, bossEnraged: false, poisonTimer: 0,
+    gtime: 0, bossEnraged: false, poisonTimer: 0, playerDmgFlash: 0,
     chainHits: 0, chainResetTimer: 0,
     rageActive: false, rageTimer: 0,
     bullChargeDash: { active: false, vel: v(0, 0), timer: 0 },
@@ -235,7 +235,8 @@ function dealDmgToPlayer(g: GS, dmg: number, cls: ClassDef, gear: GearId[], knoc
   if (isMelee) fd = Math.round(fd * 0.80)
   if (gear.includes('ember_armor')) fd = Math.round(fd * 0.75)
   p.hp = Math.max(0, p.hp - fd)
-  p.hitFlash = 0.18; p.iframeTimer = 0.5
+  p.hitFlash = 0.40; p.iframeTimer = 0.5
+  g.playerDmgFlash = 0.70
   if (knockDir) p.knockbackVel = v(knockDir.x * 160, knockDir.y * 160)
   spawnParticles(g, p.pos, 8, '#FF4444', 110)
   g.screenShake = Math.max(g.screenShake, 0.32)
@@ -449,6 +450,7 @@ function tick(g: GS, dt: number, cls: ClassDef, bossId: BossId, gear: GearId[], 
   b.legPhase += dt * (b.stunTimer > 0 ? 0.5 : g.bossEnraged ? 3.8 : 2.4)
   b.spinePulse += dt * 2.2; b.lightningPhase += dt * 4.5
   g.screenShake = Math.max(0, g.screenShake - dt * 3); g.nextAttackTimer = Math.max(0, g.nextAttackTimer - dt)
+  g.playerDmgFlash = Math.max(0, g.playerDmgFlash - dt * 2.8)
   if (g.rageTimer > 0) { g.rageTimer = Math.max(0, g.rageTimer - dt); if (g.rageTimer <= 0) g.rageActive = false }
   if (g.poisonTimer > 0) { g.poisonTimer = Math.max(0, g.poisonTimer - dt); b.hp = Math.max(0, b.hp - 15 * dt) }
   if (g.chainResetTimer > 0) { g.chainResetTimer = Math.max(0, g.chainResetTimer - dt); if (g.chainResetTimer <= 0) g.chainHits = 0 }
@@ -1322,9 +1324,9 @@ function renderParticles(ctx: CanvasRenderingContext2D, g: GS) {
 function renderDamageNumbers(ctx: CanvasRenderingContext2D, g: GS) {
   g.damageNums.forEach(dn => {
     ctx.save(); ctx.globalAlpha=Math.min(1,dn.life*1.5)
-    ctx.font=`${dn.isPlayer?12:14}px "Press Start 2P",monospace`
-    ctx.fillStyle=dn.isPlayer?'#FF4444':'#FFFFFF'; ctx.textAlign='center'; ctx.textBaseline='middle'
-    ctx.shadowColor=dn.isPlayer?'#FF0000':'#C89B3C'; ctx.shadowBlur=7
+    ctx.font=`${dn.isPlayer?16:14}px "Press Start 2P",monospace`
+    ctx.fillStyle=dn.isPlayer?'#FF2222':'#FFFFFF'; ctx.textAlign='center'; ctx.textBaseline='middle'
+    ctx.shadowColor=dn.isPlayer?'#FF0000':'#C89B3C'; ctx.shadowBlur=dn.isPlayer?14:7
     ctx.fillText(`-${dn.val}`,dn.pos.x,dn.pos.y); ctx.restore()
   })
   ctx.textBaseline='alphabetic'
@@ -1379,11 +1381,28 @@ function renderHUD(ctx: CanvasRenderingContext2D, g: GS, cls: ClassDef, bossDef:
   const ph=p.hp/p.maxHp; ctx.fillStyle=ph>0.5?'#27AE60':ph>0.25?'#F39C12':'#E74C3C'; ctx.fillRect(pBX,pBY,pBW*ph,pBH)
   ctx.font='8px "Press Start 2P",monospace'; ctx.fillStyle='#A09880'; ctx.fillText(`${Math.ceil(p.hp)} / ${p.maxHp}`,pBX,pBY+pBH+12)
 
-  const dX=pBX+pBW+18,dY=pBY+7, canD=p.dodgeChargeMode?p.featherCharges>0:p.dodgeCd<=0
-  ctx.fillStyle=canD?'#C89B3C':'rgba(200,155,60,0.2)'; ctx.shadowColor=canD?'#C89B3C':'transparent'; ctx.shadowBlur=canD?8:0
-  ctx.beginPath(); ctx.arc(dX,dY,7,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0
-  ctx.font='7px "Press Start 2P",monospace'; ctx.fillStyle='#524020'; ctx.textAlign='center'; ctx.fillText('SPACE',dX,dY+19)
-  if (p.dodgeChargeMode) { for (let i=0;i<3;i++) { ctx.fillStyle=i<p.featherCharges?'#C89B3C':'rgba(200,155,60,0.2)'; ctx.beginPath(); ctx.arc(dX-14+i*14,dY+27,4,0,Math.PI*2); ctx.fill() } }
+  const dCX=pBX+pBW+46, dBW=68, dBH=28, dBY=pBY-1
+  const canD=p.dodgeChargeMode?p.featherCharges>0:p.dodgeCd<=0
+  ctx.save()
+  ctx.font='6px "Press Start 2P",monospace'; ctx.textAlign='center'
+  ctx.fillStyle=canD?'#C89B3C':'#3a3020'
+  if (canD) { ctx.shadowColor='#C89B3C'; ctx.shadowBlur=8 }
+  ctx.fillText('DODGE',dCX,dBY-3)
+  ctx.shadowBlur=0
+  if (canD) { ctx.shadowColor='#C89B3C'; ctx.shadowBlur=16 }
+  ctx.fillStyle=canD?'#1e1608':'#090910'
+  rrect(ctx,dCX-dBW/2,dBY,dBW,dBH,5); ctx.fill()
+  ctx.strokeStyle=canD?'#C89B3C':'#2a2010'; ctx.lineWidth=canD?2:1; ctx.stroke()
+  ctx.shadowBlur=0
+  ctx.font='8px "Press Start 2P",monospace'
+  ctx.fillStyle=canD?'#F1C40F':'#3a3020'
+  ctx.fillText('SPACE',dCX,dBY+dBH/2+3)
+  ctx.restore()
+  if (!p.dodgeChargeMode && p.dodgeCd>0) {
+    ctx.font='7px "Press Start 2P",monospace'; ctx.fillStyle='#E74C3C'; ctx.textAlign='center'
+    ctx.fillText(p.dodgeCd.toFixed(1)+'s',dCX,dBY+dBH+11)
+  }
+  if (p.dodgeChargeMode) { for (let i=0;i<3;i++) { ctx.fillStyle=i<p.featherCharges?'#C89B3C':'rgba(200,155,60,0.18)'; ctx.beginPath(); ctx.arc(dCX-14+i*14,dBY+dBH+9,5,0,Math.PI*2); ctx.fill() } }
 
   const slW=52,slH=52,slY=CH-88, tsW=4*slW+3*6, slX=CW/2-tsW/2
   const kkeys=['Q','W','E','R']
@@ -1431,6 +1450,13 @@ function render(ctx: CanvasRenderingContext2D, g: GS, cls: ClassDef, bossId: Bos
   }
   ctx.restore()
   if (g.phase!=='dying') renderHUD(ctx,g,cls,bossDef,gear,t)
+  if (g.playerDmgFlash > 0) {
+    const a = g.playerDmgFlash * 0.55
+    const vgn = ctx.createRadialGradient(CW/2, CH/2, CH*0.08, CW/2, CH/2, CH*0.85)
+    vgn.addColorStop(0, 'rgba(220,0,0,0)')
+    vgn.addColorStop(1, `rgba(220,0,0,${a})`)
+    ctx.fillStyle = vgn; ctx.fillRect(0, 0, CW, CH)
+  }
   ctx.restore()
 }
 /* ═══ REACT COMPONENT ═══ */
