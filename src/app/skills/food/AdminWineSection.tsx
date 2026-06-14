@@ -167,7 +167,7 @@ function AddWineForm({ onAdded }: { onAdded: () => void }) {
       </div>
 
       {/* Origin + Varietal */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div className="wine-form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <div>
           <label style={labelStyle}>ORIGIN *</label>
           <input value={origin} onChange={e => setOrigin(e.target.value)} maxLength={80} placeholder="e.g. California" style={inputStyle} />

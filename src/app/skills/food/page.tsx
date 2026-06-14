@@ -206,7 +206,7 @@ export default async function FoodPage() {
                     }}
                   >
                     {/* ── Image — fills top half edge-to-edge ── */}
-                    <div style={{ position: 'relative', overflow: 'hidden', height: 280 }}>
+                    <div className="wine-img-top" style={{ position: 'relative', overflow: 'hidden', height: 280 }}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={wine.image}
@@ -243,7 +243,7 @@ export default async function FoodPage() {
                     </div>
 
                     {/* ── Info panel ── */}
-                    <div style={{ padding: '15px 16px 18px', flex: 1, display: 'flex', flexDirection: 'column', gap: 10, background: '#09070e', borderTop: `1px solid rgba(200,155,60,0.1)` }}>
+                    <div className="wine-card-body" style={{ padding: '15px 16px 18px', flex: 1, display: 'flex', flexDirection: 'column', gap: 10, background: '#09070e', borderTop: `1px solid rgba(200,155,60,0.1)` }}>
                       <h3 style={{ fontFamily: 'Inter, sans-serif', fontSize: 15, fontWeight: 800, color: S.text1, lineHeight: 1.3, letterSpacing: '-0.01em', margin: 0 }}>
                         {wine.name}
                       </h3>

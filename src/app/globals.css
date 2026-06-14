@@ -781,6 +781,14 @@ a { color: inherit; text-decoration: none; }
   .garden-popup-form { padding: 14px 14px 16px !important; }
   .garden-popup-header { padding: 14px 14px 12px !important; }
   .garden-popup-body { padding: 12px 14px 16px !important; }
+
+  /* ─── Wine cards ───────────────────────────────────────────── */
+  /* Shorter image top on single-column mobile */
+  .wine-img-top { height: 220px !important; }
+  /* Stack origin/varietal fields instead of side-by-side */
+  .wine-form-grid-2 { grid-template-columns: 1fr !important; }
+  /* Tighter card body padding */
+  .wine-card-body { padding: 12px 14px 16px !important; }
 }
 
 /* ─── Extra-small screens (< 480px) — tighten admin buttons further ── */
