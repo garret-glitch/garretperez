@@ -15,14 +15,14 @@ const rnd = (a: number, b: number) => a + Math.random() * (b - a)
 const rndI = (a: number, b: number) => Math.floor(rnd(a, b + 0.99))
 
 /* ═══ TYPES ═══ */
-type ClassType = 'hunter' | 'berserker'
+type WeaponId = 'sword' | 'bow' | 'staff'
 type BossId = 0 | 1 | 2
 type GearId = 'spider_fang' | 'venom_bow' | 'web_amulet' | 'drake_sword' | 'fire_staff' | 'ember_armor' | 'thunder_blade' | 'storm_bow' | 'feather_boots'
 
-interface ClassDef {
-  id: ClassType; label: string; color: string; icon: string
-  element: 'lightning' | 'fire'; weaponType: 'bow' | 'sword'
-  hp: number; dmg: number; range: number; atkCd: number; speed: number
+interface WeaponDef {
+  id: WeaponId; name: string; icon: string; color: string
+  element: 'lightning' | 'fire' | 'arcane'
+  dmg: number; range: number; atkCd: number
   desc: string; abilities: AbilityDef[]
 }
 interface AbilityDef { key: string; name: string; desc: string; cd: number }
@@ -86,12 +86,23 @@ interface BossState {
   reflectDmg: number; angle: number; legPhase: number; spinePulse: number; lightningPhase: number; hitFlash: number
 }
 
-/* ═══ CLASS DEFINITIONS ═══ */
-const CLASS_DEFS: ClassDef[] = [
+/* ═══ WEAPON DEFINITIONS ═══ */
+const WEAPON_DEFS: WeaponDef[] = [
   {
-    id: 'hunter', label: 'Hunter', color: '#2ECC71', icon: '🏹', element: 'lightning', weaponType: 'bow',
-    hp: 130, dmg: 28, range: 480, atkCd: 0.44, speed: 178,
-    desc: 'Precision archer. Power shots, traps, shadow dashes, and a rain of deadly arrows from the sky.',
+    id: 'sword', name: 'Starter Sword', icon: '⚔️', color: '#E74C3C', element: 'fire',
+    dmg: 55, range: 100, atkCd: 0.72,
+    desc: 'Aggressive melee fighter. Close the distance and unleash devastating slams, rages, and charges.',
+    abilities: [
+      { key: 'Q', name: 'Ground Slam', desc: 'Shockwave — 130 dmg AOE, 130px radius', cd: 6 },
+      { key: 'W', name: 'Rage', desc: '+60% damage for 8s', cd: 18 },
+      { key: 'E', name: 'Bull Charge', desc: 'Rush toward cursor — 150 dmg on boss impact', cd: 9 },
+      { key: 'R', name: 'Whirlwind', desc: 'Spin 3s — 65 dmg/s within 100px', cd: 25 },
+    ],
+  },
+  {
+    id: 'bow', name: 'Starter Bow', icon: '🏹', color: '#2ECC71', element: 'lightning',
+    dmg: 28, range: 480, atkCd: 0.44,
+    desc: 'Precision long-range archer. Rain death from afar with power shots, traps, and sky arrows.',
     abilities: [
       { key: 'Q', name: 'Power Shot', desc: 'Massive gold arrow — 3× dmg, stuns boss 0.6s', cd: 5 },
       { key: 'W', name: 'Trap', desc: 'Snap trap at cursor — 110 dmg + 3s slow on trigger', cd: 10 },
@@ -100,14 +111,14 @@ const CLASS_DEFS: ClassDef[] = [
     ],
   },
   {
-    id: 'berserker', label: 'Berserker', color: '#E74C3C', icon: '⚔️', element: 'fire', weaponType: 'sword',
-    hp: 190, dmg: 54, range: 98, atkCd: 0.74, speed: 165,
-    desc: 'Fire juggernaut. Basic sword upgrades with legendary gear. Slam, rage, charge, and whirlwind.',
+    id: 'staff', name: 'Starter Staff', icon: '🔮', color: '#9B59B6', element: 'arcane',
+    dmg: 38, range: 220, atkCd: 0.82,
+    desc: 'Arcane spellcaster. Launch homing bolts from mid-range. Blink, shield, and call meteors.',
     abilities: [
-      { key: 'Q', name: 'Ground Slam', desc: 'Shockwave — 130 dmg AOE, 130px radius', cd: 6 },
-      { key: 'W', name: 'Rage', desc: '+60% damage for 8s', cd: 18 },
-      { key: 'E', name: 'Bull Charge', desc: 'Rush toward cursor — 150 dmg on boss impact', cd: 9 },
-      { key: 'R', name: 'Whirlwind', desc: 'Spin 3s — 65 dmg/s within 100px', cd: 25 },
+      { key: 'Q', name: 'Arcane Bolt', desc: 'Fast projectile — 2.5× dmg toward cursor', cd: 5 },
+      { key: 'W', name: 'Mana Shield', desc: '1.5s full invulnerability bubble', cd: 14 },
+      { key: 'E', name: 'Blink', desc: 'Instant teleport up to 350px toward cursor', cd: 7 },
+      { key: 'R', name: 'Meteor', desc: 'Giant meteor — 200 dmg in 100px AOE at cursor', cd: 22 },
     ],
   },
 ]
@@ -176,14 +187,15 @@ function generateEnvObjects(bossId: BossId): EnvObject[] {
   return objs
 }
 
-function mkState(cls: ClassDef, boss: BossDef, gear: GearId[]): GS {
+function mkState(wpn: WeaponDef, boss: BossDef, gear: GearId[]): GS {
+  void wpn
   const featherMode = gear.includes('feather_boots')
   const sx = WW / 2, sy = WH - 250
   return {
     phase: 'playing',
     player: {
       pos: v(sx, sy), vel: v(0, 0), targetPos: null,
-      hp: cls.hp, maxHp: cls.hp, atkTimer: 0,
+      hp: 160, maxHp: 160, atkTimer: 0,
       iframeTimer: 0, dodgeTimer: 0, dodgeCd: 0, dodgeVel: v(0, 0), dodgeTrail: [],
       hitFlash: 0, abilityCds: [0, 0, 0, 0], slowTimer: 0, knockbackVel: v(0, 0),
       featherCharges: featherMode ? 3 : 1, featherRecharge: featherMode ? [0, 0, 0] : [0],
@@ -225,13 +237,12 @@ function spawnParticles(g: GS, pos: V2, count: number, color: string, speed = 12
   g.nextPartId = _pid
 }
 
-function dealDmgToPlayer(g: GS, dmg: number, cls: ClassDef, gear: GearId[], knockDir?: V2) {
+function dealDmgToPlayer(g: GS, dmg: number, wpn: WeaponDef, gear: GearId[], knockDir?: V2) {
   const p = g.player
   if (p.iframeTimer > 0) return
   let fd = dmg
   if (g.rageActive) fd = Math.round(fd * 1.2)
-  // Melee weapons take more hits up close — 20% innate damage reduction
-  const isMelee = cls.weaponType === 'sword' || gear.some(g2 => ['spider_fang','drake_sword','thunder_blade'].includes(g2))
+  const isMelee = wpn.id === 'sword' || gear.some(g2 => ['spider_fang','drake_sword','thunder_blade'].includes(g2))
   if (isMelee) fd = Math.round(fd * 0.80)
   if (gear.includes('ember_armor')) fd = Math.round(fd * 0.75)
   p.hp = Math.max(0, p.hp - fd)
@@ -242,7 +253,6 @@ function dealDmgToPlayer(g: GS, dmg: number, cls: ClassDef, gear: GearId[], knoc
   g.screenShake = Math.max(g.screenShake, 0.32)
   g.damageNums.push({ id: ++g.nextDmgId, pos: { x: p.pos.x + rnd(-20, 20), y: p.pos.y - 20 }, val: Math.round(fd), life: 1.2, isPlayer: true })
   if (p.hp <= 0) g.phase = 'defeat'
-  void cls
 }
 
 function spawnZone(g: GS, pos: V2, type: HazardZone['type'], radius: number, dps: number, life: number) {
@@ -329,7 +339,7 @@ function startBossAttack(g: GS, bossId: BossId, type: string) {
   g.bossAttack = { type, telegraphTime: telegraphs[type] ?? 1.0, elapsed: 0, active: false, data }
 }
 
-function resolveBossAttack(g: GS, bossId: BossId, cls: ClassDef, gear: GearId[]) {
+function resolveBossAttack(g: GS, bossId: BossId, wpn: WeaponDef, gear: GearId[]) {
   const atk = g.bossAttack!, p = g.player, b = g.boss
   const type = atk.type, d = atk.data
   const toPlayer = norm(v(p.pos.x - b.pos.x, p.pos.y - b.pos.y))
@@ -351,7 +361,7 @@ function resolveBossAttack(g: GS, bossId: BossId, cls: ClassDef, gear: GearId[])
       const pAngle = Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
       let diff = Math.abs(pAngle - angle); while (diff > Math.PI) diff = Math.abs(diff - Math.PI * 2)
       if (diff <= halfCone) {
-        dealDmgToPlayer(g, d.dmg ?? 22, cls, gear, type === 'wind_buffet' ? toPlayer : undefined)
+        dealDmgToPlayer(g, d.dmg ?? 22, wpn, gear, type === 'wind_buffet' ? toPlayer : undefined)
         if (type === 'wind_buffet') p.knockbackVel = v(toPlayer.x * 240, toPlayer.y * 240)
       }
     }
@@ -363,7 +373,7 @@ function resolveBossAttack(g: GS, bossId: BossId, cls: ClassDef, gear: GearId[])
     }
   } else if (type === 'venom_burst') {
     const r = d.radius ?? 180
-    if (dist(p.pos, b.pos) <= r) { dealDmgToPlayer(g, d.dmg ?? 38, cls, gear, toPlayer); p.slowTimer = 2.5 }
+    if (dist(p.pos, b.pos) <= r) { dealDmgToPlayer(g, d.dmg ?? 38, wpn, gear, toPlayer); p.slowTimer = 2.5 }
     spawnParticles(g, b.pos, 35, '#8E44AD', 300); g.screenShake = Math.max(g.screenShake, 0.8)
   } else if (type === 'lava_puddle') {
     for (let i = 0; i < (d.count ?? 3); i++) {
@@ -380,17 +390,17 @@ function resolveBossAttack(g: GS, bossId: BossId, cls: ClassDef, gear: GearId[])
     }
   } else if (type === 'spider_leap' || type === 'lightning_strike') {
     const target = d.targetPos!, r = d.radius ?? 120
-    if (dist(p.pos, target) <= r) dealDmgToPlayer(g, d.dmg ?? 32, cls, gear, norm(v(p.pos.x - target.x, p.pos.y - target.y)))
+    if (dist(p.pos, target) <= r) dealDmgToPlayer(g, d.dmg ?? 32, wpn, gear, norm(v(p.pos.x - target.x, p.pos.y - target.y)))
     spawnParticles(g, target, 24, bossId === 0 ? '#8E44AD' : '#F1C40F', 220)
     g.screenShake = Math.max(g.screenShake, 0.6)
     if (bossId === 0) b.pos = { x: clamp(target.x, 90, WW - 90), y: clamp(target.y, 90, WH - 90) }
   } else if (type === 'stomp') {
-    if (dist(p.pos, b.pos) <= 155) dealDmgToPlayer(g, d.dmg ?? 28, cls, gear, toPlayer)
+    if (dist(p.pos, b.pos) <= 155) dealDmgToPlayer(g, d.dmg ?? 28, wpn, gear, toPlayer)
     g.screenShake = Math.max(g.screenShake, 0.7); spawnParticles(g, b.pos, 28, '#E67E22', 260)
   } else if (type === 'talon_dive') {
     const target = { ...d.targetPos! }
     b.pos = { x: clamp(target.x, 90, WW - 90), y: clamp(target.y, 90, WH - 90) }
-    if (dist(p.pos, b.pos) < 90) dealDmgToPlayer(g, d.dmg ?? 35, cls, gear, toPlayer)
+    if (dist(p.pos, b.pos) < 90) dealDmgToPlayer(g, d.dmg ?? 35, wpn, gear, toPlayer)
     spawnParticles(g, b.pos, 18, '#F1C40F', 220); g.screenShake = Math.max(g.screenShake, 0.45)
   } else if (type === 'web_spray') {
     const count = d.count ?? 7, baseAngle = Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
@@ -414,8 +424,8 @@ function resolveBossAttack(g: GS, bossId: BossId, cls: ClassDef, gear: GearId[])
 }
 
 /* ═══ TICK ═══ */
-function tick(g: GS, dt: number, cls: ClassDef, bossId: BossId, gear: GearId[], mousePos: V2, keys: Set<string>, abilityTarget: V2, pendingAbility: number | null) {
-  void keys
+function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[], mousePos: V2, keys: Set<string>, abilityTarget: V2, pendingAbility: number | null) {
+  void keys; void mousePos
   if (g.phase !== 'playing' && g.phase !== 'dying') return
   const p = g.player, b = g.boss, bossDef = BOSS_DEFS[bossId]
 
@@ -514,7 +524,7 @@ function tick(g: GS, dt: number, cls: ClassDef, bossId: BossId, gear: GearId[], 
 
   // Player movement
   const speedMult = (p.slowTimer > 0 ? 0.45 : 1) * (gear.includes('feather_boots') ? 1.4 : 1)
-  const speed = cls.speed * speedMult
+  const speed = 170 * speedMult
   if (!p.dodgeTimer && !g.bullChargeDash.active && !g.whirlwindActive && p.targetPos) {
     const d2t = dist(p.pos, p.targetPos)
     if (d2t > 4) {
@@ -544,30 +554,31 @@ function tick(g: GS, dt: number, cls: ClassDef, bossId: BossId, gear: GearId[], 
   else p.facing = Math.atan2(b.pos.y - p.pos.y, b.pos.x - p.pos.x)
 
   // Auto-attack
-  const dToBoss = dist(p.pos, b.pos), atkRange = cls.range + bossDef.size
-  let atkCd = cls.atkCd
+  const dToBoss = dist(p.pos, b.pos), atkRange = wpn.range + bossDef.size
+  let atkCd = wpn.atkCd
   if (gear.includes('spider_fang')) atkCd *= 0.6
-  const flashColor = gear.includes('fire_staff') ? '#FF4500' : gear.includes('venom_bow') ? '#8E44AD' : gear.includes('storm_bow') ? '#7DFFB0' : cls.color
+  const flashColor = gear.includes('fire_staff') ? '#FF4500' : gear.includes('venom_bow') ? '#8E44AD' : gear.includes('storm_bow') ? '#7DFFB0' : wpn.color
   if (p.atkTimer <= 0 && dToBoss <= atkRange && !p.dodgeTimer && !g.bullChargeDash.active) {
     p.atkTimer = atkCd
     const atkAngle = Math.atan2(b.pos.y - p.pos.y, b.pos.x - p.pos.x)
-    const flashType = gear.includes('spider_fang') ? 'slash' : cls.weaponType === 'bow' ? 'shot' : 'slam'
+    const flashType = gear.includes('spider_fang') ? 'slash' : wpn.id !== 'sword' ? 'shot' : 'slam'
     g.attackFlash = { angle: atkAngle, timer: 0.22, maxTimer: 0.22, type: flashType, color: flashColor }
     if (gear.includes('venom_bow') && g.poisonTimer <= 0) g.poisonTimer = 5.0
-    if (cls.id === 'hunter' && !gear.includes('spider_fang')) {
+    if (wpn.id !== 'sword' && !gear.includes('spider_fang')) {
       const dir = norm(v(b.pos.x - p.pos.x, b.pos.y - p.pos.y))
       const isStorm = gear.includes('storm_bow')
-      const projColor = gear.includes('venom_bow') ? '#9B59B6' : isStorm ? '#7DFFB0' : '#27AE60'
-      g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * 440, dir.y * 440), dmg: cls.dmg, radius: 6, fromBoss: false, life: 4.0, color: projColor, aoe: isStorm ? 40 : undefined, isLightning: isStorm, trail: [] })
+      const projColor = wpn.id === 'staff' ? '#9B59B6' : gear.includes('venom_bow') ? '#9B59B6' : isStorm ? '#7DFFB0' : '#27AE60'
+      const projSpeed = wpn.id === 'staff' ? 380 : 440
+      g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * projSpeed, dir.y * projSpeed), dmg: wpn.dmg, radius: 6, fromBoss: false, life: 4.0, color: projColor, aoe: isStorm ? 40 : undefined, isLightning: isStorm, trail: [] })
     } else {
-      dealDmgToBoss(g, cls.dmg, gear); spawnParticles(g, b.pos, 4, cls.color, 80)
+      dealDmgToBoss(g, wpn.dmg, gear); spawnParticles(g, b.pos, 4, wpn.color, 80)
     }
   }
 
   // Ability activation
   if (pendingAbility !== null && pendingAbility >= 0 && pendingAbility < 4) {
-    const idx = pendingAbility, abDef = cls.abilities[idx]
-    if (p.abilityCds[idx] <= 0) { p.abilityCds[idx] = abDef.cd; activateAbility(g, idx, cls, gear, abilityTarget, bossId) }
+    const idx = pendingAbility, abDef = wpn.abilities[idx]
+    if (p.abilityCds[idx] <= 0) { p.abilityCds[idx] = abDef.cd; activateAbility(g, idx, wpn, gear, abilityTarget, bossId) }
   }
 
   // Boss movement
@@ -632,7 +643,7 @@ function tick(g: GS, dt: number, cls: ClassDef, bossId: BossId, gear: GearId[], 
     if (proj.pos.x < 0 || proj.pos.x > WW || proj.pos.y < 0 || proj.pos.y > WH) return false
     if (proj.fromBoss && p.iframeTimer <= 0 && dist(proj.pos, p.pos) < proj.radius + 14) {
       if (g.bossAttack?.type === 'web_shot' || proj.isWeb) p.slowTimer = Math.max(p.slowTimer, 3.0)
-      dealDmgToPlayer(g, proj.dmg, cls, gear, norm(v(p.pos.x - proj.pos.x, p.pos.y - proj.pos.y)))
+      dealDmgToPlayer(g, proj.dmg, wpn, gear, norm(v(p.pos.x - proj.pos.x, p.pos.y - proj.pos.y)))
       spawnParticles(g, proj.pos, 9, proj.color, 130); return false
     }
     if (!proj.fromBoss && dist(proj.pos, b.pos) < proj.radius + bossDef.size) {
@@ -658,7 +669,7 @@ function tick(g: GS, dt: number, cls: ClassDef, bossId: BossId, gear: GearId[], 
         const spread = atk.type === 'lightning_barrage' ? 55 : 220
         const hitR = atk.type === 'lightning_barrage' ? 70 : 65
         const tx = p.pos.x + rnd(-spread, spread), ty = p.pos.y + rnd(-spread, spread)
-        if (dist(p.pos, v(tx, ty)) < hitR) dealDmgToPlayer(g, d2.dmg ?? 25, cls, gear, norm(v(p.pos.x - tx, p.pos.y - ty)))
+        if (dist(p.pos, v(tx, ty)) < hitR) dealDmgToPlayer(g, d2.dmg ?? 25, wpn, gear, norm(v(p.pos.x - tx, p.pos.y - ty)))
         const lColor = atk.type === 'lightning_barrage' ? '#00EEFF' : '#F1C40F'
         spawnParticles(g, v(tx, ty), atk.type === 'lightning_barrage' ? 22 : 18, lColor, 240); g.screenShake = Math.max(g.screenShake, 0.35)
         if (atk.type === 'lightning_barrage') { spawnParticles(g, v(tx, ty), 8, '#FFFFFF', 160); g.screenShake = Math.max(g.screenShake, 0.5) }
@@ -671,7 +682,7 @@ function tick(g: GS, dt: number, cls: ClassDef, bossId: BossId, gear: GearId[], 
       const a2 = atk.data.angle ?? 0, hc = (atk.data.coneAngle ?? 0.5) / 2
       const pa = Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
       let df = Math.abs(pa - a2); while (df > Math.PI) df = Math.abs(df - Math.PI * 2)
-      if (df <= hc && dist(p.pos, b.pos) < (atk.data.coneRange ?? 320)) dealDmgToPlayer(g, (atk.data.dmg ?? 20) * dt * 2.5, cls, gear)
+      if (df <= hc && dist(p.pos, b.pos) < (atk.data.coneRange ?? 320)) dealDmgToPlayer(g, (atk.data.dmg ?? 20) * dt * 2.5, wpn, gear)
       if ((atk.data.elapsed ?? 0) >= (atk.data.duration ?? 1.6)) { g.bossAttack = null; g.nextAttackTimer = rnd(2.0, 3.5) / (g.bossEnraged ? 1.7 : 1.0) }
       return
     }
@@ -680,14 +691,14 @@ function tick(g: GS, dt: number, cls: ClassDef, bossId: BossId, gear: GearId[], 
       const a3 = atk.data.angle ?? 0, hc2 = (atk.data.coneAngle ?? 0.4) / 2
       const pa2 = Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
       let df2 = Math.abs(pa2 - a3); while (df2 > Math.PI) df2 = Math.abs(df2 - Math.PI * 2)
-      if (df2 <= hc2 && dist(p.pos, b.pos) < (atk.data.coneRange ?? 260)) dealDmgToPlayer(g, (atk.data.dmg ?? 18) * dt * 1.5, cls, gear)
+      if (df2 <= hc2 && dist(p.pos, b.pos) < (atk.data.coneRange ?? 260)) dealDmgToPlayer(g, (atk.data.dmg ?? 18) * dt * 1.5, wpn, gear)
       if ((atk.data.elapsed ?? 0) >= (atk.data.duration ?? 2.2)) { g.bossAttack = null; g.nextAttackTimer = rnd(2.4, 4.0) / (g.bossEnraged ? 1.6 : 1.0) }
       return
     }
     if (!atk.active && atk.elapsed >= atk.telegraphTime) {
       atk.active = true
       if (!['thunderstorm', 'chain_lightning', 'fire_breath', 'flame_wave'].includes(atk.type)) {
-        resolveBossAttack(g, bossId, cls, gear); g.bossAttack = null; g.nextAttackTimer = rnd(2.0, 3.4) / (g.bossEnraged ? 1.7 : 1.0)
+        resolveBossAttack(g, bossId, wpn, gear); g.bossAttack = null; g.nextAttackTimer = rnd(2.0, 3.4) / (g.bossEnraged ? 1.7 : 1.0)
       }
     }
   } else if (g.nextAttackTimer <= 0 && b.stunTimer <= 0) {
@@ -712,11 +723,10 @@ function tick(g: GS, dt: number, cls: ClassDef, bossId: BossId, gear: GearId[], 
     if (Math.random() < dt * 9) g.lavaParticles.push({ id: ++g.nextPartId, pos: v(b.pos.x + rnd(-bossDef.size, bossDef.size), b.pos.y + rnd(-20, 20)), vel: v(rnd(-25, 25), rnd(-70, -20)), life: rnd(0.4, 1.0), maxLife: 1.0, color: rnd(0, 1) > 0.5 ? '#E67E22' : '#FF4500', size: rnd(2, 5) })
     g.lavaParticles = g.lavaParticles.filter(pt => { pt.life -= dt; pt.pos.x += pt.vel.x * dt; pt.pos.y += pt.vel.y * dt; return pt.life > 0 })
   }
-  void mousePos
 }
 
 /* ═══ ABILITIES ═══ */
-function activateAbility(g: GS, idx: number, cls: ClassDef, gear: GearId[], abilityTarget: V2, bossId: BossId) {
+function activateAbility(g: GS, idx: number, wpn: WeaponDef, gear: GearId[], abilityTarget: V2, bossId: BossId) {
   const p = g.player, b = g.boss
 
   if (idx === 0 && gear.includes('fire_staff')) {
@@ -726,12 +736,12 @@ function activateAbility(g: GS, idx: number, cls: ClassDef, gear: GearId[], abil
     return
   }
 
-  if (cls.id === 'hunter') {
+  if (wpn.id === 'bow') {
     if (idx === 0) { // Power Shot
       const dir = norm(v(abilityTarget.x - p.pos.x, abilityTarget.y - p.pos.y))
-      g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * 560, dir.y * 560), dmg: cls.dmg * 3, radius: 14, fromBoss: false, life: 4.0, color: '#F1C40F', isPowerShot: true, trail: [] })
+      g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * 560, dir.y * 560), dmg: wpn.dmg * 3, radius: 14, fromBoss: false, life: 4.0, color: '#F1C40F', isPowerShot: true, trail: [] })
       spawnParticles(g, p.pos, 18, '#F1C40F', 200)
-      g.attackFlash = { angle: Math.atan2(dir.y, dir.x), timer: 0.4, maxTimer: 0.4, type: 'power_shot', color: '#F1C40F' }
+      g.attackFlash = { angle: Math.atan2((abilityTarget.y - p.pos.y), (abilityTarget.x - p.pos.x)), timer: 0.4, maxTimer: 0.4, type: 'power_shot', color: '#F1C40F' }
     } else if (idx === 1) { // Trap
       g.slowTraps.push({ id: ++g.nextTrapId, pos: { ...abilityTarget }, life: 20.0, fromPlayer: true })
       if (dist(b.pos, abilityTarget) < BOSS_DEFS[bossId].size + 22) { dealDmgToBoss(g, 110, gear); b.slowTimer = 3.0 }
@@ -740,18 +750,18 @@ function activateAbility(g: GS, idx: number, cls: ClassDef, gear: GearId[], abil
       const dir = p.targetPos ? norm(v(p.targetPos.x - p.pos.x, p.targetPos.y - p.pos.y)) : norm(v(p.pos.x - b.pos.x, p.pos.y - b.pos.y))
       p.dodgeTimer = 0.38; p.dodgeVel = v(dir.x * 540, dir.y * 540); p.iframeTimer = 0.38
       for (let i = 0; i < 6; i++) p.shadowDashTrail.push({ pos: { ...p.pos }, a: 0.7 - i * 0.08 })
-      spawnParticles(g, p.pos, 12, cls.color, 130, 0.4)
-      g.attackFlash = { angle: Math.atan2(dir.y, dir.x), timer: 0.25, maxTimer: 0.25, type: 'shadow', color: cls.color }
+      spawnParticles(g, p.pos, 12, wpn.color, 130, 0.4)
+      g.attackFlash = { angle: Math.atan2(dir.y, dir.x), timer: 0.25, maxTimer: 0.25, type: 'shadow', color: wpn.color }
     } else if (idx === 3) { // Rain of Arrows
       for (let i = 0; i < 3; i++) {
         const perp = Math.atan2(b.pos.y - p.pos.y, b.pos.x - p.pos.x) + Math.PI / 2
         const tx = clamp(abilityTarget.x + Math.cos(perp) * (i - 1) * 100, 50, WW - 50)
         const ty = clamp(abilityTarget.y + Math.sin(perp) * (i - 1) * 100, 50, WH - 50)
-        g.skyArrows.push({ id: ++g.nextProjId, targetPos: v(tx, ty), warnTimer: 1.2 + i * 0.25, hit: false, dmg: Math.round(cls.dmg * 2.5) })
+        g.skyArrows.push({ id: ++g.nextProjId, targetPos: v(tx, ty), warnTimer: 1.2 + i * 0.25, hit: false, dmg: Math.round(wpn.dmg * 2.5) })
       }
       spawnParticles(g, p.pos, 10, '#F1C40F', 120, 0.4)
     }
-  } else {
+  } else if (wpn.id === 'sword') {
     if (idx === 0) { // Ground Slam
       if (dist(p.pos, b.pos) < 140) { dealDmgToBoss(g, 130, gear); g.screenShake = Math.max(g.screenShake, 0.55) }
       spawnParticles(g, p.pos, 24, '#E74C3C', 220)
@@ -762,6 +772,29 @@ function activateAbility(g: GS, idx: number, cls: ClassDef, gear: GearId[], abil
       g.bullChargeDash = { active: true, vel: v(dir.x * 640, dir.y * 640), timer: 0.4 }; p.iframeTimer = 0.4
     } else if (idx === 3) { // Whirlwind
       g.whirlwindActive = true; g.whirlwindTimer = 3.0; spawnParticles(g, p.pos, 18, '#E74C3C', 170)
+    }
+  } else { // staff
+    if (idx === 0) { // Arcane Bolt
+      const dir = norm(v(abilityTarget.x - p.pos.x, abilityTarget.y - p.pos.y))
+      g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * 580, dir.y * 580), dmg: Math.round(wpn.dmg * 2.5), radius: 12, fromBoss: false, life: 4.0, color: '#9B59B6', trail: [] })
+      spawnParticles(g, p.pos, 14, '#9B59B6', 180)
+      g.attackFlash = { angle: Math.atan2(dir.y, dir.x), timer: 0.35, maxTimer: 0.35, type: 'magic', color: '#9B59B6' }
+    } else if (idx === 1) { // Mana Shield
+      p.iframeTimer = Math.max(p.iframeTimer, 1.5)
+      spawnParticles(g, p.pos, 22, '#9B59B6', 150)
+      g.screenShake = Math.max(g.screenShake, 0.12)
+    } else if (idx === 2) { // Blink
+      const dir = norm(v(abilityTarget.x - p.pos.x, abilityTarget.y - p.pos.y))
+      const blinkDist = Math.min(dist(p.pos, abilityTarget), 350)
+      for (let i = 0; i < 5; i++) p.shadowDashTrail.push({ pos: { ...p.pos }, a: 0.65 - i * 0.1 })
+      p.pos.x = clamp(p.pos.x + dir.x * blinkDist, 20, WW - 20)
+      p.pos.y = clamp(p.pos.y + dir.y * blinkDist, 20, WH - 20)
+      p.iframeTimer = Math.max(p.iframeTimer, 0.3)
+      spawnParticles(g, p.pos, 14, '#9B59B6', 180, 0.5)
+      g.attackFlash = { angle: Math.atan2(dir.y, dir.x), timer: 0.25, maxTimer: 0.25, type: 'shadow', color: '#9B59B6' }
+    } else if (idx === 3) { // Meteor
+      g.skyArrows.push({ id: ++g.nextProjId, targetPos: { ...abilityTarget }, warnTimer: 1.0, hit: false, dmg: 200 })
+      spawnParticles(g, p.pos, 12, '#9B59B6', 130, 0.5)
     }
   }
 }
@@ -1063,24 +1096,24 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
   ctx.restore()
 }
 
-function getWeaponId(cls: ClassDef, gear: GearId[]): string {
+function getWeaponId(wpn: WeaponDef, gear: GearId[]): string {
   if (gear.includes('spider_fang')) return 'dagger'
-  if (gear.includes('fire_staff')) return 'staff'
+  if (gear.includes('fire_staff')) return 'fire_staff'
   if (gear.includes('drake_sword')) return 'greatsword'
   if (gear.includes('thunder_blade')) return 'thunder_sword'
   if (gear.includes('storm_bow')) return 'storm_bow'
   if (gear.includes('venom_bow')) return 'venom_bow'
-  return cls.weaponType
+  return wpn.id
 }
 
-function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, cls: ClassDef, gear: GearId[], t: number) {
+function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear: GearId[], t: number) {
   const p = g.player
   const facing = g.bullChargeDash.active ? Math.atan2(g.bullChargeDash.vel.y, g.bullChargeDash.vel.x) : p.facing
-  const wid = getWeaponId(cls, gear)
+  const wid = getWeaponId(wpn, gear)
 
   p.shadowDashTrail.forEach(tr => {
     ctx.save(); ctx.globalAlpha = tr.a * 0.55
-    ctx.fillStyle = cls.color; ctx.shadowColor = cls.color; ctx.shadowBlur = 10
+    ctx.fillStyle = wpn.color; ctx.shadowColor = wpn.color; ctx.shadowBlur = 10
     ctx.beginPath(); ctx.arc(tr.pos.x, tr.pos.y, 13, 0, Math.PI*2); ctx.fill()
     ctx.restore()
   })
@@ -1088,7 +1121,7 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, cls: ClassDef, gear:
   if (p.dodgeTrail.length > 1) {
     p.dodgeTrail.forEach((tp, i) => {
       ctx.save(); ctx.globalAlpha = (i / p.dodgeTrail.length)*0.3
-      ctx.fillStyle = cls.color; ctx.beginPath(); ctx.arc(tp.x,tp.y,13,0,Math.PI*2); ctx.fill(); ctx.restore()
+      ctx.fillStyle = wpn.color; ctx.beginPath(); ctx.arc(tp.x,tp.y,13,0,Math.PI*2); ctx.fill(); ctx.restore()
     })
   }
 
@@ -1117,7 +1150,7 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, cls: ClassDef, gear:
   }
 
   ctx.save(); ctx.translate(p.pos.x, p.pos.y)
-  if (p.hitFlash>0) { ctx.shadowColor='#FF0000'; ctx.shadowBlur=24 } else { ctx.shadowColor=cls.color; ctx.shadowBlur=14 }
+  if (p.hitFlash>0) { ctx.shadowColor='#FF0000'; ctx.shadowBlur=24 } else { ctx.shadowColor=wpn.color; ctx.shadowBlur=14 }
 
   if (g.whirlwindActive) {
     const sa = t*11; ctx.save(); ctx.rotate(sa)
@@ -1135,10 +1168,14 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, cls: ClassDef, gear:
 
   const hw = p.hitFlash>0&&Math.sin(p.hitFlash*80)>0
   const bodyGr = ctx.createRadialGradient(-3,-3,0,0,0,16)
-  if (cls.element==='lightning') {
+  if (wpn.element==='lightning') {
     bodyGr.addColorStop(0,hw?'#FFF':'#A9DFBF'); bodyGr.addColorStop(0.5,hw?'#FFF':'#27AE60'); bodyGr.addColorStop(1,hw?'#FFF':'#1A6E3C')
     ctx.fillStyle = bodyGr; ctx.beginPath(); ctx.arc(0,0,15,0,Math.PI*2); ctx.fill()
     if (Math.sin(t*12)>0.65) { ctx.strokeStyle='#7DFFB0'; ctx.lineWidth=1.5; ctx.globalAlpha=0.75; ctx.beginPath(); ctx.moveTo(-6,-10); ctx.lineTo(0,-2); ctx.lineTo(4,-8); ctx.stroke(); ctx.globalAlpha=1 }
+  } else if (wpn.element==='arcane') {
+    bodyGr.addColorStop(0,hw?'#FFF':'#D7BDE2'); bodyGr.addColorStop(0.5,hw?'#FFF':'#9B59B6'); bodyGr.addColorStop(1,hw?'#FFF':'#4A235A')
+    ctx.fillStyle = bodyGr; ctx.beginPath(); ctx.arc(0,0,15,0,Math.PI*2); ctx.fill()
+    if (Math.sin(t*9)>0.6) { ctx.strokeStyle='#CE9EE8'; ctx.lineWidth=1.5; ctx.globalAlpha=0.7; ctx.beginPath(); ctx.arc(0,0,18,0,Math.PI*2); ctx.stroke(); ctx.globalAlpha=1 }
   } else {
     bodyGr.addColorStop(0,hw?'#FFF':'#F1948A'); bodyGr.addColorStop(0.5,hw?'#FFF':'#E74C3C'); bodyGr.addColorStop(1,hw?'#FFF':'#7B241C')
     ctx.fillStyle = bodyGr; ctx.beginPath(); ctx.arc(0,0,16,0,Math.PI*2); ctx.fill()
@@ -1160,11 +1197,19 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, cls: ClassDef, gear:
     ctx.shadowColor='#F1C40F'; ctx.shadowBlur=16+lp*10
     ctx.strokeStyle='#3A2A10'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(14,0); ctx.lineTo(44,0); ctx.stroke()
     ctx.fillStyle=hw?'#FFF':`rgba(241,196,15,${0.8+lp*0.2})`; ctx.beginPath(); ctx.moveTo(42,-5); ctx.lineTo(54,0); ctx.lineTo(42,5); ctx.closePath(); ctx.fill()
-  } else if (wid === 'staff') {
+  } else if (wid === 'fire_staff') {
     ctx.shadowColor='#FF4500'; ctx.shadowBlur=16
     ctx.strokeStyle=hw?'#FFF':'#7B2D00'; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(16,0); ctx.lineTo(50,0); ctx.stroke()
     const fp=0.5+0.5*Math.sin(t*8); ctx.fillStyle=`rgba(255,${80+Math.round(fp*40)},0,${0.8+fp*0.2})`
     ctx.beginPath(); ctx.arc(54,0,6+fp*2,0,Math.PI*2); ctx.fill()
+  } else if (wid === 'staff') {
+    ctx.shadowColor='#9B59B6'; ctx.shadowBlur=16
+    ctx.strokeStyle=hw?'#FFF':'#4A235A'; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(16,0); ctx.lineTo(50,0); ctx.stroke()
+    const ap=0.5+0.5*Math.sin(t*7); ctx.fillStyle=hw?'#FFF':`rgba(155,89,182,${0.85+ap*0.15})`
+    ctx.shadowColor='#CE9EE8'; ctx.shadowBlur=12+ap*8
+    ctx.beginPath(); ctx.arc(54,0,7+ap*2.5,0,Math.PI*2); ctx.fill()
+    ctx.fillStyle=hw?'#FFF':`rgba(220,170,255,${ap*0.6})`
+    ctx.beginPath(); ctx.arc(54,0,4,0,Math.PI*2); ctx.fill()
   } else if (wid === 'venom_bow') {
     ctx.strokeStyle=hw?'#FFF':'#9B59B6'; ctx.shadowColor='#8E44AD'; ctx.shadowBlur=12; ctx.lineWidth=2.8
     ctx.beginPath(); ctx.arc(22,0,16,-Math.PI*0.65,Math.PI*0.65); ctx.stroke()
@@ -1357,7 +1402,7 @@ function renderBossDeath(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId) {
   }
 }
 
-function renderHUD(ctx: CanvasRenderingContext2D, g: GS, cls: ClassDef, bossDef: BossDef, gear: GearId[], t: number) {
+function renderHUD(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, bossDef: BossDef, gear: GearId[], t: number) {
   void gear
   const p=g.player, b=g.boss
   const barW=540,barH=22,barX=(CW-barW)/2,barY=14
@@ -1375,8 +1420,8 @@ function renderHUD(ctx: CanvasRenderingContext2D, g: GS, cls: ClassDef, bossDef:
 
   const pBW=200,pBH=14,pBX=14,pBY=CH-90
   ctx.fillStyle='rgba(4,4,14,0.92)'; rrect(ctx,pBX-6,pBY-20,pBW+12,pBH+36,8); ctx.fill()
-  ctx.strokeStyle=`${cls.color}66`; ctx.lineWidth=1.5; ctx.stroke()
-  ctx.font='9px "Press Start 2P",monospace'; ctx.fillStyle=cls.color; ctx.textAlign='left'; ctx.fillText(cls.label.toUpperCase(),pBX,pBY-8)
+  ctx.strokeStyle=`${wpn.color}66`; ctx.lineWidth=1.5; ctx.stroke()
+  ctx.font='9px "Press Start 2P",monospace'; ctx.fillStyle=wpn.color; ctx.textAlign='left'; ctx.fillText(wpn.icon+' '+wpn.name.toUpperCase(),pBX,pBY-8)
   ctx.fillStyle='#1a0808'; ctx.fillRect(pBX,pBY,pBW,pBH)
   const ph=p.hp/p.maxHp; ctx.fillStyle=ph>0.5?'#27AE60':ph>0.25?'#F39C12':'#E74C3C'; ctx.fillRect(pBX,pBY,pBW*ph,pBH)
   ctx.font='8px "Press Start 2P",monospace'; ctx.fillStyle='#A09880'; ctx.fillText(`${Math.ceil(p.hp)} / ${p.maxHp}`,pBX,pBY+pBH+12)
@@ -1406,13 +1451,13 @@ function renderHUD(ctx: CanvasRenderingContext2D, g: GS, cls: ClassDef, bossDef:
 
   const slW=52,slH=52,slY=CH-88, tsW=4*slW+3*6, slX=CW/2-tsW/2
   const kkeys=['Q','W','E','R']
-  cls.abilities.forEach((ab,i) => {
+  wpn.abilities.forEach((ab,i) => {
     const sx=slX+i*(slW+6), cdPct=p.abilityCds[i]/ab.cd, ready=cdPct<=0
     ctx.fillStyle='rgba(4,4,14,0.93)'; rrect(ctx,sx,slY,slW,slH,7); ctx.fill()
-    ctx.strokeStyle=ready?`${cls.color}CC`:'rgba(70,55,35,0.6)'; ctx.lineWidth=1.5; ctx.stroke()
+    ctx.strokeStyle=ready?`${wpn.color}CC`:'rgba(70,55,35,0.6)'; ctx.lineWidth=1.5; ctx.stroke()
     if (!ready) { ctx.fillStyle='rgba(0,0,0,0.65)'; ctx.save(); ctx.beginPath(); rrect(ctx,sx,slY,slW,slH*cdPct,7); ctx.fill(); ctx.restore() }
-    if (ready) { ctx.shadowColor=cls.color; ctx.shadowBlur=9 } else ctx.shadowBlur=0
-    ctx.font='13px "Press Start 2P",monospace'; ctx.fillStyle=ready?cls.color:'#504030'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(kkeys[i],sx+slW/2,slY+18); ctx.shadowBlur=0
+    if (ready) { ctx.shadowColor=wpn.color; ctx.shadowBlur=9 } else ctx.shadowBlur=0
+    ctx.font='13px "Press Start 2P",monospace'; ctx.fillStyle=ready?wpn.color:'#504030'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(kkeys[i],sx+slW/2,slY+18); ctx.shadowBlur=0
     ctx.font='6px "Press Start 2P",monospace'; ctx.fillStyle=ready?'#A09880':'#504030'; ctx.textBaseline='alphabetic'; ctx.fillText(ab.name,sx+slW/2,slY+slH-6)
     if (!ready) { ctx.font='10px "Press Start 2P",monospace'; ctx.fillStyle='#C89B3C'; ctx.textBaseline='middle'; ctx.fillText(Math.ceil(p.abilityCds[i]).toString(),sx+slW/2,slY+slH/2+4); ctx.textBaseline='alphabetic' }
   })
@@ -1428,12 +1473,12 @@ function renderHUD(ctx: CanvasRenderingContext2D, g: GS, cls: ClassDef, bossDef:
   ctx.fillStyle='rgba(4,4,14,0.78)'; ctx.strokeStyle='rgba(200,155,60,0.25)'; ctx.lineWidth=1
   ctx.fillRect(mmX,mmY,mmW,mmH); ctx.strokeRect(mmX,mmY,mmW,mmH)
   const mx=(p.pos.x/WW)*mmW, my=(p.pos.y/WH)*mmH
-  ctx.fillStyle=cls.color; ctx.beginPath(); ctx.arc(mmX+mx,mmY+my,3,0,Math.PI*2); ctx.fill()
+  ctx.fillStyle=wpn.color; ctx.beginPath(); ctx.arc(mmX+mx,mmY+my,3,0,Math.PI*2); ctx.fill()
   const bx2=(g.boss.pos.x/WW)*mmW, by2=(g.boss.pos.y/WH)*mmH
   ctx.fillStyle='#E74C3C'; ctx.beginPath(); ctx.arc(mmX+bx2,mmY+by2,4,0,Math.PI*2); ctx.fill()
 }
 
-function render(ctx: CanvasRenderingContext2D, g: GS, cls: ClassDef, bossId: BossId, gear: GearId[], t: number) {
+function render(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, bossId: BossId, gear: GearId[], t: number) {
   ctx.save()
   if (g.screenShake>0.05) ctx.translate(rnd(-g.screenShake*8,g.screenShake*8),rnd(-g.screenShake*8,g.screenShake*8))
   const bossDef=BOSS_DEFS[bossId]
@@ -1442,14 +1487,14 @@ function render(ctx: CanvasRenderingContext2D, g: GS, cls: ClassDef, bossId: Bos
   renderEnvObjects(ctx,g,bossDef.arenaType,t)
   if (g.phase==='dying') {
     renderParticles(ctx,g); renderBossDeath(ctx,g,bossId)
-    renderPlayer(ctx,g,cls,gear,t); renderDamageNumbers(ctx,g)
+    renderPlayer(ctx,g,wpn,gear,t); renderDamageNumbers(ctx,g)
   } else {
     renderHazards(ctx,g); renderSlowTraps(ctx,g,t); renderTelegraph(ctx,g,bossId,t)
     renderSkyArrows(ctx,g,t); renderParticles(ctx,g); renderProjectiles(ctx,g,t)
-    renderBoss(ctx,g,bossId,t); renderPlayer(ctx,g,cls,gear,t); renderDamageNumbers(ctx,g)
+    renderBoss(ctx,g,bossId,t); renderPlayer(ctx,g,wpn,gear,t); renderDamageNumbers(ctx,g)
   }
   ctx.restore()
-  if (g.phase!=='dying') renderHUD(ctx,g,cls,bossDef,gear,t)
+  if (g.phase!=='dying') renderHUD(ctx,g,wpn,bossDef,gear,t)
   if (g.playerDmgFlash > 0) {
     const a = g.playerDmgFlash * 0.55
     const vgn = ctx.createRadialGradient(CW/2, CH/2, CH*0.08, CW/2, CH/2, CH*0.85)
@@ -1461,8 +1506,8 @@ function render(ctx: CanvasRenderingContext2D, g: GS, cls: ClassDef, bossId: Bos
 }
 /* ═══ REACT COMPONENT ═══ */
 export default function BossHunter() {
-  const [screen, setScreen] = useState<'menu'|'class_select'|'hunt_select'|'playing'|'victory'|'defeat'>('menu')
-  const [selClass, setSelClass] = useState<ClassType>('hunter')
+  const [screen, setScreen] = useState<'menu'|'weapon_select'|'hunt_select'|'playing'|'victory'|'defeat'>('menu')
+  const [selWeapon, setSelWeapon] = useState<WeaponId>('bow')
   const [selBoss, setSelBoss] = useState<BossId>(0)
   const [unlockedGear, setUnlockedGear] = useState<GearId[]>([])
   const [equippedAttack, setEquippedAttack] = useState<GearId | null>(null)
@@ -1477,14 +1522,14 @@ export default function BossHunter() {
   const pendingAbilityRef = useRef<number|null>(null)
   const pendingDodgeRef = useRef(false)
 
-  const getCls = useCallback((cid: ClassType) => CLASS_DEFS.find(c => c.id === cid)!, [])
+  const getWpn = useCallback((wid: WeaponId) => WEAPON_DEFS.find(w => w.id === wid)!, [])
 
-  const startGame = useCallback((clsId: ClassType, bossId: BossId, gear: GearId[]) => {
-    const cls = getCls(clsId)
+  const startGame = useCallback((weaponId: WeaponId, bossId: BossId, gear: GearId[]) => {
+    const wpn = getWpn(weaponId)
     const bossDef = BOSS_DEFS[bossId]
-    gsRef.current = mkState(cls, bossDef, gear)
+    gsRef.current = mkState(wpn, bossDef, gear)
     setScreen('playing')
-  }, [getCls])
+  }, [getWpn])
 
   const activeGear = useCallback((): GearId[] => [equippedAttack, equippedDefense].filter(Boolean) as GearId[], [equippedAttack, equippedDefense])
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -1494,7 +1539,7 @@ export default function BossHunter() {
     if (screen !== 'playing') return
     const canvas = canvasRef.current; if (!canvas) return
     const ctx = canvas.getContext('2d'); if (!ctx) return
-    const cls = getCls(selClass)
+    const wpn = getWpn(selWeapon)
 
     const triggerDodge = () => {
       const g = gsRef.current; if (!g) return
@@ -1559,7 +1604,7 @@ export default function BossHunter() {
       pendingAbilityRef.current = null
       pendingDodgeRef.current = false
 
-      tick(g, dt, cls, selBoss, gearForBoss(selBoss), mouseWorldRef.current, new Set(), mouseWorldRef.current, pending)
+      tick(g, dt, wpn, selBoss, gearForBoss(selBoss), mouseWorldRef.current, new Set(), mouseWorldRef.current, pending)
 
       if (g.phase === 'victory') {
         setVictoryBoss(selBoss)
@@ -1572,7 +1617,7 @@ export default function BossHunter() {
       }
       if (g.phase === 'defeat') { setScreen('defeat'); return }
 
-      render(ctx, g, cls, selBoss, gearForBoss(selBoss), g.gtime)
+      render(ctx, g, wpn, selBoss, gearForBoss(selBoss), g.gtime)
       rafRef.current = requestAnimationFrame(loop)
     }
     rafRef.current = requestAnimationFrame(loop)
@@ -1583,7 +1628,7 @@ export default function BossHunter() {
       canvas.removeEventListener('mousemove', handleMouseMove)
       canvas.removeEventListener('click', handleClick)
     }
-  }, [screen, selClass, selBoss, unlockedGear, equippedAttack, equippedDefense, getCls, gearForBoss])
+  }, [screen, selWeapon, selBoss, unlockedGear, equippedAttack, equippedDefense, getWpn, gearForBoss])
 
   // ─── MENU ───
   if (screen === 'menu') return (
@@ -1604,7 +1649,7 @@ export default function BossHunter() {
           Click to move &bull; WASD / arrows not needed — just click<br/>
           Space to dodge &bull; Q W E R — abilities &bull; Defeat bosses to collect gear
         </div>
-        <button onClick={() => setScreen('class_select')} style={{background:'linear-gradient(135deg,#C89B3C,#8B6914)',border:'none',color:'#0d0d14',padding:'12px 36px',borderRadius:6,fontSize:11,cursor:'pointer',fontFamily:'inherit',letterSpacing:1}}>
+        <button onClick={() => setScreen('weapon_select')} style={{background:'linear-gradient(135deg,#C89B3C,#8B6914)',border:'none',color:'#0d0d14',padding:'12px 36px',borderRadius:6,fontSize:11,cursor:'pointer',fontFamily:'inherit',letterSpacing:1}}>
           BEGIN HUNT
         </button>
         {(equippedAttack || equippedDefense) && (
@@ -1616,43 +1661,41 @@ export default function BossHunter() {
     </div>
   )
 
-  // ─── CLASS SELECT ───
-  if (screen === 'class_select') return (
+  // ─── WEAPON SELECT ───
+  if (screen === 'weapon_select') return (
     <div style={{background:'#080814',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'"Press Start 2P",monospace'}}>
-      <div className="bh-screen-wrap" style={{textAlign:'center',maxWidth:760,padding:'0 24px'}}>
-        <div style={{fontSize:16,color:'#C89B3C',marginBottom:6}}>CHOOSE YOUR CLASS</div>
-        <div style={{fontSize:8,color:'#605848',marginBottom:28}}>Your class determines your playstyle and abilities</div>
-        <div className="bh-class-grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:28}}>
-          {CLASS_DEFS.map(cls => {
-            const sel = selClass===cls.id
+      <div className="bh-screen-wrap" style={{textAlign:'center',maxWidth:860,padding:'0 24px'}}>
+        <div style={{fontSize:16,color:'#C89B3C',marginBottom:6}}>CHOOSE YOUR WEAPON</div>
+        <div style={{fontSize:8,color:'#605848',marginBottom:28}}>Your weapon defines your combat style and abilities</div>
+        <div className="bh-class-grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16,marginBottom:28}}>
+          {WEAPON_DEFS.map(wpn => {
+            const sel = selWeapon===wpn.id
             return (
-              <div key={cls.id} onClick={() => setSelClass(cls.id)} className="bh-class-card" style={{background:sel?'#13131c':'#0d0d1a',border:`2px solid ${sel?cls.color:'#2a2820'}`,borderRadius:10,padding:18,cursor:'pointer',textAlign:'left',transition:'border-color 0.2s'}}>
+              <div key={wpn.id} onClick={() => setSelWeapon(wpn.id)} className="bh-class-card" style={{background:sel?'#13131c':'#0d0d1a',border:`2px solid ${sel?wpn.color:'#2a2820'}`,borderRadius:10,padding:18,cursor:'pointer',textAlign:'left',transition:'border-color 0.2s'}}>
                 <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
-                  <div style={{fontSize:24}}>{cls.icon}</div>
+                  <div style={{fontSize:28}}>{wpn.icon}</div>
                   <div>
-                    <div style={{fontSize:11,color:cls.color,marginBottom:3}}>{cls.label.toUpperCase()}</div>
-                    <div style={{fontSize:7,color:'#605848'}}>{cls.element.toUpperCase()} &bull; {cls.weaponType.toUpperCase()}</div>
+                    <div style={{fontSize:10,color:wpn.color,marginBottom:3}}>{wpn.name.toUpperCase()}</div>
+                    <div style={{fontSize:7,color:'#605848'}}>{wpn.element.toUpperCase()}</div>
                   </div>
                 </div>
-                <div style={{fontSize:7,color:'#A09880',lineHeight:'1.7',marginBottom:10}}>{cls.desc}</div>
+                <div style={{fontSize:7,color:'#A09880',lineHeight:'1.8',marginBottom:12}}>{wpn.desc}</div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:12}}>
+                  <div style={{fontSize:7,color:'#605848'}}>DMG <span style={{color:'#C89B3C'}}>{wpn.dmg}</span></div>
+                  <div style={{fontSize:7,color:'#605848'}}>RANGE <span style={{color:'#C89B3C'}}>{wpn.range}</span></div>
+                </div>
                 <div style={{fontSize:7,color:'#605848',marginBottom:6}}>ABILITIES:</div>
-                {cls.abilities.map((ab,i) => (
+                {wpn.abilities.map((ab,i) => (
                   <div key={i} style={{fontSize:7,color:'#8a7a60',marginBottom:3}}>
-                    <span style={{color:cls.color}}>[{['Q','W','E','R'][i]}]</span> {ab.name} — {ab.desc}
+                    <span style={{color:wpn.color}}>[{['Q','W','E','R'][i]}]</span> {ab.name}
                   </div>
                 ))}
-                <div style={{marginTop:10,display:'grid',gridTemplateColumns:'1fr 1fr',gap:4}}>
-                  {(['dmg','hp','speed'] as const).map(stat => (
-                    <div key={stat} style={{fontSize:7,color:'#605848'}}>
-                      {stat.toUpperCase()}: <span style={{color:'#C89B3C'}}>{cls[stat]}</span>
-                    </div>
-                  ))}
-                </div>
-                {sel && <div style={{marginTop:8,fontSize:7,color:cls.color}}>&#9654; SELECTED</div>}
+                {sel && <div style={{marginTop:10,fontSize:7,color:wpn.color}}>&#9654; SELECTED</div>}
               </div>
             )
           })}
         </div>
+        <div style={{fontSize:8,color:'#605848',marginBottom:20}}>One hero. One weapon path.</div>
         <div style={{display:'flex',gap:12,justifyContent:'center'}}>
           <button onClick={() => setScreen('menu')} style={{background:'#1a1a28',border:'1px solid #2a2820',color:'#A09880',padding:'10px 24px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>BACK</button>
           <button onClick={() => setScreen('hunt_select')} style={{background:'linear-gradient(135deg,#C89B3C,#8B6914)',border:'none',color:'#0d0d14',padding:'10px 28px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>
@@ -1750,8 +1793,8 @@ export default function BossHunter() {
           </div>
 
           <div style={{display:'flex',gap:12,justifyContent:'center'}}>
-            <button onClick={() => setScreen('class_select')} style={{background:'#1a1a28',border:'1px solid #2a2820',color:'#A09880',padding:'10px 24px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>BACK</button>
-            <button onClick={() => startGame(selClass, selBoss, gearForBoss(selBoss))} style={{background:'linear-gradient(135deg,#C89B3C,#8B6914)',border:'none',color:'#0d0d14',padding:'10px 28px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>
+            <button onClick={() => setScreen('weapon_select')} style={{background:'#1a1a28',border:'1px solid #2a2820',color:'#A09880',padding:'10px 24px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>BACK</button>
+            <button onClick={() => startGame(selWeapon, selBoss, gearForBoss(selBoss))} style={{background:'linear-gradient(135deg,#C89B3C,#8B6914)',border:'none',color:'#0d0d14',padding:'10px 28px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>
               START HUNT
             </button>
           </div>
@@ -1820,7 +1863,7 @@ export default function BossHunter() {
             </div>
           )}
           <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap'}}>
-            <button onClick={() => startGame(selClass, selBoss, gearForBoss(selBoss))} style={{background:'#1a1a28',border:'1px solid #2a2820',color:'#A09880',padding:'10px 20px',borderRadius:6,fontSize:8,cursor:'pointer',fontFamily:'inherit'}}>REMATCH</button>
+            <button onClick={() => startGame(selWeapon, selBoss, gearForBoss(selBoss))} style={{background:'#1a1a28',border:'1px solid #2a2820',color:'#A09880',padding:'10px 20px',borderRadius:6,fontSize:8,cursor:'pointer',fontFamily:'inherit'}}>REMATCH</button>
             {victoryBoss < BOSS_DEFS.length - 1 && (
               <button onClick={() => { setSelBoss((victoryBoss+1) as BossId); setScreen('hunt_select') }} style={{background:'linear-gradient(135deg,#27AE60,#1a6e3c)',border:'none',color:'#fff',padding:'10px 20px',borderRadius:6,fontSize:8,cursor:'pointer',fontFamily:'inherit'}}>
                 NEXT HUNT
@@ -1844,7 +1887,7 @@ export default function BossHunter() {
           Watch the boss telegraph &mdash; the glowing circles warn of incoming attacks.
         </div>
         <div style={{display:'flex',gap:10,justifyContent:'center'}}>
-          <button onClick={() => startGame(selClass, selBoss, gearForBoss(selBoss))} style={{background:'linear-gradient(135deg,#E74C3C,#922B21)',border:'none',color:'#fff',padding:'10px 24px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>TRY AGAIN</button>
+          <button onClick={() => startGame(selWeapon, selBoss, gearForBoss(selBoss))} style={{background:'linear-gradient(135deg,#E74C3C,#922B21)',border:'none',color:'#fff',padding:'10px 24px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>TRY AGAIN</button>
           <button onClick={() => setScreen('menu')} style={{background:'#1a1a28',border:'1px solid #2a2820',color:'#A09880',padding:'10px 20px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>MENU</button>
         </div>
       </div>
