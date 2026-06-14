@@ -208,8 +208,10 @@ export default function SkillsPanelClient({
       .then(async r => {
         if (r.ok) {
           setSaveMsg('✓ saved')
-          router.refresh()
-          setTimeout(() => setSaveMsg(null), 5000)
+          setTimeout(() => {
+            setSaveMsg(null)
+            router.refresh()
+          }, 5000)
         } else {
           const t = await r.text()
           setSaveMsg(`✗ error ${r.status}`)
