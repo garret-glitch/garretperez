@@ -22,7 +22,7 @@ const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n
 const rnd = (a: number, b: number) => a + Math.random() * (b - a)
 const rndI = (a: number, b: number) => Math.floor(rnd(a, b + 0.99))
 
-type ClassType = 'duelist' | 'hunter' | 'berserker'
+type ClassType = 'hunter' | 'berserker'
 type BossId = 0 | 1 | 2
 type GearId =
   | 'spider_fang' | 'venom_bow' | 'web_cloak'
@@ -223,16 +223,6 @@ interface BossState {
 /* ═══════════════════════ DEFINITIONS ═══════════════════════ */
 const CLASS_DEFS: ClassDef[] = [
   {
-    id: 'duelist', label: 'Duelist', color: '#9B59B6', element: 'shadow' as const, weaponType: 'blade' as const, hp: 120, dmg: 28, range: 105, atkCd: 0.55, speed: 185,
-    desc: 'Shadow assassin. Dark blades, teleport blink, death spin.',
-    abilities: [
-      { key: 'Q', name: 'Dash Strike', desc: 'Dash toward cursor + 80 dmg, iframes during dash', cd: 6 },
-      { key: 'W', name: 'Parry', desc: '0.8s window: reflect 60 dmg + stun 1.5s if hit', cd: 12 },
-      { key: 'E', name: 'Shadow Step', desc: 'Blink to cursor (max 300px), brief iframes', cd: 8 },
-      { key: 'R', name: 'Death Blossom', desc: 'Spin 2s, 40 dmg per 0.25s within 130px', cd: 22 },
-    ],
-  },
-  {
     id: 'hunter', label: 'Hunter', color: '#2ECC71', element: 'lightning' as const, weaponType: 'bow' as const, hp: 100, dmg: 22, range: 280, atkCd: 0.65, speed: 175,
     desc: 'Lightning archer. Electrified arrows, frost traps, backflip.',
     abilities: [
@@ -374,19 +364,6 @@ function spawnParticles(g: GS, pos: V2, count: number, color: string, speed = 12
 function dealDmgToPlayer(g: GS, dmg: number, cls: ClassDef, gear: GearId[], knockDir?: V2) {
   if (g.player.iframeTimer > 0) return
   const p = g.player
-  // Parry check (ability W for duelist, index 1)
-  if (cls.id === 'duelist' && p.abilityCds[1] > CLASS_DEFS[0].abilities[1].cd - 0.8) {
-    // parry window: cd was just activated (cd > max-parry_window means within window)
-    const cd1Max = CLASS_DEFS[0].abilities[1].cd
-    if (p.abilityCds[1] > cd1Max - 0.8) {
-      // parry success
-      g.boss.stunTimer = 1.5
-      dealDmgToBoss(g, 60, gear)
-      spawnParticles(g, p.pos, 12, '#F39C12', 180)
-      p.iframeTimer = 1.0
-      return
-    }
-  }
   let finalDmg = dmg
   if (g.rageActive) finalDmg = Math.round(finalDmg * 1.2)
   p.hp = Math.max(0, p.hp - finalDmg)
@@ -740,7 +717,7 @@ function tick(
   }
 
   // Player movement (not during dodge/bull charge)
-  if (!p.dodgeTimer && !g.bullChargeDash.active && !g.deathBlossomActive && !g.whirlwindActive) {
+  if (!p.dodgeTimer && !g.bullChargeDash.active && !g.whirlwindActive) {
     if (p.targetPos) {
       const d = dist(p.pos, p.targetPos)
       if (d > 4) {
@@ -1021,32 +998,7 @@ function activateAbility(g: GS, idx: number, cls: ClassDef, gear: GearId[], abil
     return
   }
 
-  if (cls.id === 'duelist') {
-    if (idx === 0) { // Dash Strike
-      const dir = norm(v(abilityTarget.x - p.pos.x, abilityTarget.y - p.pos.y))
-      p.dodgeTimer = 0.28
-      p.dodgeVel = v(dir.x * 520, dir.y * 520)
-      p.iframeTimer = 0.28
-      if (dist(p.pos, b.pos) < 160) {
-        dealDmgToBoss(g, 80, gear)
-        spawnParticles(g, b.pos, 14, '#9B59B6', 180)
-      }
-    } else if (idx === 1) { // Parry — cd timer acts as the window indicator
-      // iframes for 0.8s parry window handled in dealDmgToPlayer
-      p.iframeTimer = 0.1
-    } else if (idx === 2) { // Shadow Step
-      const dir = norm(v(abilityTarget.x - p.pos.x, abilityTarget.y - p.pos.y))
-      const blink = Math.min(300, dist(p.pos, abilityTarget))
-      p.pos.x = clamp(p.pos.x + dir.x * blink, 20, CW - 20)
-      p.pos.y = clamp(p.pos.y + dir.y * blink, 20, CH - 20)
-      p.iframeTimer = 0.3
-      spawnParticles(g, p.pos, 10, '#9B59B6', 140)
-    } else if (idx === 3) { // Death Blossom
-      g.deathBlossomActive = true
-      g.deathBlossomTimer = 2.0
-      spawnParticles(g, p.pos, 16, '#9B59B6', 160)
-    }
-  } else if (cls.id === 'hunter') {
+  if (cls.id === 'hunter') {
     if (idx === 0) { // Power Shot
       const dir = norm(v(abilityTarget.x - p.pos.x, abilityTarget.y - p.pos.y))
       g.projectiles.push({
@@ -1368,7 +1320,6 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
 function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, cls: ClassDef, t: number) {
   const p = g.player
   const isBull = g.bullChargeDash.active
-  const isBlossoming = g.deathBlossomActive
   const isWhirling = g.whirlwindActive
   const facing = isBull ? Math.atan2(g.bullChargeDash.vel.y, g.bullChargeDash.vel.x) : p.facing
 
@@ -1439,26 +1390,23 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, cls: ClassDef, t: nu
   if (p.hitFlash > 0) {
     ctx.shadowColor = '#FF0000'; ctx.shadowBlur = 22
   } else {
-    ctx.shadowColor = cls.color; ctx.shadowBlur = cls.element === 'shadow' ? 18 : 12
+    ctx.shadowColor = cls.color; ctx.shadowBlur = 12
   }
 
-  // Spin radius for blossom / whirlwind
-  if (isBlossoming || isWhirling) {
-    const spinAngle = t * (isBlossoming ? 13 : 11)
-    const spinColor = isBlossoming ? '#9B59B6' : '#E74C3C'
+  // Whirlwind spin radius
+  if (isWhirling) {
+    const spinAngle = t * 11
     ctx.save(); ctx.rotate(spinAngle)
-    ctx.strokeStyle = spinColor; ctx.lineWidth = 2.5; ctx.globalAlpha = 0.65
-    ctx.beginPath(); ctx.arc(0, 0, isBlossoming ? 130 : 100, 0, Math.PI * 2)
+    ctx.strokeStyle = '#E74C3C'; ctx.lineWidth = 2.5; ctx.globalAlpha = 0.65
+    ctx.beginPath(); ctx.arc(0, 0, 100, 0, Math.PI * 2)
     ctx.setLineDash([10, 6]); ctx.stroke(); ctx.setLineDash([])
     ctx.restore()
-    // Extra glowing blade streak
-    for (let i = 0; i < (isBlossoming ? 4 : 3); i++) {
-      const ba = spinAngle + i * (Math.PI * 2 / (isBlossoming ? 4 : 3))
-      const br = isBlossoming ? 42 : 34
+    for (let i = 0; i < 3; i++) {
+      const ba = spinAngle + i * (Math.PI * 2 / 3)
       ctx.save(); ctx.globalAlpha = 0.55
-      ctx.strokeStyle = spinColor; ctx.lineWidth = 3; ctx.shadowColor = spinColor; ctx.shadowBlur = 8
+      ctx.strokeStyle = '#E74C3C'; ctx.lineWidth = 3; ctx.shadowColor = '#E74C3C'; ctx.shadowBlur = 8
       ctx.beginPath(); ctx.moveTo(Math.cos(ba) * 14, Math.sin(ba) * 14)
-      ctx.lineTo(Math.cos(ba) * br, Math.sin(ba) * br); ctx.stroke()
+      ctx.lineTo(Math.cos(ba) * 34, Math.sin(ba) * 34); ctx.stroke()
       ctx.restore()
     }
   }
@@ -1478,11 +1426,7 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, cls: ClassDef, t: nu
   }
 
   // Elemental aura
-  if (cls.element === 'shadow') {
-    const sp = 0.5 + 0.5 * Math.sin(t * 5)
-    ctx.fillStyle = `rgba(120,40,200,${sp * 0.15})`
-    ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI * 2); ctx.fill()
-  } else if (cls.element === 'lightning') {
+  if (cls.element === 'lightning') {
     const lp = 0.5 + 0.5 * Math.sin(t * 9)
     ctx.fillStyle = `rgba(50,200,255,${lp * 0.12})`
     ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI * 2); ctx.fill()
@@ -1490,18 +1434,7 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, cls: ClassDef, t: nu
 
   // Body — class skin
   const hitWhite = p.hitFlash > 0 && Math.sin(p.hitFlash * 80) > 0
-  if (cls.element === 'shadow') {
-    // Dark purple armor — angular shape
-    const gr = ctx.createRadialGradient(-4, -4, 0, 0, 0, 16)
-    gr.addColorStop(0, hitWhite ? '#FFF' : '#C39BD3')
-    gr.addColorStop(0.5, hitWhite ? '#FFF' : '#7D3C98')
-    gr.addColorStop(1, hitWhite ? '#FFF' : '#2C0A3A')
-    ctx.fillStyle = gr
-    ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI * 2); ctx.fill()
-    // Dark cloak silhouette
-    ctx.fillStyle = hitWhite ? '#FFF' : 'rgba(40,0,80,0.7)'
-    ctx.beginPath(); ctx.ellipse(0, 2, 12, 17, 0, 0, Math.PI * 2); ctx.fill()
-  } else if (cls.element === 'lightning') {
+  if (cls.element === 'lightning') {
     // Bright green-yellow energy
     const gr = ctx.createRadialGradient(-3, -3, 0, 0, 0, 16)
     gr.addColorStop(0, hitWhite ? '#FFF' : '#A9DFBF')
@@ -1528,20 +1461,7 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, cls: ClassDef, t: nu
   // Weapon
   ctx.save()
   ctx.rotate(facing)
-  if (cls.weaponType === 'blade') {
-    // Shadow blade — thin dark sword
-    ctx.strokeStyle = hitWhite ? '#FFF' : '#C39BD3'
-    ctx.shadowColor = '#9B59B6'; ctx.shadowBlur = 10
-    ctx.lineWidth = 2.5
-    ctx.beginPath(); ctx.moveTo(12, 0); ctx.lineTo(32, 0); ctx.stroke()
-    ctx.lineWidth = 1; ctx.globalAlpha = 0.6
-    ctx.strokeStyle = '#EEE'
-    ctx.beginPath(); ctx.moveTo(14, -1); ctx.lineTo(30, -1); ctx.stroke()
-    ctx.globalAlpha = 1
-    // Cross-guard
-    ctx.strokeStyle = '#7D3C98'; ctx.lineWidth = 3
-    ctx.beginPath(); ctx.moveTo(14, -5); ctx.lineTo(14, 5); ctx.stroke()
-  } else if (cls.weaponType === 'bow') {
+  if (cls.weaponType === 'bow') {
     // Bow arc
     ctx.strokeStyle = hitWhite ? '#FFF' : '#2ECC71'
     ctx.shadowColor = '#2ECC71'; ctx.shadowBlur = 8; ctx.lineWidth = 2.5
@@ -1996,7 +1916,7 @@ export default function BossHunter() {
   const scoreSubmittedRef = useRef(false)
 
   const [screen, setScreen] = useState<'menu' | 'hunt_select' | 'playing' | 'victory' | 'defeat'>('menu')
-  const [selectedClass, setSelectedClass] = useState<ClassType>('duelist')
+  const [selectedClass, setSelectedClass] = useState<ClassType>('hunter')
   const [currentBossId, setCurrentBossId] = useState<BossId>(0)
   const [beatenBosses, setBeatenBosses] = useState<boolean[]>([false, false, false])
   const [collectedGear, setCollectedGear] = useState<GearId[]>([])
