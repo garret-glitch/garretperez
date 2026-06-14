@@ -732,7 +732,12 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   g.damageNums = g.damageNums.filter(d2 => { d2.life -= dt; d2.pos.y -= 28 * dt; return d2.life > 0 })
   g.particles = g.particles.filter(pt => { pt.life -= dt; pt.pos.x += pt.vel.x * dt; pt.pos.y += pt.vel.y * dt; pt.vel.x *= Math.pow(0.15, dt); pt.vel.y *= Math.pow(0.15, dt); return pt.life > 0 })
   if (bossId === 1) {
-    if (Math.random() < dt * 9) g.lavaParticles.push({ id: ++g.nextPartId, pos: v(b.pos.x + rnd(-bossDef.size, bossDef.size), b.pos.y + rnd(-20, 20)), vel: v(rnd(-25, 25), rnd(-70, -20)), life: rnd(0.4, 1.0), maxLife: 1.0, color: rnd(0, 1) > 0.5 ? '#E67E22' : '#FF4500', size: rnd(2, 5) })
+    const spawnRate = g.bossEnraged ? 26 : 16
+    if (Math.random() < dt * spawnRate) {
+      const side = Math.random() > 0.5 ? 1 : -1
+      const cols = ['#FF6600','#FF4500','#E67E22','#FFAA00','#FF2200','#FF7700']
+      g.lavaParticles.push({ id: ++g.nextPartId, pos: v(b.pos.x + rnd(-bossDef.size*0.9, bossDef.size*0.9), b.pos.y + rnd(-bossDef.size*0.3, bossDef.size*0.55)), vel: v(rnd(-28, 28) + side * rnd(8, 36), rnd(-95, -28)), life: rnd(0.5, 1.5), maxLife: 1.5, color: cols[Math.floor(Math.random()*cols.length)], size: rnd(2.5, 7) })
+    }
     g.lavaParticles = g.lavaParticles.filter(pt => { pt.life -= dt; pt.pos.x += pt.vel.x * dt; pt.pos.y += pt.vel.y * dt; return pt.life > 0 })
   }
 }
@@ -853,8 +858,9 @@ function renderArena(ctx: CanvasRenderingContext2D, arenaType: 'spider'|'drake'|
     glow2.addColorStop(0,'rgba(255,80,0,0.15)'); glow2.addColorStop(1,'rgba(0,0,0,0)')
     ctx.fillStyle = glow2; ctx.fillRect(0,0,WW,WH)
     g.lavaParticles.forEach(pt => {
-      const a2 = pt.life/pt.maxLife; ctx.save(); ctx.globalAlpha = a2*0.85
-      ctx.fillStyle = pt.color; ctx.beginPath(); ctx.arc(pt.pos.x,pt.pos.y,pt.size,0,Math.PI*2); ctx.fill(); ctx.restore()
+      const a2 = pt.life/pt.maxLife; ctx.save(); ctx.globalAlpha = a2 * 0.90
+      ctx.shadowColor = pt.color; ctx.shadowBlur = 9
+      ctx.fillStyle = pt.color; ctx.beginPath(); ctx.arc(pt.pos.x, pt.pos.y, pt.size * (0.65 + a2 * 0.35), 0, Math.PI*2); ctx.fill(); ctx.restore()
     })
   } else {
     const bg = ctx.createLinearGradient(0,0,0,WH)
@@ -983,58 +989,210 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
     if (g.webProcAnim && dist(g.webProcAnim.pos,b.pos)<50) { ctx.strokeStyle=`rgba(200,160,255,${g.webProcAnim.timer})`; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(0,0,sz+15,0,Math.PI*2); ctx.stroke() }
 
   } else if (bossId === 1) {
-    // ── LAVA DRAKE ── flying serpentine dragon with huge wings
-    ctx.shadowColor='#FF6600'; ctx.shadowBlur=g.bossEnraged?60:35
+    // ── LAVA DRAKE ── armored fire dragon with glowing molten body
+    const sz = bossDef.size
+    const pulse = Math.sin(t * 4.2)
+    const wFlap = Math.sin(t * 3.1) * 0.30
+    const wspan = sz * 2.8
+    const tailW1 = Math.sin(t * 1.95) * sz * 0.30
+    const tailW2 = Math.sin(t * 1.95 - 0.95) * sz * 0.44
+
+    ctx.shadowColor = g.bossEnraged ? '#FF1100' : '#FF6600'
+    ctx.shadowBlur = g.bossEnraged ? 72 : 44
     ctx.save(); ctx.rotate(b.angle)
-    const sz=bossDef.size
-    // Animated wing flap
-    const wingFlap=Math.sin(t*2.8)*0.22
-    const wspan=sz*2.2
-    // Left wing
-    ctx.fillStyle=g.bossEnraged?'rgba(255,80,0,0.28)':'rgba(160,50,0,0.22)'
-    ctx.strokeStyle=g.bossEnraged?'rgba(255,140,30,0.7)':'rgba(200,80,20,0.55)'; ctx.lineWidth=2
-    ctx.beginPath(); ctx.moveTo(-sz*0.5,sz*0.1); ctx.quadraticCurveTo(-wspan*0.6,-(sz*(1.2+wingFlap)),-(wspan),sz*(0.3+wingFlap*0.5)); ctx.quadraticCurveTo(-wspan*0.55,sz*0.5,-sz*0.5,sz*0.1); ctx.closePath(); ctx.fill(); ctx.stroke()
-    // wing membrane details
-    ctx.strokeStyle=g.bossEnraged?'rgba(255,160,40,0.4)':'rgba(180,60,10,0.3)'; ctx.lineWidth=1.2
-    for (let i=1;i<=3;i++) { const tt=i/4; ctx.beginPath(); ctx.moveTo(-sz*0.5,sz*0.1); ctx.quadraticCurveTo(-wspan*0.55*tt,-(sz*(0.8+wingFlap)*tt),-(wspan)*tt,sz*(0.3+wingFlap*0.4)*tt); ctx.stroke() }
-    // Right wing
-    ctx.fillStyle=g.bossEnraged?'rgba(255,80,0,0.28)':'rgba(160,50,0,0.22)'
-    ctx.strokeStyle=g.bossEnraged?'rgba(255,140,30,0.7)':'rgba(200,80,20,0.55)'; ctx.lineWidth=2
-    ctx.beginPath(); ctx.moveTo(-sz*0.5,-sz*0.1); ctx.quadraticCurveTo(-wspan*0.6,sz*(1.2+wingFlap),-(wspan),-(sz*(0.3+wingFlap*0.5))); ctx.quadraticCurveTo(-wspan*0.55,-sz*0.5,-sz*0.5,-sz*0.1); ctx.closePath(); ctx.fill(); ctx.stroke()
-    ctx.strokeStyle=g.bossEnraged?'rgba(255,160,40,0.4)':'rgba(180,60,10,0.3)'; ctx.lineWidth=1.2
-    for (let i=1;i<=3;i++) { const tt=i/4; ctx.beginPath(); ctx.moveTo(-sz*0.5,-sz*0.1); ctx.quadraticCurveTo(-wspan*0.55*tt,sz*(0.8+wingFlap)*tt,-(wspan)*tt,-(sz*(0.3+wingFlap*0.4)*tt)); ctx.stroke() }
-    // Serpentine body (tapers toward tail)
-    const bodyG=ctx.createLinearGradient(-sz,0,sz*1.3,0)
-    bodyG.addColorStop(0,hitW?'#FFF':(g.bossEnraged?'#CC2200':'#8B2800'))
-    bodyG.addColorStop(0.4,hitW?'#FFF':(g.bossEnraged?'#FF5500':'#CC3800'))
-    bodyG.addColorStop(0.75,hitW?'#FFF':(g.bossEnraged?'#DD4400':'#AA3000'))
-    bodyG.addColorStop(1,hitW?'#EEE':(g.bossEnraged?'#AA1100':'#6B1800'))
-    ctx.fillStyle=bodyG; ctx.beginPath(); ctx.ellipse(0,0,sz*1.35,sz*0.72,0,0,Math.PI*2); ctx.fill()
-    // dorsal spines
-    for (let i=0;i<9;i++) { const sx2=-sz*1.0+i*sz*0.25, sh=12+Math.sin(b.spinePulse+i*0.8)*6; ctx.fillStyle=hitW?'#FFF':(g.bossEnraged?'#FFAA00':'#CC5500'); ctx.beginPath(); ctx.moveTo(sx2-4,-sz*0.68); ctx.lineTo(sx2,-sz*0.68-sh); ctx.lineTo(sx2+4,-sz*0.68); ctx.closePath(); ctx.fill() }
-    // legs / claws
-    for (let i=0;i<4;i++) { const lx=-sz*0.6+i*sz*0.4, ly=sz*0.65+Math.sin(t*2.5+i)*4; ctx.strokeStyle=hitW?'#FFF':'#7A3000'; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(lx,sz*0.2); ctx.lineTo(lx+Math.cos(1.2+i*0.3)*sz*0.55,ly); ctx.stroke(); ctx.strokeStyle=g.bossEnraged?'#FF8800':'#CC4400'; ctx.lineWidth=2; for(let c=0;c<3;c++){ctx.beginPath();ctx.moveTo(lx+Math.cos(1.2+i*0.3)*sz*0.55,ly);ctx.lineTo(lx+Math.cos(1.0+i*0.3+c*0.22)*sz*0.75,ly+16);ctx.stroke()} }
-    // head
-    ctx.fillStyle=hitW?'#FFF':(g.bossEnraged?'#FF4400':'#CC3300')
-    ctx.beginPath(); ctx.ellipse(sz*1.05,0,sz*0.6,sz*0.52,0,0,Math.PI*2); ctx.fill()
-    // snout horns
-    ctx.fillStyle=hitW?'#FFF':'#8B6914'
-    for (let i=0;i<3;i++) { ctx.beginPath(); ctx.moveTo(sz*1.35,-10+i*10); ctx.lineTo(sz*1.75,-14+i*10); ctx.lineTo(sz*1.38,-6+i*10); ctx.closePath(); ctx.fill() }
-    // eyes glow
-    ctx.fillStyle='#FFCC00'; ctx.shadowColor='#FFAA00'; ctx.shadowBlur=18
-    ctx.beginPath(); ctx.arc(sz*1.12,-10,7,0,Math.PI*2); ctx.fill()
-    ctx.beginPath(); ctx.arc(sz*1.12,10,7,0,Math.PI*2); ctx.fill()
-    ctx.fillStyle='#000'; ctx.shadowBlur=0; ctx.beginPath(); ctx.arc(sz*1.14,-10,3,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(sz*1.14,10,3,0,Math.PI*2); ctx.fill()
-    // tail
-    ctx.strokeStyle=hitW?'#FFF':(g.bossEnraged?'#FF4400':'#AA2800'); ctx.lineWidth=sz*0.38
-    ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(-sz*0.95,0); ctx.bezierCurveTo(-sz*1.5,sz*0.5,-sz*1.85,-sz*0.4,-sz*2.1,sz*0.15); ctx.stroke()
-    ctx.lineWidth=sz*0.18; ctx.beginPath(); ctx.moveTo(-sz*2.1,sz*0.15); ctx.bezierCurveTo(-sz*2.3,sz*0.5,-sz*2.5,0,-sz*2.3,-sz*0.2); ctx.stroke()
-    ctx.lineCap='butt'
+
+    // ── TAIL (drawn first, behind everything) ──
+    ctx.lineCap = 'round'
+    ctx.strokeStyle = hitW ? '#FFF' : (g.bossEnraged ? '#CC2000' : '#7A1800')
+    ctx.lineWidth = sz * 0.42
+    ctx.beginPath(); ctx.moveTo(-sz * 0.88, 0)
+    ctx.bezierCurveTo(-sz * 1.35, tailW1 * 0.5, -sz * 1.82, tailW1, -sz * 2.06, tailW1)
+    ctx.stroke()
+    ctx.lineWidth = sz * 0.20
+    ctx.beginPath(); ctx.moveTo(-sz * 2.06, tailW1)
+    ctx.bezierCurveTo(-sz * 2.36, tailW2, -sz * 2.68, tailW2 * 0.4, -sz * 2.88, tailW1 * 0.2)
+    ctx.stroke()
+    ctx.lineCap = 'butt'
+    // Diamond tail tip
+    ctx.fillStyle = hitW ? '#FFF' : (g.bossEnraged ? '#FF4400' : '#6A1800')
+    ctx.save(); ctx.translate(-sz * 2.88, tailW1 * 0.2)
+    ctx.rotate(Math.atan2(tailW1 * 0.2 - tailW2 * 0.4, sz * 0.22) + Math.PI)
+    ctx.beginPath(); ctx.moveTo(-16,0); ctx.lineTo(0,-11); ctx.lineTo(20,0); ctx.lineTo(0,11); ctx.closePath(); ctx.fill()
     ctx.restore()
-    // flame breath trail from mouth
-    if (!hitW) for (let i=0;i<6;i++) { const flx=Math.cos(b.angle)*sz*1.6+Math.cos(b.angle+Math.PI/2+i*1.05)*18, fly=Math.sin(b.angle)*sz*1.6+Math.sin(b.angle+Math.PI/2+i*1.05)*18; ctx.globalAlpha=0.35+0.25*Math.sin(t*4+i); ctx.fillStyle=i%2?'#FF5500':'#FF8800'; ctx.shadowColor='#FF4400'; ctx.shadowBlur=14; ctx.beginPath(); ctx.arc(flx,fly,5+Math.sin(t*5+i)*3,0,Math.PI*2); ctx.fill() }
-    ctx.globalAlpha=1
-    if (g.bossEnraged) { const p3=0.5+0.5*Math.sin(t*5); ctx.fillStyle=`rgba(255,80,0,${p3*0.14})`; ctx.beginPath(); ctx.arc(0,0,bossDef.size*1.55,0,Math.PI*2); ctx.fill() }
+
+    // ── WINGS ──
+    const wBase = g.bossEnraged ? 'rgba(255,55,0,0.32)' : 'rgba(130,38,0,0.24)'
+    const wEdge = g.bossEnraged ? 'rgba(255,145,30,0.85)' : 'rgba(195,68,10,0.65)'
+    // Left wing
+    ctx.fillStyle = wBase; ctx.strokeStyle = wEdge; ctx.lineWidth = 2.5
+    ctx.beginPath(); ctx.moveTo(-sz*0.32, sz*0.08)
+    ctx.quadraticCurveTo(-wspan*0.52, -(sz*(1.55+wFlap)), -wspan, sz*(0.18+wFlap*0.38))
+    ctx.quadraticCurveTo(-wspan*0.5, sz*0.58, -sz*0.32, sz*0.18)
+    ctx.closePath(); ctx.fill(); ctx.stroke()
+    ctx.strokeStyle = g.bossEnraged ? 'rgba(255,130,35,0.60)' : 'rgba(165,58,8,0.50)'; ctx.lineWidth = 2
+    for (let i=1;i<=3;i++) { const f=i/4; ctx.beginPath(); ctx.moveTo(-sz*0.32,sz*0.12); ctx.quadraticCurveTo(-wspan*0.48*f,-(sz*(1.28+wFlap)*f),-wspan*f,sz*(0.14+wFlap*0.3)*f); ctx.stroke() }
+    if (!hitW) {
+      ctx.strokeStyle = `rgba(255,175,35,${0.20+0.13*pulse})`; ctx.lineWidth = 1.2
+      for (let i=1;i<=2;i++) { const f=i/3+0.1; ctx.beginPath(); ctx.moveTo(-sz*0.36+i*6,sz*0.13); ctx.quadraticCurveTo(-wspan*0.44*f,-(sz*(1.0+wFlap)*f*0.75),-wspan*f*0.82,sz*(0.10+wFlap*0.2)*f); ctx.stroke() }
+    }
+    // Right wing (mirror)
+    ctx.fillStyle = wBase; ctx.strokeStyle = wEdge; ctx.lineWidth = 2.5
+    ctx.beginPath(); ctx.moveTo(-sz*0.32,-sz*0.08)
+    ctx.quadraticCurveTo(-wspan*0.52, sz*(1.55+wFlap), -wspan, -(sz*(0.18+wFlap*0.38)))
+    ctx.quadraticCurveTo(-wspan*0.5,-sz*0.58,-sz*0.32,-sz*0.18)
+    ctx.closePath(); ctx.fill(); ctx.stroke()
+    ctx.strokeStyle = g.bossEnraged ? 'rgba(255,130,35,0.60)' : 'rgba(165,58,8,0.50)'; ctx.lineWidth = 2
+    for (let i=1;i<=3;i++) { const f=i/4; ctx.beginPath(); ctx.moveTo(-sz*0.32,-sz*0.12); ctx.quadraticCurveTo(-wspan*0.48*f,sz*(1.28+wFlap)*f,-wspan*f,-(sz*(0.14+wFlap*0.3)*f)); ctx.stroke() }
+    if (!hitW) {
+      ctx.strokeStyle = `rgba(255,175,35,${0.20+0.13*pulse})`; ctx.lineWidth = 1.2
+      for (let i=1;i<=2;i++) { const f=i/3+0.1; ctx.beginPath(); ctx.moveTo(-sz*0.36+i*6,-sz*0.13); ctx.quadraticCurveTo(-wspan*0.44*f,sz*(1.0+wFlap)*f*0.75,-wspan*f*0.82,-(sz*(0.10+wFlap*0.2)*f)); ctx.stroke() }
+    }
+
+    // ── BODY ──
+    // Hot underbelly glow
+    const bellyR = ctx.createRadialGradient(sz*0.1, sz*0.30, 0, sz*0.1, sz*0.26, sz*0.90)
+    bellyR.addColorStop(0, hitW ? '#FFF' : `rgba(255,${140+Math.floor(pulse*50)},0,${0.60+pulse*0.18})`)
+    bellyR.addColorStop(0.55, hitW ? '#EEE' : 'rgba(210,55,0,0.28)')
+    bellyR.addColorStop(1, 'rgba(0,0,0,0)')
+    ctx.fillStyle = bellyR; ctx.beginPath(); ctx.ellipse(sz*0.1, sz*0.22, sz*1.20, sz*0.64, 0, 0, Math.PI*2); ctx.fill()
+    // Main body
+    const bG = ctx.createLinearGradient(-sz*1.4,-sz*0.72,sz*1.4,sz*0.72)
+    bG.addColorStop(0, hitW?'#FFF':(g.bossEnraged?'#CC1200':'#721600'))
+    bG.addColorStop(0.35, hitW?'#FFF':(g.bossEnraged?'#FF4200':'#BA3000'))
+    bG.addColorStop(0.65, hitW?'#FFF':(g.bossEnraged?'#CC2000':'#922200'))
+    bG.addColorStop(1, hitW?'#EEE':(g.bossEnraged?'#7A0E00':'#461000'))
+    ctx.fillStyle = bG; ctx.beginPath(); ctx.ellipse(0, 0, sz*1.44, sz*0.78, 0, 0, Math.PI*2); ctx.fill()
+    // Scale texture
+    if (!hitW) {
+      ctx.strokeStyle = g.bossEnraged ? 'rgba(70,8,0,0.55)' : 'rgba(38,5,0,0.50)'; ctx.lineWidth = 1.2
+      for (let row=-2;row<=2;row++) {
+        const ry=row*sz*0.29, cols=8-Math.abs(row)*2, rw=sz*(1.28-Math.abs(row)*0.12)
+        for (let col=0;col<cols;col++) { const scx=-rw+col*rw*2/Math.max(1,cols-1); ctx.beginPath(); ctx.arc(scx,ry,sz*0.15,Math.PI,Math.PI*2); ctx.stroke() }
+      }
+      // Molten crack veins
+      ctx.strokeStyle = `rgba(255,${165+Math.floor(pulse*65)},20,${0.38+pulse*0.22})`; ctx.lineWidth = 1.5
+      const crk:[number,number,number,number][] = [[-sz*0.65,-sz*0.38,-sz*0.18,sz*0.48],[-sz*0.08,-sz*0.48,sz*0.28,sz*0.36],[sz*0.52,-sz*0.28,sz*0.80,sz*0.40],[-sz*0.92,sz*0.06,-sz*0.46,-sz*0.28]]
+      crk.forEach(([x1,y1,x2,y2])=>{ ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke() })
+    }
+    // Lava drips from underbelly
+    if (!hitW) {
+      const drips:[number,number][] = [[sz*0.40,sz*0.76],[-sz*0.15,sz*0.78],[sz*0.80,sz*0.72],[-sz*0.62,sz*0.74]]
+      ctx.shadowColor = '#FF4400'; ctx.shadowBlur = 9
+      drips.forEach(([dx,dy],di) => {
+        const ph = Math.sin(t*2.1+di*2.0)*0.5+0.5
+        ctx.globalAlpha = 0.52+ph*0.38
+        ctx.fillStyle = ph>0.55?'#FFAA00':'#FF5500'
+        ctx.beginPath(); ctx.ellipse(dx, dy+ph*11, 4.5, 7+ph*11, 0, 0, Math.PI*2); ctx.fill()
+      })
+      ctx.globalAlpha = 1; ctx.shadowBlur = 0
+    }
+
+    // ── DORSAL SPINES ──
+    for (let i=0;i<12;i++) {
+      const spx=-sz*1.10+i*sz*0.215, sph=sz*(0.20+0.11*Math.sin(b.spinePulse+i*0.72))
+      if (!hitW) {
+        ctx.fillStyle = g.bossEnraged ? `rgba(255,90,0,${0.42+0.28*Math.sin(b.spinePulse+i)})` : `rgba(215,72,0,${0.28+0.18*Math.sin(b.spinePulse+i)})`
+        ctx.beginPath(); ctx.moveTo(spx-8,-sz*0.74); ctx.lineTo(spx,-sz*0.74-sph-9); ctx.lineTo(spx+8,-sz*0.74); ctx.closePath(); ctx.fill()
+      }
+      ctx.fillStyle = hitW?'#FFF':(g.bossEnraged?'#FFCC00':'#FF8800')
+      ctx.beginPath(); ctx.moveTo(spx-4,-sz*0.74); ctx.lineTo(spx,-sz*0.74-sph); ctx.lineTo(spx+4,-sz*0.74); ctx.closePath(); ctx.fill()
+    }
+
+    // ── LEGS ──
+    ctx.lineCap = 'round'
+    for (let i=0;i<4;i++) {
+      const lx=-sz*0.68+i*sz*0.47, anim=Math.sin(t*2.5+i*1.2)*0.14
+      const lkx=lx+Math.cos(1.28+i*0.26+anim)*sz*0.42, lky=sz*0.66+Math.sin(t*2.5+i*1.2)*7
+      const lfx=lx+Math.cos(1.12+i*0.26)*sz*0.66, lfy=lky+16
+      ctx.strokeStyle=hitW?'#FFF':(g.bossEnraged?'#7A1A00':'#4E1600'); ctx.lineWidth=sz*0.17
+      ctx.beginPath(); ctx.moveTo(lx,sz*0.30); ctx.lineTo(lkx,lky); ctx.stroke()
+      ctx.strokeStyle=hitW?'#FFF':(g.bossEnraged?'#9A2200':'#6A2A00'); ctx.lineWidth=sz*0.11
+      ctx.beginPath(); ctx.moveTo(lkx,lky); ctx.lineTo(lfx,lfy); ctx.stroke()
+      ctx.lineCap='butt'; ctx.strokeStyle=hitW?'#FFF':(g.bossEnraged?'#FF7700':'#CC4400'); ctx.lineWidth=2.2
+      for (let c=0;c<3;c++) { ctx.beginPath(); ctx.moveTo(lfx,lfy); ctx.lineTo(lfx+Math.cos(0.95+c*0.30)*sz*0.30,lfy+20); ctx.stroke() }
+      ctx.lineCap='round'
+    }
+    ctx.lineCap = 'butt'
+
+    // ── NECK ──
+    ctx.fillStyle = hitW?'#FFF':(g.bossEnraged?'#DD3200':'#9A2800')
+    ctx.beginPath(); ctx.ellipse(sz*0.78, 0, sz*0.46, sz*0.38, -0.18, 0, Math.PI*2); ctx.fill()
+    if (!hitW) {
+      ctx.strokeStyle=g.bossEnraged?'rgba(60,5,0,0.55)':'rgba(38,5,0,0.48)'; ctx.lineWidth=1.1
+      for (let i=0;i<5;i++) { const nx=sz*0.56+i*sz*0.08,na=-sz*0.30+i*sz*0.12; ctx.beginPath(); ctx.arc(nx,na,sz*0.09,Math.PI,Math.PI*2); ctx.stroke() }
+    }
+
+    // ── HEAD ──
+    const hgrd = ctx.createRadialGradient(sz*1.12,-sz*0.04,0,sz*1.12,sz*0.06,sz*0.68)
+    hgrd.addColorStop(0, hitW?'#FFF':(g.bossEnraged?'#FF3000':'#C42600'))
+    hgrd.addColorStop(0.55, hitW?'#EEE':(g.bossEnraged?'#D82000':'#A22000'))
+    hgrd.addColorStop(1, hitW?'#DDD':(g.bossEnraged?'#801200':'#5E1000'))
+    ctx.fillStyle=hgrd; ctx.beginPath(); ctx.ellipse(sz*1.12,0,sz*0.64,sz*0.52,0,0,Math.PI*2); ctx.fill()
+    // Lower jaw
+    ctx.fillStyle=hitW?'#EEE':(g.bossEnraged?'#C42000':'#8E1C00')
+    ctx.beginPath(); ctx.ellipse(sz*1.20,sz*0.16,sz*0.52,sz*0.28,0.15,0,Math.PI*2); ctx.fill()
+    // Brow ridge
+    ctx.fillStyle=hitW?'#DDD':'#6A4610'
+    ctx.beginPath(); ctx.moveTo(sz*0.84,-sz*0.26); ctx.lineTo(sz*1.24,-sz*0.23); ctx.lineTo(sz*1.20,-sz*0.10); ctx.lineTo(sz*0.80,-sz*0.14); ctx.closePath(); ctx.fill()
+
+    // ── HORNS ──
+    ctx.fillStyle=hitW?'#FFF':'#8A6510'
+    // Two large swept-back crown horns
+    ctx.beginPath(); ctx.moveTo(sz*0.82,-sz*0.30); ctx.quadraticCurveTo(sz*0.58,-sz*0.82,sz*0.44,-sz*0.92); ctx.quadraticCurveTo(sz*0.62,-sz*0.76,sz*0.90,-sz*0.22); ctx.closePath(); ctx.fill()
+    ctx.beginPath(); ctx.moveTo(sz*0.97,-sz*0.24); ctx.quadraticCurveTo(sz*0.76,-sz*0.72,sz*0.66,-sz*0.80); ctx.quadraticCurveTo(sz*0.82,-sz*0.62,sz*1.02,-sz*0.17); ctx.closePath(); ctx.fill()
+    // Snout ridge spikes
+    ctx.fillStyle=hitW?'#EEE':(g.bossEnraged?'#D08800':'#8A5E14')
+    for (let i=0;i<5;i++) { const hx=sz*1.24+i*sz*0.07,hy=-sz*0.20+i*sz*0.10; ctx.beginPath(); ctx.moveTo(hx,hy); ctx.lineTo(hx+sz*0.18,hy-sz*0.08); ctx.lineTo(hx+sz*0.04,hy+sz*0.09); ctx.closePath(); ctx.fill() }
+
+    // ── GLOWING NOSTRILS ──
+    if (!hitW) {
+      ctx.fillStyle=`rgba(255,${110+Math.floor(pulse*70)},0,${0.50+pulse*0.22})`
+      ctx.shadowColor='#FF5500'; ctx.shadowBlur=12
+      ctx.beginPath(); ctx.ellipse(sz*1.52,-sz*0.08,5,3.5,0.25,0,Math.PI*2); ctx.fill()
+      ctx.beginPath(); ctx.ellipse(sz*1.52, sz*0.10,5,3.5,-0.25,0,Math.PI*2); ctx.fill()
+      ctx.shadowBlur=0
+    }
+
+    // ── EYES (glowing, slit pupils) ──
+    const ep=0.68+0.32*Math.sin(t*5.2)
+    ctx.shadowColor=g.bossEnraged?'#FF0000':'#FFAA00'; ctx.shadowBlur=24*ep
+    ctx.fillStyle=g.bossEnraged?`rgb(255,${Math.floor(80+90*ep)},0)`:'#FFCC00'
+    ctx.beginPath(); ctx.arc(sz*1.16,-sz*0.17,8.5,0,Math.PI*2); ctx.fill()
+    ctx.beginPath(); ctx.arc(sz*1.16, sz*0.13,8.5,0,Math.PI*2); ctx.fill()
+    ctx.fillStyle='#000'; ctx.shadowBlur=0
+    ctx.beginPath(); ctx.ellipse(sz*1.18,-sz*0.17,2.5,5,0.18,0,Math.PI*2); ctx.fill()
+    ctx.beginPath(); ctx.ellipse(sz*1.18, sz*0.13,2.5,5,-0.18,0,Math.PI*2); ctx.fill()
+
+    ctx.restore()  // end rotate(b.angle)
+
+    // ── FIRE BREATH (boss-relative space) ──
+    if (!hitW) {
+      const mox=Math.cos(b.angle)*sz*1.76, moy=Math.sin(b.angle)*sz*1.76
+      ctx.shadowColor='#FF4400'; ctx.shadowBlur=20
+      for (let i=0;i<10;i++) {
+        const spread=(i-4.5)*0.11, dist2=sz*(0.20+i*0.115)
+        const fx=mox+Math.cos(b.angle+spread)*dist2, fy=moy+Math.sin(b.angle+spread)*dist2
+        ctx.globalAlpha=Math.max(0,0.75-i*0.062+0.20*Math.sin(t*5.5+i*0.85))
+        ctx.fillStyle=i<2?'#FFFFFF':i<4?'#FFEE66':i<7?'#FF8800':'#FF3300'
+        ctx.beginPath(); ctx.arc(fx,fy,Math.max(2,13-i*0.55+Math.sin(t*6.2+i)*2.8),0,Math.PI*2); ctx.fill()
+      }
+      ctx.globalAlpha=1; ctx.shadowBlur=0
+    }
+
+    // ── ENRAGE AURA ──
+    if (g.bossEnraged) {
+      const ar=bossDef.size*1.65+pulse*12
+      const aura=ctx.createRadialGradient(0,0,ar*0.62,0,0,ar)
+      aura.addColorStop(0,`rgba(255,70,0,${0.24+pulse*0.14})`); aura.addColorStop(1,'rgba(200,0,0,0)')
+      ctx.fillStyle=aura; ctx.beginPath(); ctx.arc(0,0,ar,0,Math.PI*2); ctx.fill()
+      ctx.shadowColor='#FF4400'; ctx.shadowBlur=14
+      for (let i=0;i<8;i++) {
+        const ea=t*4.0+i*Math.PI*0.25, er=bossDef.size*1.42+Math.sin(t*4.5+i)*16
+        ctx.fillStyle=`rgba(255,${90+Math.floor(Math.sin(t*5.5+i)*75)},0,${0.72+0.28*Math.sin(t*6+i)})`
+        ctx.beginPath(); ctx.arc(Math.cos(ea)*er,Math.sin(ea)*er,5.0,0,Math.PI*2); ctx.fill()
+      }
+      ctx.shadowBlur=0
+    }
 
   } else {
     // ── STORM GRIFFIN ── Kree'arra-style: muscular, gorilla body with huge wings
