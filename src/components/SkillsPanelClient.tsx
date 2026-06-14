@@ -209,7 +209,7 @@ export default function SkillsPanelClient({
         if (r.ok) {
           setSaveMsg('✓ saved')
           router.refresh()
-          setTimeout(() => setSaveMsg(null), 2500)
+          setTimeout(() => setSaveMsg(null), 5000)
         } else {
           const t = await r.text()
           setSaveMsg(`✗ error ${r.status}`)
