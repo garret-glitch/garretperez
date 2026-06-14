@@ -220,8 +220,8 @@ function mkState(wpn: WeaponDef, boss: BossDef, gear: GearId[]): GS {
     camX: clamp(sx - CW / 2, 0, WW - CW), camY: clamp(sy - CH / 2, 0, WH - CH),
     webProcAnim: null,
     bossFlightAngle: boss.id === 1 ? Math.PI * 0.75 : boss.id === 2 ? Math.PI * 0.25 : 0,
-    bossFlightSpeed: boss.id === 1 ? 0.45 : boss.id === 2 ? 0.60 : 0,
-    bossFlightRadius: boss.id === 1 ? 420 : boss.id === 2 ? 480 : 0,
+    bossFlightSpeed: boss.id === 1 ? 0.55 : boss.id === 2 ? 0.70 : 0,
+    bossFlightRadius: boss.id === 1 ? 200 : boss.id === 2 ? 240 : 0,
     bossFlightCenter: v(WW / 2, WH / 2 - 80),
     bossFleeTimer: 0,
   }
@@ -583,30 +583,42 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
 
   // Boss movement
   if (g.bossFlightSpeed > 0 && b.stunTimer <= 0) {
-    // Drake & Griffin orbit the arena center, speeding up when enraged
+    // Drake & Griffin: orbit around the player (center tracks player position)
     const orbitMult = (g.bossEnraged ? 1.5 : 1.0) * (b.slowTimer > 0 ? 0.3 : 1.0)
     g.bossFlightAngle += g.bossFlightSpeed * orbitMult * dt
+    // Orbit center lerps toward player so boss always circles near the player
+    const trackRate = Math.min(1, dt * 2.5)
+    g.bossFlightCenter.x += (p.pos.x - g.bossFlightCenter.x) * trackRate
+    g.bossFlightCenter.y += (p.pos.y - g.bossFlightCenter.y) * trackRate
+    const r = g.bossFlightRadius
+    g.bossFlightCenter.x = clamp(g.bossFlightCenter.x, r + 100, WW - r - 100)
+    g.bossFlightCenter.y = clamp(g.bossFlightCenter.y, r * 0.62 + 100, WH - r * 0.62 - 100)
     const fc = g.bossFlightCenter
-    b.pos.x = clamp(fc.x + Math.cos(g.bossFlightAngle) * g.bossFlightRadius, 100, WW - 100)
-    b.pos.y = clamp(fc.y + Math.sin(g.bossFlightAngle) * g.bossFlightRadius * 0.62, 100, WH - 100)
+    b.pos.x = clamp(fc.x + Math.cos(g.bossFlightAngle) * r, 100, WW - 100)
+    b.pos.y = clamp(fc.y + Math.sin(g.bossFlightAngle) * r * 0.62, 100, WH - 100)
   } else if (bossId === 0) {
-    // Spider: chase player, but flee when too close
-    const bossSpeed = (g.bossEnraged ? 100 : 70) * (b.slowTimer > 0 ? 0.4 : 1)
+    // Spider: stalk player at preferred range — chase when far, back away when too close, strafe in between
+    const bossSpeed = (g.bossEnraged ? 155 : 105) * (b.slowTimer > 0 ? 0.4 : 1)
     const d2p = dist(b.pos, p.pos)
-    if (b.stunTimer <= 0 && !g.bossAttack) {
-      if (d2p > bossDef.size + 80) {
+    const PREF_MIN = 150, PREF_MAX = 270
+    if (b.stunTimer <= 0) {
+      if (d2p > PREF_MAX) {
+        // Chase at full speed
         const dir = norm(v(p.pos.x - b.pos.x, p.pos.y - b.pos.y))
         b.pos.x = clamp(b.pos.x + dir.x * bossSpeed * dt, 90, WW - 90)
         b.pos.y = clamp(b.pos.y + dir.y * bossSpeed * dt, 90, WH - 90)
-      } else if (g.bossFleeTimer <= 0) {
-        // Spider jumps away from player
+      } else if (d2p < PREF_MIN) {
+        // Back away smoothly (no teleport)
         const away = norm(v(b.pos.x - p.pos.x, b.pos.y - p.pos.y))
-        const jdx = rnd(200, 380), jdy = rnd(180, 320)
-        b.pos.x = clamp(b.pos.x + away.x * jdx + rnd(-120, 120), 120, WW - 120)
-        b.pos.y = clamp(b.pos.y + away.y * jdy + rnd(-80, 80), 120, WH - 120)
-        spawnParticles(g, b.pos, 22, '#8E44AD', 240)
-        g.screenShake = Math.max(g.screenShake, 0.35)
-        g.bossFleeTimer = 3.5
+        b.pos.x = clamp(b.pos.x + away.x * bossSpeed * dt, 90, WW - 90)
+        b.pos.y = clamp(b.pos.y + away.y * bossSpeed * dt, 90, WH - 90)
+      } else {
+        // In preferred range: strafe laterally around player (direction toggles via gtime)
+        const toPlayer = norm(v(p.pos.x - b.pos.x, p.pos.y - b.pos.y))
+        const strafeSign = Math.sin(g.gtime * 0.75) >= 0 ? 1 : -1
+        const strafe = v(-toPlayer.y * strafeSign, toPlayer.x * strafeSign)
+        b.pos.x = clamp(b.pos.x + strafe.x * bossSpeed * 0.65 * dt, 90, WW - 90)
+        b.pos.y = clamp(b.pos.y + strafe.y * bossSpeed * 0.65 * dt, 90, WH - 90)
       }
     }
   }
