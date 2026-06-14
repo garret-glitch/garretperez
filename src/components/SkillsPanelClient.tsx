@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors,
 } from '@dnd-kit/core'
@@ -186,6 +186,7 @@ export default function SkillsPanelClient({
   const [order, setOrder] = useState<ChanKey[]>(initialOrder)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
   const pathname = usePathname()
+  const router = useRouter()
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -207,6 +208,7 @@ export default function SkillsPanelClient({
       .then(async r => {
         if (r.ok) {
           setSaveMsg('✓ saved')
+          router.refresh()
           setTimeout(() => setSaveMsg(null), 2500)
         } else {
           const t = await r.text()
