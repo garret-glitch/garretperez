@@ -1164,19 +1164,6 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
 
     ctx.restore()  // end rotate(b.angle)
 
-    // ── FIRE BREATH ──
-    if (!hitW) {
-      const mox=Math.cos(b.angle)*sz*2.02, moy=Math.sin(b.angle)*sz*2.02
-      ctx.shadowColor='#FF4400'; ctx.shadowBlur=20
-      for (let i=0;i<10;i++) {
-        const spread=(i-4.5)*0.11, dist2=sz*(0.20+i*0.115)
-        const fx=mox+Math.cos(b.angle+spread)*dist2, fy=moy+Math.sin(b.angle+spread)*dist2
-        ctx.globalAlpha=Math.max(0,0.75-i*0.062+0.20*Math.sin(t*5.5+i*0.85))
-        ctx.fillStyle=i<2?'#FFFFFF':i<4?'#FFEE66':i<7?'#FF8800':'#FF3300'
-        ctx.beginPath(); ctx.arc(fx,fy,Math.max(2,13-i*0.55+Math.sin(t*6.2+i)*2.8),0,Math.PI*2); ctx.fill()
-      }
-      ctx.globalAlpha=1; ctx.shadowBlur=0
-    }
 
     // ── ENRAGE AURA ──
     if (enr) {
