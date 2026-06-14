@@ -21,9 +21,6 @@ export default function ResumePage() {
               📍 Houston, TX
             </div>
             <div className="flex flex-wrap gap-4 body-text text-[12px]" style={{ color: 'var(--text-2)' }}>
-              <a href="tel:346-604-1635" className="flex items-center gap-1.5 hover:opacity-80">
-                <span>📞</span> (346) 604-1635
-              </a>
               <a href="mailto:gis.owner@gmail.com" className="flex items-center gap-1.5 hover:opacity-80">
                 <span>✉️</span> gis.owner@gmail.com
               </a>

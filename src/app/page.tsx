@@ -6,7 +6,7 @@ import HomepageBlockRenderer from '@/components/HomepageBlockRenderer'
 import SkillsPanel from '@/components/SkillsPanel'
 import type { PageBlock, HeroBlockConfig } from '@/types/builder'
 import { migrateExistingSections } from '@/lib/builder-migration'
-import { Phone, Mail, FileText } from 'lucide-react'
+import { Mail, FileText } from 'lucide-react'
 
 
 export const dynamic = 'force-dynamic'
@@ -240,15 +240,6 @@ export default async function Home() {
             <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
 
-                <a href={`tel:${contactPhone.replace(/\D/g, '')}`} style={{ textDecoration: 'none', display: 'block', padding: '10px 14px', background: 'rgba(200,155,60,0.09)', borderLeft: '3px solid #c89b3c' }}
-                  className="hover:brightness-110 transition-all">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                    <Phone size={11} color="#c89b3c" strokeWidth={2} />
-                    <span style={{ fontSize: 7, color: '#9a7848', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Phone</span>
-                  </div>
-                  <div className="body-text" style={{ fontSize: 17, color: '#f8edb0', fontWeight: 700, letterSpacing: '0.01em' }}>{contactPhone}</div>
-                </a>
-
                 <a href={`mailto:${contactEmail}`} style={{ textDecoration: 'none', display: 'block', padding: '10px 14px', background: 'rgba(60,110,200,0.1)', borderLeft: '3px solid #7090c8' }}
                   className="hover:brightness-110 transition-all">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
@@ -371,15 +362,6 @@ export default async function Home() {
 
             {/* Contact — 1 per row */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-
-              <a href={`tel:${contactPhone.replace(/\D/g, '')}`}
-                style={{ textDecoration: 'none', display: 'block', padding: '11px 16px', background: 'rgba(200,155,60,0.09)', borderLeft: '3px solid #c89b3c' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                  <Phone size={11} color="#c89b3c" strokeWidth={2} />
-                  <span style={{ fontSize: 7.5, color: '#9a7848', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: "'Press Start 2P', monospace" }}>Phone</span>
-                </div>
-                <div className="body-text" style={{ fontSize: 17, color: '#f8edb0', fontWeight: 700 }}>{contactPhone}</div>
-              </a>
 
               <a href={`mailto:${contactEmail}`}
                 style={{ textDecoration: 'none', display: 'block', padding: '11px 16px', background: 'rgba(60,110,200,0.1)', borderLeft: '3px solid #7090c8' }}>
