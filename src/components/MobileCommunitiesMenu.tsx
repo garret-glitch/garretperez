@@ -15,19 +15,29 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Resume', Icon: FileText, href: '/resume', bg: '#241a08' },
 ]
 
-const COMMUNITIES: NavItem[] = [
-  { label: 'Projects',    Icon: Hammer,     href: '/skills/projects', bg: '#382e0e' },
-  { label: 'Business',    Icon: Briefcase,  href: '/skills/business', bg: '#1c2e10' },
-  { label: 'Community',   Icon: Users,      href: '/skills/community',bg: '#181e4a' },
-  { label: 'Fishing',     Icon: Fish,       href: '/skills/fishing',  bg: '#0e2c48' },
-  { label: 'Food & Wine', Icon: Wine,       href: '/skills/food',     bg: '#4e2006' },
-  { label: 'Gardening',   Icon: Leaf,       href: '/skills/gardening',bg: '#0e3810' },
-  { label: 'Adventure',   Icon: Compass,    href: '/skills/travel',   bg: '#382808' },
-  { label: 'Games',       Icon: Gamepad2,   href: '/skills/fun',      bg: '#320c4a' },
-  { label: 'Quests',      Icon: Scroll,     href: '/quests',             bg: '#2a1a06' },
-  { label: 'Cool People', Icon: UserCheck,   href: '/skills/cool-people', bg: '#2e0c48' },
-  { label: 'Cool Items',  Icon: ShoppingBag, href: '/skills/cool-items',  bg: '#0c2040' },
+const COMMUNITY_MAP: Record<string, NavItem> = {
+  PROJECTS:    { label: 'Projects',    Icon: Hammer,      href: '/skills/projects',    bg: '#382e0e' },
+  BUSINESS:    { label: 'Business',    Icon: Briefcase,   href: '/skills/business',    bg: '#1c2e10' },
+  COMMUNITY:   { label: 'Community',   Icon: Users,       href: '/skills/community',   bg: '#181e4a' },
+  FISHING:     { label: 'Fishing',     Icon: Fish,        href: '/skills/fishing',     bg: '#0e2c48' },
+  FOOD:        { label: 'Food & Wine', Icon: Wine,        href: '/skills/food',        bg: '#4e2006' },
+  GARDENING:   { label: 'Gardening',   Icon: Leaf,        href: '/skills/gardening',   bg: '#0e3810' },
+  TRAVEL:      { label: 'Adventure',   Icon: Compass,     href: '/skills/travel',      bg: '#382808' },
+  FUN:         { label: 'Games',       Icon: Gamepad2,    href: '/skills/fun',         bg: '#320c4a' },
+  QUESTS:      { label: 'Quests',      Icon: Scroll,      href: '/quests',             bg: '#2a1a06' },
+  COOL_PEOPLE: { label: 'Cool People', Icon: UserCheck,   href: '/skills/cool-people', bg: '#2e0c48' },
+  COOL_ITEMS:  { label: 'Cool Items',  Icon: ShoppingBag, href: '/skills/cool-items',  bg: '#0c2040' },
+}
+
+const DEFAULT_ORDER = [
+  'PROJECTS', 'BUSINESS', 'COMMUNITY',
+  'FISHING', 'FOOD', 'GARDENING', 'TRAVEL', 'FUN', 'QUESTS',
+  'COOL_PEOPLE', 'COOL_ITEMS',
 ]
+
+function buildList(keys: string[]): NavItem[] {
+  return keys.filter(k => k !== 'DEMO' && COMMUNITY_MAP[k]).map(k => COMMUNITY_MAP[k])
+}
 
 function NavRow({ item, active, onClick }: { item: NavItem; active: boolean; onClick: () => void }) {
   return (
@@ -57,7 +67,22 @@ function NavRow({ item, active, onClick }: { item: NavItem; active: boolean; onC
 
 export default function MobileCommunitiesMenu({ isAdmin }: { isAdmin?: boolean }) {
   const [open, setOpen] = useState(false)
+  const [communities, setCommunities] = useState<NavItem[]>(() => buildList(DEFAULT_ORDER))
   const pathname = usePathname()
+
+  // Sync order from localStorage (same key the desktop sidebar writes)
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('sidebar-order')
+      if (stored) {
+        const parsed: string[] = JSON.parse(stored)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const ordered = buildList(parsed)
+          if (ordered.length > 0) setCommunities(ordered)
+        }
+      }
+    } catch {}
+  }, [])
 
   // Close drawer on route change
   useEffect(() => { setOpen(false) }, [pathname])
@@ -172,7 +197,7 @@ export default function MobileCommunitiesMenu({ isAdmin }: { isAdmin?: boolean }
 
         {/* Community channels */}
         <div style={{ paddingBottom: 24 }}>
-          {COMMUNITIES.map(item => (
+          {communities.map(item => (
             <NavRow
               key={item.href}
               item={item}
