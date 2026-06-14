@@ -205,41 +205,38 @@ export default async function FoodPage() {
                       display: 'flex', flexDirection: 'column', position: 'relative',
                     }}
                   >
-                    {/* ── Bottle showcase ── */}
-                    <div style={{
-                      position: 'relative', overflow: 'hidden', height: 320,
-                      background: `
-                        radial-gradient(ellipse 75% 55% at 50% 80%, ${tc.glowColor} 0%, transparent 68%),
-                        radial-gradient(ellipse 90% 30% at 50% 46%, rgba(90,52,8,0.13) 0%, transparent 100%),
-                        linear-gradient(180deg, #080612 0%, #14091a 18%, #1c1020 40%, #160c10 65%, #0a0607 100%)
-                      `,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      {/* Horizon atmosphere */}
-                      <div style={{ position: 'absolute', top: '24%', left: 0, right: 0, height: '22%', background: 'radial-gradient(ellipse 80% 100% at 50% 50%, rgba(95,55,8,0.1) 0%, transparent 100%)', pointerEvents: 'none' }} />
-                      {/* Ground fog */}
-                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '38%', background: 'linear-gradient(to top, rgba(4,2,8,0.82) 0%, transparent 100%)', pointerEvents: 'none' }} />
+                    {/* ── Image — fills top half edge-to-edge ── */}
+                    <div style={{ position: 'relative', overflow: 'hidden', height: 280 }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={wine.image}
+                        alt={wine.name}
+                        style={{
+                          position: 'absolute', inset: 0,
+                          width: '100%', height: '100%',
+                          objectFit: 'cover', objectPosition: 'center',
+                          display: 'block',
+                        }}
+                      />
+                      {/* Bottom fade so info panel blends in */}
+                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '45%', background: 'linear-gradient(to top, #09070e 0%, transparent 100%)', pointerEvents: 'none', zIndex: 1 }} />
 
                       {/* Left-edge ribbon */}
-                      <div style={{ position: 'absolute', top: 18, left: 0, zIndex: 3, background: tc.tagSolid, padding: '6px 13px', borderRadius: '0 4px 4px 0', fontFamily: "'Press Start 2P', monospace", fontSize: 6, color: '#f5ede0', letterSpacing: '0.1em', boxShadow: '2px 2px 10px rgba(0,0,0,0.55)' }}>
+                      <div style={{ position: 'absolute', top: 16, left: 0, zIndex: 3, background: tc.tagSolid, padding: '6px 13px', borderRadius: '0 4px 4px 0', fontFamily: "'Press Start 2P', monospace", fontSize: 6, color: '#f5ede0', letterSpacing: '0.1em', boxShadow: '2px 2px 10px rgba(0,0,0,0.55)' }}>
                         {wine.tag}
                       </div>
 
                       {/* Favorite */}
-                      <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 3 }}>
+                      <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 3 }}>
                         <WineFavoriteButton label={wine.name} />
                       </div>
 
-                      {/* Bottle */}
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={wine.image} alt={wine.name} className="wine-bottle" style={{ height: 230, width: 'auto', maxWidth: 145, objectFit: 'contain', display: 'block', filter: 'drop-shadow(0 14px 32px rgba(0,0,0,0.92)) drop-shadow(0 4px 12px rgba(0,0,0,0.7))', position: 'relative', zIndex: 2 }} />
-
                       {/* ABV */}
-                      <div style={{ position: 'absolute', bottom: 16, right: 15, zIndex: 3, fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 700, color: 'rgba(200,155,60,0.65)', textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
+                      <div style={{ position: 'absolute', bottom: 14, right: 13, zIndex: 3, fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 700, color: 'rgba(200,155,60,0.85)', textShadow: '0 1px 6px rgba(0,0,0,0.9)' }}>
                         {wine.abv} ABV
                       </div>
 
-                      {/* Admin delete button (DB wines only) */}
+                      {/* Admin delete (DB wines only) */}
                       {wine.fromDb && session?.user?.role === 'ADMIN' && (
                         <AdminWineSection wineId={wine.id} deleteOnly />
                       )}
