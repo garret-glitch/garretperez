@@ -152,6 +152,118 @@ function BedTypePicker({ value, onChange }: { value: string; onChange: (v: strin
   )
 }
 
+// ── PlantStageIcon — animated SVG plant for each growth stage ──────
+const PC = {
+  stem:'#4a8a18', l1:'#6bcf40', l2:'#3aaa20', l3:'#88e060',
+  fl1:'#ff7ab0', fl2:'#cc50d0', gold:'#e0c020', goldL:'#f8e880',
+  soil:'rgba(60,30,8,0.32)',
+}
+function PlantStageIcon({ stage, delay = 0 }: { stage: number; delay?: number }) {
+  const sw: React.CSSProperties = {
+    display: 'block',
+    animation: `plant-sway ${1.7 + stage * 0.14}s ${delay}s ease-in-out infinite`,
+    transformOrigin: '50% 100%',
+  }
+  if (stage === 1) return (
+    <svg width="42" height="42" viewBox="0 0 42 42" style={sw}>
+      <ellipse cx="21" cy="41" rx="6" ry="2" fill={PC.soil}/>
+      <path d="M21 40 C21 35 20.5 29 21 25" stroke={PC.stem} strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+      <ellipse cx="14" cy="32" rx="8.5" ry="4" fill={PC.l1} transform="rotate(-38 14 32)"/>
+      <ellipse cx="28" cy="29" rx="8.5" ry="4" fill={PC.l2} transform="rotate(38 28 29)"/>
+      <ellipse cx="21" cy="24.5" rx="4.5" ry="3.5" fill={PC.l3}/>
+      <ellipse cx="21" cy="22.5" rx="2.5" ry="2" fill="#c8f8a0"/>
+    </svg>
+  )
+  if (stage === 2) return (
+    <svg width="42" height="42" viewBox="0 0 42 42" style={sw}>
+      <ellipse cx="21" cy="41" rx="7" ry="2" fill={PC.soil}/>
+      <path d="M21 40 C21 32 20.5 22 21 17" stroke={PC.stem} strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+      <ellipse cx="12.5" cy="35" rx="9" ry="4.5" fill={PC.l1} transform="rotate(-38 12.5 35)"/>
+      <ellipse cx="29.5" cy="32" rx="9" ry="4.5" fill={PC.l2} transform="rotate(38 29.5 32)"/>
+      <ellipse cx="12" cy="26.5" rx="8.5" ry="4" fill={PC.l3} transform="rotate(-30 12 26.5)"/>
+      <ellipse cx="30" cy="23.5" rx="8.5" ry="4" fill={PC.l1} transform="rotate(30 30 23.5)"/>
+      <ellipse cx="21" cy="16.5" rx="5" ry="4" fill={PC.l3}/>
+      <ellipse cx="21" cy="14" rx="3" ry="2.5" fill="#b8f890"/>
+    </svg>
+  )
+  if (stage === 3) return (
+    <svg width="42" height="42" viewBox="0 0 42 42" style={sw}>
+      <ellipse cx="21" cy="41" rx="8" ry="2" fill={PC.soil}/>
+      <path d="M21 40 C21 30 20.5 18 21 13" stroke={PC.stem} strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+      <ellipse cx="11" cy="36" rx="9.5" ry="4.5" fill={PC.l2} transform="rotate(-40 11 36)"/>
+      <ellipse cx="31" cy="33" rx="9.5" ry="4.5" fill={PC.l1} transform="rotate(40 31 33)"/>
+      <ellipse cx="10.5" cy="27" rx="9" ry="4" fill={PC.l3} transform="rotate(-32 10.5 27)"/>
+      <ellipse cx="31.5" cy="24" rx="9" ry="4" fill={PC.l2} transform="rotate(32 31.5 24)"/>
+      <ellipse cx="12" cy="19" rx="8" ry="3.5" fill={PC.l1} transform="rotate(-25 12 19)"/>
+      <ellipse cx="30" cy="16" rx="8" ry="3.5" fill={PC.l3} transform="rotate(25 30 16)"/>
+      <ellipse cx="21" cy="12" rx="6" ry="5" fill={PC.l3}/>
+      <ellipse cx="15" cy="13.5" rx="4.5" ry="3" fill={PC.l1} transform="rotate(-20 15 13.5)"/>
+      <ellipse cx="27" cy="13.5" rx="4.5" ry="3" fill={PC.l2} transform="rotate(20 27 13.5)"/>
+    </svg>
+  )
+  if (stage === 4) return (
+    <svg width="42" height="42" viewBox="0 0 42 42" style={sw}>
+      <ellipse cx="21" cy="41" rx="8.5" ry="2" fill={PC.soil}/>
+      <path d="M21 40 C21 28 20.5 16 21 10" stroke={PC.stem} strokeWidth="3" strokeLinecap="round" fill="none"/>
+      <ellipse cx="10" cy="36" rx="10" ry="4.5" fill={PC.l1} transform="rotate(-40 10 36)"/>
+      <ellipse cx="32" cy="33" rx="10" ry="4.5" fill={PC.l2} transform="rotate(40 32 33)"/>
+      <ellipse cx="9.5" cy="27" rx="9.5" ry="4" fill={PC.l3} transform="rotate(-33 9.5 27)"/>
+      <ellipse cx="32.5" cy="24" rx="9.5" ry="4" fill={PC.l1} transform="rotate(33 32.5 24)"/>
+      <ellipse cx="10" cy="18.5" rx="9" ry="4" fill={PC.l2} transform="rotate(-27 10 18.5)"/>
+      <ellipse cx="32" cy="15.5" rx="9" ry="4" fill={PC.l3} transform="rotate(27 32 15.5)"/>
+      <ellipse cx="21" cy="9.5" rx="7.5" ry="5.5" fill={PC.l1}/>
+      <ellipse cx="14" cy="11.5" rx="5.5" ry="3.5" fill={PC.l3} transform="rotate(-22 14 11.5)"/>
+      <ellipse cx="28" cy="11.5" rx="5.5" ry="3.5" fill={PC.l2} transform="rotate(22 28 11.5)"/>
+    </svg>
+  )
+  if (stage === 5) return (
+    <svg width="42" height="42" viewBox="0 0 42 42" style={sw}>
+      <ellipse cx="21" cy="41" rx="8.5" ry="2" fill={PC.soil}/>
+      <path d="M21 40 C21 29 20.5 18 21 12" stroke={PC.stem} strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+      <ellipse cx="10.5" cy="35" rx="9.5" ry="4.5" fill={PC.l2} transform="rotate(-38 10.5 35)"/>
+      <ellipse cx="31.5" cy="32" rx="9.5" ry="4.5" fill={PC.l1} transform="rotate(38 31.5 32)"/>
+      <ellipse cx="10" cy="26.5" rx="9" ry="4" fill={PC.l3} transform="rotate(-30 10 26.5)"/>
+      <ellipse cx="32" cy="23.5" rx="9" ry="4" fill={PC.l2} transform="rotate(30 32 23.5)"/>
+      <ellipse cx="11" cy="18" rx="8.5" ry="3.5" fill={PC.l1} transform="rotate(-24 11 18)"/>
+      <ellipse cx="31" cy="15" rx="8.5" ry="3.5" fill={PC.l3} transform="rotate(24 31 15)"/>
+      <circle cx="21" cy="10" r="5.5" fill={PC.fl1}/>
+      <circle cx="21" cy="10" r="3.5" fill="#ffe8f8"/>
+      <circle cx="21" cy="10" r="1.8" fill={PC.gold}/>
+      <circle cx="11.5" cy="12.5" r="4.5" fill={PC.fl2}/>
+      <circle cx="11.5" cy="12.5" r="2.8" fill="#f8d0ff"/>
+      <circle cx="30.5" cy="12.5" r="4.5" fill={PC.fl1}/>
+      <circle cx="30.5" cy="12.5" r="2.8" fill="#fff0f8"/>
+    </svg>
+  )
+  return (
+    <svg width="42" height="42" viewBox="0 0 42 42" style={sw}>
+      <ellipse cx="21" cy="41" rx="9" ry="2" fill={PC.soil}/>
+      <path d="M21 40 C21 27 20.5 16 21 9" stroke={PC.stem} strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+      <ellipse cx="10" cy="34.5" rx="9.5" ry="4" fill={PC.l2} transform="rotate(-38 10 34.5)"/>
+      <ellipse cx="32" cy="31.5" rx="9.5" ry="4" fill={PC.l1} transform="rotate(38 32 31.5)"/>
+      <ellipse cx="9.5" cy="25.5" rx="9" ry="4" fill={PC.l3} transform="rotate(-30 9.5 25.5)"/>
+      <ellipse cx="32.5" cy="22.5" rx="9" ry="4" fill={PC.l2} transform="rotate(30 32.5 22.5)"/>
+      <ellipse cx="10.5" cy="17" rx="8.5" ry="3.5" fill={PC.l1} transform="rotate(-24 10.5 17)"/>
+      <ellipse cx="31.5" cy="14" rx="8.5" ry="3.5" fill={PC.l3} transform="rotate(24 31.5 14)"/>
+      {Array.from({ length: 6 }, (_, i) => {
+        const a = i * 60; const rad = (a * Math.PI) / 180
+        const px = 21 + Math.cos(rad) * 7.5; const py = 8 + Math.sin(rad) * 7.5
+        return <ellipse key={i} cx={px} cy={py} rx={4} ry={2.5} fill={PC.gold} transform={`rotate(${a} ${px} ${py})`}/>
+      })}
+      <circle cx="21" cy="8" r="5.5" fill={PC.gold}/>
+      <circle cx="21" cy="8" r="3.5" fill={PC.goldL}/>
+      <circle cx="21" cy="8" r="1.8" fill="#fff8e0"/>
+      <circle cx="11.5" cy="11" r="4.5" fill={PC.gold}/>
+      <circle cx="11.5" cy="11" r="2.8" fill={PC.goldL}/>
+      <circle cx="30.5" cy="11" r="4.5" fill={PC.gold}/>
+      <circle cx="30.5" cy="11" r="2.8" fill={PC.goldL}/>
+      <circle cx="6" cy="7" r="1.5" fill="#fff8a0" opacity="0.95"/>
+      <circle cx="36" cy="6" r="1.5" fill="#fff8a0" opacity="0.95"/>
+      <circle cx="21" cy="2.5" r="1.5" fill="#fff8a0" opacity="0.95"/>
+    </svg>
+  )
+}
+
 // ── PlantPopup ─────────────────────────────────────────────────────
 function PlantPopup({ plant, isAdmin, onClose, onUpdate, onDelete }: {
   plant: YardPlant; isAdmin: boolean
@@ -799,6 +911,10 @@ export default function GardenYard({ initialPlants, initialTypes, isAdmin }: {
               0%,100% { box-shadow: 0 4px 16px rgba(0,0,0,0.5), 0 0 20px rgba(224,192,32,0.5); }
               50% { box-shadow: 0 4px 16px rgba(0,0,0,0.5), 0 0 36px rgba(224,192,32,0.85), 0 0 55px rgba(224,192,32,0.25); }
             }
+            @keyframes plant-sway {
+              0%,100% { transform: rotate(-5deg) scale(0.97); }
+              50% { transform: rotate(5deg) scale(1.02); }
+            }
           `}</style>
 
           {/* ── Sky ── */}
@@ -930,7 +1046,7 @@ export default function GardenYard({ initialPlants, initialTypes, isAdmin }: {
                   }}>
                     {img
                       ? <img src={img} alt="" style={{ width: 42, height: 42, objectFit: 'contain' }} />
-                      : <span style={{ fontSize: 30, lineHeight: 1 }}>{plant.plantType?.icon ?? '🌱'}</span>}
+                      : <PlantStageIcon stage={stage} delay={(plant.xPos % 10) * 0.2} />}
                     {plant.harvestStatus && <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'rgba(255,220,0,0.12)' }} />}
                   </div>
                   {/* Stage badge */}
