@@ -206,16 +206,17 @@ export default function SkillsPanelClient({
       body: JSON.stringify({ order: next }),
     })
       .then(async r => {
+        const data = await r.json().catch(() => ({}))
         if (r.ok) {
+          console.log('[sidebar-save] ok — db saved:', data.saved)
           setSaveMsg('✓ saved')
           setTimeout(() => {
             setSaveMsg(null)
             router.refresh()
           }, 5000)
         } else {
-          const t = await r.text()
           setSaveMsg(`✗ error ${r.status}`)
-          console.error('[sidebar-save] failed', r.status, t)
+          console.error('[sidebar-save] failed', r.status, data)
         }
       })
       .catch(e => { setSaveMsg('✗ network error'); console.error('[sidebar-save]', e) })

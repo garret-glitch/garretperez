@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 
@@ -12,13 +13,15 @@ export async function POST(req: Request) {
     if (!Array.isArray(order) || order.length === 0) {
       return NextResponse.json({ error: 'Invalid order' }, { status: 400 })
     }
-    await (prisma as any).siteSetting.upsert({
+    const result = await (prisma as any).siteSetting.upsert({
       where: { key: 'skills:order' },
       update: { value: JSON.stringify(order) },
       create: { key: 'skills:order', value: JSON.stringify(order) },
     })
-    return NextResponse.json({ ok: true })
-  } catch {
+    revalidatePath('/', 'layout')
+    return NextResponse.json({ ok: true, saved: result.value })
+  } catch (e) {
+    console.error('[skills-order] save failed:', e)
     return NextResponse.json({ error: 'Failed' }, { status: 500 })
   }
 }
