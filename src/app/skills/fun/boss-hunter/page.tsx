@@ -1070,158 +1070,97 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
         ctx.beginPath(); ctx.moveTo(s2.x,s2.y); ctx.quadraticCurveTo(px2[i],py2[i],e2.x,e2.y); ctx.stroke()
       }
     }
-    // Tail tip danger glow — pulses when tail whip cooldown is near 0 (= can hit again)
-    if (!hitW && g.tailWhipCd <= 0.3) {
+    // ── TAIL TIP — permanent glowing yellow orb (also flares when ready to whip) ──
+    {
       const tipX2 = px2[N2-1], tipY2 = py2[N2-1]
-      const tipPulse = 0.5 + 0.5*Math.sin(t * 18)
-      ctx.shadowColor = '#FFFF00'; ctx.shadowBlur = 14 * tipPulse
-      ctx.fillStyle = `rgba(255,${Math.round(200+55*tipPulse)},0,${0.65+0.35*tipPulse})`
-      ctx.beginPath(); ctx.arc(tipX2, tipY2, bw2[N2-1]*1.8 + tipPulse*4, 0, Math.PI*2); ctx.fill()
+      const tipPulse = 0.5 + 0.5*Math.sin(t * 5.5)
+      const flare = g.tailWhipCd <= 0.3 ? 1.0 : 0.5
+      ctx.shadowColor = '#FFEE00'; ctx.shadowBlur = (20 + tipPulse*16) * flare
+      ctx.fillStyle = `rgb(255,${Math.round(210+45*tipPulse)},${Math.round(20*tipPulse)})`
+      ctx.beginPath(); ctx.arc(tipX2, tipY2, bw2[N2-1]*2.4 + tipPulse*5, 0, Math.PI*2); ctx.fill()
+      ctx.shadowColor = '#FFFFFF'; ctx.shadowBlur = 10 * flare
+      ctx.fillStyle = `rgba(255,255,${Math.round(160+95*tipPulse)},${0.75+tipPulse*0.25})`
+      ctx.beginPath(); ctx.arc(tipX2, tipY2, bw2[N2-1]*1.1 + tipPulse*2, 0, Math.PI*2); ctx.fill()
       ctx.shadowBlur = 0
     }
 
-    // ── SCALE ARCS along body ──
+    // ── SEGMENT BANDS — visible dark rings marking body divisions ──
     if (!hitW) {
-      ctx.strokeStyle = enr ? 'rgba(72,5,0,0.52)' : 'rgba(46,5,0,0.46)'; ctx.lineWidth = 1.4
       for (let i = 1; i < N2-1; i++) {
-        const dxa = (px2[Math.min(i+1,N2-1)]-px2[Math.max(i-1,0)])
-        const dya = (py2[Math.min(i+1,N2-1)]-py2[Math.max(i-1,0)])
-        const pa = Math.atan2(dya,dxa)+Math.PI/2
-        const hr = bw2[i]*0.44
-        for (let si = -1; si <= 1; si++) {
-          ctx.beginPath(); ctx.arc(px2[i]+Math.cos(pa)*hr*si*0.55, py2[i]+Math.sin(pa)*hr*si*0.55, hr*0.30, Math.PI*0.12, Math.PI*0.88); ctx.stroke()
-        }
-      }
-      // Molten crack veins
-      ctx.strokeStyle = `rgba(255,${165+Math.floor(pulse*65)},20,${0.36+pulse*0.20})`; ctx.lineWidth = 1.5
-      for (let i = 1; i < 5; i++) {
-        ctx.beginPath(); ctx.moveTo(px2[i]*0.65, py2[i]*0.65); ctx.lineTo(px2[i]*0.84, py2[i]*0.84); ctx.stroke()
+        const dxa = px2[Math.min(i+1,N2-1)]-px2[Math.max(i-1,0)]
+        const dya = py2[Math.min(i+1,N2-1)]-py2[Math.max(i-1,0)]
+        const pa = Math.atan2(dya, dxa)
+        const r = bw2[i]*0.76
+        ctx.strokeStyle = enr ? `rgba(55,3,0,0.65)` : `rgba(38,4,0,0.58)`
+        ctx.lineWidth = bw2[i]*0.18
+        ctx.beginPath(); ctx.arc(px2[i], py2[i], r, pa+Math.PI*0.22, pa+Math.PI*0.78); ctx.stroke()
+        ctx.beginPath(); ctx.arc(px2[i], py2[i], r, pa-Math.PI*0.78, pa-Math.PI*0.22); ctx.stroke()
       }
     }
 
-    // ── DORSAL SPINES — at body segment midpoints, oriented outward from coil ──
-    const cxC = -sz*0.26, cyC = 0  // coil centroid
-    for (let i = 0; i < N2-1; i++) {
-      const midX = (px2[i]+px2[i+1])/2, midY = (py2[i]+py2[i+1])/2
-      const tdx2 = px2[i+1]-px2[i], tdy2 = py2[i+1]-py2[i]
-      const outX = midX-cxC, outY = midY-cyC
-      const p1x = -tdy2, p1y = tdx2
-      const dot1 = outX*p1x + outY*p1y
-      const npx2 = dot1 >= 0 ? p1x : -p1x, npy2 = dot1 >= 0 ? p1y : -p1y
-      const pLen = Math.sqrt(npx2*npx2+npy2*npy2)||1
-      const nx2 = npx2/pLen, ny2 = npy2/pLen
-      const avgBW = (bw2[i]+bw2[i+1])/2
-      const sph = avgBW*(0.52+0.16*Math.sin(b.spinePulse+i*1.15))
-      const bx3 = midX+nx2*avgBW*0.49, by3 = midY+ny2*avgBW*0.49
-      const tipX = bx3+nx2*sph, tipY = by3+ny2*sph
-      const svx = -ny2, svy = nx2
-      if (!hitW) {
-        ctx.shadowColor = enr ? '#FF6600' : '#CC4400'; ctx.shadowBlur = 5
-        ctx.fillStyle = enr ? `rgba(255,72,0,${0.42+0.2*Math.sin(b.spinePulse+i)})` : `rgba(192,54,0,${0.28+0.14*Math.sin(b.spinePulse+i)})`
-        ctx.beginPath(); ctx.moveTo(bx3+svx*9,by3+svy*9); ctx.lineTo(tipX,tipY); ctx.lineTo(bx3-svx*9,by3-svy*9); ctx.closePath(); ctx.fill()
-        ctx.shadowBlur = 0
-      }
-      ctx.shadowColor = enr ? '#FFCC00' : '#FF8800'; ctx.shadowBlur = 8
-      ctx.fillStyle = hitW ? '#FFF' : (enr ? '#FFCC00' : '#FF8800')
-      ctx.beginPath(); ctx.moveTo(bx3+svx*5,by3+svy*5); ctx.lineTo(tipX,tipY); ctx.lineTo(bx3-svx*5,by3-svy*5); ctx.closePath(); ctx.fill()
-      ctx.shadowBlur = 0
-    }
-
-    // ── LEGS — 2 pairs, 2 legs per pair (one each side of body) ──
+    // ── LEGS — 4 pairs, thin dark sticks with 3-claw tips ──
     ctx.lineCap = 'round'
-    for (const li of [1, 4]) {
-      const dxl = (px2[Math.min(li+1,N2-1)]-px2[Math.max(li-1,0)])
-      const dyl = (py2[Math.min(li+1,N2-1)]-py2[Math.max(li-1,0)])
-      const bAng = Math.atan2(dyl,dxl)
+    for (const li of [1, 2, 3, 4]) {
+      if (li >= N2-1) continue
+      const dxl = px2[Math.min(li+1,N2-1)]-px2[Math.max(li-1,0)]
+      const dyl = py2[Math.min(li+1,N2-1)]-py2[Math.max(li-1,0)]
+      const bAng = Math.atan2(dyl, dxl)
       for (const sd of [-1, 1]) {
         const pAng = bAng + Math.PI/2*sd
-        const anim = Math.sin(t*2.4+li*1.4+sd*0.8)*0.20
-        const baseX = px2[li]+Math.cos(pAng)*bw2[li]*0.46
-        const baseY = py2[li]+Math.sin(pAng)*bw2[li]*0.46
-        const kAng = pAng+anim
-        const kx = baseX+Math.cos(kAng)*sz*0.42, ky = baseY+Math.sin(kAng)*sz*0.42
-        const fAng = kAng+0.52
-        const fx = kx+Math.cos(fAng)*sz*0.34, fy = ky+Math.sin(fAng)*sz*0.34
-        ctx.strokeStyle = hitW?'#FFF':(enr?'#7A1A00':'#4E1600'); ctx.lineWidth = sz*0.15
+        const anim = Math.sin(t*2.6+li*1.3+sd*0.7)*0.18
+        const baseX = px2[li]+Math.cos(pAng)*bw2[li]*0.44
+        const baseY = py2[li]+Math.sin(pAng)*bw2[li]*0.44
+        const kAng = pAng + anim
+        const kx = baseX+Math.cos(kAng)*sz*0.40, ky = baseY+Math.sin(kAng)*sz*0.40
+        const fAng = kAng + 0.44
+        const fx = kx+Math.cos(fAng)*sz*0.30, fy = ky+Math.sin(fAng)*sz*0.30
+        ctx.strokeStyle = hitW?'#FFF':(enr?'#5A0C00':'#2C0800'); ctx.lineWidth = sz*0.10
         ctx.beginPath(); ctx.moveTo(baseX,baseY); ctx.lineTo(kx,ky); ctx.stroke()
-        ctx.strokeStyle = hitW?'#FFF':(enr?'#9A2200':'#6A2A00'); ctx.lineWidth = sz*0.09
+        ctx.strokeStyle = hitW?'#EEE':(enr?'#7A1600':'#481000'); ctx.lineWidth = sz*0.07
         ctx.beginPath(); ctx.moveTo(kx,ky); ctx.lineTo(fx,fy); ctx.stroke()
-        ctx.lineCap = 'butt'; ctx.strokeStyle = hitW?'#FFF':(enr?'#FF7700':'#CC4400'); ctx.lineWidth = 1.8
-        for (let c = 0; c < 3; c++) { ctx.beginPath(); ctx.moveTo(fx,fy); ctx.lineTo(fx+Math.cos(fAng-0.4+c*0.38)*sz*0.20,fy+Math.sin(fAng-0.4+c*0.38)*sz*0.20); ctx.stroke() }
+        ctx.lineCap = 'butt'; ctx.lineWidth = 1.6
+        ctx.strokeStyle = hitW?'#FFF':(enr?'#FF5500':'#CC3300')
+        for (let c = 0; c < 3; c++) {
+          ctx.beginPath(); ctx.moveTo(fx,fy); ctx.lineTo(fx+Math.cos(fAng-0.36+c*0.34)*sz*0.16, fy+Math.sin(fAng-0.36+c*0.34)*sz*0.16); ctx.stroke()
+        }
         ctx.lineCap = 'round'
       }
     }
     ctx.lineCap = 'butt'
 
-    // ── HEAD — triangular dragon wedge ──
-    const headX = sz*1.48
-    // Linear gradient: dark at back skull, bright at snout
-    const hGrad = ctx.createLinearGradient(headX-sz*0.50, 0, headX+sz*0.60, 0)
-    hGrad.addColorStop(0,    hitW?'#CCC':(enr?'#7A0E00':'#4A0E00'))
-    hGrad.addColorStop(0.42, hitW?'#FFF':(enr?'#DD2200':'#AA2000'))
-    hGrad.addColorStop(0.80, hitW?'#FFF':(enr?'#FF3800':'#CC2A00'))
-    hGrad.addColorStop(1,    hitW?'#EEE':(enr?'#CC2200':'#A01800'))
-    // Upper skull + snout wedge (wide back → pointed tip)
-    ctx.fillStyle = hGrad
+    // ── HEAD — large flat isoceles triangle, base connects to body, tip points forward ──
+    const hBx = sz*1.08   // base x (back of triangle, connects to body)
+    const hTx = sz*1.74   // tip x (forward point)
+    const hHh = sz*0.50   // half-height of triangle base
+    // Triangle fill gradient (darker at base, slightly lighter at tip)
+    const htGrad = ctx.createLinearGradient(hBx, 0, hTx, 0)
+    htGrad.addColorStop(0,   hitW?'#BBB':(enr?'#7A0A00':'#550800'))
+    htGrad.addColorStop(0.5, hitW?'#DDD':(enr?'#9E1000':'#720C00'))
+    htGrad.addColorStop(1,   hitW?'#CCC':(enr?'#820C00':'#5E0A00'))
+    ctx.fillStyle = htGrad
     ctx.beginPath()
-    ctx.moveTo(headX-sz*0.50, -sz*0.36)
-    ctx.quadraticCurveTo(headX-sz*0.06, -sz*0.45, headX+sz*0.22, -sz*0.13)
-    ctx.lineTo(headX+sz*0.62,  sz*0.02)   // snout tip
-    ctx.lineTo(headX+sz*0.60,  sz*0.10)
-    ctx.lineTo(headX+sz*0.26,  sz*0.22)
-    ctx.lineTo(headX-sz*0.06,  sz*0.28)
-    ctx.lineTo(headX-sz*0.50,  sz*0.26)
+    ctx.moveTo(hBx, -hHh)
+    ctx.lineTo(hBx,  hHh)
+    ctx.lineTo(hTx,  0)
     ctx.closePath(); ctx.fill()
-    // Lower jaw (separate piece, darker)
-    ctx.fillStyle = hitW?'#CCC':(enr?'#AA1800':'#7A1200')
+    // Dark border outline
+    ctx.strokeStyle = hitW?'#888':'#1A0200'; ctx.lineWidth = 3.5
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round'
     ctx.beginPath()
-    ctx.moveTo(headX-sz*0.12,  sz*0.26)
-    ctx.lineTo(headX+sz*0.30,  sz*0.22)
-    ctx.lineTo(headX+sz*0.50,  sz*0.40)   // chin point
-    ctx.lineTo(headX+sz*0.14,  sz*0.54)
-    ctx.lineTo(headX-sz*0.14,  sz*0.50)
-    ctx.closePath(); ctx.fill()
-    // Upper teeth (hang down from snout underside)
-    ctx.fillStyle = hitW?'#FFF':'#E8DFC2'
-    for (let i = 0; i < 5; i++) {
-      const tx = headX+sz*0.54-i*sz*0.13, ty = sz*0.10+i*sz*0.022
-      ctx.beginPath(); ctx.moveTo(tx-sz*0.05,ty); ctx.lineTo(tx,ty+sz*(0.11-i*0.014)); ctx.lineTo(tx+sz*0.05,ty); ctx.closePath(); ctx.fill()
-    }
-    // Lower teeth (point up from lower jaw)
-    ctx.fillStyle = hitW?'#EEE':'#D4CAB2'
-    for (let i = 0; i < 4; i++) {
-      const tx = headX+sz*0.44-i*sz*0.11, ty = sz*0.34-i*sz*0.016
-      ctx.beginPath(); ctx.moveTo(tx-sz*0.04,ty); ctx.lineTo(tx,ty-sz*(0.09-i*0.012)); ctx.lineTo(tx+sz*0.04,ty); ctx.closePath(); ctx.fill()
-    }
-    // Skull armor plates (dark diamond scales on top)
-    if (!hitW) {
-      ctx.fillStyle = enr?'rgba(80,6,0,0.52)':'rgba(52,4,0,0.48)'
-      for (let i = 0; i < 4; i++) {
-        const px3=headX-sz*0.38+i*sz*0.20, py3=-sz*0.28+i*sz*0.05
-        ctx.beginPath(); ctx.moveTo(px3,py3); ctx.lineTo(px3+sz*0.14,py3+sz*0.04); ctx.lineTo(px3+sz*0.10,py3+sz*0.15); ctx.lineTo(px3-sz*0.04,py3+sz*0.11); ctx.closePath(); ctx.fill()
-      }
-    }
-    // Brow ridge above eye
-    ctx.fillStyle = hitW?'#BBB':'#5A3808'
-    ctx.beginPath(); ctx.moveTo(headX-sz*0.18,-sz*0.20); ctx.lineTo(headX+sz*0.14,-sz*0.15); ctx.lineTo(headX+sz*0.10,-sz*0.06); ctx.lineTo(headX-sz*0.22,-sz*0.10); ctx.closePath(); ctx.fill()
-    // Horns swept back from skull
-    ctx.fillStyle = hitW?'#FFF':'#8A6510'
-    ctx.beginPath(); ctx.moveTo(headX-sz*0.30,-sz*0.30); ctx.quadraticCurveTo(headX-sz*0.54,-sz*0.82,headX-sz*0.68,-sz*0.92); ctx.quadraticCurveTo(headX-sz*0.50,-sz*0.76,headX-sz*0.22,-sz*0.22); ctx.closePath(); ctx.fill()
-    ctx.beginPath(); ctx.moveTo(headX-sz*0.15,-sz*0.24); ctx.quadraticCurveTo(headX-sz*0.36,-sz*0.72,headX-sz*0.46,-sz*0.80); ctx.quadraticCurveTo(headX-sz*0.30,-sz*0.62,headX-sz*0.10,-sz*0.17); ctx.closePath(); ctx.fill()
-    // Glowing nostril at snout tip
-    if (!hitW) {
-      ctx.fillStyle=`rgba(255,${110+Math.floor(pulse*70)},0,${0.55+pulse*0.25})`
-      ctx.shadowColor='#FF5500'; ctx.shadowBlur=12
-      ctx.beginPath(); ctx.ellipse(headX+sz*0.54,sz*0.00,5,3.5,0.20,0,Math.PI*2); ctx.fill()
-      ctx.shadowBlur=0
-    }
-    // Eye — single glowing eye on upper skull face
-    const ep=0.68+0.32*Math.sin(t*5.2)
-    ctx.shadowColor=enr?'#FF0000':'#00FF88'; ctx.shadowBlur=26*ep
-    ctx.fillStyle=enr?`rgb(255,${Math.floor(80+90*ep)},0)`:'#22FF88'
-    ctx.beginPath(); ctx.arc(headX+sz*0.06,-sz*0.24,9,0,Math.PI*2); ctx.fill()
-    ctx.fillStyle='#000'; ctx.shadowBlur=0
-    ctx.beginPath(); ctx.ellipse(headX+sz*0.07,-sz*0.24,2.5,5.5,0.14,0,Math.PI*2); ctx.fill()
+    ctx.moveTo(hBx, -hHh); ctx.lineTo(hBx, hHh); ctx.lineTo(hTx, 0); ctx.closePath(); ctx.stroke()
+    ctx.lineJoin = 'miter'; ctx.lineCap = 'butt'
+    // Two hollow ring eyes (green glow, not filled)
+    const ep = 0.65 + 0.35*Math.sin(t*5.2)
+    const eyeCol = hitW ? '#FFF' : (enr ? '#FF2200' : '#00FF88')
+    ctx.shadowColor = hitW?'#FFF':(enr?'#FF0000':'#00FF88'); ctx.shadowBlur = 24*ep
+    ctx.strokeStyle = eyeCol; ctx.lineWidth = 3.2; ctx.lineCap = 'round'
+    ctx.beginPath(); ctx.arc(hBx+sz*0.20, -sz*0.15, 11, 0, Math.PI*2); ctx.stroke()
+    ctx.beginPath(); ctx.arc(hBx+sz*0.20,  sz*0.15, 11, 0, Math.PI*2); ctx.stroke()
+    // Black pupil dot inside ring
+    ctx.fillStyle = '#000'; ctx.shadowBlur = 0
+    ctx.beginPath(); ctx.arc(hBx+sz*0.20, -sz*0.15, 3.5, 0, Math.PI*2); ctx.fill()
+    ctx.beginPath(); ctx.arc(hBx+sz*0.20,  sz*0.15, 3.5, 0, Math.PI*2); ctx.fill()
+    ctx.lineWidth = 1; ctx.lineCap = 'butt'
 
     ctx.restore()  // end rotate(b.angle)
 
