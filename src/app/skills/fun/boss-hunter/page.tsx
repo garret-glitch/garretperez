@@ -36,7 +36,7 @@ interface GearDef { id: GearId; name: string; icon: string; desc: string }
 interface Projectile {
   id: number; pos: V2; vel: V2; dmg: number; radius: number
   fromBoss: boolean; life: number; color: string
-  aoe?: number; poison?: boolean
+  aoe?: number; poison?: boolean; isWeb?: boolean
   isPowerShot?: boolean; isFireball?: boolean; isLightning?: boolean
   trail?: V2[]
 }
@@ -67,6 +67,9 @@ interface GS {
   whirlwindActive: boolean; whirlwindTimer: number
   camX: number; camY: number
   webProcAnim: { timer: number; pos: V2 } | null
+  bossFlightAngle: number; bossFlightSpeed: number
+  bossFlightRadius: number; bossFlightCenter: V2
+  bossFleeTimer: number
 }
 interface PlayerState {
   pos: V2; vel: V2; targetPos: V2 | null
@@ -204,6 +207,11 @@ function mkState(cls: ClassDef, boss: BossDef, gear: GearId[]): GS {
     whirlwindActive: false, whirlwindTimer: 0,
     camX: clamp(sx - CW / 2, 0, WW - CW), camY: clamp(sy - CH / 2, 0, WH - CH),
     webProcAnim: null,
+    bossFlightAngle: boss.id === 1 ? Math.PI * 0.75 : boss.id === 2 ? Math.PI * 0.25 : 0,
+    bossFlightSpeed: boss.id === 1 ? 0.45 : boss.id === 2 ? 0.60 : 0,
+    bossFlightRadius: boss.id === 1 ? 420 : boss.id === 2 ? 480 : 0,
+    bossFlightCenter: v(WW / 2, WH / 2 - 80),
+    bossFleeTimer: 0,
   }
 }
 
@@ -273,17 +281,17 @@ function dealDmgToBoss(g: GS, baseDmg: number, gear: GearId[]) {
 /* ═══ BOSS AI ═══ */
 function selectBossAttack(bossId: BossId, enraged: boolean, d2p: number): string {
   if (bossId === 0) {
-    const pool = d2p < 150 ? ['leg_sweep', 'venom_spit', 'toxic_cloud'] : ['venom_spit', 'toxic_cloud', 'web_shot', 'leg_sweep']
-    if (enraged) pool.push('spider_leap', 'venom_burst')
+    const pool = d2p < 150 ? ['leg_sweep', 'venom_spit', 'web_spray', 'toxic_cloud'] : ['venom_spit', 'toxic_cloud', 'web_spray', 'web_shot', 'leg_sweep']
+    if (enraged) pool.push('spider_leap', 'venom_burst', 'web_spray')
     return pool[rndI(0, pool.length - 1)]
   }
   if (bossId === 1) {
-    const pool = d2p < 150 ? ['stomp', 'tail_swipe', 'fire_breath', 'lava_puddle'] : ['fire_breath', 'flame_wave', 'stomp', 'tail_swipe', 'lava_puddle']
-    if (enraged) pool.push('ember_barrage', 'lava_puddle')
+    const pool = d2p < 150 ? ['stomp', 'tail_swipe', 'fire_breath', 'fire_line'] : ['fire_breath', 'flame_wave', 'fire_line', 'stomp', 'tail_swipe', 'lava_puddle']
+    if (enraged) pool.push('ember_barrage', 'fire_line', 'lava_puddle')
     return pool[rndI(0, pool.length - 1)]
   }
-  const pool = d2p < 160 ? ['talon_dive', 'wind_buffet', 'lightning_strike', 'static_field'] : ['lightning_strike', 'chain_lightning', 'talon_dive', 'wind_buffet', 'static_field']
-  if (enraged) pool.push('thunderstorm', 'chain_lightning')
+  const pool = d2p < 160 ? ['talon_dive', 'wind_buffet', 'lightning_strike', 'lightning_barrage'] : ['lightning_strike', 'chain_lightning', 'lightning_barrage', 'talon_dive', 'wind_buffet', 'static_field']
+  if (enraged) pool.push('thunderstorm', 'lightning_barrage', 'chain_lightning')
   return pool[rndI(0, pool.length - 1)]
 }
 
@@ -291,9 +299,9 @@ function startBossAttack(g: GS, bossId: BossId, type: string) {
   const p = g.player, b = g.boss
   const angle = Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
   const telegraphs: Record<string, number> = {
-    venom_spit: 0.9, web_shot: 0.8, leg_sweep: 1.0, spider_leap: 1.1, toxic_cloud: 0.75, venom_burst: 1.2,
-    fire_breath: 1.2, stomp: 0.85, tail_swipe: 0.8, ember_barrage: 0.7, flame_wave: 1.0, lava_puddle: 0.75,
-    lightning_strike: 0.95, talon_dive: 0.9, wind_buffet: 0.8, thunderstorm: 0.75, static_field: 0.7, chain_lightning: 0.85,
+    venom_spit: 0.9, web_shot: 0.8, web_spray: 0.85, leg_sweep: 1.0, spider_leap: 1.1, toxic_cloud: 0.75, venom_burst: 1.2,
+    fire_breath: 1.2, stomp: 0.85, tail_swipe: 0.8, ember_barrage: 0.7, flame_wave: 1.0, lava_puddle: 0.75, fire_line: 1.5,
+    lightning_strike: 0.95, talon_dive: 0.9, wind_buffet: 0.8, thunderstorm: 0.75, static_field: 0.7, chain_lightning: 0.85, lightning_barrage: 0.5,
   }
   const data: AttackData = { targetPos: { ...p.pos }, angle, dmg: 0 }
   if (type === 'venom_spit') { data.dmg = 15; data.count = 3; data.projSpeed = 260 }
@@ -314,6 +322,9 @@ function startBossAttack(g: GS, bossId: BossId, type: string) {
   else if (type === 'thunderstorm') { data.dmg = 25; data.count = 8; data.strikeIndex = 0 }
   else if (type === 'static_field') { data.dmg = 0; data.count = 2 }
   else if (type === 'chain_lightning') { data.dmg = 22; data.count = 6; data.strikeIndex = 0 }
+  else if (type === 'web_spray') { data.dmg = 12; data.count = 7; data.projSpeed = 195; data.angle = angle }
+  else if (type === 'fire_line') { data.dmg = 22; data.angle = b.angle + Math.PI / 2 }
+  else if (type === 'lightning_barrage') { data.dmg = 30; data.count = 8; data.strikeIndex = 0; data.elapsed = 0 }
   g.bossAttack = { type, telegraphTime: telegraphs[type] ?? 1.0, elapsed: 0, active: false, data }
 }
 
@@ -380,6 +391,24 @@ function resolveBossAttack(g: GS, bossId: BossId, cls: ClassDef, gear: GearId[])
     b.pos = { x: clamp(target.x, 90, WW - 90), y: clamp(target.y, 90, WH - 90) }
     if (dist(p.pos, b.pos) < 90) dealDmgToPlayer(g, d.dmg ?? 35, cls, gear, toPlayer)
     spawnParticles(g, b.pos, 18, '#F1C40F', 220); g.screenShake = Math.max(g.screenShake, 0.45)
+  } else if (type === 'web_spray') {
+    const count = d.count ?? 7, baseAngle = Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
+    for (let i = 0; i < count; i++) {
+      const a = baseAngle + (i - (count - 1) / 2) * 0.38
+      g.projectiles.push({ id: ++g.nextProjId, pos: { ...b.pos }, vel: v(Math.cos(a) * (d.projSpeed ?? 195), Math.sin(a) * (d.projSpeed ?? 195)), dmg: d.dmg ?? 12, radius: 12, fromBoss: true, life: 5.5, color: '#8E44AD', isWeb: true })
+    }
+    spawnParticles(g, b.pos, 14, '#8E44AD', 160)
+  } else if (type === 'fire_line') {
+    const lineAngle = d.angle ?? 0, lineLen = 820
+    const lineCount = 18
+    for (let i = 0; i < lineCount; i++) {
+      const t2 = (i / (lineCount - 1)) * 2 - 1
+      const zx = clamp(b.pos.x + Math.cos(lineAngle) * lineLen * t2, 80, WW - 80)
+      const zy = clamp(b.pos.y + Math.sin(lineAngle) * lineLen * t2, 80, WH - 80)
+      spawnZone(g, v(zx, zy), 'fire', 52, d.dmg ?? 22, 3.5)
+      if (i % 3 === 0) spawnParticles(g, v(zx, zy), 5, '#FF4500', 110, 0.55)
+    }
+    g.screenShake = Math.max(g.screenShake, 0.75)
   }
 }
 
@@ -423,6 +452,7 @@ function tick(g: GS, dt: number, cls: ClassDef, bossId: BossId, gear: GearId[], 
   if (g.rageTimer > 0) { g.rageTimer = Math.max(0, g.rageTimer - dt); if (g.rageTimer <= 0) g.rageActive = false }
   if (g.poisonTimer > 0) { g.poisonTimer = Math.max(0, g.poisonTimer - dt); b.hp = Math.max(0, b.hp - 15 * dt) }
   if (g.chainResetTimer > 0) { g.chainResetTimer = Math.max(0, g.chainResetTimer - dt); if (g.chainResetTimer <= 0) g.chainHits = 0 }
+  if (g.bossFleeTimer > 0) g.bossFleeTimer = Math.max(0, g.bossFleeTimer - dt)
   if (g.webProcAnim) { g.webProcAnim.timer -= dt; if (g.webProcAnim.timer <= 0) g.webProcAnim = null }
   for (let i = 0; i < p.abilityCds.length; i++) p.abilityCds[i] = Math.max(0, p.abilityCds[i] - dt)
 
@@ -539,13 +569,32 @@ function tick(g: GS, dt: number, cls: ClassDef, bossId: BossId, gear: GearId[], 
   }
 
   // Boss movement
-  const bossSpeed = (g.bossEnraged ? 120 : 85) * (b.slowTimer > 0 ? 0.4 : 1)
-  if (b.stunTimer <= 0 && !g.bossAttack) {
+  if (g.bossFlightSpeed > 0 && b.stunTimer <= 0) {
+    // Drake & Griffin orbit the arena center, speeding up when enraged
+    const orbitMult = (g.bossEnraged ? 1.5 : 1.0) * (b.slowTimer > 0 ? 0.3 : 1.0)
+    g.bossFlightAngle += g.bossFlightSpeed * orbitMult * dt
+    const fc = g.bossFlightCenter
+    b.pos.x = clamp(fc.x + Math.cos(g.bossFlightAngle) * g.bossFlightRadius, 100, WW - 100)
+    b.pos.y = clamp(fc.y + Math.sin(g.bossFlightAngle) * g.bossFlightRadius * 0.62, 100, WH - 100)
+  } else if (bossId === 0) {
+    // Spider: chase player, but flee when too close
+    const bossSpeed = (g.bossEnraged ? 100 : 70) * (b.slowTimer > 0 ? 0.4 : 1)
     const d2p = dist(b.pos, p.pos)
-    if (d2p > bossDef.size + 65) {
-      const dir = norm(v(p.pos.x - b.pos.x, p.pos.y - b.pos.y))
-      b.pos.x = clamp(b.pos.x + dir.x * bossSpeed * dt, 90, WW - 90)
-      b.pos.y = clamp(b.pos.y + dir.y * bossSpeed * dt, 90, WH - 90)
+    if (b.stunTimer <= 0 && !g.bossAttack) {
+      if (d2p > bossDef.size + 80) {
+        const dir = norm(v(p.pos.x - b.pos.x, p.pos.y - b.pos.y))
+        b.pos.x = clamp(b.pos.x + dir.x * bossSpeed * dt, 90, WW - 90)
+        b.pos.y = clamp(b.pos.y + dir.y * bossSpeed * dt, 90, WH - 90)
+      } else if (g.bossFleeTimer <= 0) {
+        // Spider jumps away from player
+        const away = norm(v(b.pos.x - p.pos.x, b.pos.y - p.pos.y))
+        const jdx = rnd(200, 380), jdy = rnd(180, 320)
+        b.pos.x = clamp(b.pos.x + away.x * jdx + rnd(-120, 120), 120, WW - 120)
+        b.pos.y = clamp(b.pos.y + away.y * jdy + rnd(-80, 80), 120, WH - 120)
+        spawnParticles(g, b.pos, 22, '#8E44AD', 240)
+        g.screenShake = Math.max(g.screenShake, 0.35)
+        g.bossFleeTimer = 3.5
+      }
     }
   }
   b.angle = Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
@@ -554,10 +603,13 @@ function tick(g: GS, dt: number, cls: ClassDef, bossId: BossId, gear: GearId[], 
   // Hazard zones
   g.zones = g.zones.filter(zone => {
     zone.life -= dt; if (zone.life <= 0) return false
-    if (p.iframeTimer <= 0 && dist(p.pos, zone.pos) < zone.radius + 14) {
-      const tick2 = zone.dps * dt; p.hp = Math.max(0, p.hp - tick2); p.hitFlash = Math.max(p.hitFlash, 0.06)
-      if (zone.type === 'poison' && Math.random() < dt * 2) g.damageNums.push({ id: ++g.nextDmgId, pos: { x: p.pos.x + rnd(-14, 14), y: p.pos.y - 18 }, val: Math.round(tick2), life: 0.8, isPlayer: true })
-      if (p.hp <= 0) g.phase = 'defeat'
+    if (dist(p.pos, zone.pos) < zone.radius + 14) {
+      if (zone.type === 'web') p.slowTimer = Math.max(p.slowTimer, 1.8)
+      if (p.iframeTimer <= 0 && zone.dps > 0) {
+        const tick2 = zone.dps * dt; p.hp = Math.max(0, p.hp - tick2); p.hitFlash = Math.max(p.hitFlash, 0.06)
+        if (zone.type === 'poison' && Math.random() < dt * 2) g.damageNums.push({ id: ++g.nextDmgId, pos: { x: p.pos.x + rnd(-14, 14), y: p.pos.y - 18 }, val: Math.round(tick2), life: 0.8, isPlayer: true })
+        if (p.hp <= 0) g.phase = 'defeat'
+      }
     }
     return true
   })
@@ -577,7 +629,7 @@ function tick(g: GS, dt: number, cls: ClassDef, bossId: BossId, gear: GearId[], 
     proj.pos.x += proj.vel.x * dt; proj.pos.y += proj.vel.y * dt
     if (proj.pos.x < 0 || proj.pos.x > WW || proj.pos.y < 0 || proj.pos.y > WH) return false
     if (proj.fromBoss && p.iframeTimer <= 0 && dist(proj.pos, p.pos) < proj.radius + 14) {
-      if (g.bossAttack?.type === 'web_shot') p.slowTimer = 3.0
+      if (g.bossAttack?.type === 'web_shot' || proj.isWeb) p.slowTimer = Math.max(p.slowTimer, 3.0)
       dealDmgToPlayer(g, proj.dmg, cls, gear, norm(v(p.pos.x - proj.pos.x, p.pos.y - proj.pos.y)))
       spawnParticles(g, proj.pos, 9, proj.color, 130); return false
     }
@@ -594,16 +646,22 @@ function tick(g: GS, dt: number, cls: ClassDef, bossId: BossId, gear: GearId[], 
   // Boss attack logic
   if (g.bossAttack) {
     const atk = g.bossAttack; atk.elapsed += dt
-    if ((atk.type === 'thunderstorm' || atk.type === 'chain_lightning') && atk.active) {
+    if ((atk.type === 'thunderstorm' || atk.type === 'chain_lightning' || atk.type === 'lightning_barrage') && atk.active) {
       const d2 = atk.data; d2.elapsed = (d2.elapsed ?? 0) + dt
-      const newIdx = Math.floor((d2.elapsed ?? 0) / 0.4)
+      const interval = atk.type === 'lightning_barrage' ? 0.18 : 0.4
+      const newIdx = Math.floor((d2.elapsed ?? 0) / interval)
       if (newIdx > (d2.strikeIndex ?? 0) && newIdx <= (d2.count ?? 7)) {
         d2.strikeIndex = newIdx
-        const tx = p.pos.x + rnd(-220, 220), ty = p.pos.y + rnd(-220, 220)
-        if (dist(p.pos, v(tx, ty)) < 65) dealDmgToPlayer(g, d2.dmg ?? 25, cls, gear, norm(v(p.pos.x - tx, p.pos.y - ty)))
-        spawnParticles(g, v(tx, ty), 18, '#F1C40F', 240); g.screenShake = Math.max(g.screenShake, 0.35)
+        // lightning_barrage aims tightly at player — must keep moving to dodge
+        const spread = atk.type === 'lightning_barrage' ? 55 : 220
+        const hitR = atk.type === 'lightning_barrage' ? 70 : 65
+        const tx = p.pos.x + rnd(-spread, spread), ty = p.pos.y + rnd(-spread, spread)
+        if (dist(p.pos, v(tx, ty)) < hitR) dealDmgToPlayer(g, d2.dmg ?? 25, cls, gear, norm(v(p.pos.x - tx, p.pos.y - ty)))
+        const lColor = atk.type === 'lightning_barrage' ? '#00EEFF' : '#F1C40F'
+        spawnParticles(g, v(tx, ty), atk.type === 'lightning_barrage' ? 22 : 18, lColor, 240); g.screenShake = Math.max(g.screenShake, 0.35)
+        if (atk.type === 'lightning_barrage') { spawnParticles(g, v(tx, ty), 8, '#FFFFFF', 160); g.screenShake = Math.max(g.screenShake, 0.5) }
       }
-      if ((d2.elapsed ?? 0) >= ((d2.count ?? 7) * 0.4 + 0.25)) { g.bossAttack = null; g.nextAttackTimer = rnd(2.4, 4.0) / (g.bossEnraged ? 1.6 : 1.0) }
+      if ((d2.elapsed ?? 0) >= ((d2.count ?? 7) * interval + 0.25)) { g.bossAttack = null; g.nextAttackTimer = rnd(2.2, 3.8) / (g.bossEnraged ? 1.6 : 1.0) }
       return
     }
     if (atk.type === 'flame_wave' && atk.active) {
@@ -822,83 +880,183 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
   const hitW = b.hitFlash > 0 && Math.sin(b.hitFlash*80)>0
 
   if (bossId === 0) {
-    ctx.shadowColor = g.bossEnraged ? '#FF0055' : '#8E44AD'; ctx.shadowBlur = g.bossEnraged ? 50 : 28
+    // ── SPIDER QUEEN ── enlarged, web-dripping horror
+    ctx.shadowColor = g.bossEnraged ? '#FF0055' : '#8E44AD'; ctx.shadowBlur = g.bossEnraged ? 55 : 32
+    const sz = bossDef.size
+    // 8 animated legs with 2 segments each
     for (let i=0;i<8;i++) {
       const side = i<4?-1:1, li=i%4
-      const baseA = (side===-1?Math.PI:0)+(li-1.5)*0.42
-      const wave = Math.sin(b.legPhase+i*0.9)*0.35
-      const seg1R=bossDef.size*0.9, seg2R=bossDef.size*2.1
-      const mid = v(Math.cos(baseA+wave)*seg1R, Math.sin(baseA+wave)*seg1R)
-      const end = v(Math.cos(baseA+wave*1.6)*seg2R, Math.sin(baseA+wave*1.6+0.45)*seg2R)
-      ctx.strokeStyle = g.bossEnraged ? '#7A1848' : '#3D1560'; ctx.lineWidth = 4+li*0.5
-      ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(mid.x,mid.y,end.x,end.y); ctx.stroke()
-      ctx.strokeStyle = g.bossEnraged ? 'rgba(200,0,80,0.3)' : 'rgba(100,30,160,0.25)'; ctx.lineWidth = 8+li
-      ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(mid.x,mid.y,end.x,end.y); ctx.stroke()
+      const baseA = (side===-1?Math.PI:0)+(li-1.5)*0.44
+      const wave = Math.sin(b.legPhase+i*0.85)*0.4
+      const knee = v(Math.cos(baseA+wave)*sz*1.0, Math.sin(baseA+wave)*sz*1.0)
+      const tip  = v(Math.cos(baseA+wave*1.7)*sz*2.5, Math.sin(baseA+wave*1.7+0.5)*sz*2.5)
+      // outer glow
+      ctx.strokeStyle = g.bossEnraged?'rgba(220,0,100,0.25)':'rgba(100,30,160,0.2)'; ctx.lineWidth=10+li
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(knee.x,knee.y,tip.x,tip.y); ctx.stroke()
+      // main leg
+      ctx.strokeStyle = g.bossEnraged?'#7A1848':'#3D1560'; ctx.lineWidth=4.5-li*0.3
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(knee.x,knee.y,tip.x,tip.y); ctx.stroke()
+      // claw tip
+      ctx.fillStyle = g.bossEnraged?'#FF0066':'#6A20A0'
+      ctx.beginPath(); ctx.arc(tip.x,tip.y,4,0,Math.PI*2); ctx.fill()
     }
-    const abdGr = ctx.createRadialGradient(-bossDef.size*0.3,-bossDef.size*0.2,0,0,0,bossDef.size*1.1)
+    // abdomen
+    const abdGr = ctx.createRadialGradient(-sz*0.3,-sz*0.2,0,0,sz*0.15,sz*1.15)
     abdGr.addColorStop(0,hitW?'#FFF':(g.bossEnraged?'#5C0025':'#2A0850'))
     abdGr.addColorStop(0.5,hitW?'#EEE':(g.bossEnraged?'#7A1848':'#4A1275'))
     abdGr.addColorStop(1,hitW?'#CCC':(g.bossEnraged?'#3A0020':'#1A0535'))
-    ctx.fillStyle = abdGr; ctx.beginPath(); ctx.ellipse(0,bossDef.size*0.15,bossDef.size*0.9,bossDef.size,0,0,Math.PI*2); ctx.fill()
-    const headGr = ctx.createRadialGradient(-5,-bossDef.size*0.45,0,0,-bossDef.size*0.4,bossDef.size*0.5)
-    headGr.addColorStop(0,hitW?'#FFF':(g.bossEnraged?'#7A1848':'#5D1E8A')); headGr.addColorStop(1,hitW?'#EEE':'#1A0535')
-    ctx.fillStyle = headGr; ctx.beginPath(); ctx.arc(0,-bossDef.size*0.5,bossDef.size*0.52,0,Math.PI*2); ctx.fill()
+    ctx.fillStyle=abdGr; ctx.beginPath(); ctx.ellipse(0,sz*0.2,sz*0.95,sz*1.05,0,0,Math.PI*2); ctx.fill()
+    // skull pattern on abdomen
     if (!hitW) {
-      const drip = 0.4+0.3*Math.sin(t*3.5+1)
-      ctx.fillStyle = `rgba(120,30,200,${drip*0.6})`
-      for (let i=0;i<3;i++) { const dx=(i-1)*bossDef.size*0.25; ctx.beginPath(); ctx.ellipse(dx,bossDef.size*0.55+Math.sin(t*2+i)*6,4,10+Math.sin(t*4+i)*5,0,0,Math.PI*2); ctx.fill() }
+      ctx.strokeStyle=g.bossEnraged?'rgba(255,0,60,0.35)':'rgba(160,60,220,0.3)'; ctx.lineWidth=1.5
+      for (let i=0;i<3;i++) { const oa=i*Math.PI*2/3+t*0.4; ctx.beginPath(); ctx.arc(Math.cos(oa)*sz*0.35,sz*0.2+Math.sin(oa)*sz*0.35,sz*0.12,0,Math.PI*2); ctx.stroke() }
     }
-    const eyePts = [v(-16,-bossDef.size*0.55),v(-6,-bossDef.size*0.62),v(6,-bossDef.size*0.62),v(16,-bossDef.size*0.55),v(-18,-bossDef.size*0.44),v(-8,-bossDef.size*0.42),v(8,-bossDef.size*0.42),v(18,-bossDef.size*0.44)]
+    // cephalothorax
+    const headGr = ctx.createRadialGradient(-5,-sz*0.5,0,0,-sz*0.45,sz*0.58)
+    headGr.addColorStop(0,hitW?'#FFF':(g.bossEnraged?'#7A1848':'#5D1E8A')); headGr.addColorStop(1,hitW?'#EEE':'#1A0535')
+    ctx.fillStyle=headGr; ctx.beginPath(); ctx.ellipse(0,-sz*0.5,sz*0.55,sz*0.48,0,0,Math.PI*2); ctx.fill()
+    // chelicerae (fangs)
+    ctx.strokeStyle=g.bossEnraged?'#FF3366':'#7A20B0'; ctx.lineWidth=3
+    ctx.beginPath(); ctx.moveTo(-8,-sz*0.75); ctx.quadraticCurveTo(-18,-sz*0.95,-10,-sz*1.1); ctx.stroke()
+    ctx.beginPath(); ctx.moveTo( 8,-sz*0.75); ctx.quadraticCurveTo( 18,-sz*0.95, 10,-sz*1.1); ctx.stroke()
+    // venom drip
+    if (!hitW) {
+      ctx.fillStyle=`rgba(${g.bossEnraged?'255,0,80':'120,30,200'},${0.5+0.3*Math.sin(t*3.5)})`
+      for (let i=0;i<3;i++) { const dx=(i-1)*sz*0.28; ctx.beginPath(); ctx.ellipse(dx,sz*0.62+Math.sin(t*2.2+i)*7,4,11+Math.sin(t*4+i)*5,0,0,Math.PI*2); ctx.fill() }
+    }
+    // 8 red eyes
+    const eyePts=[v(-18,-sz*0.56),v(-7,-sz*0.63),v(7,-sz*0.63),v(18,-sz*0.56),v(-20,-sz*0.45),v(-8,-sz*0.43),v(8,-sz*0.43),v(20,-sz*0.45)]
     eyePts.forEach((ep,ei) => {
-      const ep2 = 0.6+0.4*Math.sin(t*6+ei*0.8)
-      ctx.shadowColor='#FF0000'; ctx.shadowBlur=12*ep2
-      ctx.fillStyle = hitW?'#FFF':(g.bossEnraged?'#FF0000':'#CC0000')
-      ctx.beginPath(); ctx.arc(ep.x,ep.y,3.5*ep2,0,Math.PI*2); ctx.fill()
+      const ep2=0.6+0.4*Math.sin(t*6+ei*0.8)
+      ctx.shadowColor='#FF0000'; ctx.shadowBlur=14*ep2
+      ctx.fillStyle=hitW?'#FFF':(g.bossEnraged?'#FF0000':'#CC0000')
+      ctx.beginPath(); ctx.arc(ep.x,ep.y,3.8*ep2,0,Math.PI*2); ctx.fill()
     })
-    if (g.bossEnraged) { ctx.fillStyle=`rgba(200,0,80,${0.15+0.1*Math.sin(t*7)})`; ctx.beginPath(); ctx.arc(0,0,bossDef.size*1.25,0,Math.PI*2); ctx.fill() }
-    if (g.webProcAnim && dist(g.webProcAnim.pos, b.pos)<50) { ctx.strokeStyle=`rgba(200,160,255,${g.webProcAnim.timer})`; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(0,0,bossDef.size+15,0,Math.PI*2); ctx.stroke() }
+    if (g.bossEnraged) { ctx.fillStyle=`rgba(200,0,80,${0.14+0.08*Math.sin(t*7)})`; ctx.beginPath(); ctx.arc(0,0,sz*1.3,0,Math.PI*2); ctx.fill() }
+    if (g.webProcAnim && dist(g.webProcAnim.pos,b.pos)<50) { ctx.strokeStyle=`rgba(200,160,255,${g.webProcAnim.timer})`; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(0,0,sz+15,0,Math.PI*2); ctx.stroke() }
 
   } else if (bossId === 1) {
-    ctx.shadowColor = '#FF6600'; ctx.shadowBlur = g.bossEnraged ? 55 : 30
+    // ── LAVA DRAKE ── flying serpentine dragon with huge wings
+    ctx.shadowColor='#FF6600'; ctx.shadowBlur=g.bossEnraged?60:35
     ctx.save(); ctx.rotate(b.angle)
-    const ws = bossDef.size*1.6
-    ctx.fillStyle = g.bossEnraged?'rgba(255,80,0,0.22)':'rgba(180,60,0,0.18)'; ctx.strokeStyle=g.bossEnraged?'rgba(255,120,30,0.6)':'rgba(200,80,20,0.4)'; ctx.lineWidth=2
-    ctx.beginPath(); ctx.moveTo(-bossDef.size*0.4,0); ctx.quadraticCurveTo(-ws*0.5,-bossDef.size*0.9,-ws,-bossDef.size*0.3); ctx.quadraticCurveTo(-ws*0.6,bossDef.size*0.3,-bossDef.size*0.4,0); ctx.closePath(); ctx.fill(); ctx.stroke()
-    ctx.beginPath(); ctx.moveTo(-bossDef.size*0.4,0); ctx.quadraticCurveTo(-ws*0.5,bossDef.size*0.9,-ws,bossDef.size*0.3); ctx.quadraticCurveTo(-ws*0.6,-bossDef.size*0.3,-bossDef.size*0.4,0); ctx.closePath(); ctx.fill(); ctx.stroke()
-    const bodyG = ctx.createLinearGradient(-bossDef.size,0,bossDef.size*1.1,0)
-    bodyG.addColorStop(0,hitW?'#FFF':(g.bossEnraged?'#FF3300':'#BB3800'))
-    bodyG.addColorStop(0.45,hitW?'#FFF':(g.bossEnraged?'#FF6600':'#DD5500'))
-    bodyG.addColorStop(1,hitW?'#EEE':(g.bossEnraged?'#FF1100':'#992200'))
-    ctx.fillStyle = bodyG; ctx.beginPath(); ctx.ellipse(0,0,bossDef.size*1.3,bossDef.size*0.7,0,0,Math.PI*2); ctx.fill()
-    for (let i=0;i<7;i++) { const sx=-bossDef.size*0.9+i*bossDef.size*0.3, sh=14+Math.sin(b.spinePulse+i*0.9)*5; ctx.fillStyle=g.bossEnraged?'#FF9900':'#DD6600'; ctx.beginPath(); ctx.moveTo(sx-5,-bossDef.size*0.65); ctx.lineTo(sx,-bossDef.size*0.65-sh); ctx.lineTo(sx+5,-bossDef.size*0.65); ctx.closePath(); ctx.fill() }
-    ctx.fillStyle = g.bossEnraged?'#FF4400':'#CC3300'; ctx.beginPath(); ctx.arc(bossDef.size*1.0,0,bossDef.size*0.55,0,Math.PI*2); ctx.fill()
-    ctx.fillStyle='#FFCC00'; ctx.shadowColor='#FFCC00'; ctx.shadowBlur=14; ctx.beginPath(); ctx.arc(bossDef.size*1.1,-9,7,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(bossDef.size*1.1,9,7,0,Math.PI*2); ctx.fill()
-    ctx.fillStyle='#CC3300'; ctx.beginPath(); ctx.moveTo(bossDef.size*1.45,-6); ctx.lineTo(bossDef.size*1.7,0); ctx.lineTo(bossDef.size*1.45,6); ctx.closePath(); ctx.fill()
-    ctx.strokeStyle=g.bossEnraged?'#FF5500':'#CC3300'; ctx.lineWidth=bossDef.size*0.32
-    ctx.beginPath(); ctx.moveTo(-bossDef.size*0.95,0); ctx.bezierCurveTo(-bossDef.size*1.4,bossDef.size*0.4,-bossDef.size*1.6,-bossDef.size*0.3,-bossDef.size*1.8,0); ctx.stroke()
+    const sz=bossDef.size
+    // Animated wing flap
+    const wingFlap=Math.sin(t*2.8)*0.22
+    const wspan=sz*2.2
+    // Left wing
+    ctx.fillStyle=g.bossEnraged?'rgba(255,80,0,0.28)':'rgba(160,50,0,0.22)'
+    ctx.strokeStyle=g.bossEnraged?'rgba(255,140,30,0.7)':'rgba(200,80,20,0.55)'; ctx.lineWidth=2
+    ctx.beginPath(); ctx.moveTo(-sz*0.5,sz*0.1); ctx.quadraticCurveTo(-wspan*0.6,-(sz*(1.2+wingFlap)),-(wspan),sz*(0.3+wingFlap*0.5)); ctx.quadraticCurveTo(-wspan*0.55,sz*0.5,-sz*0.5,sz*0.1); ctx.closePath(); ctx.fill(); ctx.stroke()
+    // wing membrane details
+    ctx.strokeStyle=g.bossEnraged?'rgba(255,160,40,0.4)':'rgba(180,60,10,0.3)'; ctx.lineWidth=1.2
+    for (let i=1;i<=3;i++) { const tt=i/4; ctx.beginPath(); ctx.moveTo(-sz*0.5,sz*0.1); ctx.quadraticCurveTo(-wspan*0.55*tt,-(sz*(0.8+wingFlap)*tt),-(wspan)*tt,sz*(0.3+wingFlap*0.4)*tt); ctx.stroke() }
+    // Right wing
+    ctx.fillStyle=g.bossEnraged?'rgba(255,80,0,0.28)':'rgba(160,50,0,0.22)'
+    ctx.strokeStyle=g.bossEnraged?'rgba(255,140,30,0.7)':'rgba(200,80,20,0.55)'; ctx.lineWidth=2
+    ctx.beginPath(); ctx.moveTo(-sz*0.5,-sz*0.1); ctx.quadraticCurveTo(-wspan*0.6,sz*(1.2+wingFlap),-(wspan),-(sz*(0.3+wingFlap*0.5))); ctx.quadraticCurveTo(-wspan*0.55,-sz*0.5,-sz*0.5,-sz*0.1); ctx.closePath(); ctx.fill(); ctx.stroke()
+    ctx.strokeStyle=g.bossEnraged?'rgba(255,160,40,0.4)':'rgba(180,60,10,0.3)'; ctx.lineWidth=1.2
+    for (let i=1;i<=3;i++) { const tt=i/4; ctx.beginPath(); ctx.moveTo(-sz*0.5,-sz*0.1); ctx.quadraticCurveTo(-wspan*0.55*tt,sz*(0.8+wingFlap)*tt,-(wspan)*tt,-(sz*(0.3+wingFlap*0.4)*tt)); ctx.stroke() }
+    // Serpentine body (tapers toward tail)
+    const bodyG=ctx.createLinearGradient(-sz,0,sz*1.3,0)
+    bodyG.addColorStop(0,hitW?'#FFF':(g.bossEnraged?'#CC2200':'#8B2800'))
+    bodyG.addColorStop(0.4,hitW?'#FFF':(g.bossEnraged?'#FF5500':'#CC3800'))
+    bodyG.addColorStop(0.75,hitW?'#FFF':(g.bossEnraged?'#DD4400':'#AA3000'))
+    bodyG.addColorStop(1,hitW?'#EEE':(g.bossEnraged?'#AA1100':'#6B1800'))
+    ctx.fillStyle=bodyG; ctx.beginPath(); ctx.ellipse(0,0,sz*1.35,sz*0.72,0,0,Math.PI*2); ctx.fill()
+    // dorsal spines
+    for (let i=0;i<9;i++) { const sx2=-sz*1.0+i*sz*0.25, sh=12+Math.sin(b.spinePulse+i*0.8)*6; ctx.fillStyle=hitW?'#FFF':(g.bossEnraged?'#FFAA00':'#CC5500'); ctx.beginPath(); ctx.moveTo(sx2-4,-sz*0.68); ctx.lineTo(sx2,-sz*0.68-sh); ctx.lineTo(sx2+4,-sz*0.68); ctx.closePath(); ctx.fill() }
+    // legs / claws
+    for (let i=0;i<4;i++) { const lx=-sz*0.6+i*sz*0.4, ly=sz*0.65+Math.sin(t*2.5+i)*4; ctx.strokeStyle=hitW?'#FFF':'#7A3000'; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(lx,sz*0.2); ctx.lineTo(lx+Math.cos(1.2+i*0.3)*sz*0.55,ly); ctx.stroke(); ctx.strokeStyle=g.bossEnraged?'#FF8800':'#CC4400'; ctx.lineWidth=2; for(let c=0;c<3;c++){ctx.beginPath();ctx.moveTo(lx+Math.cos(1.2+i*0.3)*sz*0.55,ly);ctx.lineTo(lx+Math.cos(1.0+i*0.3+c*0.22)*sz*0.75,ly+16);ctx.stroke()} }
+    // head
+    ctx.fillStyle=hitW?'#FFF':(g.bossEnraged?'#FF4400':'#CC3300')
+    ctx.beginPath(); ctx.ellipse(sz*1.05,0,sz*0.6,sz*0.52,0,0,Math.PI*2); ctx.fill()
+    // snout horns
+    ctx.fillStyle=hitW?'#FFF':'#8B6914'
+    for (let i=0;i<3;i++) { ctx.beginPath(); ctx.moveTo(sz*1.35,-10+i*10); ctx.lineTo(sz*1.75,-14+i*10); ctx.lineTo(sz*1.38,-6+i*10); ctx.closePath(); ctx.fill() }
+    // eyes glow
+    ctx.fillStyle='#FFCC00'; ctx.shadowColor='#FFAA00'; ctx.shadowBlur=18
+    ctx.beginPath(); ctx.arc(sz*1.12,-10,7,0,Math.PI*2); ctx.fill()
+    ctx.beginPath(); ctx.arc(sz*1.12,10,7,0,Math.PI*2); ctx.fill()
+    ctx.fillStyle='#000'; ctx.shadowBlur=0; ctx.beginPath(); ctx.arc(sz*1.14,-10,3,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(sz*1.14,10,3,0,Math.PI*2); ctx.fill()
+    // tail
+    ctx.strokeStyle=hitW?'#FFF':(g.bossEnraged?'#FF4400':'#AA2800'); ctx.lineWidth=sz*0.38
+    ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(-sz*0.95,0); ctx.bezierCurveTo(-sz*1.5,sz*0.5,-sz*1.85,-sz*0.4,-sz*2.1,sz*0.15); ctx.stroke()
+    ctx.lineWidth=sz*0.18; ctx.beginPath(); ctx.moveTo(-sz*2.1,sz*0.15); ctx.bezierCurveTo(-sz*2.3,sz*0.5,-sz*2.5,0,-sz*2.3,-sz*0.2); ctx.stroke()
+    ctx.lineCap='butt'
     ctx.restore()
-    if (g.bossEnraged) { const p3=0.5+0.5*Math.sin(t*5); ctx.fillStyle=`rgba(255,80,0,${p3*0.15})`; ctx.beginPath(); ctx.arc(0,0,bossDef.size*1.5,0,Math.PI*2); ctx.fill() }
-    for (let i=0;i<4;i++) { const dx=Math.cos(b.angle+i*0.6)*bossDef.size*0.6, dy=Math.sin(b.angle+i*0.6)*bossDef.size*0.4; ctx.globalAlpha=0.5+0.3*Math.sin(t*4+i); ctx.fillStyle='#FF6600'; ctx.beginPath(); ctx.arc(dx,dy+Math.sin(t*3+i)*4,4,0,Math.PI*2); ctx.fill() }
+    // flame breath trail from mouth
+    if (!hitW) for (let i=0;i<6;i++) { const flx=Math.cos(b.angle)*sz*1.6+Math.cos(b.angle+Math.PI/2+i*1.05)*18, fly=Math.sin(b.angle)*sz*1.6+Math.sin(b.angle+Math.PI/2+i*1.05)*18; ctx.globalAlpha=0.35+0.25*Math.sin(t*4+i); ctx.fillStyle=i%2?'#FF5500':'#FF8800'; ctx.shadowColor='#FF4400'; ctx.shadowBlur=14; ctx.beginPath(); ctx.arc(flx,fly,5+Math.sin(t*5+i)*3,0,Math.PI*2); ctx.fill() }
     ctx.globalAlpha=1
+    if (g.bossEnraged) { const p3=0.5+0.5*Math.sin(t*5); ctx.fillStyle=`rgba(255,80,0,${p3*0.14})`; ctx.beginPath(); ctx.arc(0,0,bossDef.size*1.55,0,Math.PI*2); ctx.fill() }
 
   } else {
-    ctx.shadowColor = g.bossEnraged?'#00CCFF':'#9999FF'; ctx.shadowBlur=g.bossEnraged?50:28
+    // ── STORM GRIFFIN ── Kree'arra-style: muscular, gorilla body with huge wings
+    ctx.shadowColor=g.bossEnraged?'#00CCFF':'#8888FF'; ctx.shadowBlur=g.bossEnraged?55:30
     ctx.save(); ctx.rotate(b.angle)
-    const ws2 = bossDef.size*2.4
-    const wingFlap = Math.sin(t*3)*0.15
-    ctx.fillStyle=g.bossEnraged?'rgba(80,200,255,0.28)':'rgba(140,140,255,0.22)'; ctx.strokeStyle=g.bossEnraged?'rgba(80,220,255,0.7)':'rgba(160,160,255,0.5)'; ctx.lineWidth=2.5
-    ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(-ws2*0.55,-bossDef.size*(0.9+wingFlap),-ws2,bossDef.size*(0.25+wingFlap)); ctx.quadraticCurveTo(-ws2*0.45,bossDef.size*0.55,0,bossDef.size*0.32); ctx.closePath(); ctx.fill(); ctx.stroke()
-    ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(ws2*0.55,-bossDef.size*(0.9+wingFlap),ws2,bossDef.size*(0.25+wingFlap)); ctx.quadraticCurveTo(ws2*0.45,bossDef.size*0.55,0,bossDef.size*0.32); ctx.closePath(); ctx.fill(); ctx.stroke()
-    const bGr = ctx.createRadialGradient(-8,-8,0,0,0,bossDef.size)
-    bGr.addColorStop(0,hitW?'#FFF':(g.bossEnraged?'#FFEE44':'#F5D020')); bGr.addColorStop(1,hitW?'#EEE':(g.bossEnraged?'#CC8800':'#A07010'))
-    ctx.fillStyle=bGr; ctx.beginPath(); ctx.arc(0,0,bossDef.size,0,Math.PI*2); ctx.fill()
-    ctx.fillStyle=g.bossEnraged?'#FFDD22':'#DAA520'; ctx.beginPath(); ctx.arc(bossDef.size*0.95,0,bossDef.size*0.44,0,Math.PI*2); ctx.fill()
-    ctx.fillStyle='#7A3800'; ctx.beginPath(); ctx.moveTo(bossDef.size*1.3,-7); ctx.lineTo(bossDef.size*1.65,0); ctx.lineTo(bossDef.size*1.3,7); ctx.closePath(); ctx.fill()
-    for (let i=0;i<6;i++) { const fa=Math.PI*0.55+i*(Math.PI*0.9/5)+Math.sin(t*2+i*0.5)*0.06; ctx.strokeStyle=g.bossEnraged?'rgba(80,200,255,0.75)':'rgba(210,200,100,0.65)'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(-bossDef.size*0.7,0); ctx.lineTo(-bossDef.size*0.7+Math.cos(fa)*48,Math.sin(fa)*48); ctx.stroke() }
-    ctx.restore()
-    if (g.bossEnraged) {
-      for (let i=0;i<4;i++) { const sa=(t*3+i*Math.PI/2)%(Math.PI*2), sr=bossDef.size+14; ctx.fillStyle=`rgba(80,220,255,${0.55+0.35*Math.sin(t*7+i)})`; ctx.shadowColor='#00CCFF'; ctx.shadowBlur=10; ctx.beginPath(); ctx.arc(Math.cos(sa)*sr,Math.sin(sa)*sr,4,0,Math.PI*2); ctx.fill() }
+    const sz=bossDef.size
+    const wf=Math.sin(t*3.2)*0.28  // wing flap
+    const wspan=sz*2.8
+
+    // Huge outstretched wings (behind body)
+    ctx.fillStyle=g.bossEnraged?'rgba(60,180,255,0.32)':'rgba(120,120,220,0.26)'
+    ctx.strokeStyle=g.bossEnraged?'rgba(80,220,255,0.75)':'rgba(160,160,255,0.55)'; ctx.lineWidth=2.2
+    // Left wing
+    ctx.beginPath(); ctx.moveTo(-sz*0.3,-sz*0.1); ctx.quadraticCurveTo(-wspan*0.45,-(sz*(1.4+wf)),-wspan,sz*(0.2+wf*0.6)); ctx.quadraticCurveTo(-wspan*0.5,sz*0.5,-sz*0.3,sz*0.2); ctx.closePath(); ctx.fill(); ctx.stroke()
+    ctx.strokeStyle=g.bossEnraged?'rgba(120,240,255,0.4)':'rgba(180,180,255,0.3)'; ctx.lineWidth=1.2
+    for (let i=1;i<=4;i++){const tt=i/5;ctx.beginPath();ctx.moveTo(-sz*0.3,-sz*0.1);ctx.quadraticCurveTo(-wspan*0.4*tt,-(sz*(1.1+wf)*tt),-wspan*tt,sz*(0.15+wf*0.5)*tt);ctx.stroke()}
+    // Right wing
+    ctx.fillStyle=g.bossEnraged?'rgba(60,180,255,0.32)':'rgba(120,120,220,0.26)'
+    ctx.strokeStyle=g.bossEnraged?'rgba(80,220,255,0.75)':'rgba(160,160,255,0.55)'; ctx.lineWidth=2.2
+    ctx.beginPath(); ctx.moveTo(-sz*0.3,sz*0.1); ctx.quadraticCurveTo(-wspan*0.45,sz*(1.4+wf),-wspan,-(sz*(0.2+wf*0.6))); ctx.quadraticCurveTo(-wspan*0.5,-sz*0.5,-sz*0.3,-sz*0.2); ctx.closePath(); ctx.fill(); ctx.stroke()
+    ctx.strokeStyle=g.bossEnraged?'rgba(120,240,255,0.4)':'rgba(180,180,255,0.3)'; ctx.lineWidth=1.2
+    for (let i=1;i<=4;i++){const tt=i/5;ctx.beginPath();ctx.moveTo(-sz*0.3,sz*0.1);ctx.quadraticCurveTo(-wspan*0.4*tt,sz*(1.1+wf)*tt,-wspan*tt,-(sz*(0.15+wf*0.5)*tt));ctx.stroke()}
+
+    // Muscular gorilla-like torso (dark stone-grey)
+    const torsoG=ctx.createRadialGradient(-sz*0.1,-sz*0.1,0,0,0,sz*0.95)
+    torsoG.addColorStop(0,hitW?'#FFF':(g.bossEnraged?'#A0A860':'#7A7850'))
+    torsoG.addColorStop(0.5,hitW?'#EEE':(g.bossEnraged?'#707040':'#585530'))
+    torsoG.addColorStop(1,hitW?'#DDD':(g.bossEnraged?'#404020':'#303018'))
+    ctx.fillStyle=torsoG; ctx.beginPath(); ctx.ellipse(-sz*0.05,sz*0.05,sz*0.92,sz*0.88,0,0,Math.PI*2); ctx.fill()
+    // chest muscle highlights
+    if (!hitW) {
+      ctx.strokeStyle=g.bossEnraged?'rgba(200,220,80,0.35)':'rgba(160,160,80,0.25)'; ctx.lineWidth=2.5
+      ctx.beginPath(); ctx.arc(-sz*0.28,-sz*0.1,sz*0.36,Math.PI*0.1,Math.PI*0.9); ctx.stroke()
+      ctx.beginPath(); ctx.arc(sz*0.1,-sz*0.1,sz*0.36,Math.PI*0.1,Math.PI*0.9); ctx.stroke()
     }
+    // Arms / huge taloned claws (the distinctive Kree'arra wing-arm blades)
+    ctx.strokeStyle=hitW?'#FFF':(g.bossEnraged?'#8080C0':'#606090'); ctx.lineWidth=sz*0.28; ctx.lineCap='round'
+    ctx.beginPath(); ctx.moveTo(-sz*0.5,sz*0.3); ctx.lineTo(-sz*0.2,sz*0.85); ctx.stroke() // left arm
+    ctx.beginPath(); ctx.moveTo(sz*0.2,sz*0.3); ctx.lineTo(-sz*0.05,sz*0.85); ctx.stroke()  // right arm
+    ctx.lineCap='butt'
+    // big swept-back blade talons
+    ctx.fillStyle=hitW?'#FFF':(g.bossEnraged?'#CCDD66':'#AAAA44')
+    const bladeAngles=[[-sz*0.2,sz*0.85,-0.9],[sz*0.0,sz*0.88,-0.65],[-sz*0.45,sz*0.82,-1.2]]
+    bladeAngles.forEach(([bx,by,ba])=>{ctx.save();ctx.translate(bx as number,by as number);ctx.rotate(ba as number);ctx.beginPath();ctx.moveTo(0,-4);ctx.lineTo(sz*0.65,-12);ctx.lineTo(sz*0.7,0);ctx.lineTo(sz*0.65,12);ctx.lineTo(0,4);ctx.closePath();ctx.fill();ctx.restore()})
+    // Bird head
+    const headG=ctx.createRadialGradient(sz*0.2,-sz*0.05,0,sz*0.2,-sz*0.05,sz*0.52)
+    headG.addColorStop(0,hitW?'#FFF':(g.bossEnraged?'#B8C060':'#8A8840'))
+    headG.addColorStop(1,hitW?'#DDD':(g.bossEnraged?'#505028':'#383818'))
+    ctx.fillStyle=headG; ctx.beginPath(); ctx.ellipse(sz*0.22,-sz*0.05,sz*0.52,sz*0.46,0.2,0,Math.PI*2); ctx.fill()
+    // beak
+    ctx.fillStyle=hitW?'#FFF':(g.bossEnraged?'#CCAA00':'#886600')
+    ctx.beginPath(); ctx.moveTo(sz*0.7,-sz*0.08); ctx.lineTo(sz*1.05,-sz*0.04); ctx.lineTo(sz*0.7,sz*0.06); ctx.closePath(); ctx.fill()
+    // Glowing eyes
+    ctx.fillStyle=g.bossEnraged?'#00EEFF':'#BBDDFF'; ctx.shadowColor=g.bossEnraged?'#00CCFF':'#AAAAFF'; ctx.shadowBlur=16
+    ctx.beginPath(); ctx.arc(sz*0.5,-sz*0.14,6.5,0,Math.PI*2); ctx.fill()
+    ctx.beginPath(); ctx.arc(sz*0.5,sz*0.1,6.5,0,Math.PI*2); ctx.fill()
+    ctx.fillStyle='#000'; ctx.shadowBlur=0; ctx.beginPath(); ctx.arc(sz*0.52,-sz*0.14,3,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(sz*0.52,sz*0.1,3,0,Math.PI*2); ctx.fill()
+    // tail feathers
+    ctx.strokeStyle=hitW?'#FFF':(g.bossEnraged?'rgba(80,200,255,0.7)':'rgba(180,180,100,0.6)'); ctx.lineWidth=4
+    for (let i=0;i<5;i++){const fa=Math.PI*0.7+i*(Math.PI*0.6/4)+Math.sin(t*1.8+i*0.6)*0.08;ctx.beginPath();ctx.moveTo(-sz*0.6,0);ctx.lineTo(-sz*0.6+Math.cos(fa)*sz*0.8,Math.sin(fa)*sz*0.8);ctx.stroke()}
+    ctx.restore()
+    // lightning aura
+    if (g.bossEnraged) {
+      for (let i=0;i<5;i++){const sa=(t*3.5+i*Math.PI*0.4)%(Math.PI*2),sr=sz+16;ctx.fillStyle=`rgba(80,220,255,${0.5+0.4*Math.sin(t*7+i)})`;ctx.shadowColor='#00CCFF';ctx.shadowBlur=12;ctx.beginPath();ctx.arc(Math.cos(sa)*sr,Math.sin(sa)*sr,4.5,0,Math.PI*2);ctx.fill()}
+      ctx.shadowBlur=0
+    }
+    // Storm lightning arcs orbiting body
+    ctx.strokeStyle=`rgba(150,220,255,${0.3+0.25*Math.sin(t*8)})`; ctx.lineWidth=1.5
+    for (let i=0;i<3;i++){const sa=t*4+i*(Math.PI*2/3);ctx.beginPath();ctx.moveTo(Math.cos(sa)*sz,Math.sin(sa)*sz);ctx.lineTo(Math.cos(sa+0.5)*sz*1.2,Math.sin(sa+0.5)*sz*1.2);ctx.lineTo(Math.cos(sa+0.9)*sz*0.9,Math.sin(sa+0.9)*sz*0.9);ctx.stroke()}
   }
   ctx.restore()
 }
@@ -1050,6 +1208,22 @@ function renderTelegraph(ctx: CanvasRenderingContext2D, g: GS, _bossId: BossId, 
   } else if (atk.type==='venom_burst') {
     ctx.strokeStyle=`rgba(142,68,173,${pulse})`; ctx.lineWidth=3+progress*3; ctx.beginPath(); ctx.arc(b.pos.x,b.pos.y,(atk.data.radius??180)*(0.4+0.6*progress),0,Math.PI*2); ctx.stroke()
     ctx.fillStyle=`rgba(90,20,130,${pulse*0.16})`; ctx.beginPath(); ctx.arc(b.pos.x,b.pos.y,atk.data.radius??180,0,Math.PI*2); ctx.fill()
+  } else if (atk.type==='web_spray') {
+    const count=atk.data.count??7, baseA=Math.atan2((atk.data.targetPos?.y??b.pos.y)-b.pos.y,(atk.data.targetPos?.x??b.pos.x)-b.pos.x)
+    for (let i=0;i<count;i++) { const a=baseA+(i-(count-1)/2)*0.38; ctx.strokeStyle=`rgba(180,80,255,${pulse*0.75})`; ctx.lineWidth=1.8; ctx.setLineDash([5,5]); ctx.shadowColor='#8E44AD'; ctx.shadowBlur=8*pulse; ctx.beginPath(); ctx.moveTo(b.pos.x,b.pos.y); ctx.lineTo(b.pos.x+Math.cos(a)*520,b.pos.y+Math.sin(a)*520); ctx.stroke(); ctx.setLineDash([]) }
+  } else if (atk.type==='fire_line') {
+    const lineA=atk.data.angle??0, len=850
+    ctx.save()
+    ctx.shadowColor='#FF6600'; ctx.shadowBlur=30*pulse
+    ctx.strokeStyle=`rgba(255,${100+Math.round(progress*80)},0,${pulse*0.85})`; ctx.lineWidth=10+progress*14
+    ctx.beginPath(); ctx.moveTo(b.pos.x-Math.cos(lineA)*len,b.pos.y-Math.sin(lineA)*len); ctx.lineTo(b.pos.x+Math.cos(lineA)*len,b.pos.y+Math.sin(lineA)*len); ctx.stroke()
+    ctx.globalAlpha=0.18*pulse; ctx.strokeStyle='#FFAA00'; ctx.lineWidth=32+progress*20
+    ctx.beginPath(); ctx.moveTo(b.pos.x-Math.cos(lineA)*len,b.pos.y-Math.sin(lineA)*len); ctx.lineTo(b.pos.x+Math.cos(lineA)*len,b.pos.y+Math.sin(lineA)*len); ctx.stroke()
+    ctx.restore()
+  } else if (atk.type==='lightning_barrage') {
+    ctx.strokeStyle=`rgba(0,220,255,${pulse*0.9})`; ctx.lineWidth=2+progress*2; ctx.shadowColor='#00EEFF'; ctx.shadowBlur=16*pulse
+    ctx.setLineDash([8,4]); ctx.beginPath(); ctx.arc(b.pos.x,b.pos.y,80*(0.5+0.5*progress),0,Math.PI*2); ctx.stroke(); ctx.setLineDash([])
+    ctx.fillStyle=`rgba(0,200,255,${pulse*0.12})`; ctx.beginPath(); ctx.arc(b.pos.x,b.pos.y,80,0,Math.PI*2); ctx.fill()
   }
   void t
   ctx.restore()
