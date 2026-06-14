@@ -263,7 +263,7 @@ function PlantPopup({ plant, isAdmin, onClose, onUpdate, onDelete }: {
           </div>
 
           {/* Info grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <div className="garden-info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {([
               { icon: '📅', label: 'Date Planted', value: fmtDate(plant.datePlanted) },
               { icon: '⏳', label: 'Days to Harvest', value: plant.harvestStatus ? '✅ Done!' : daysUntil === null ? '—' : daysUntil < 0 ? 'Harvest now!' : daysUntil === 0 ? 'Today!' : `${daysUntil} day${daysUntil === 1 ? '' : 's'}` },
@@ -587,11 +587,11 @@ function PlantTypeForm({ initial, onClose, onSave }: { initial?: PlantType; onCl
               ))}
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div className="garden-form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div><label style={labelStyle}>Days to Harvest</label><input type="number" min={1} max={999} value={daysToHarvest} onChange={e => setDaysH(e.target.value)} placeholder="e.g. 75" style={inputStyle} /></div>
             <div><label style={labelStyle}>Days per Growth Stage</label><input type="number" min={1} max={365} value={autoGrowthDays} onChange={e => setAutoG(e.target.value)} placeholder="e.g. 12 (auto)" style={inputStyle} /></div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div className="garden-form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div><label style={labelStyle}>💧 Water Needs</label><input value={waterNeeds} onChange={e => setWater(e.target.value)} placeholder="e.g. Every 2-3 days" style={inputStyle} /></div>
             <div><label style={labelStyle}>☀️ Sun Needs</label>
               <select value={sunNeeds} onChange={e => setSun(e.target.value)} style={inputStyle}>
@@ -604,7 +604,7 @@ function PlantTypeForm({ initial, onClose, onSave }: { initial?: PlantType; onCl
           <div><label style={labelStyle}>Care Instructions</label><textarea value={careInstructions} onChange={e => setCare(e.target.value)} rows={3} style={{ ...inputStyle, resize: 'vertical' }} /></div>
           <div>
             <div style={labelStyle}>Growth Stage Images</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+            <div className="garden-form-grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
               {STAGES.map((s, i) => (
                 <div key={s.n}>
                   <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: S.text3, marginBottom: 4 }}>{s.emoji} {s.label}</div>

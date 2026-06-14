@@ -1562,7 +1562,7 @@ export default function BossHunter() {
       <div style={{textAlign:'center',maxWidth:680,padding:'0 24px'}}>
         <div style={{fontSize:32,color:'#C89B3C',textShadow:'0 0 24px #C89B3C',marginBottom:8}}>BOSS HUNTER</div>
         <div style={{fontSize:11,color:'#8E44AD',marginBottom:32}}>A Dark RPG Boss Rush</div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14,marginBottom:32}}>
+        <div className="bh-boss-grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14,marginBottom:32}}>
           {BOSS_DEFS.map((b,i) => (
             <div key={i} style={{background:'#0d0d1a',border:`1px solid ${b.color}44`,borderRadius:8,padding:'14px 10px',textAlign:'center'}}>
               <div style={{fontSize:22,marginBottom:8}}>{b.icon}</div>
@@ -1593,7 +1593,7 @@ export default function BossHunter() {
       <div style={{textAlign:'center',maxWidth:760,padding:'0 24px'}}>
         <div style={{fontSize:16,color:'#C89B3C',marginBottom:6}}>CHOOSE YOUR CLASS</div>
         <div style={{fontSize:8,color:'#605848',marginBottom:28}}>Your class determines your playstyle and abilities</div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:28}}>
+        <div className="bh-class-grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:28}}>
           {CLASS_DEFS.map(cls => {
             const sel = selClass===cls.id
             return (
@@ -1648,7 +1648,7 @@ export default function BossHunter() {
           {unlockedGear.length > 0 && (
             <div style={{background:'#0d0d1a',border:'1px solid #2a2820',borderRadius:10,padding:16,marginBottom:20,textAlign:'left'}}>
               <div style={{fontSize:8,color:'#C89B3C',marginBottom:12,textAlign:'center'}}>LOADOUT — 1 ATTACK SLOT · 1 DEFENSE SLOT</div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+              <div className="bh-loadout-grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
                 {/* Attack slot */}
                 <div>
                   <div style={{fontSize:7,color:'#E74C3C',marginBottom:8}}>⚔️ ATTACK SLOT</div>
@@ -1694,7 +1694,7 @@ export default function BossHunter() {
           )}
 
           {/* BOSS CARDS */}
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14,marginBottom:24}}>
+          <div className="bh-boss-grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14,marginBottom:24}}>
             {BOSS_DEFS.map((b,i) => {
               const bossId = i as BossId, sel = selBoss===bossId
               return (
