@@ -87,24 +87,24 @@ interface BossState {
 const CLASS_DEFS: ClassDef[] = [
   {
     id: 'hunter', label: 'Hunter', color: '#2ECC71', icon: '🏹', element: 'lightning', weaponType: 'bow',
-    hp: 100, dmg: 22, range: 290, atkCd: 0.46, speed: 178,
+    hp: 130, dmg: 28, range: 290, atkCd: 0.44, speed: 178,
     desc: 'Precision archer. Power shots, traps, shadow dashes, and a rain of deadly arrows from the sky.',
     abilities: [
-      { key: 'Q', name: 'Power Shot', desc: 'Massive gold arrow — 3× dmg, stuns boss 0.5s', cd: 5 },
-      { key: 'W', name: 'Trap', desc: 'Snap trap at cursor — 80 dmg + 3s slow on trigger', cd: 10 },
+      { key: 'Q', name: 'Power Shot', desc: 'Massive gold arrow — 3× dmg, stuns boss 0.6s', cd: 5 },
+      { key: 'W', name: 'Trap', desc: 'Snap trap at cursor — 110 dmg + 3s slow on trigger', cd: 10 },
       { key: 'E', name: 'Shadow Dash', desc: 'Dash in move direction with full invulnerability', cd: 7 },
-      { key: 'R', name: 'Rain of Arrows', desc: '3 massive arrows fall from the sky at cursor', cd: 22 },
+      { key: 'R', name: 'Rain of Arrows', desc: '3 massive arrows fall from the sky at cursor', cd: 20 },
     ],
   },
   {
     id: 'berserker', label: 'Berserker', color: '#E74C3C', icon: '⚔️', element: 'fire', weaponType: 'sword',
-    hp: 160, dmg: 42, range: 98, atkCd: 0.77, speed: 165,
+    hp: 190, dmg: 54, range: 98, atkCd: 0.74, speed: 165,
     desc: 'Fire juggernaut. Basic sword upgrades with legendary gear. Slam, rage, charge, and whirlwind.',
     abilities: [
-      { key: 'Q', name: 'Ground Slam', desc: 'Shockwave — 90 dmg AOE, 120px radius', cd: 6 },
+      { key: 'Q', name: 'Ground Slam', desc: 'Shockwave — 130 dmg AOE, 130px radius', cd: 6 },
       { key: 'W', name: 'Rage', desc: '+60% damage for 8s', cd: 18 },
-      { key: 'E', name: 'Bull Charge', desc: 'Rush toward cursor — 120 dmg on boss impact', cd: 9 },
-      { key: 'R', name: 'Whirlwind', desc: 'Spin 2.5s — 50 dmg/s within 100px', cd: 25 },
+      { key: 'E', name: 'Bull Charge', desc: 'Rush toward cursor — 150 dmg on boss impact', cd: 9 },
+      { key: 'R', name: 'Whirlwind', desc: 'Spin 3s — 65 dmg/s within 100px', cd: 25 },
     ],
   },
 ]
@@ -114,19 +114,19 @@ const BOSS_DEFS: BossDef[] = [
   {
     id: 0, name: 'Spider Queen', color: '#8E44AD', icon: '🕷️', element: 'poison',
     lore: 'Ancient arachnid empress of the deep caverns. Her venom melts armor. Her webs trap the bravest hunters.',
-    hp: 14000, size: 90, enrageAt: 0.40,
+    hp: 8500, size: 90, enrageAt: 0.40,
     rewards: ['spider_fang', 'venom_bow', 'web_amulet'], arenaType: 'spider',
   },
   {
     id: 1, name: 'Lava Drake', color: '#E67E22', icon: '🐉', element: 'fire',
     lore: 'Born in the molten core. Ancient and enormous. Her fire melts stone. Her claws split mountains.',
-    hp: 22000, size: 115, enrageAt: 0.35,
+    hp: 13000, size: 115, enrageAt: 0.35,
     rewards: ['drake_sword', 'fire_staff', 'ember_armor'], arenaType: 'drake',
   },
   {
     id: 2, name: 'Storm Griffin', color: '#F1C40F', icon: '🦅', element: 'lightning',
     lore: 'Skyborn predator. Commands the storms. Every wingbeat calls lightning from dark thunderheads.',
-    hp: 35000, size: 100, enrageAt: 0.30,
+    hp: 20000, size: 100, enrageAt: 0.30,
     rewards: ['thunder_blade', 'storm_bow', 'feather_boots'], arenaType: 'griffin',
   },
 ]
@@ -134,13 +134,13 @@ const BOSS_DEFS: BossDef[] = [
 /* ═══ GEAR DEFINITIONS ═══ */
 const GEAR_DEFS: Record<GearId, GearDef> = {
   spider_fang:   { id: 'spider_fang',   name: 'Spider Fang Daggers', icon: '🗡️', desc: 'Dual daggers — attack 40% faster, unique dagger animations' },
-  venom_bow:     { id: 'venom_bow',     name: 'Venom Bow',           icon: '🏹', desc: 'Purple poison bow — arrows inflict 5 dmg/s for 4s' },
-  web_amulet:    { id: 'web_amulet',    name: 'Web Amulet',          icon: '🕸️', desc: '12% chance per hit to web-stun the boss for 2s' },
-  drake_sword:   { id: 'drake_sword',   name: 'Drake Greatsword',    icon: '⚔️', desc: '+35% damage. 12% chance to stun boss on hit' },
-  fire_staff:    { id: 'fire_staff',    name: 'Fire Staff',          icon: '🔥', desc: 'Q fires a Fireball — 100px AOE explosion, 60 dmg' },
+  venom_bow:     { id: 'venom_bow',     name: 'Venom Bow',           icon: '🏹', desc: 'Purple poison bow — arrows inflict 15 dmg/s for 5s' },
+  web_amulet:    { id: 'web_amulet',    name: 'Web Amulet',          icon: '🕸️', desc: '15% chance per hit to web-stun the boss for 2s' },
+  drake_sword:   { id: 'drake_sword',   name: 'Drake Greatsword',    icon: '⚔️', desc: '+35% damage. 15% chance to stun boss on hit' },
+  fire_staff:    { id: 'fire_staff',    name: 'Fire Staff',          icon: '🔥', desc: 'Q fires a Fireball — 100px AOE explosion, 80 dmg' },
   ember_armor:   { id: 'ember_armor',   name: 'Ember Armor',         icon: '🛡️', desc: 'Reduces all incoming damage by 25%' },
-  thunder_blade: { id: 'thunder_blade', name: 'Thunder Blade',       icon: '⚡', desc: 'Every 3rd hit unleashes a lightning strike (+50 bonus dmg)' },
-  storm_bow:     { id: 'storm_bow',     name: 'Storm Bow',           icon: '🌩️', desc: 'Arrows are lightning bolts — AOE on impact (40px, 20 dmg)' },
+  thunder_blade: { id: 'thunder_blade', name: 'Thunder Blade',       icon: '⚡', desc: 'Every 3rd hit unleashes a lightning strike (+80 bonus dmg)' },
+  storm_bow:     { id: 'storm_bow',     name: 'Storm Bow',           icon: '🌩️', desc: 'Arrows are lightning bolts — AOE on impact (40px, 30 dmg)' },
   feather_boots: { id: 'feather_boots', name: 'Feather Boots',       icon: '🪶', desc: '+40% movement speed. 3 dash charges that recharge over time' },
 }
 // PIECE_2_START
@@ -240,25 +240,25 @@ function dealDmgToBoss(g: GS, baseDmg: number, gear: GearId[]) {
   let dmg = baseDmg
   if (gear.includes('drake_sword')) {
     dmg = Math.round(dmg * 1.35)
-    if (Math.random() < 0.12) b.stunTimer = Math.max(b.stunTimer, 1.5)
+    if (Math.random() < 0.15) b.stunTimer = Math.max(b.stunTimer, 1.5)
   }
   if (g.rageActive) dmg = Math.round(dmg * 1.6)
   if (gear.includes('thunder_blade')) {
     p.gearHitCount++
     g.chainResetTimer = CHAIN_HIT_RESET
     if (p.gearHitCount % 3 === 0) {
-      dmg += 50
+      dmg += 80
       spawnParticles(g, b.pos, 14, '#F1C40F', 260)
       g.screenShake = Math.max(g.screenShake, 0.45)
     }
   }
-  if (gear.includes('web_amulet') && p.webProcCd <= 0 && Math.random() < 0.12) {
+  if (gear.includes('web_amulet') && p.webProcCd <= 0 && Math.random() < 0.15) {
     b.stunTimer = Math.max(b.stunTimer, 2.0)
-    p.webProcCd = 4.0
+    p.webProcCd = 3.0
     g.webProcAnim = { timer: 0.9, pos: { ...b.pos } }
     spawnParticles(g, b.pos, 18, '#8E44AD', 160)
   }
-  if (gear.includes('venom_bow') && g.poisonTimer <= 0) g.poisonTimer = 4.0
+  if (gear.includes('venom_bow') && g.poisonTimer <= 0) g.poisonTimer = 5.0
   b.hp = Math.max(0, b.hp - dmg)
   b.hitFlash = 0.12
   g.damageNums.push({ id: ++g.nextDmgId, pos: { x: b.pos.x + rnd(-30, 30), y: b.pos.y - 50 }, val: Math.round(dmg), life: 1.0, isPlayer: false })
@@ -291,24 +291,24 @@ function startBossAttack(g: GS, bossId: BossId, type: string) {
     lightning_strike: 0.95, talon_dive: 0.9, wind_buffet: 0.8, thunderstorm: 0.75, static_field: 0.7, chain_lightning: 0.85,
   }
   const data: AttackData = { targetPos: { ...p.pos }, angle, dmg: 0 }
-  if (type === 'venom_spit') { data.dmg = 28; data.count = 3; data.projSpeed = 260 }
-  else if (type === 'web_shot') { data.dmg = 18; data.projSpeed = 160 }
-  else if (type === 'leg_sweep') { data.dmg = 42; data.coneAngle = Math.PI; data.coneRange = 160; data.angle = angle }
-  else if (type === 'spider_leap') { data.dmg = 70; data.radius = 130 }
+  if (type === 'venom_spit') { data.dmg = 15; data.count = 3; data.projSpeed = 260 }
+  else if (type === 'web_shot') { data.dmg = 12; data.projSpeed = 160 }
+  else if (type === 'leg_sweep') { data.dmg = 22; data.coneAngle = Math.PI; data.coneRange = 160; data.angle = angle }
+  else if (type === 'spider_leap') { data.dmg = 36; data.radius = 130 }
   else if (type === 'toxic_cloud') { data.dmg = 0; data.count = 3 }
-  else if (type === 'venom_burst') { data.dmg = 80; data.radius = 180 }
-  else if (type === 'fire_breath') { data.dmg = 36; data.coneAngle = 44 * Math.PI / 180; data.coneRange = 260; data.angle = angle; data.duration = 2.2; data.elapsed = 0 }
-  else if (type === 'stomp') { data.dmg = 50; data.radius = 0; data.duration = 1.2 }
-  else if (type === 'tail_swipe') { data.dmg = 55; data.coneAngle = 270 * Math.PI / 180; data.coneRange = 170; data.angle = angle + Math.PI }
-  else if (type === 'ember_barrage') { data.dmg = 26; data.count = 6; data.projSpeed = 290 }
-  else if (type === 'flame_wave') { data.dmg = 40; data.coneAngle = 55 * Math.PI / 180; data.coneRange = 320; data.angle = angle; data.duration = 1.6; data.elapsed = 0 }
+  else if (type === 'venom_burst') { data.dmg = 38; data.radius = 180 }
+  else if (type === 'fire_breath') { data.dmg = 18; data.coneAngle = 44 * Math.PI / 180; data.coneRange = 260; data.angle = angle; data.duration = 2.2; data.elapsed = 0 }
+  else if (type === 'stomp') { data.dmg = 28; data.radius = 0; data.duration = 1.2 }
+  else if (type === 'tail_swipe') { data.dmg = 28; data.coneAngle = 270 * Math.PI / 180; data.coneRange = 170; data.angle = angle + Math.PI }
+  else if (type === 'ember_barrage') { data.dmg = 14; data.count = 6; data.projSpeed = 290 }
+  else if (type === 'flame_wave') { data.dmg = 20; data.coneAngle = 55 * Math.PI / 180; data.coneRange = 320; data.angle = angle; data.duration = 1.6; data.elapsed = 0 }
   else if (type === 'lava_puddle') { data.dmg = 0; data.count = 3 }
-  else if (type === 'lightning_strike') { data.dmg = 65; data.radius = 75 }
-  else if (type === 'talon_dive') { data.dmg = 70; data.angle = angle; data.projSpeed = 440 }
-  else if (type === 'wind_buffet') { data.dmg = 28; data.coneAngle = 80 * Math.PI / 180; data.coneRange = 230; data.angle = angle }
-  else if (type === 'thunderstorm') { data.dmg = 50; data.count = 8; data.strikeIndex = 0 }
+  else if (type === 'lightning_strike') { data.dmg = 32; data.radius = 75 }
+  else if (type === 'talon_dive') { data.dmg = 35; data.angle = angle; data.projSpeed = 440 }
+  else if (type === 'wind_buffet') { data.dmg = 16; data.coneAngle = 80 * Math.PI / 180; data.coneRange = 230; data.angle = angle }
+  else if (type === 'thunderstorm') { data.dmg = 25; data.count = 8; data.strikeIndex = 0 }
   else if (type === 'static_field') { data.dmg = 0; data.count = 2 }
-  else if (type === 'chain_lightning') { data.dmg = 45; data.count = 6; data.strikeIndex = 0 }
+  else if (type === 'chain_lightning') { data.dmg = 22; data.count = 6; data.strikeIndex = 0 }
   g.bossAttack = { type, telegraphTime: telegraphs[type] ?? 1.0, elapsed: 0, active: false, data }
 }
 
@@ -334,46 +334,46 @@ function resolveBossAttack(g: GS, bossId: BossId, cls: ClassDef, gear: GearId[])
       const pAngle = Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
       let diff = Math.abs(pAngle - angle); while (diff > Math.PI) diff = Math.abs(diff - Math.PI * 2)
       if (diff <= halfCone) {
-        dealDmgToPlayer(g, d.dmg ?? 38, cls, gear, type === 'wind_buffet' ? toPlayer : undefined)
+        dealDmgToPlayer(g, d.dmg ?? 22, cls, gear, type === 'wind_buffet' ? toPlayer : undefined)
         if (type === 'wind_buffet') p.knockbackVel = v(toPlayer.x * 240, toPlayer.y * 240)
       }
     }
   } else if (type === 'toxic_cloud') {
     for (let i = 0; i < (d.count ?? 3); i++) {
       const tx = clamp(b.pos.x + rnd(-300, 300), 100, WW - 100), ty = clamp(b.pos.y + rnd(-250, 250), 100, WH - 100)
-      spawnZone(g, v(tx, ty), 'poison', 65, 20, 6.0)
+      spawnZone(g, v(tx, ty), 'poison', 65, 12, 6.0)
       spawnParticles(g, v(tx, ty), 12, '#8E44AD', 90, 0.9)
     }
   } else if (type === 'venom_burst') {
     const r = d.radius ?? 180
-    if (dist(p.pos, b.pos) <= r) { dealDmgToPlayer(g, d.dmg ?? 80, cls, gear, toPlayer); p.slowTimer = 2.5 }
+    if (dist(p.pos, b.pos) <= r) { dealDmgToPlayer(g, d.dmg ?? 38, cls, gear, toPlayer); p.slowTimer = 2.5 }
     spawnParticles(g, b.pos, 35, '#8E44AD', 300); g.screenShake = Math.max(g.screenShake, 0.8)
   } else if (type === 'lava_puddle') {
     for (let i = 0; i < (d.count ?? 3); i++) {
       const tx = clamp(p.pos.x + rnd(-200, 200), 100, WW - 100), ty = clamp(p.pos.y + rnd(-200, 200), 100, WH - 100)
-      spawnZone(g, v(tx, ty), 'fire', 75, 28, 5.5)
+      spawnZone(g, v(tx, ty), 'fire', 75, 16, 5.5)
       spawnParticles(g, v(tx, ty), 16, '#FF4500', 110, 0.65)
     }
     g.screenShake = Math.max(g.screenShake, 0.35)
   } else if (type === 'static_field') {
     for (let i = 0; i < (d.count ?? 2); i++) {
       const off = v(rnd(-90, 90), rnd(-90, 90))
-      spawnZone(g, v(p.pos.x + off.x, p.pos.y + off.y), 'lightning', 60, 32, 4.0)
+      spawnZone(g, v(p.pos.x + off.x, p.pos.y + off.y), 'lightning', 60, 18, 4.0)
       spawnParticles(g, v(p.pos.x + off.x, p.pos.y + off.y), 14, '#F1C40F', 170)
     }
   } else if (type === 'spider_leap' || type === 'lightning_strike') {
     const target = d.targetPos!, r = d.radius ?? 120
-    if (dist(p.pos, target) <= r) dealDmgToPlayer(g, d.dmg ?? 60, cls, gear, norm(v(p.pos.x - target.x, p.pos.y - target.y)))
+    if (dist(p.pos, target) <= r) dealDmgToPlayer(g, d.dmg ?? 32, cls, gear, norm(v(p.pos.x - target.x, p.pos.y - target.y)))
     spawnParticles(g, target, 24, bossId === 0 ? '#8E44AD' : '#F1C40F', 220)
     g.screenShake = Math.max(g.screenShake, 0.6)
     if (bossId === 0) b.pos = { x: clamp(target.x, 90, WW - 90), y: clamp(target.y, 90, WH - 90) }
   } else if (type === 'stomp') {
-    if (dist(p.pos, b.pos) <= 155) dealDmgToPlayer(g, d.dmg ?? 45, cls, gear, toPlayer)
+    if (dist(p.pos, b.pos) <= 155) dealDmgToPlayer(g, d.dmg ?? 28, cls, gear, toPlayer)
     g.screenShake = Math.max(g.screenShake, 0.7); spawnParticles(g, b.pos, 28, '#E67E22', 260)
   } else if (type === 'talon_dive') {
     const target = { ...d.targetPos! }
     b.pos = { x: clamp(target.x, 90, WW - 90), y: clamp(target.y, 90, WH - 90) }
-    if (dist(p.pos, b.pos) < 90) dealDmgToPlayer(g, d.dmg ?? 65, cls, gear, toPlayer)
+    if (dist(p.pos, b.pos) < 90) dealDmgToPlayer(g, d.dmg ?? 35, cls, gear, toPlayer)
     spawnParticles(g, b.pos, 18, '#F1C40F', 220); g.screenShake = Math.max(g.screenShake, 0.45)
   }
 }
@@ -416,7 +416,7 @@ function tick(g: GS, dt: number, cls: ClassDef, bossId: BossId, gear: GearId[], 
   b.spinePulse += dt * 2.2; b.lightningPhase += dt * 4.5
   g.screenShake = Math.max(0, g.screenShake - dt * 3); g.nextAttackTimer = Math.max(0, g.nextAttackTimer - dt)
   if (g.rageTimer > 0) { g.rageTimer = Math.max(0, g.rageTimer - dt); if (g.rageTimer <= 0) g.rageActive = false }
-  if (g.poisonTimer > 0) { g.poisonTimer = Math.max(0, g.poisonTimer - dt); b.hp = Math.max(0, b.hp - 5 * dt) }
+  if (g.poisonTimer > 0) { g.poisonTimer = Math.max(0, g.poisonTimer - dt); b.hp = Math.max(0, b.hp - 15 * dt) }
   if (g.chainResetTimer > 0) { g.chainResetTimer = Math.max(0, g.chainResetTimer - dt); if (g.chainResetTimer <= 0) g.chainHits = 0 }
   if (g.webProcAnim) { g.webProcAnim.timer -= dt; if (g.webProcAnim.timer <= 0) g.webProcAnim = null }
   for (let i = 0; i < p.abilityCds.length; i++) p.abilityCds[i] = Math.max(0, p.abilityCds[i] - dt)
@@ -462,7 +462,7 @@ function tick(g: GS, dt: number, cls: ClassDef, bossId: BossId, gear: GearId[], 
     p.pos.x = clamp(p.pos.x, 20, WW - 20); p.pos.y = clamp(p.pos.y, 20, WH - 20)
     p.iframeTimer = Math.max(p.iframeTimer, g.bullChargeDash.timer)
     if (dist(p.pos, b.pos) < bossDef.size + 22) {
-      dealDmgToBoss(g, 120, gear); g.screenShake = Math.max(g.screenShake, 0.45)
+      dealDmgToBoss(g, 150, gear); g.screenShake = Math.max(g.screenShake, 0.45)
       spawnParticles(g, b.pos, 20, '#E74C3C', 220); g.bullChargeDash.active = false
     }
     if (g.bullChargeDash.timer <= 0) g.bullChargeDash.active = false
@@ -472,7 +472,7 @@ function tick(g: GS, dt: number, cls: ClassDef, bossId: BossId, gear: GearId[], 
   if (g.whirlwindActive) {
     g.whirlwindTimer -= dt; p.iframeTimer = Math.max(p.iframeTimer, 0.1)
     if (g.whirlwindTimer <= 0) { g.whirlwindActive = false }
-    else if (dist(p.pos, b.pos) < 110) { b.hp = Math.max(0, b.hp - 50 * dt); spawnParticles(g, b.pos, 2, '#E74C3C', 100) }
+    else if (dist(p.pos, b.pos) < 110) { b.hp = Math.max(0, b.hp - 65 * dt); spawnParticles(g, b.pos, 2, '#E74C3C', 100) }
   }
 
   // Player movement
@@ -516,7 +516,7 @@ function tick(g: GS, dt: number, cls: ClassDef, bossId: BossId, gear: GearId[], 
     const atkAngle = Math.atan2(b.pos.y - p.pos.y, b.pos.x - p.pos.x)
     const flashType = gear.includes('spider_fang') ? 'slash' : cls.weaponType === 'bow' ? 'shot' : 'slam'
     g.attackFlash = { angle: atkAngle, timer: 0.22, maxTimer: 0.22, type: flashType, color: flashColor }
-    if (gear.includes('venom_bow') && g.poisonTimer <= 0) g.poisonTimer = 4.0
+    if (gear.includes('venom_bow') && g.poisonTimer <= 0) g.poisonTimer = 5.0
     if (cls.id === 'hunter' && !gear.includes('spider_fang')) {
       const dir = norm(v(b.pos.x - p.pos.x, b.pos.y - p.pos.y))
       const isStorm = gear.includes('storm_bow')
@@ -578,9 +578,9 @@ function tick(g: GS, dt: number, cls: ClassDef, bossId: BossId, gear: GearId[], 
     }
     if (!proj.fromBoss && dist(proj.pos, b.pos) < proj.radius + bossDef.size) {
       dealDmgToBoss(g, proj.dmg, gear)
-      if (proj.isPowerShot) { b.stunTimer = Math.max(b.stunTimer, 0.6); spawnParticles(g, proj.pos, 22, '#F1C40F', 280); g.screenShake = Math.max(g.screenShake, 0.5) }
-      if (proj.aoe && proj.isLightning) { spawnParticles(g, proj.pos, 14, '#7DFFB0', 180); g.screenShake = Math.max(g.screenShake, 0.22); if (dist(b.pos, proj.pos) < proj.aoe) dealDmgToBoss(g, 20, gear) }
-      if (proj.isFireball && proj.aoe) { spawnParticles(g, proj.pos, 24, '#FF4500', 240); spawnParticles(g, proj.pos, 12, '#F1C40F', 160); g.screenShake = Math.max(g.screenShake, 0.4); if (dist(b.pos, proj.pos) < proj.aoe) dealDmgToBoss(g, 30, gear) }
+      if (proj.isPowerShot) { b.stunTimer = Math.max(b.stunTimer, 0.7); spawnParticles(g, proj.pos, 22, '#F1C40F', 280); g.screenShake = Math.max(g.screenShake, 0.5) }
+      if (proj.aoe && proj.isLightning) { spawnParticles(g, proj.pos, 14, '#7DFFB0', 180); g.screenShake = Math.max(g.screenShake, 0.22); if (dist(b.pos, proj.pos) < proj.aoe) dealDmgToBoss(g, 30, gear) }
+      if (proj.isFireball && proj.aoe) { spawnParticles(g, proj.pos, 24, '#FF4500', 240); spawnParticles(g, proj.pos, 12, '#F1C40F', 160); g.screenShake = Math.max(g.screenShake, 0.4); if (dist(b.pos, proj.pos) < proj.aoe) dealDmgToBoss(g, 50, gear) }
       spawnParticles(g, proj.pos, 6, proj.color, 100); return false
     }
     return true
@@ -595,7 +595,7 @@ function tick(g: GS, dt: number, cls: ClassDef, bossId: BossId, gear: GearId[], 
       if (newIdx > (d2.strikeIndex ?? 0) && newIdx <= (d2.count ?? 7)) {
         d2.strikeIndex = newIdx
         const tx = p.pos.x + rnd(-220, 220), ty = p.pos.y + rnd(-220, 220)
-        if (dist(p.pos, v(tx, ty)) < 65) dealDmgToPlayer(g, d2.dmg ?? 45, cls, gear, norm(v(p.pos.x - tx, p.pos.y - ty)))
+        if (dist(p.pos, v(tx, ty)) < 65) dealDmgToPlayer(g, d2.dmg ?? 25, cls, gear, norm(v(p.pos.x - tx, p.pos.y - ty)))
         spawnParticles(g, v(tx, ty), 18, '#F1C40F', 240); g.screenShake = Math.max(g.screenShake, 0.35)
       }
       if ((d2.elapsed ?? 0) >= ((d2.count ?? 7) * 0.4 + 0.25)) { g.bossAttack = null; g.nextAttackTimer = rnd(2.4, 4.0) / (g.bossEnraged ? 1.6 : 1.0) }
@@ -606,7 +606,7 @@ function tick(g: GS, dt: number, cls: ClassDef, bossId: BossId, gear: GearId[], 
       const a2 = atk.data.angle ?? 0, hc = (atk.data.coneAngle ?? 0.5) / 2
       const pa = Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
       let df = Math.abs(pa - a2); while (df > Math.PI) df = Math.abs(df - Math.PI * 2)
-      if (df <= hc && dist(p.pos, b.pos) < (atk.data.coneRange ?? 320)) dealDmgToPlayer(g, (atk.data.dmg ?? 40) * dt * 2.5, cls, gear)
+      if (df <= hc && dist(p.pos, b.pos) < (atk.data.coneRange ?? 320)) dealDmgToPlayer(g, (atk.data.dmg ?? 20) * dt * 2.5, cls, gear)
       if ((atk.data.elapsed ?? 0) >= (atk.data.duration ?? 1.6)) { g.bossAttack = null; g.nextAttackTimer = rnd(2.0, 3.5) / (g.bossEnraged ? 1.7 : 1.0) }
       return
     }
@@ -615,7 +615,7 @@ function tick(g: GS, dt: number, cls: ClassDef, bossId: BossId, gear: GearId[], 
       const a3 = atk.data.angle ?? 0, hc2 = (atk.data.coneAngle ?? 0.4) / 2
       const pa2 = Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
       let df2 = Math.abs(pa2 - a3); while (df2 > Math.PI) df2 = Math.abs(df2 - Math.PI * 2)
-      if (df2 <= hc2 && dist(p.pos, b.pos) < (atk.data.coneRange ?? 260)) dealDmgToPlayer(g, (atk.data.dmg ?? 36) * dt * 1.5, cls, gear)
+      if (df2 <= hc2 && dist(p.pos, b.pos) < (atk.data.coneRange ?? 260)) dealDmgToPlayer(g, (atk.data.dmg ?? 18) * dt * 1.5, cls, gear)
       if ((atk.data.elapsed ?? 0) >= (atk.data.duration ?? 2.2)) { g.bossAttack = null; g.nextAttackTimer = rnd(2.4, 4.0) / (g.bossEnraged ? 1.6 : 1.0) }
       return
     }
@@ -656,7 +656,7 @@ function activateAbility(g: GS, idx: number, cls: ClassDef, gear: GearId[], abil
 
   if (idx === 0 && gear.includes('fire_staff')) {
     const dir = norm(v(abilityTarget.x - p.pos.x, abilityTarget.y - p.pos.y))
-    g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * 360, dir.y * 360), dmg: 60, radius: 14, fromBoss: false, life: 4.0, color: '#FF4500', aoe: 100, isFireball: true, trail: [] })
+    g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * 360, dir.y * 360), dmg: 80, radius: 14, fromBoss: false, life: 4.0, color: '#FF4500', aoe: 100, isFireball: true, trail: [] })
     spawnParticles(g, p.pos, 14, '#FF4500', 170)
     return
   }
@@ -669,7 +669,7 @@ function activateAbility(g: GS, idx: number, cls: ClassDef, gear: GearId[], abil
       g.attackFlash = { angle: Math.atan2(dir.y, dir.x), timer: 0.4, maxTimer: 0.4, type: 'power_shot', color: '#F1C40F' }
     } else if (idx === 1) { // Trap
       g.slowTraps.push({ id: ++g.nextTrapId, pos: { ...abilityTarget }, life: 20.0, fromPlayer: true })
-      if (dist(b.pos, abilityTarget) < BOSS_DEFS[bossId].size + 22) { dealDmgToBoss(g, 80, gear); b.slowTimer = 3.0 }
+      if (dist(b.pos, abilityTarget) < BOSS_DEFS[bossId].size + 22) { dealDmgToBoss(g, 110, gear); b.slowTimer = 3.0 }
       spawnParticles(g, abilityTarget, 10, '#8E44AD', 90, 0.65)
     } else if (idx === 2) { // Shadow Dash
       const dir = p.targetPos ? norm(v(p.targetPos.x - p.pos.x, p.targetPos.y - p.pos.y)) : norm(v(p.pos.x - b.pos.x, p.pos.y - b.pos.y))
@@ -688,7 +688,7 @@ function activateAbility(g: GS, idx: number, cls: ClassDef, gear: GearId[], abil
     }
   } else {
     if (idx === 0) { // Ground Slam
-      if (dist(p.pos, b.pos) < 135) { dealDmgToBoss(g, 90, gear); g.screenShake = Math.max(g.screenShake, 0.55) }
+      if (dist(p.pos, b.pos) < 140) { dealDmgToBoss(g, 130, gear); g.screenShake = Math.max(g.screenShake, 0.55) }
       spawnParticles(g, p.pos, 24, '#E74C3C', 220)
     } else if (idx === 1) { // Rage
       g.rageActive = true; g.rageTimer = 8.0; spawnParticles(g, p.pos, 18, '#FF6B35', 170)
@@ -696,7 +696,7 @@ function activateAbility(g: GS, idx: number, cls: ClassDef, gear: GearId[], abil
       const dir = norm(v(abilityTarget.x - p.pos.x, abilityTarget.y - p.pos.y))
       g.bullChargeDash = { active: true, vel: v(dir.x * 640, dir.y * 640), timer: 0.4 }; p.iframeTimer = 0.4
     } else if (idx === 3) { // Whirlwind
-      g.whirlwindActive = true; g.whirlwindTimer = 2.5; spawnParticles(g, p.pos, 18, '#E74C3C', 170)
+      g.whirlwindActive = true; g.whirlwindTimer = 3.0; spawnParticles(g, p.pos, 18, '#E74C3C', 170)
     }
   }
 }
