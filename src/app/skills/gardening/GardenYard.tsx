@@ -387,7 +387,7 @@ function PlantPopup({ plant, isAdmin, onClose, onUpdate, onDelete }: {
         onClick={e => e.stopPropagation()}>
 
         {/* Header */}
-        <div style={{ display: 'flex', gap: 16, padding: '20px 20px 16px', borderBottom: '1px solid rgba(200,155,60,0.12)' }}>
+        <div className="garden-popup-header" style={{ display: 'flex', gap: 16, padding: '20px 20px 16px', borderBottom: '1px solid rgba(200,155,60,0.12)' }}>
           <div style={{ width: 72, height: 72, borderRadius: 12, flexShrink: 0, background: 'radial-gradient(ellipse at 50% 30%, #fffbf0, #e8d4a0)', border: `3px solid ${info.color}`, boxShadow: `0 0 20px ${info.glow}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {img ? <img src={img} alt="" style={{ width: 48, height: 48, objectFit: 'contain' }} /> : <span style={{ fontSize: 40 }}>{plant.plantType?.icon ?? '🌱'}</span>}
           </div>
@@ -404,7 +404,7 @@ function PlantPopup({ plant, isAdmin, onClose, onUpdate, onDelete }: {
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: S.text4, fontSize: 22, cursor: 'pointer', padding: 0, lineHeight: 1, flexShrink: 0, alignSelf: 'flex-start' }}>✕</button>
         </div>
 
-        <div style={{ padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="garden-popup-body" style={{ padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Stage bar */}
           <div>
             <div style={labelStyle}>Growth Stage</div>
@@ -729,7 +729,7 @@ function PlantTypeForm({ initial, onClose, onSave }: { initial?: PlantType; onCl
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={onClose}>
-      <form onSubmit={handleSubmit} style={{ background: '#16120e', border: '1px solid rgba(200,155,60,0.4)', borderRadius: 16, width: '100%', maxWidth: 560, maxHeight: '92vh', overflowY: 'auto', padding: '22px 22px 20px', boxShadow: '0 12px 50px rgba(0,0,0,0.9)' }} onClick={e => e.stopPropagation()}>
+      <form onSubmit={handleSubmit} className="garden-popup-form" style={{ background: '#16120e', border: '1px solid rgba(200,155,60,0.4)', borderRadius: 16, width: '100%', maxWidth: 560, maxHeight: '92vh', overflowY: 'auto', padding: '22px 22px 20px', boxShadow: '0 12px 50px rgba(0,0,0,0.9)' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 8, color: S.gold }}>{initial ? '✏️ EDIT PLANT TYPE' : '🌿 NEW PLANT TYPE'}</div>
           <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', color: S.text4, fontSize: 20, cursor: 'pointer', padding: 0 }}>✕</button>

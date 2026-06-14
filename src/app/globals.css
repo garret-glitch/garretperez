@@ -768,10 +768,19 @@ a { color: inherit; text-decoration: none; }
   .bh-class-grid  { grid-template-columns: 1fr !important; }
   .bh-loadout-grid { grid-template-columns: 1fr !important; }
 
+  /* Boss Hunter menu screens — tighter padding + scrollable on small screens */
+  .bh-screen-wrap { padding: 0 14px !important; }
+  .bh-class-card  { padding: 12px !important; }
+  .bh-boss-card   { padding: 10px !important; }
+
   /* ─── Gardening — collapse info / form grids ────────────────── */
   .garden-info-grid     { grid-template-columns: 1fr !important; }
   .garden-form-grid-2   { grid-template-columns: 1fr !important; }
   .garden-form-grid-3   { grid-template-columns: repeat(2, 1fr) !important; }
+  /* Garden popups — reduce padding on small screens */
+  .garden-popup-form { padding: 14px 14px 16px !important; }
+  .garden-popup-header { padding: 14px 14px 12px !important; }
+  .garden-popup-body { padding: 12px 14px 16px !important; }
 }
 
 /* ─── Extra-small screens (< 480px) — tighten admin buttons further ── */

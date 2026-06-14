@@ -1590,14 +1590,14 @@ export default function BossHunter() {
   // ─── CLASS SELECT ───
   if (screen === 'class_select') return (
     <div style={{background:'#080814',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'"Press Start 2P",monospace'}}>
-      <div style={{textAlign:'center',maxWidth:760,padding:'0 24px'}}>
+      <div className="bh-screen-wrap" style={{textAlign:'center',maxWidth:760,padding:'0 24px'}}>
         <div style={{fontSize:16,color:'#C89B3C',marginBottom:6}}>CHOOSE YOUR CLASS</div>
         <div style={{fontSize:8,color:'#605848',marginBottom:28}}>Your class determines your playstyle and abilities</div>
         <div className="bh-class-grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:28}}>
           {CLASS_DEFS.map(cls => {
             const sel = selClass===cls.id
             return (
-              <div key={cls.id} onClick={() => setSelClass(cls.id)} style={{background:sel?'#13131c':'#0d0d1a',border:`2px solid ${sel?cls.color:'#2a2820'}`,borderRadius:10,padding:18,cursor:'pointer',textAlign:'left',transition:'border-color 0.2s'}}>
+              <div key={cls.id} onClick={() => setSelClass(cls.id)} className="bh-class-card" style={{background:sel?'#13131c':'#0d0d1a',border:`2px solid ${sel?cls.color:'#2a2820'}`,borderRadius:10,padding:18,cursor:'pointer',textAlign:'left',transition:'border-color 0.2s'}}>
                 <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
                   <div style={{fontSize:24}}>{cls.icon}</div>
                   <div>
@@ -1608,13 +1608,13 @@ export default function BossHunter() {
                 <div style={{fontSize:7,color:'#A09880',lineHeight:'1.7',marginBottom:10}}>{cls.desc}</div>
                 <div style={{fontSize:7,color:'#605848',marginBottom:6}}>ABILITIES:</div>
                 {cls.abilities.map((ab,i) => (
-                  <div key={i} style={{fontSize:6,color:'#8a7a60',marginBottom:3}}>
+                  <div key={i} style={{fontSize:7,color:'#8a7a60',marginBottom:3}}>
                     <span style={{color:cls.color}}>[{['Q','W','E','R'][i]}]</span> {ab.name} — {ab.desc}
                   </div>
                 ))}
                 <div style={{marginTop:10,display:'grid',gridTemplateColumns:'1fr 1fr',gap:4}}>
                   {(['dmg','hp','speed'] as const).map(stat => (
-                    <div key={stat} style={{fontSize:6,color:'#605848'}}>
+                    <div key={stat} style={{fontSize:7,color:'#605848'}}>
                       {stat.toUpperCase()}: <span style={{color:'#C89B3C'}}>{cls[stat]}</span>
                     </div>
                   ))}
@@ -1640,7 +1640,7 @@ export default function BossHunter() {
     const defGear = unlockedGear.filter(g => GEAR_CATEGORY[g] === 'defense')
     return (
       <div style={{background:'#080814',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'"Press Start 2P",monospace'}}>
-        <div style={{textAlign:'center',maxWidth:860,padding:'0 24px',width:'100%'}}>
+        <div className="bh-screen-wrap" style={{textAlign:'center',maxWidth:860,padding:'0 24px',width:'100%'}}>
           <div style={{fontSize:14,color:'#C89B3C',marginBottom:6}}>SELECT YOUR HUNT</div>
           <div style={{fontSize:8,color:'#605848',marginBottom:20}}>Defeat bosses to unlock gear — equip 1 attack + 1 defense</div>
 
@@ -1658,13 +1658,13 @@ export default function BossHunter() {
                       : <span style={{fontSize:7,color:'#605848'}}>— empty —</span>
                     }
                   </div>
-                  {atkGear.length === 0 && <div style={{fontSize:6,color:'#605848',fontStyle:'italic'}}>Defeat a boss to unlock attack gear</div>}
+                  {atkGear.length === 0 && <div style={{fontSize:7,color:'#605848',fontStyle:'italic'}}>Defeat a boss to unlock attack gear</div>}
                   {atkGear.map(gid => (
                     <div key={gid} onClick={() => setEquippedAttack(gid)} style={{cursor:'pointer',background:equippedAttack===gid?'#1a1a28':'#0d0d14',border:`1px solid ${equippedAttack===gid?'#E74C3C':'#2a2820'}`,borderRadius:5,padding:'6px 8px',marginBottom:5,display:'flex',alignItems:'center',gap:8,transition:'border-color 0.15s'}}>
                       <span style={{fontSize:12}}>{GEAR_DEFS[gid].icon}</span>
                       <div>
-                        <div style={{fontSize:6,color:equippedAttack===gid?'#E74C3C':'#A09880'}}>{GEAR_DEFS[gid].name}{equippedAttack===gid&&' ✓'}</div>
-                        <div style={{fontSize:5,color:'#605848',marginTop:2}}>{GEAR_DEFS[gid].desc}</div>
+                        <div style={{fontSize:7,color:equippedAttack===gid?'#E74C3C':'#A09880'}}>{GEAR_DEFS[gid].name}{equippedAttack===gid&&' ✓'}</div>
+                        <div style={{fontSize:7,color:'#605848',marginTop:2}}>{GEAR_DEFS[gid].desc}</div>
                       </div>
                     </div>
                   ))}
@@ -1678,13 +1678,13 @@ export default function BossHunter() {
                       : <span style={{fontSize:7,color:'#605848'}}>— empty —</span>
                     }
                   </div>
-                  {defGear.length === 0 && <div style={{fontSize:6,color:'#605848',fontStyle:'italic'}}>Defeat a boss to unlock defense gear</div>}
+                  {defGear.length === 0 && <div style={{fontSize:7,color:'#605848',fontStyle:'italic'}}>Defeat a boss to unlock defense gear</div>}
                   {defGear.map(gid => (
                     <div key={gid} onClick={() => setEquippedDefense(gid)} style={{cursor:'pointer',background:equippedDefense===gid?'#1a1a28':'#0d0d14',border:`1px solid ${equippedDefense===gid?'#3498DB':'#2a2820'}`,borderRadius:5,padding:'6px 8px',marginBottom:5,display:'flex',alignItems:'center',gap:8,transition:'border-color 0.15s'}}>
                       <span style={{fontSize:12}}>{GEAR_DEFS[gid].icon}</span>
                       <div>
-                        <div style={{fontSize:6,color:equippedDefense===gid?'#3498DB':'#A09880'}}>{GEAR_DEFS[gid].name}{equippedDefense===gid&&' ✓'}</div>
-                        <div style={{fontSize:5,color:'#605848',marginTop:2}}>{GEAR_DEFS[gid].desc}</div>
+                        <div style={{fontSize:7,color:equippedDefense===gid?'#3498DB':'#A09880'}}>{GEAR_DEFS[gid].name}{equippedDefense===gid&&' ✓'}</div>
+                        <div style={{fontSize:7,color:'#605848',marginTop:2}}>{GEAR_DEFS[gid].desc}</div>
                       </div>
                     </div>
                   ))}
@@ -1698,23 +1698,23 @@ export default function BossHunter() {
             {BOSS_DEFS.map((b,i) => {
               const bossId = i as BossId, sel = selBoss===bossId
               return (
-                <div key={i} onClick={() => setSelBoss(bossId)} style={{background:sel?'#13131c':'#0d0d1a',border:`2px solid ${sel?b.color:'#2a2820'}`,borderRadius:10,padding:14,cursor:'pointer',textAlign:'left',transition:'border-color 0.2s'}}>
+                <div key={i} onClick={() => setSelBoss(bossId)} className="bh-boss-card" style={{background:sel?'#13131c':'#0d0d1a',border:`2px solid ${sel?b.color:'#2a2820'}`,borderRadius:10,padding:14,cursor:'pointer',textAlign:'left',transition:'border-color 0.2s'}}>
                   <div style={{textAlign:'center',marginBottom:10}}>
                     <div style={{fontSize:28,marginBottom:5}}>{b.icon}</div>
                     <div style={{fontSize:9,color:b.color,marginBottom:2}}>{b.name}</div>
-                    <div style={{fontSize:6,color:'#605848'}}>{i===0?'Spider Lair':i===1?'Lava Cavern':'Storm Peak'}</div>
+                    <div style={{fontSize:7,color:'#605848'}}>{i===0?'Spider Lair':i===1?'Lava Cavern':'Storm Peak'}</div>
                   </div>
-                  <div style={{fontSize:6,color:'#8a7a60',marginBottom:6}}>HP: <span style={{color:'#E74C3C'}}>{b.hp.toLocaleString()}</span></div>
-                  <div style={{fontSize:6,color:'#605848',marginBottom:4}}>GEAR DROPS:</div>
+                  <div style={{fontSize:7,color:'#8a7a60',marginBottom:6}}>HP: <span style={{color:'#E74C3C'}}>{b.hp.toLocaleString()}</span></div>
+                  <div style={{fontSize:7,color:'#605848',marginBottom:4}}>GEAR DROPS:</div>
                   {b.rewards.map(gid => {
                     const unlocked = unlockedGear.includes(gid)
                     return (
-                      <div key={gid} style={{fontSize:5,color:unlocked?'#27AE60':'#605848',marginBottom:2,paddingLeft:4}}>
+                      <div key={gid} style={{fontSize:7,color:unlocked?'#27AE60':'#605848',marginBottom:2,paddingLeft:4}}>
                         {unlocked?'✓ ':'○ '}{GEAR_DEFS[gid].name}
                       </div>
                     )
                   })}
-                  {sel && <div style={{marginTop:8,fontSize:6,color:b.color}}>&#9654; SELECTED</div>}
+                  {sel && <div style={{marginTop:8,fontSize:7,color:b.color}}>&#9654; SELECTED</div>}
                 </div>
               )
             })}
@@ -1749,21 +1749,21 @@ export default function BossHunter() {
     const newGear = boss.rewards
     return (
       <div style={{background:'#080814',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'"Press Start 2P",monospace'}}>
-        <div style={{textAlign:'center',maxWidth:560,padding:'0 24px'}}>
+        <div className="bh-screen-wrap" style={{textAlign:'center',maxWidth:560,padding:'0 24px'}}>
           <div style={{fontSize:9,color:'#605848',marginBottom:12}}>HUNT COMPLETE</div>
           <div style={{fontSize:22,color:'#C89B3C',textShadow:'0 0 24px #C89B3C88',marginBottom:8}}>VICTORY!</div>
           <div style={{fontSize:10,color:boss.color,marginBottom:24}}>{boss.name} Defeated</div>
           <div style={{background:'#0d0d1a',border:'1px solid #2a2820',borderRadius:10,padding:20,marginBottom:24,textAlign:'left'}}>
             <div style={{fontSize:8,color:'#C89B3C',marginBottom:4}}>GEAR UNLOCKED:</div>
-            <div style={{fontSize:6,color:'#605848',marginBottom:12}}>Equip in the loadout panel before your next hunt</div>
+            <div style={{fontSize:7,color:'#605848',marginBottom:12}}>Equip in the loadout panel before your next hunt</div>
             {newGear.map(gid => {
               const cat = GEAR_CATEGORY[gid]
               return (
                 <div key={gid} style={{marginBottom:10,display:'flex',alignItems:'flex-start',gap:10}}>
                   <span style={{fontSize:16}}>{GEAR_DEFS[gid].icon}</span>
                   <div>
-                    <div style={{fontSize:8,color:'#E8E6E0',marginBottom:2}}>{GEAR_DEFS[gid].name} <span style={{fontSize:6,color:cat==='attack'?'#E74C3C':'#3498DB'}}>[{cat.toUpperCase()}]</span></div>
-                    <div style={{fontSize:6,color:'#A09880'}}>{GEAR_DEFS[gid].desc}</div>
+                    <div style={{fontSize:8,color:'#E8E6E0',marginBottom:2}}>{GEAR_DEFS[gid].name} <span style={{fontSize:7,color:cat==='attack'?'#E74C3C':'#3498DB'}}>[{cat.toUpperCase()}]</span></div>
+                    <div style={{fontSize:7,color:'#A09880'}}>{GEAR_DEFS[gid].desc}</div>
                   </div>
                 </div>
               )
@@ -1791,7 +1791,7 @@ export default function BossHunter() {
   // ─── DEFEAT ───
   return (
     <div style={{background:'#080814',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'"Press Start 2P",monospace'}}>
-      <div style={{textAlign:'center',maxWidth:480,padding:'0 24px'}}>
+      <div className="bh-screen-wrap" style={{textAlign:'center',maxWidth:480,padding:'0 24px'}}>
         <div style={{fontSize:22,color:'#E74C3C',textShadow:'0 0 24px #E74C3C88',marginBottom:8}}>DEFEATED</div>
         <div style={{fontSize:9,color:'#605848',marginBottom:24}}>{BOSS_DEFS[selBoss].name} was too powerful...</div>
         <div style={{fontSize:8,color:'#A09880',marginBottom:28,lineHeight:'2'}}>
