@@ -3,6 +3,15 @@ import { revalidatePath } from 'next/cache'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 
+export async function GET() {
+  const session = await auth()
+  if (session?.user?.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+  const row = await (prisma as any).siteSetting.findUnique({ where: { key: 'skills:order' } })
+  return NextResponse.json({ row })
+}
+
 export async function POST(req: Request) {
   const session = await auth()
   if (session?.user?.role !== 'ADMIN') {
