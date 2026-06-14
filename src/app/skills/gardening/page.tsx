@@ -69,16 +69,19 @@ export default async function GardeningPage() {
 
       {/* ── THE GARDEN ──────────────────────────────────────── */}
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
-          <div style={{ height: 1, flex: 1, background: 'rgba(200,155,60,0.15)' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
+          <div style={{ height: 1, flex: 1, background: 'rgba(90,158,111,0.2)' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 16 }}>🌿</span>
-            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: S.gold, letterSpacing: '0.1em' }}>
-              THE ZEN GARDEN
+            <span style={{ fontSize: 16 }}>🏡</span>
+            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: '#5a9e6f', letterSpacing: '0.1em' }}>
+              MY HOME GARDEN
             </span>
           </div>
-          <div style={{ height: 1, flex: 1, background: 'rgba(200,155,60,0.15)' }} />
+          <div style={{ height: 1, flex: 1, background: 'rgba(90,158,111,0.2)' }} />
         </div>
+        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#7ab88a', textAlign: 'center', marginBottom: 18, marginTop: 0 }}>
+          Add a plant to my digital garden.
+        </p>
 
         <GardenYard
           initialPlants={yardPlants}
