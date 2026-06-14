@@ -87,7 +87,7 @@ interface BossState {
 const CLASS_DEFS: ClassDef[] = [
   {
     id: 'hunter', label: 'Hunter', color: '#2ECC71', icon: '🏹', element: 'lightning', weaponType: 'bow',
-    hp: 100, dmg: 22, range: 290, atkCd: 0.65, speed: 178,
+    hp: 100, dmg: 22, range: 290, atkCd: 0.46, speed: 178,
     desc: 'Precision archer. Power shots, traps, shadow dashes, and a rain of deadly arrows from the sky.',
     abilities: [
       { key: 'Q', name: 'Power Shot', desc: 'Massive gold arrow — 3× dmg, stuns boss 0.5s', cd: 5 },
@@ -98,7 +98,7 @@ const CLASS_DEFS: ClassDef[] = [
   },
   {
     id: 'berserker', label: 'Berserker', color: '#E74C3C', icon: '⚔️', element: 'fire', weaponType: 'sword',
-    hp: 160, dmg: 42, range: 98, atkCd: 1.1, speed: 165,
+    hp: 160, dmg: 42, range: 98, atkCd: 0.77, speed: 165,
     desc: 'Fire juggernaut. Basic sword upgrades with legendary gear. Slam, rage, charge, and whirlwind.',
     abilities: [
       { key: 'Q', name: 'Ground Slam', desc: 'Shockwave — 90 dmg AOE, 120px radius', cd: 6 },
@@ -187,7 +187,7 @@ function mkState(cls: ClassDef, boss: BossDef, gear: GearId[]): GS {
       stunTimer: 0, slowTimer: 0, reflectDmg: 0,
       angle: Math.PI / 2, legPhase: 0, spinePulse: 0, lightningPhase: 0, hitFlash: 0,
     },
-    projectiles: [], bossAttack: null, nextAttackTimer: 2.0,
+    projectiles: [], bossAttack: null, nextAttackTimer: 3.5,
     damageNums: [], particles: [], slowTraps: [], zones: [],
     attackFlash: null, screenShake: 0, bossDeathAnim: 0,
     lavaParticles: [], skyArrows: [], envObjects: generateEnvObjects(boss.id),
@@ -217,6 +217,9 @@ function dealDmgToPlayer(g: GS, dmg: number, cls: ClassDef, gear: GearId[], knoc
   if (p.iframeTimer > 0) return
   let fd = dmg
   if (g.rageActive) fd = Math.round(fd * 1.2)
+  // Melee weapons take more hits up close — 20% innate damage reduction
+  const isMelee = cls.weaponType === 'sword' || gear.some(g2 => ['spider_fang','drake_sword','thunder_blade'].includes(g2))
+  if (isMelee) fd = Math.round(fd * 0.80)
   if (gear.includes('ember_armor')) fd = Math.round(fd * 0.75)
   p.hp = Math.max(0, p.hp - fd)
   p.hitFlash = 0.18; p.iframeTimer = 0.5
@@ -595,7 +598,7 @@ function tick(g: GS, dt: number, cls: ClassDef, bossId: BossId, gear: GearId[], 
         if (dist(p.pos, v(tx, ty)) < 65) dealDmgToPlayer(g, d2.dmg ?? 45, cls, gear, norm(v(p.pos.x - tx, p.pos.y - ty)))
         spawnParticles(g, v(tx, ty), 18, '#F1C40F', 240); g.screenShake = Math.max(g.screenShake, 0.35)
       }
-      if ((d2.elapsed ?? 0) >= ((d2.count ?? 7) * 0.4 + 0.25)) { g.bossAttack = null; g.nextAttackTimer = rnd(1.8, 3.2) / (g.bossEnraged ? 1.6 : 1.0) }
+      if ((d2.elapsed ?? 0) >= ((d2.count ?? 7) * 0.4 + 0.25)) { g.bossAttack = null; g.nextAttackTimer = rnd(2.4, 4.0) / (g.bossEnraged ? 1.6 : 1.0) }
       return
     }
     if (atk.type === 'flame_wave' && atk.active) {
@@ -604,7 +607,7 @@ function tick(g: GS, dt: number, cls: ClassDef, bossId: BossId, gear: GearId[], 
       const pa = Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
       let df = Math.abs(pa - a2); while (df > Math.PI) df = Math.abs(df - Math.PI * 2)
       if (df <= hc && dist(p.pos, b.pos) < (atk.data.coneRange ?? 320)) dealDmgToPlayer(g, (atk.data.dmg ?? 40) * dt * 2.5, cls, gear)
-      if ((atk.data.elapsed ?? 0) >= (atk.data.duration ?? 1.6)) { g.bossAttack = null; g.nextAttackTimer = rnd(1.4, 2.8) / (g.bossEnraged ? 1.7 : 1.0) }
+      if ((atk.data.elapsed ?? 0) >= (atk.data.duration ?? 1.6)) { g.bossAttack = null; g.nextAttackTimer = rnd(2.0, 3.5) / (g.bossEnraged ? 1.7 : 1.0) }
       return
     }
     if (atk.type === 'fire_breath' && atk.active) {
@@ -613,13 +616,13 @@ function tick(g: GS, dt: number, cls: ClassDef, bossId: BossId, gear: GearId[], 
       const pa2 = Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
       let df2 = Math.abs(pa2 - a3); while (df2 > Math.PI) df2 = Math.abs(df2 - Math.PI * 2)
       if (df2 <= hc2 && dist(p.pos, b.pos) < (atk.data.coneRange ?? 260)) dealDmgToPlayer(g, (atk.data.dmg ?? 36) * dt * 1.5, cls, gear)
-      if ((atk.data.elapsed ?? 0) >= (atk.data.duration ?? 2.2)) { g.bossAttack = null; g.nextAttackTimer = rnd(1.8, 3.2) / (g.bossEnraged ? 1.6 : 1.0) }
+      if ((atk.data.elapsed ?? 0) >= (atk.data.duration ?? 2.2)) { g.bossAttack = null; g.nextAttackTimer = rnd(2.4, 4.0) / (g.bossEnraged ? 1.6 : 1.0) }
       return
     }
     if (!atk.active && atk.elapsed >= atk.telegraphTime) {
       atk.active = true
       if (!['thunderstorm', 'chain_lightning', 'fire_breath', 'flame_wave'].includes(atk.type)) {
-        resolveBossAttack(g, bossId, cls, gear); g.bossAttack = null; g.nextAttackTimer = rnd(1.4, 2.6) / (g.bossEnraged ? 1.7 : 1.0)
+        resolveBossAttack(g, bossId, cls, gear); g.bossAttack = null; g.nextAttackTimer = rnd(2.0, 3.4) / (g.bossEnraged ? 1.7 : 1.0)
       }
     }
   } else if (g.nextAttackTimer <= 0 && b.stunTimer <= 0) {
