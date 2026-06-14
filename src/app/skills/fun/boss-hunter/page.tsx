@@ -1932,67 +1932,139 @@ export default function BossHunter() {
     </div>
   )
 
-  // ─── PREPARE YOUR HUNT (target / weapon / armour dropdowns) ───
+  // ─── PREPARE YOUR HUNT (carousel cards) ───
   if (screen === 'hunt_select') {
-    const atkGear = unlockedGear.filter(g => GEAR_CATEGORY[g] === 'attack')
-    const defGear = unlockedGear.filter(g => GEAR_CATEGORY[g] === 'defense')
-    const selW = WEAPON_DEFS.find(w => w.id === selWeapon)
+    const weaponIds: WeaponId[] = ['sword','bow','staff']
+    const weaponIdx = weaponIds.indexOf(selWeapon)
+    const selW = WEAPON_DEFS[weaponIdx]
     const selB = BOSS_DEFS[selBoss]
-    const ddStyle: React.CSSProperties = {background:'#0d0d1a',border:'1px solid #2a2820',color:'#E8E6E0',padding:'12px 16px',borderRadius:6,fontSize:9,fontFamily:'"Press Start 2P",monospace',cursor:'pointer',width:'100%'}
+
+    const prevBoss = () => setSelBoss(((selBoss - 1 + 3) % 3) as BossId)
+    const nextBoss = () => setSelBoss(((selBoss + 1) % 3) as BossId)
+    const prevWeapon = () => setSelWeapon(weaponIds[(weaponIdx - 1 + 3) % 3])
+    const nextWeapon = () => setSelWeapon(weaponIds[(weaponIdx + 1) % 3])
+
+    const setGearItem = (gid: GearId | null) => {
+      if (!gid) { setEquippedAttack(null); setEquippedDefense(null); return }
+      if (GEAR_CATEGORY[gid] === 'attack') { setEquippedAttack(gid); setEquippedDefense(null) }
+      else { setEquippedDefense(gid); setEquippedAttack(null) }
+    }
+    const currentGear = equippedAttack ?? equippedDefense ?? null
+    const gearOptions: Array<GearId | null> = [null, ...unlockedGear]
+    const gearIdx = Math.max(0, gearOptions.indexOf(currentGear))
+    const prevGear = () => setGearItem(gearOptions[(gearIdx - 1 + gearOptions.length) % gearOptions.length])
+    const nextGear = () => setGearItem(gearOptions[(gearIdx + 1) % gearOptions.length])
+
+    const arenaNames = ['Spider Lair','Lava Cavern','Storm Peak']
+
+    const navBtn = (onClick: ()=>void, label: string) => (
+      <button onClick={onClick} style={{background:'#1a1a28',border:'1px solid #2a2820',color:'#A09880',width:36,height:36,borderRadius:'50%',fontSize:16,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,lineHeight:1}}>
+        {label}
+      </button>
+    )
+
+    const dots = (total: number, active: number, color: string) => (
+      <div style={{display:'flex',gap:6,justifyContent:'center',marginTop:10}}>
+        {Array.from({length:total},(_,i)=>(
+          <div key={i} style={{width:i===active?12:6,height:6,borderRadius:3,background:i===active?color:'#2a2820',transition:'all 0.2s'}}/>
+        ))}
+      </div>
+    )
+
     return (
-      <div style={{background:'#080814',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'"Press Start 2P",monospace'}}>
-        <div style={{maxWidth:460,width:'100%',padding:'0 24px',textAlign:'center'}}>
+      <div style={{background:'#080814',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'"Press Start 2P",monospace',padding:'24px 0'}}>
+        <style>{`
+          @keyframes bh-card-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+          .bh-card-anim{animation:bh-card-in 0.18s ease}
+        `}</style>
+        <div style={{maxWidth:500,width:'100%',padding:'0 20px',textAlign:'center'}}>
 
           <div style={{fontSize:13,color:'#C89B3C',marginBottom:4}}>PREPARE YOUR HUNT</div>
-          <div style={{fontSize:7,color:'#605848',marginBottom:36}}>Choose your quarry, arm yourself, and descend</div>
+          <div style={{fontSize:7,color:'#605848',marginBottom:24}}>Choose your quarry, arm yourself, and descend</div>
 
-          {/* TARGET */}
-          <div style={{textAlign:'left',marginBottom:20}}>
-            <div style={{fontSize:7,color:'#605848',letterSpacing:2,marginBottom:8}}>◆ TARGET</div>
-            <select value={selBoss} onChange={e=>setSelBoss(Number(e.target.value) as BossId)} style={ddStyle}>
-              {BOSS_DEFS.map((b,i)=>(
-                <option key={i} value={i}>{b.icon}  {b.name}  —  {i===0?'Spider Lair':i===1?'Lava Cavern':'Storm Peak'}</option>
-              ))}
-            </select>
-            <div style={{fontSize:7,color:'#3a3020',marginTop:6,textAlign:'right'}}>
-              HP: <span style={{color:'#E74C3C'}}>{selB.hp.toLocaleString()}</span>
-              &nbsp;&bull;&nbsp;gear: <span style={{color:'#C89B3C'}}>{selB.rewards.filter(r=>unlockedGear.includes(r)).length}/{selB.rewards.length}</span>
+          {/* ── TARGET ── */}
+          <div style={{marginBottom:14}}>
+            <div style={{fontSize:7,color:'#605848',letterSpacing:2,marginBottom:8,textAlign:'left'}}>◆ TARGET</div>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              {navBtn(prevBoss,'‹')}
+              <div key={selBoss} className="bh-card-anim" style={{flex:1,background:'#0d0d14',border:`1px solid ${selB.color}44`,borderRadius:12,overflow:'hidden'}}>
+                <div style={{background:`radial-gradient(ellipse at 50% 80%, ${selB.color}30 0%, transparent 70%)`,padding:'20px 16px 12px',textAlign:'center'}}>
+                  <div style={{fontSize:72,lineHeight:1,marginBottom:8,filter:`drop-shadow(0 0 24px ${selB.color})`}}>{selB.icon}</div>
+                  <div style={{fontSize:10,color:selB.color,marginBottom:4,letterSpacing:1}}>{selB.name.toUpperCase()}</div>
+                  <div style={{fontSize:7,color:'#605848',marginBottom:10}}>{arenaNames[selBoss]} &bull; <span style={{color:selB.color}}>{selB.element}</span></div>
+                  <div style={{fontSize:7,color:'#3a3020',lineHeight:1.8,marginBottom:10,fontFamily:'"Press Start 2P",monospace'}}>{selB.lore.slice(0,72)}&hellip;</div>
+                  <div style={{display:'flex',gap:16,justifyContent:'center'}}>
+                    <div style={{fontSize:7,color:'#605848'}}>HP <span style={{color:'#E74C3C'}}>{selB.hp.toLocaleString()}</span></div>
+                    <div style={{fontSize:7,color:'#605848'}}>GEAR <span style={{color:'#C89B3C'}}>{selB.rewards.filter(r=>unlockedGear.includes(r)).length}/{selB.rewards.length}</span></div>
+                  </div>
+                </div>
+                {dots(3, selBoss, selB.color)}
+                <div style={{height:12}}/>
+              </div>
+              {navBtn(nextBoss,'›')}
             </div>
           </div>
 
-          {/* WEAPON */}
-          <div style={{textAlign:'left',marginBottom:20}}>
-            <div style={{fontSize:7,color:'#605848',letterSpacing:2,marginBottom:8}}>◆ WEAPON</div>
-            <select value={selWeapon} onChange={e=>setSelWeapon(e.target.value as WeaponId)} style={ddStyle}>
-              {WEAPON_DEFS.map(wpn=>(
-                <option key={wpn.id} value={wpn.id}>{wpn.icon}  {wpn.name}  —  {wpn.element}</option>
-              ))}
-            </select>
-            <div style={{fontSize:7,color:'#3a3020',marginTop:6,textAlign:'right'}}>
-              DMG <span style={{color:'#C89B3C'}}>{selW?.dmg}</span>
-              &nbsp;&bull;&nbsp;RANGE <span style={{color:'#C89B3C'}}>{selW?.range}</span>
+          {/* ── WEAPON ── */}
+          <div style={{marginBottom:14}}>
+            <div style={{fontSize:7,color:'#605848',letterSpacing:2,marginBottom:8,textAlign:'left'}}>◆ WEAPON</div>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              {navBtn(prevWeapon,'‹')}
+              <div key={selWeapon} className="bh-card-anim" style={{flex:1,background:'#0d0d14',border:`1px solid ${selW.color}44`,borderRadius:12,overflow:'hidden'}}>
+                <div style={{background:`radial-gradient(ellipse at 50% 80%, ${selW.color}28 0%, transparent 70%)`,padding:'20px 16px 12px',textAlign:'center'}}>
+                  <div style={{fontSize:64,lineHeight:1,marginBottom:8,filter:`drop-shadow(0 0 20px ${selW.color})`}}>{selW.icon}</div>
+                  <div style={{fontSize:10,color:selW.color,marginBottom:4,letterSpacing:1}}>{selW.name.toUpperCase()}</div>
+                  <div style={{fontSize:7,color:'#605848',marginBottom:10}}>{selW.element.toUpperCase()} &bull; DMG <span style={{color:'#C89B3C'}}>{selW.dmg}</span> &bull; RANGE <span style={{color:'#C89B3C'}}>{selW.range}</span></div>
+                  <div style={{fontSize:7,color:'#3a3020',lineHeight:1.8,marginBottom:10}}>{selW.desc.slice(0,64)}&hellip;</div>
+                  <div style={{display:'flex',gap:8,justifyContent:'center',flexWrap:'wrap'}}>
+                    {selW.abilities.map((ab,i)=>(
+                      <div key={i} style={{fontSize:6,color:'#605848'}}><span style={{color:selW.color}}>[{['Q','W','E','R'][i]}]</span> {ab.name}</div>
+                    ))}
+                  </div>
+                </div>
+                {dots(3, weaponIdx, selW.color)}
+                <div style={{height:12}}/>
+              </div>
+              {navBtn(nextWeapon,'›')}
             </div>
           </div>
 
-          {/* ARMOUR */}
-          <div style={{textAlign:'left',marginBottom:32}}>
-            <div style={{fontSize:7,color:'#605848',letterSpacing:2,marginBottom:8}}>◆ ARMOUR</div>
-            <select value={equippedAttack??''} onChange={e=>setEquippedAttack(e.target.value ? e.target.value as GearId : null)} style={{...ddStyle,marginBottom:8}}>
-              <option value="">⚔️  No attack gear</option>
-              {atkGear.map(gid=>(
-                <option key={gid} value={gid}>{GEAR_DEFS[gid].icon}  {GEAR_DEFS[gid].name}  (attack)</option>
-              ))}
-            </select>
-            <select value={equippedDefense??''} onChange={e=>setEquippedDefense(e.target.value ? e.target.value as GearId : null)} style={ddStyle}>
-              <option value="">🛡️  No defence gear</option>
-              {defGear.map(gid=>(
-                <option key={gid} value={gid}>{GEAR_DEFS[gid].icon}  {GEAR_DEFS[gid].name}  (defence)</option>
-              ))}
-            </select>
-            {unlockedGear.length===0&&<div style={{fontSize:7,color:'#3a3020',marginTop:6,textAlign:'right'}}>Defeat a boss to unlock gear</div>}
+          {/* ── GEAR ── */}
+          <div style={{marginBottom:24}}>
+            <div style={{fontSize:7,color:'#605848',letterSpacing:2,marginBottom:8,textAlign:'left'}}>◆ GEAR</div>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              {navBtn(prevGear,'‹')}
+              <div key={currentGear??'none'} className="bh-card-anim" style={{flex:1,background:'#0d0d14',border:`1px solid ${currentGear?'#C89B3C44':'#1e1c18'}`,borderRadius:12,overflow:'hidden'}}>
+                {currentGear ? (() => {
+                  const g = GEAR_DEFS[currentGear]
+                  const cat = GEAR_CATEGORY[currentGear]
+                  const gc = cat==='attack'?'#E74C3C':'#3498DB'
+                  return (
+                    <div style={{background:`radial-gradient(ellipse at 50% 80%, ${gc}22 0%, transparent 70%)`,padding:'20px 16px 12px',textAlign:'center'}}>
+                      <div style={{fontSize:56,lineHeight:1,marginBottom:8,filter:`drop-shadow(0 0 16px ${gc})`}}>{g.icon}</div>
+                      <div style={{fontSize:9,color:'#E8E6E0',marginBottom:4}}>{g.name}</div>
+                      <div style={{fontSize:6,color:gc,marginBottom:8,letterSpacing:1}}>{cat.toUpperCase()} GEAR</div>
+                      <div style={{fontSize:7,color:'#3a3020',lineHeight:1.8}}>{g.desc}</div>
+                    </div>
+                  )
+                })() : (
+                  <div style={{padding:'24px 16px',textAlign:'center'}}>
+                    <div style={{fontSize:40,marginBottom:8,opacity:0.2}}>⬡</div>
+                    <div style={{fontSize:8,color:'#3a3020',marginBottom:4}}>NO GEAR</div>
+                    {unlockedGear.length===0
+                      ? <div style={{fontSize:6,color:'#2a2820'}}>defeat a boss to unlock</div>
+                      : <div style={{fontSize:6,color:'#2a2820'}}>navigate to equip</div>
+                    }
+                  </div>
+                )}
+                {dots(gearOptions.length, gearIdx, '#C89B3C')}
+                <div style={{height:12}}/>
+              </div>
+              {navBtn(nextGear,'›')}
+            </div>
           </div>
 
-          <div style={{borderTop:'1px solid #1e1c18',marginBottom:24}}/>
+          <div style={{borderTop:'1px solid #1e1c18',marginBottom:20}}/>
 
           <div style={{display:'flex',gap:12,justifyContent:'center'}}>
             <button onClick={()=>setScreen('menu')} style={{background:'#1a1a28',border:'1px solid #2a2820',color:'#A09880',padding:'10px 24px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>BACK</button>
