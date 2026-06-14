@@ -50,6 +50,53 @@ function fmtDelta(change: number | null, pct: number | null, key: string): strin
   return `${sign}$${abs.toFixed(2)} (${pctStr})`
 }
 
+function StockRow({ tick, rank }: { tick: Tick; rank: number }) {
+  const up = (tick.change ?? 0) >= 0
+  const loaded = tick.price !== null
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 14,
+      background: loaded ? (up ? S.upBg : S.downBg) : S.card,
+      border: `1px solid ${loaded ? (up ? S.upBorder : S.downBorder) : 'rgba(200,155,60,0.15)'}`,
+      borderLeft: `3px solid ${loaded ? (up ? S.up : S.down) : S.text4}`,
+      padding: '13px 18px',
+    }}>
+      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: S.text4, width: 18, flexShrink: 0, textAlign: 'right' }}>
+        {rank}
+      </div>
+      <div style={{
+        fontFamily: "'Press Start 2P', monospace", fontSize: 7,
+        color: S.gold, letterSpacing: '0.06em', width: 46, flexShrink: 0,
+      }}>
+        {tick.display}
+      </div>
+      <div style={{
+        fontFamily: 'Inter, sans-serif', fontSize: 13, color: S.text2,
+        flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+      }}>
+        {tick.name}
+      </div>
+      <div style={{
+        fontFamily: 'Inter, sans-serif', fontSize: 15, fontWeight: 700,
+        color: S.text1, fontVariantNumeric: 'tabular-nums', flexShrink: 0, minWidth: 82, textAlign: 'right',
+      }}>
+        {loaded ? fmtPrice(tick.price, tick.key) : <span style={{ color: S.text4 }}>—</span>}
+      </div>
+      <div style={{
+        fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 600,
+        color: loaded ? (up ? S.up : S.down) : S.text4,
+        flexShrink: 0, minWidth: 120, textAlign: 'right',
+        display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 3,
+      }}>
+        {loaded && <span style={{ fontSize: 11 }}>{up ? '▲' : '▼'}</span>}
+        <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+          {loaded ? `${up ? '+' : '−'}${Math.abs(tick.changePercent ?? 0).toFixed(2)}%` : '—'}
+        </span>
+      </div>
+    </div>
+  )
+}
+
 function TickCard({ tick, wide = false }: { tick: Tick; wide?: boolean }) {
   const up = (tick.change ?? 0) >= 0
   const loaded = tick.price !== null
@@ -208,6 +255,7 @@ export default function MarketDashboard() {
   const metals  = data?.filter(d => d.category === 'metals')  ?? []
   const crypto  = data?.filter(d => d.category === 'crypto')  ?? []
   const nasdaq  = data?.find(d => d.category === 'index')
+  const stocks  = data?.filter(d => d.category === 'stocks')  ?? []
 
   const timeStr = updatedAt?.toLocaleTimeString('en-US', {
     hour: 'numeric', minute: '2-digit', second: '2-digit',
@@ -316,6 +364,19 @@ export default function MarketDashboard() {
           ? <TickCard tick={nasdaq} wide />
           : <TickCard wide tick={{ key:'nasdaq', name:'NASDAQ Composite', display:'IXIC', category:'index', unit:'', price:null, change:null, changePercent:null, marketState:null }} />
         }
+      </div>
+
+      {/* ── Top 10 US Stocks ── */}
+      <div>
+        <SectionHead icon="🏆" label="TOP 10 US STOCKS" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {stocks.length > 0
+            ? stocks.map((t, i) => <StockRow key={t.key} tick={t} rank={i + 1} />)
+            : ['AAPL','MSFT','NVDA','AMZN','GOOGL','META','TSLA','BRK.B','AVGO','JPM'].map((sym, i) => (
+                <StockRow key={sym} rank={i + 1} tick={{ key: sym.toLowerCase(), name: sym, display: sym, category: 'stocks', unit: '', price: null, change: null, changePercent: null, marketState: null }} />
+              ))
+          }
+        </div>
       </div>
 
     </div>

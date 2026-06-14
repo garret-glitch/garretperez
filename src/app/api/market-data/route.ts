@@ -15,6 +15,19 @@ interface Tick {
   marketState: string | null
 }
 
+const TOP_STOCKS = [
+  { key: 'aapl',  name: 'Apple',          display: 'AAPL',  symbol: 'AAPL'  },
+  { key: 'msft',  name: 'Microsoft',      display: 'MSFT',  symbol: 'MSFT'  },
+  { key: 'nvda',  name: 'NVIDIA',         display: 'NVDA',  symbol: 'NVDA'  },
+  { key: 'amzn',  name: 'Amazon',         display: 'AMZN',  symbol: 'AMZN'  },
+  { key: 'googl', name: 'Alphabet',       display: 'GOOGL', symbol: 'GOOGL' },
+  { key: 'meta',  name: 'Meta',           display: 'META',  symbol: 'META'  },
+  { key: 'tsla',  name: 'Tesla',          display: 'TSLA',  symbol: 'TSLA'  },
+  { key: 'brkb',  name: 'Berkshire Hath.', display: 'BRK.B', symbol: 'BRK-B' },
+  { key: 'avgo',  name: 'Broadcom',       display: 'AVGO',  symbol: 'AVGO'  },
+  { key: 'jpm',   name: 'JPMorgan',       display: 'JPM',   symbol: 'JPM'   },
+]
+
 async function fetchYahooChart(symbol: string): Promise<Tick> {
   try {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=5d&includePrePost=false`
@@ -54,12 +67,15 @@ function cgToTick(coin: { usd: number; usd_24h_change: number } | undefined): Ti
 }
 
 export async function GET() {
-  const [gold, silver, platinum, nasdaq, cg] = await Promise.all([
-    fetchYahooChart('GC=F'),
-    fetchYahooChart('SI=F'),
-    fetchYahooChart('PL=F'),
-    fetchYahooChart('^IXIC'),
+  const [[gold, silver, platinum, nasdaq], cg, stockTicks] = await Promise.all([
+    Promise.all([
+      fetchYahooChart('GC=F'),
+      fetchYahooChart('SI=F'),
+      fetchYahooChart('PL=F'),
+      fetchYahooChart('^IXIC'),
+    ]),
     fetchCoinGecko(),
+    Promise.all(TOP_STOCKS.map(s => fetchYahooChart(s.symbol))),
   ])
 
   const data = [
@@ -69,6 +85,10 @@ export async function GET() {
     { key: 'btc',      name: 'Bitcoin',          display: '₿',    category: 'crypto', unit: '',    ...cgToTick(cg.bitcoin) },
     { key: 'eth',      name: 'Ethereum',         display: 'Ξ',    category: 'crypto', unit: '',    ...cgToTick(cg.ethereum) },
     { key: 'nasdaq',   name: 'NASDAQ Composite', display: 'IXIC', category: 'index',  unit: '',    ...nasdaq },
+    ...TOP_STOCKS.map((s, i) => ({
+      key: s.key, name: s.name, display: s.display,
+      category: 'stocks', unit: '', ...stockTicks[i],
+    })),
   ]
 
   return NextResponse.json({ data, timestamp: Date.now() }, {
