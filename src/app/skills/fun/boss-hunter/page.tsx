@@ -248,7 +248,7 @@ function dealDmgToPlayer(g: GS, dmg: number, wpn: WeaponDef, gear: GearId[], kno
   p.hp = Math.max(0, p.hp - fd)
   p.hitFlash = 0.40; p.iframeTimer = 0.5
   g.playerDmgFlash = 0.70
-  if (knockDir) p.knockbackVel = v(knockDir.x * 160, knockDir.y * 160)
+  if (knockDir && wpn.id !== 'sword') p.knockbackVel = v(knockDir.x * 160, knockDir.y * 160)
   spawnParticles(g, p.pos, 8, '#FF4444', 110)
   g.screenShake = Math.max(g.screenShake, 0.32)
   g.damageNums.push({ id: ++g.nextDmgId, pos: { x: p.pos.x + rnd(-20, 20), y: p.pos.y - 20 }, val: Math.round(fd), life: 1.2, isPlayer: true })
@@ -362,7 +362,7 @@ function resolveBossAttack(g: GS, bossId: BossId, wpn: WeaponDef, gear: GearId[]
       let diff = Math.abs(pAngle - angle); while (diff > Math.PI) diff = Math.abs(diff - Math.PI * 2)
       if (diff <= halfCone) {
         dealDmgToPlayer(g, d.dmg ?? 22, wpn, gear, type === 'wind_buffet' ? toPlayer : undefined)
-        if (type === 'wind_buffet') p.knockbackVel = v(toPlayer.x * 240, toPlayer.y * 240)
+        if (type === 'wind_buffet' && wpn.id !== 'sword') p.knockbackVel = v(toPlayer.x * 240, toPlayer.y * 240)
       }
     }
   } else if (type === 'toxic_cloud') {
@@ -1877,7 +1877,7 @@ export default function BossHunter() {
           <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap'}}>
             <button onClick={() => startGame(selWeapon, selBoss, gearForBoss(selBoss))} style={{background:'#1a1a28',border:'1px solid #2a2820',color:'#A09880',padding:'10px 20px',borderRadius:6,fontSize:8,cursor:'pointer',fontFamily:'inherit'}}>REMATCH</button>
             {victoryBoss < BOSS_DEFS.length - 1 && (
-              <button onClick={() => { setSelBoss((victoryBoss+1) as BossId); setScreen('hunt_select') }} style={{background:'linear-gradient(135deg,#27AE60,#1a6e3c)',border:'none',color:'#fff',padding:'10px 20px',borderRadius:6,fontSize:8,cursor:'pointer',fontFamily:'inherit'}}>
+              <button onClick={() => { setSelBoss((victoryBoss+1) as BossId); setScreen('weapon_select') }} style={{background:'linear-gradient(135deg,#27AE60,#1a6e3c)',border:'none',color:'#fff',padding:'10px 20px',borderRadius:6,fontSize:8,cursor:'pointer',fontFamily:'inherit'}}>
                 NEXT HUNT
               </button>
             )}
