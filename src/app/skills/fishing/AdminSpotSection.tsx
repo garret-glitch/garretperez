@@ -61,6 +61,7 @@ function AddSpotForm({ onAdded }: { onAdded: () => void }) {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
+  const [added, setAdded] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   async function handleImg(e: React.ChangeEvent<HTMLInputElement>) {
@@ -83,7 +84,10 @@ function AddSpotForm({ onAdded }: { onAdded: () => void }) {
     })
     if (res.ok) {
       setName(''); setLocation(''); setType('LAKE'); setNotes(''); setTips('')
-      setImageData(null); setImagePreview(null); setOpen(false); onAdded()
+      setImageData(null); setImagePreview(null)
+      setAdded(true)
+      setTimeout(() => setAdded(false), 2500)
+      onAdded()
     } else {
       const j = await res.json().catch(() => ({}))
       setErr(j.error ?? 'Failed to save')
@@ -154,9 +158,10 @@ function AddSpotForm({ onAdded }: { onAdded: () => void }) {
       </div>
 
       {err && <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#c05050' }}>{err}</div>}
+      {added && <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#4caf50', fontWeight: 600 }}>✓ Spot added! Fill in the fields above to add another.</div>}
 
       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-        <button type="button" onClick={() => setOpen(false)} style={{ padding: '10px 18px', background: 'transparent', border: '1px solid rgba(200,155,60,0.2)', color: S.text3, fontFamily: 'Inter, sans-serif', fontSize: 13, cursor: 'pointer', borderRadius: 8 }}>Cancel</button>
+        <button type="button" onClick={() => setOpen(false)} style={{ padding: '10px 18px', background: 'transparent', border: '1px solid rgba(200,155,60,0.2)', color: S.text3, fontFamily: 'Inter, sans-serif', fontSize: 13, cursor: 'pointer', borderRadius: 8 }}>Done</button>
         <button type="submit" disabled={saving} style={{ padding: '10px 24px', background: saving ? 'rgba(200,155,60,0.15)' : 'linear-gradient(135deg, #c89b3c, #a07828)', border: 'none', color: saving ? 'rgba(200,155,60,0.4)' : '#0a0600', fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 700, cursor: saving ? 'wait' : 'pointer', borderRadius: 8 }}>
           {saving ? 'Saving…' : '📍 Add Spot'}
         </button>
