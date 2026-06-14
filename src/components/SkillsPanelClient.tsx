@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -188,6 +188,16 @@ export default function SkillsPanelClient({
   const pathname = usePathname()
   const router = useRouter()
 
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('sidebar-order')
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (Array.isArray(parsed) && parsed.length > 0) setOrder(parsed)
+      }
+    } catch {}
+  }, [])
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
@@ -209,6 +219,7 @@ export default function SkillsPanelClient({
         const data = await r.json().catch(() => ({}))
         if (r.ok) {
           console.log('[sidebar-save] ok — db saved:', data.saved)
+          try { localStorage.setItem('sidebar-order', JSON.stringify(next)) } catch {}
           setSaveMsg('✓ saved')
           setTimeout(() => {
             setSaveMsg(null)
