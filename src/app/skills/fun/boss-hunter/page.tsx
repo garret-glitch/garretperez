@@ -1932,116 +1932,67 @@ export default function BossHunter() {
     </div>
   )
 
-  // ─── HUNT SELECT + GEAR (combined) ───
+  // ─── PREPARE YOUR HUNT (target / weapon / armour dropdowns) ───
   if (screen === 'hunt_select') {
     const atkGear = unlockedGear.filter(g => GEAR_CATEGORY[g] === 'attack')
     const defGear = unlockedGear.filter(g => GEAR_CATEGORY[g] === 'defense')
+    const selW = WEAPON_DEFS.find(w => w.id === selWeapon)
+    const selB = BOSS_DEFS[selBoss]
+    const ddStyle: React.CSSProperties = {background:'#0d0d1a',border:'1px solid #2a2820',color:'#E8E6E0',padding:'12px 16px',borderRadius:6,fontSize:9,fontFamily:'"Press Start 2P",monospace',cursor:'pointer',width:'100%'}
     return (
-      <div style={{background:'#080814',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'"Press Start 2P",monospace',padding:'32px 0'}}>
-        <div className="bh-screen-wrap" style={{textAlign:'center',maxWidth:940,padding:'0 24px',width:'100%'}}>
+      <div style={{background:'#080814',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'"Press Start 2P",monospace'}}>
+        <div style={{maxWidth:460,width:'100%',padding:'0 24px',textAlign:'center'}}>
 
           <div style={{fontSize:13,color:'#C89B3C',marginBottom:4}}>PREPARE YOUR HUNT</div>
-          <div style={{fontSize:7,color:'#605848',marginBottom:24}}>Choose your target &bull; pick your weapon &bull; equip your gear</div>
+          <div style={{fontSize:7,color:'#605848',marginBottom:36}}>Choose your quarry, arm yourself, and descend</div>
 
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,marginBottom:20,textAlign:'left'}}>
-
-            {/* LEFT — Boss select */}
-            <div>
-              <div style={{fontSize:8,color:'#A09880',marginBottom:12,textAlign:'center',paddingBottom:8,borderBottom:'1px solid #1e1c18'}}>◆ SELECT TARGET</div>
-              <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                {BOSS_DEFS.map((b,i)=>{
-                  const bossId=i as BossId, sel=selBoss===bossId
-                  return (
-                    <div key={i} onClick={()=>setSelBoss(bossId)} style={{background:sel?'#13131c':'#0d0d1a',border:`2px solid ${sel?b.color:'#2a2820'}`,borderRadius:8,padding:'10px 12px',cursor:'pointer',display:'flex',alignItems:'center',gap:12,transition:'border-color 0.2s'}}>
-                      <div style={{fontSize:32,flexShrink:0,filter:sel?`drop-shadow(0 0 10px ${b.color})`:'none'}}>{b.icon}</div>
-                      <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:8,color:b.color,marginBottom:3}}>{b.name}</div>
-                        <div style={{fontSize:6,color:'#605848',marginBottom:5}}>{i===0?'Spider Lair':i===1?'Lava Cavern':'Storm Peak'} &bull; HP <span style={{color:'#E74C3C'}}>{b.hp.toLocaleString()}</span></div>
-                        <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
-                          {b.rewards.map(gid=>{
-                            const unlocked=unlockedGear.includes(gid)
-                            return <span key={gid} style={{fontSize:6,color:unlocked?'#27AE60':'#3a3428'}}>{GEAR_DEFS[gid].icon}{unlocked?' ✓':' ?'}</span>
-                          })}
-                        </div>
-                      </div>
-                      {sel&&<div style={{fontSize:10,color:b.color}}>▶</div>}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* RIGHT — Weapon select */}
-            <div>
-              <div style={{fontSize:8,color:'#A09880',marginBottom:12,textAlign:'center',paddingBottom:8,borderBottom:'1px solid #1e1c18'}}>◆ SELECT WEAPON</div>
-              <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                {WEAPON_DEFS.map(wpn=>{
-                  const sel=selWeapon===wpn.id
-                  return (
-                    <div key={wpn.id} onClick={()=>setSelWeapon(wpn.id)} style={{background:sel?'#13131c':'#0d0d1a',border:`2px solid ${sel?wpn.color:'#2a2820'}`,borderRadius:8,padding:'10px 12px',cursor:'pointer',display:'flex',alignItems:'center',gap:12,transition:'border-color 0.2s'}}>
-                      <div style={{fontSize:32,flexShrink:0,filter:sel?`drop-shadow(0 0 10px ${wpn.color})`:'none'}}>{wpn.icon}</div>
-                      <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:8,color:wpn.color,marginBottom:3}}>{wpn.name.toUpperCase()}</div>
-                        <div style={{fontSize:6,color:'#605848',marginBottom:5}}>{wpn.element.toUpperCase()} &bull; DMG <span style={{color:'#C89B3C'}}>{wpn.dmg}</span> &bull; RNG <span style={{color:'#C89B3C'}}>{wpn.range}</span></div>
-                        <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
-                          {wpn.abilities.slice(0,4).map((ab,i)=>(
-                            <span key={i} style={{fontSize:6,color:'#3a3428'}}><span style={{color:wpn.color}}>[{['Q','W','E','R'][i]}]</span> {ab.name}</span>
-                          ))}
-                        </div>
-                      </div>
-                      {sel&&<div style={{fontSize:10,color:wpn.color}}>▶</div>}
-                    </div>
-                  )
-                })}
-              </div>
+          {/* TARGET */}
+          <div style={{textAlign:'left',marginBottom:20}}>
+            <div style={{fontSize:7,color:'#605848',letterSpacing:2,marginBottom:8}}>◆ TARGET</div>
+            <select value={selBoss} onChange={e=>setSelBoss(Number(e.target.value) as BossId)} style={ddStyle}>
+              {BOSS_DEFS.map((b,i)=>(
+                <option key={i} value={i}>{b.icon}  {b.name}  —  {i===0?'Spider Lair':i===1?'Lava Cavern':'Storm Peak'}</option>
+              ))}
+            </select>
+            <div style={{fontSize:7,color:'#3a3020',marginTop:6,textAlign:'right'}}>
+              HP: <span style={{color:'#E74C3C'}}>{selB.hp.toLocaleString()}</span>
+              &nbsp;&bull;&nbsp;gear: <span style={{color:'#C89B3C'}}>{selB.rewards.filter(r=>unlockedGear.includes(r)).length}/{selB.rewards.length}</span>
             </div>
           </div>
 
-          {unlockedGear.length > 0 && (
-            <div style={{background:'#0d0d1a',border:'1px solid #2a2820',borderRadius:10,padding:16,marginBottom:20,textAlign:'left'}}>
-              <div style={{fontSize:8,color:'#C89B3C',marginBottom:12,textAlign:'center'}}>LOADOUT — 1 ATTACK SLOT · 1 DEFENSE SLOT</div>
-              <div className="bh-loadout-grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
-                <div>
-                  <div style={{fontSize:7,color:'#E74C3C',marginBottom:8}}>⚔️ ATTACK SLOT</div>
-                  <div style={{background:'#13131c',border:`1px solid ${equippedAttack?'#E74C3C44':'#2a2820'}`,borderRadius:6,padding:'8px 10px',marginBottom:8,minHeight:36,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                    {equippedAttack
-                      ?<><span style={{fontSize:7,color:'#E8E6E0'}}>{GEAR_DEFS[equippedAttack].icon} {GEAR_DEFS[equippedAttack].name}</span><button onClick={()=>setEquippedAttack(null)} style={{background:'none',border:'none',color:'#605848',fontSize:9,cursor:'pointer',padding:0,fontFamily:'inherit'}}>✕</button></>
-                      :<span style={{fontSize:7,color:'#605848'}}>— empty —</span>
-                    }
-                  </div>
-                  {atkGear.length===0&&<div style={{fontSize:7,color:'#605848',fontStyle:'italic'}}>Defeat a boss to unlock attack gear</div>}
-                  {atkGear.map(gid=>(
-                    <div key={gid} onClick={()=>setEquippedAttack(gid)} style={{cursor:'pointer',background:equippedAttack===gid?'#1a1a28':'#0d0d14',border:`1px solid ${equippedAttack===gid?'#E74C3C':'#2a2820'}`,borderRadius:5,padding:'6px 8px',marginBottom:5,display:'flex',alignItems:'center',gap:8,transition:'border-color 0.15s'}}>
-                      <span style={{fontSize:12}}>{GEAR_DEFS[gid].icon}</span>
-                      <div>
-                        <div style={{fontSize:7,color:equippedAttack===gid?'#E74C3C':'#A09880'}}>{GEAR_DEFS[gid].name}{equippedAttack===gid&&' ✓'}</div>
-                        <div style={{fontSize:7,color:'#605848',marginTop:2}}>{GEAR_DEFS[gid].desc}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div>
-                  <div style={{fontSize:7,color:'#3498DB',marginBottom:8}}>🛡️ DEFENSE SLOT</div>
-                  <div style={{background:'#13131c',border:`1px solid ${equippedDefense?'#3498DB44':'#2a2820'}`,borderRadius:6,padding:'8px 10px',marginBottom:8,minHeight:36,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                    {equippedDefense
-                      ?<><span style={{fontSize:7,color:'#E8E6E0'}}>{GEAR_DEFS[equippedDefense].icon} {GEAR_DEFS[equippedDefense].name}</span><button onClick={()=>setEquippedDefense(null)} style={{background:'none',border:'none',color:'#605848',fontSize:9,cursor:'pointer',padding:0,fontFamily:'inherit'}}>✕</button></>
-                      :<span style={{fontSize:7,color:'#605848'}}>— empty —</span>
-                    }
-                  </div>
-                  {defGear.length===0&&<div style={{fontSize:7,color:'#605848',fontStyle:'italic'}}>Defeat a boss to unlock defense gear</div>}
-                  {defGear.map(gid=>(
-                    <div key={gid} onClick={()=>setEquippedDefense(gid)} style={{cursor:'pointer',background:equippedDefense===gid?'#1a1a28':'#0d0d14',border:`1px solid ${equippedDefense===gid?'#3498DB':'#2a2820'}`,borderRadius:5,padding:'6px 8px',marginBottom:5,display:'flex',alignItems:'center',gap:8,transition:'border-color 0.15s'}}>
-                      <span style={{fontSize:12}}>{GEAR_DEFS[gid].icon}</span>
-                      <div>
-                        <div style={{fontSize:7,color:equippedDefense===gid?'#3498DB':'#A09880'}}>{GEAR_DEFS[gid].name}{equippedDefense===gid&&' ✓'}</div>
-                        <div style={{fontSize:7,color:'#605848',marginTop:2}}>{GEAR_DEFS[gid].desc}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+          {/* WEAPON */}
+          <div style={{textAlign:'left',marginBottom:20}}>
+            <div style={{fontSize:7,color:'#605848',letterSpacing:2,marginBottom:8}}>◆ WEAPON</div>
+            <select value={selWeapon} onChange={e=>setSelWeapon(e.target.value as WeaponId)} style={ddStyle}>
+              {WEAPON_DEFS.map(wpn=>(
+                <option key={wpn.id} value={wpn.id}>{wpn.icon}  {wpn.name}  —  {wpn.element}</option>
+              ))}
+            </select>
+            <div style={{fontSize:7,color:'#3a3020',marginTop:6,textAlign:'right'}}>
+              DMG <span style={{color:'#C89B3C'}}>{selW?.dmg}</span>
+              &nbsp;&bull;&nbsp;RANGE <span style={{color:'#C89B3C'}}>{selW?.range}</span>
             </div>
-          )}
+          </div>
+
+          {/* ARMOUR */}
+          <div style={{textAlign:'left',marginBottom:32}}>
+            <div style={{fontSize:7,color:'#605848',letterSpacing:2,marginBottom:8}}>◆ ARMOUR</div>
+            <select value={equippedAttack??''} onChange={e=>setEquippedAttack(e.target.value ? e.target.value as GearId : null)} style={{...ddStyle,marginBottom:8}}>
+              <option value="">⚔️  No attack gear</option>
+              {atkGear.map(gid=>(
+                <option key={gid} value={gid}>{GEAR_DEFS[gid].icon}  {GEAR_DEFS[gid].name}  (attack)</option>
+              ))}
+            </select>
+            <select value={equippedDefense??''} onChange={e=>setEquippedDefense(e.target.value ? e.target.value as GearId : null)} style={ddStyle}>
+              <option value="">🛡️  No defence gear</option>
+              {defGear.map(gid=>(
+                <option key={gid} value={gid}>{GEAR_DEFS[gid].icon}  {GEAR_DEFS[gid].name}  (defence)</option>
+              ))}
+            </select>
+            {unlockedGear.length===0&&<div style={{fontSize:7,color:'#3a3020',marginTop:6,textAlign:'right'}}>Defeat a boss to unlock gear</div>}
+          </div>
+
+          <div style={{borderTop:'1px solid #1e1c18',marginBottom:24}}/>
 
           <div style={{display:'flex',gap:12,justifyContent:'center'}}>
             <button onClick={()=>setScreen('menu')} style={{background:'#1a1a28',border:'1px solid #2a2820',color:'#A09880',padding:'10px 24px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>BACK</button>
@@ -2054,6 +2005,7 @@ export default function BossHunter() {
       </div>
     )
   }
+
 
   // ─── PLAYING ───
   if (screen === 'playing') return (
