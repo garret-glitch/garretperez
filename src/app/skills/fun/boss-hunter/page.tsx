@@ -1150,7 +1150,7 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
 
     // ── LEGS — 4 pairs, thin dark sticks with 3-claw tips ──
     ctx.lineCap = 'round'
-    for (const li of [2]) {
+    for (const li of [2, 4]) {
       if (li >= N2-1) continue
       const dxl = px2[Math.min(li+1,N2-1)]-px2[Math.max(li-1,0)]
       const dyl = py2[Math.min(li+1,N2-1)]-py2[Math.max(li-1,0)]
