@@ -71,6 +71,7 @@ interface GS {
   bossFlightRadius: number; bossFlightCenter: V2
   bossFleeTimer: number
   tailWhipCd: number
+  snakeTrail: Array<{x: number; y: number}>
 }
 interface PlayerState {
   pos: V2; vel: V2; targetPos: V2 | null
@@ -221,11 +222,12 @@ function mkState(wpn: WeaponDef, boss: BossDef, gear: GearId[]): GS {
     camX: clamp(sx - CW / 2, 0, WW - CW), camY: clamp(sy - CH / 2, 0, WH - CH),
     webProcAnim: null,
     bossFlightAngle: boss.id === 1 ? Math.PI * 0.75 : boss.id === 2 ? Math.PI * 0.25 : 0,
-    bossFlightSpeed: boss.id === 1 ? 0.55 : boss.id === 2 ? 0.70 : 0,
-    bossFlightRadius: boss.id === 1 ? 200 : boss.id === 2 ? 240 : 0,
+    bossFlightSpeed: boss.id === 2 ? 0.70 : 0,
+    bossFlightRadius: boss.id === 2 ? 240 : 0,
     bossFlightCenter: v(WW / 2, WH / 2 - 80),
     bossFleeTimer: 0,
     tailWhipCd: 0,
+    snakeTrail: [],
   }
 }
 
@@ -585,7 +587,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
 
   // Boss movement
   if (g.bossFlightSpeed > 0 && b.stunTimer <= 0) {
-    // Drake & Griffin: orbit around the player (center tracks player position)
+    // Griffin: orbit around the player (center tracks player position)
     const orbitMult = (g.bossEnraged ? 1.5 : 1.0) * (b.slowTimer > 0 ? 0.3 : 1.0)
     g.bossFlightAngle += g.bossFlightSpeed * orbitMult * dt
     // Orbit center lerps toward player so boss always circles near the player
@@ -598,6 +600,28 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
     const fc = g.bossFlightCenter
     b.pos.x = clamp(fc.x + Math.cos(g.bossFlightAngle) * r, 100, WW - 100)
     b.pos.y = clamp(fc.y + Math.sin(g.bossFlightAngle) * r * 0.62, 100, WH - 100)
+  } else if (bossId === 1 && b.stunTimer <= 0) {
+    // Drake: snake locomotion — head slithers toward player with sinusoidal lateral weave
+    const snakeSpeed = (g.bossEnraged ? 178 : 135) * (b.slowTimer > 0 ? 0.28 : 1.0)
+    const toP = norm(v(p.pos.x - b.pos.x, p.pos.y - b.pos.y))
+    const perp = v(-toP.y, toP.x)
+    const wiggle = Math.sin(g.gtime * 1.85) * 0.65
+    const mdx = toP.x + perp.x * wiggle, mdy = toP.y + perp.y * wiggle
+    const mlen = Math.sqrt(mdx*mdx + mdy*mdy) || 1
+    b.pos.x = clamp(b.pos.x + (mdx/mlen) * snakeSpeed * dt, 90, WW - 90)
+    b.pos.y = clamp(b.pos.y + (mdy/mlen) * snakeSpeed * dt, 90, WH - 90)
+    // Smoothly rotate head angle toward actual movement direction
+    const tgtAng = Math.atan2(mdy/mlen, mdx/mlen)
+    let dAng = (tgtAng - b.angle) % (Math.PI * 2)
+    if (dAng > Math.PI) dAng -= Math.PI * 2
+    if (dAng < -Math.PI) dAng += Math.PI * 2
+    b.angle += dAng * Math.min(1, dt * 8)
+    // Append head position to trail for body-follows-head movement
+    const tl = g.snakeTrail
+    if (tl.length === 0 || dist(b.pos, tl[tl.length-1]) >= 8) {
+      tl.push({x: b.pos.x, y: b.pos.y})
+      if (tl.length > 400) tl.shift()
+    }
   } else if (bossId === 0) {
     // Spider: stalk player at preferred range — chase when far, back away when too close, strafe in between
     const bossSpeed = (g.bossEnraged ? 155 : 105) * (b.slowTimer > 0 ? 0.4 : 1)
@@ -624,7 +648,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
       }
     }
   }
-  b.angle = Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
+  if (bossId !== 1) b.angle = Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
   if (g.attackFlash) { g.attackFlash.timer = Math.max(0, g.attackFlash.timer - dt); if (g.attackFlash.timer <= 0) g.attackFlash = null }
 
   // Hazard zones
@@ -741,25 +765,29 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
       g.lavaParticles.push({ id: ++g.nextPartId, pos: v(b.pos.x + rnd(-bossDef.size*0.9, bossDef.size*0.9), b.pos.y + rnd(-bossDef.size*0.3, bossDef.size*0.55)), vel: v(rnd(-28, 28) + side * rnd(8, 36), rnd(-95, -28)), life: rnd(0.5, 1.5), maxLife: 1.5, color: cols[Math.floor(Math.random()*cols.length)], size: rnd(2.5, 7) })
     }
     g.lavaParticles = g.lavaParticles.filter(pt => { pt.life -= dt; pt.pos.x += pt.vel.x * dt; pt.pos.y += pt.vel.y * dt; return pt.life > 0 })
-    // Tail whip — check if tail end segments hit the player
+    // Tail whip — player takes damage if they touch the tail tip
     if (g.tailWhipCd > 0) { g.tailWhipCd -= dt } else if (p.iframeTimer <= 0) {
-      const ca2 = Math.cos(b.angle), sa2 = Math.sin(b.angle)
-      const w3t = Math.sin(g.gtime * 1.6 - 1.7) * bossDef.size * 0.18
-      // Last 3 anchors in local space (matches render coords)
-      const tailPts: [number,number][] = [
-        [-bossDef.size*0.96, bossDef.size*1.12 + w3t],
-        [-bossDef.size*0.03, bossDef.size*1.52],
-        [ bossDef.size*0.42, bossDef.size*1.00],
-      ]
-      for (const [lx, ly] of tailPts) {
-        const wx = b.pos.x + ca2*lx - sa2*ly
-        const wy = b.pos.y + sa2*lx + ca2*ly
-        if (dist(p.pos, v(wx, wy)) < 42) {
-          dealDmgToPlayer(g, 14, wpn, gear, norm(v(p.pos.x - wx, p.pos.y - wy)))
-          g.tailWhipCd = 1.1
-          spawnParticles(g, v(wx,wy), 6, '#FF6600', 110)
-          break
+      // Walk the trail backward from head to find the tail tip position
+      const tl2 = g.snakeTrail
+      const BODY_LEN = bossDef.size * 3.5  // total snake body length in px
+      let tailX = b.pos.x, tailY = b.pos.y
+      if (tl2.length > 0) {
+        let walked = 0, wpx2 = b.pos.x, wpy2 = b.pos.y
+        for (let ti2 = tl2.length - 1; ti2 >= 0; ti2--) {
+          const dx2 = tl2[ti2].x - wpx2, dy2 = tl2[ti2].y - wpy2
+          const d2 = Math.sqrt(dx2*dx2 + dy2*dy2)
+          if (walked + d2 >= BODY_LEN) {
+            const fr3 = (BODY_LEN - walked) / d2
+            tailX = wpx2 + dx2*fr3; tailY = wpy2 + dy2*fr3; break
+          }
+          walked += d2; wpx2 = tl2[ti2].x; wpy2 = tl2[ti2].y
+          if (ti2 === 0) { tailX = tl2[0].x; tailY = tl2[0].y }
         }
+      }
+      if (dist(p.pos, v(tailX, tailY)) < 50) {
+        dealDmgToPlayer(g, 14, wpn, gear, norm(v(p.pos.x - tailX, p.pos.y - tailY)))
+        g.tailWhipCd = 1.1
+        spawnParticles(g, v(tailX, tailY), 6, '#FF6600', 110)
       }
     }
   }
@@ -1012,25 +1040,47 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
     if (g.webProcAnim && dist(g.webProcAnim.pos,b.pos)<50) { ctx.strokeStyle=`rgba(200,160,255,${g.webProcAnim.timer})`; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(0,0,sz+15,0,Math.PI*2); ctx.stroke() }
 
   } else if (bossId === 1) {
-    // ── LAVA DRAKE ── massive coiled serpentine fire dragon
+    // ── LAVA DRAKE ── trail-following serpentine snake
     const sz = bossDef.size
     const pulse = Math.sin(t * 4.2)
     const enr = g.bossEnraged
-    // S-wave rippling through body segments
-    const w1 = Math.sin(t * 1.6) * sz * 0.18
-    const w2 = Math.sin(t * 1.6 - 0.85) * sz * 0.22
-    const w3 = Math.sin(t * 1.6 - 1.7) * sz * 0.18
 
-    ctx.save(); ctx.rotate(b.angle)
-
-    // ── COILED BODY — 8 anchor points, C-coil: head(right)→up→top→left→down→tail ──
-    const px2 = [ sz*1.44, sz*0.54+w1, -sz*0.28+w1, -sz*1.22, -sz*1.36+w2, -sz*0.96, -sz*0.03+w3, sz*0.42 ]
-    const py2 = [       0, -sz*1.12,   -sz*1.52,    -sz*1.04+w2, sz*0.04,   sz*1.12+w3, sz*1.52,   sz*1.00 ]
+    // ── Sample body segment positions from snake trail (b.pos-relative world coords, no rotation) ──
+    const N2 = 8
+    const SEG_SPACING = sz * 0.50   // arc-length between segment anchors
     const bw2 = [ sz*0.76, sz*0.64, sz*0.53, sz*0.43, sz*0.34, sz*0.24, sz*0.15, sz*0.07 ]
-    const N2 = px2.length
+    const px2: number[] = [0]   // segment 0 = head = origin in b.pos-relative context
+    const py2: number[] = [0]
+    {
+      const tl = g.snakeTrail
+      let remain = SEG_SPACING, spx = b.pos.x, spy = b.pos.y, ti = tl.length - 1
+      while (px2.length < N2) {
+        if (ti < 0) {
+          // Trail too short — extrapolate linearly behind last segment
+          const li = px2.length - 1
+          const bkx = li > 0 ? px2[li]-px2[li-1] : -Math.cos(b.angle)*SEG_SPACING
+          const bky = li > 0 ? py2[li]-py2[li-1] : -Math.sin(b.angle)*SEG_SPACING
+          const bklen = Math.sqrt(bkx*bkx+bky*bky) || SEG_SPACING
+          px2.push(px2[li] + bkx/bklen*SEG_SPACING)
+          py2.push(py2[li] + bky/bklen*SEG_SPACING)
+          continue
+        }
+        const tp = tl[ti]
+        const dx = tp.x - spx, dy = tp.y - spy
+        const d = Math.sqrt(dx*dx+dy*dy)
+        if (d < remain) {
+          remain -= d; spx = tp.x; spy = tp.y; ti--
+        } else {
+          const frac2 = remain/d
+          spx += dx*frac2; spy += dy*frac2
+          px2.push(spx - b.pos.x); py2.push(spy - b.pos.y)
+          remain = SEG_SPACING
+        }
+      }
+    }
     // Segment start/end using midpoint quadratic technique
-    const sS = (i: number) => i === 0 ? { x: px2[0], y: py2[0] } : { x: (px2[i-1]+px2[i])/2, y: (py2[i-1]+py2[i])/2 }
-    const sE = (i: number) => i >= N2-2 ? { x: px2[N2-1], y: py2[N2-1] } : { x: (px2[i]+px2[i+1])/2, y: (py2[i]+py2[i+1])/2 }
+    const sS = (i: number) => i === 0 ? {x: px2[0], y: py2[0]} : {x: (px2[i-1]+px2[i])/2, y: (py2[i-1]+py2[i])/2}
+    const sE = (i: number) => i >= N2-2 ? {x: px2[N2-1], y: py2[N2-1]} : {x: (px2[i]+px2[i+1])/2, y: (py2[i]+py2[i+1])/2}
 
     // Pass 1: outer glow
     if (!hitW) {
@@ -1128,41 +1178,35 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
     }
     ctx.lineCap = 'butt'
 
-    // ── HEAD — large flat isoceles triangle, base connects to body, tip points forward ──
-    const hBx = sz*1.08   // base x (back of triangle, connects to body)
-    const hTx = sz*1.74   // tip x (forward point)
-    const hHh = sz*0.50   // half-height of triangle base
-    // Triangle fill gradient (darker at base, slightly lighter at tip)
+    // ── HEAD — triangle rotated to face movement direction (origin = b.pos) ──
+    ctx.save(); ctx.rotate(b.angle)
+    const hBx = -sz*0.42   // back of triangle (behind head)
+    const hTx =  sz*0.50   // tip (forward toward player)
+    const hHh =  sz*0.44   // half-height of base
     const htGrad = ctx.createLinearGradient(hBx, 0, hTx, 0)
     htGrad.addColorStop(0,   hitW?'#BBB':(enr?'#7A0A00':'#550800'))
     htGrad.addColorStop(0.5, hitW?'#DDD':(enr?'#9E1000':'#720C00'))
     htGrad.addColorStop(1,   hitW?'#CCC':(enr?'#820C00':'#5E0A00'))
     ctx.fillStyle = htGrad
     ctx.beginPath()
-    ctx.moveTo(hBx, -hHh)
-    ctx.lineTo(hBx,  hHh)
-    ctx.lineTo(hTx,  0)
+    ctx.moveTo(hBx, -hHh); ctx.lineTo(hBx, hHh); ctx.lineTo(hTx, 0)
     ctx.closePath(); ctx.fill()
-    // Dark border outline
     ctx.strokeStyle = hitW?'#888':'#1A0200'; ctx.lineWidth = 3.5
     ctx.lineJoin = 'round'; ctx.lineCap = 'round'
     ctx.beginPath()
     ctx.moveTo(hBx, -hHh); ctx.lineTo(hBx, hHh); ctx.lineTo(hTx, 0); ctx.closePath(); ctx.stroke()
     ctx.lineJoin = 'miter'; ctx.lineCap = 'butt'
-    // Two hollow ring eyes (green glow, not filled)
     const ep = 0.65 + 0.35*Math.sin(t*5.2)
     const eyeCol = hitW ? '#FFF' : (enr ? '#FF2200' : '#00FF88')
     ctx.shadowColor = hitW?'#FFF':(enr?'#FF0000':'#00FF88'); ctx.shadowBlur = 24*ep
     ctx.strokeStyle = eyeCol; ctx.lineWidth = 3.2; ctx.lineCap = 'round'
-    ctx.beginPath(); ctx.arc(hBx+sz*0.20, -sz*0.15, 11, 0, Math.PI*2); ctx.stroke()
-    ctx.beginPath(); ctx.arc(hBx+sz*0.20,  sz*0.15, 11, 0, Math.PI*2); ctx.stroke()
-    // Black pupil dot inside ring
+    ctx.beginPath(); ctx.arc(-sz*0.10, -sz*0.15, 11, 0, Math.PI*2); ctx.stroke()
+    ctx.beginPath(); ctx.arc(-sz*0.10,  sz*0.15, 11, 0, Math.PI*2); ctx.stroke()
     ctx.fillStyle = '#000'; ctx.shadowBlur = 0
-    ctx.beginPath(); ctx.arc(hBx+sz*0.20, -sz*0.15, 3.5, 0, Math.PI*2); ctx.fill()
-    ctx.beginPath(); ctx.arc(hBx+sz*0.20,  sz*0.15, 3.5, 0, Math.PI*2); ctx.fill()
+    ctx.beginPath(); ctx.arc(-sz*0.10, -sz*0.15, 3.5, 0, Math.PI*2); ctx.fill()
+    ctx.beginPath(); ctx.arc(-sz*0.10,  sz*0.15, 3.5, 0, Math.PI*2); ctx.fill()
     ctx.lineWidth = 1; ctx.lineCap = 'butt'
-
-    ctx.restore()  // end rotate(b.angle)
+    ctx.restore()  // end head rotation
 
 
     // ── ENRAGE AURA ──
