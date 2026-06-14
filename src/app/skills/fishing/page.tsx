@@ -109,13 +109,13 @@ function StatChip({ value, sub, label }: { value: string; sub?: string; label: s
       }}>{value}</span>
       {sub && (
         <span style={{
-          fontFamily: 'Inter, sans-serif', fontSize: 12, color: S.text3,
+          fontFamily: 'Inter, sans-serif', fontSize: 13, color: S.text2,
           lineHeight: 1.3,
         }}>{sub}</span>
       )}
       <span style={{
-        fontFamily: "'Press Start 2P', monospace", fontSize: 6,
-        color: S.waterDim, letterSpacing: '0.12em', marginTop: 4,
+        fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700,
+        color: S.text3, letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 4,
       }}>{label}</span>
     </div>
   )
@@ -200,7 +200,7 @@ export default async function FishingPage() {
           <div style={{ height: 1, flex: 1, background: 'rgba(200,155,60,0.12)' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 15 }}>📊</span>
-            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: S.water, letterSpacing: '0.1em' }}>
+            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 11, color: S.water, letterSpacing: '0.1em' }}>
               CATCH LOG STATS
             </span>
             {isAdmin && <TackleBoxToggle hidden={statsHidden} settingKey="fishing_stats_hidden" />}
@@ -238,7 +238,7 @@ export default async function FishingPage() {
           <div style={{ height: 1, flex: 1, background: 'rgba(200,155,60,0.12)' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 15 }}>📍</span>
-            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: S.water, letterSpacing: '0.1em' }}>
+            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 11, color: S.water, letterSpacing: '0.1em' }}>
               FAVORITE SPOTS
             </span>
           </div>
@@ -260,21 +260,21 @@ export default async function FishingPage() {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={spot.image} alt={spot.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }} />
                     <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '45%', background: 'linear-gradient(to top, #09070e 0%, transparent 100%)', pointerEvents: 'none', zIndex: 1 }} />
-                    <div style={{ position: 'absolute', top: 16, left: 0, zIndex: 3, background: sc.tagSolid, padding: '6px 13px', borderRadius: '0 4px 4px 0', fontFamily: "'Press Start 2P', monospace", fontSize: 6, color: '#f5ede0', letterSpacing: '0.1em', boxShadow: '2px 2px 10px rgba(0,0,0,0.55)' }}>
+                    <div style={{ position: 'absolute', top: 16, left: 0, zIndex: 3, background: sc.tagSolid, padding: '7px 14px', borderRadius: '0 4px 4px 0', fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 11, color: '#f5ede0', letterSpacing: '0.06em', boxShadow: '2px 2px 10px rgba(0,0,0,0.55)' }}>
                       {spot.type}
                     </div>
                     {isAdmin && <AdminSpotSection spotId={spot.id} deleteOnly />}
                   </div>
                   <div style={{ padding: '14px 16px 16px', flex: 1, display: 'flex', flexDirection: 'column', gap: 8, background: '#09070e', borderTop: '1px solid rgba(200,155,60,0.1)' }}>
-                    <h3 style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 800, color: S.text1, lineHeight: 1.3, letterSpacing: '-0.01em', margin: 0 }}>{spot.name}</h3>
-                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: S.text3, background: 'rgba(200,155,60,0.06)', border: '1px solid rgba(200,155,60,0.14)', padding: '3px 8px', borderRadius: 4, alignSelf: 'flex-start' }}>{spot.location}</span>
-                    <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: S.text2, lineHeight: 1.68, margin: 0, flex: 1, fontStyle: 'italic' }}>{spot.notes}</p>
+                    <h3 style={{ fontFamily: 'Inter, sans-serif', fontSize: 17, fontWeight: 800, color: S.text1, lineHeight: 1.3, letterSpacing: '-0.01em', margin: 0 }}>{spot.name}</h3>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: S.text2, background: 'rgba(200,155,60,0.06)', border: '1px solid rgba(200,155,60,0.14)', padding: '4px 10px', borderRadius: 4, alignSelf: 'flex-start' }}>{spot.location}</span>
+                    <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: S.text2, lineHeight: 1.65, margin: 0, flex: 1 }}>{spot.notes}</p>
                     {speciesList.length > 0 && (
                       <div style={{ borderTop: '1px solid rgba(200,155,60,0.09)', paddingTop: 10 }}>
-                        <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 5.5, color: S.goldDim, letterSpacing: '0.14em', marginBottom: 8 }}>BEST SPECIES</div>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 11, color: S.text3, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Best Species</div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                           {speciesList.map((s: string) => (
-                            <span key={s} style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: S.text2, background: 'rgba(200,155,60,0.06)', border: '1px solid rgba(200,155,60,0.17)', padding: '4px 9px', borderRadius: 20 }}>{s}</span>
+                            <span key={s} style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: S.text2, background: 'rgba(200,155,60,0.06)', border: '1px solid rgba(200,155,60,0.17)', padding: '4px 10px', borderRadius: 20 }}>{s}</span>
                           ))}
                         </div>
                       </div>
@@ -304,13 +304,13 @@ export default async function FishingPage() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 16 }}>⚓</span>
-            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: S.gold, letterSpacing: '0.1em' }}>
+            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 11, color: S.gold, letterSpacing: '0.1em' }}>
               TACKLE BOX
             </span>
             <span style={{
-              fontSize: 7, fontFamily: "'Press Start 2P', monospace", color: S.goldDim,
+              fontSize: 11, fontFamily: 'Inter, sans-serif', fontWeight: 700, color: S.goldDim,
               background: 'rgba(200,155,60,0.07)', border: `1px solid rgba(200,155,60,0.18)`,
-              padding: '2px 7px', letterSpacing: '0.08em',
+              padding: '3px 9px', letterSpacing: '0.06em',
             }}>MY GEAR</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -333,20 +333,20 @@ export default async function FishingPage() {
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={item.image} alt={item.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }} />
                       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '45%', background: 'linear-gradient(to top, #09070e 0%, transparent 100%)', pointerEvents: 'none', zIndex: 1 }} />
-                      <div style={{ position: 'absolute', top: 16, left: 0, zIndex: 3, background: tc.tagSolid, padding: '6px 13px', borderRadius: '0 4px 4px 0', fontFamily: "'Press Start 2P', monospace", fontSize: 6, color: '#f5ede0', letterSpacing: '0.1em', boxShadow: '2px 2px 10px rgba(0,0,0,0.55)' }}>
+                      <div style={{ position: 'absolute', top: 16, left: 0, zIndex: 3, background: tc.tagSolid, padding: '7px 14px', borderRadius: '0 4px 4px 0', fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 11, color: '#f5ede0', letterSpacing: '0.06em', boxShadow: '2px 2px 10px rgba(0,0,0,0.55)' }}>
                         {item.category}
                       </div>
                       {item.url && (
-                        <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ position: 'absolute', bottom: 14, right: 13, zIndex: 3, fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 700, color: 'rgba(200,155,60,0.85)', textShadow: '0 1px 6px rgba(0,0,0,0.9)', textDecoration: 'none' }}>
+                        <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ position: 'absolute', bottom: 14, right: 13, zIndex: 3, fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 700, color: 'rgba(200,155,60,0.9)', textShadow: '0 1px 6px rgba(0,0,0,0.9)', textDecoration: 'none' }}>
                           Buy ↗
                         </a>
                       )}
                       {isAdmin && <AdminTackleItemSection itemId={item.id} deleteOnly />}
                     </div>
                     <div style={{ padding: '14px 16px 16px', flex: 1, display: 'flex', flexDirection: 'column', gap: 8, background: '#09070e', borderTop: '1px solid rgba(200,155,60,0.1)' }}>
-                      <h3 style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 800, color: S.text1, lineHeight: 1.3, letterSpacing: '-0.01em', margin: 0 }}>{item.name}</h3>
-                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: S.text3, background: 'rgba(200,155,60,0.06)', border: '1px solid rgba(200,155,60,0.14)', padding: '3px 8px', borderRadius: 4, alignSelf: 'flex-start' }}>{item.brand}</span>
-                      <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: S.text2, lineHeight: 1.68, margin: 0, flex: 1, fontStyle: 'italic' }}>{item.notes}</p>
+                      <h3 style={{ fontFamily: 'Inter, sans-serif', fontSize: 17, fontWeight: 800, color: S.text1, lineHeight: 1.3, letterSpacing: '-0.01em', margin: 0 }}>{item.name}</h3>
+                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: S.text2, background: 'rgba(200,155,60,0.06)', border: '1px solid rgba(200,155,60,0.14)', padding: '4px 10px', borderRadius: 4, alignSelf: 'flex-start' }}>{item.brand}</span>
+                      <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: S.text2, lineHeight: 1.65, margin: 0, flex: 1 }}>{item.notes}</p>
                     </div>
                   </div>
                 )
@@ -369,7 +369,7 @@ export default async function FishingPage() {
           <div style={{ height: 1, flex: 1, background: 'rgba(200,155,60,0.12)' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 15 }}>🐟</span>
-            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: S.water, letterSpacing: '0.1em' }}>
+            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 11, color: S.water, letterSpacing: '0.1em' }}>
               CATCH LOG
             </span>
           </div>
