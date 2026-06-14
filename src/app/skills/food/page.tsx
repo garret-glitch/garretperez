@@ -9,6 +9,7 @@ import FoodRecipeForm from './FoodRecipeForm'
 import FoodPostForm from './FoodPostForm'
 import WineIdentifier from './WineIdentifier'
 import AdminWineSection from './AdminWineSection'
+import WineImageEditor from './WineImageEditor'
 
 export const dynamic = 'force-dynamic'
 
@@ -140,6 +141,7 @@ export default async function FoodPage() {
   }> = []
 
   let dbWines: Array<{ id: string; name: string; image: string; origin: string; varietal: string; abv: string; tag: string; notes: string; pairings: string }> = []
+  let wineImageOverrides: Record<string, string> = {}
 
   try {
     const communityData = await getCommunityXpForSkill('FOOD')
@@ -155,6 +157,10 @@ export default async function FoodPage() {
       include: { user: { select: { username: true } } },
     })
     dbWines = await (prisma as any).featuredWine.findMany({ orderBy: { createdAt: 'asc' } })
+    const overrideRows = await (prisma as any).siteSetting.findMany({
+      where: { key: { startsWith: 'wine-img-' } },
+    }) as Array<{ key: string; value: string }>
+    wineImageOverrides = Object.fromEntries(overrideRows.map((r: { key: string; value: string }) => [r.key.replace('wine-img-', ''), r.value]))
   } catch { /* DB not configured */ }
 
   return (
@@ -186,7 +192,7 @@ export default async function FoodPage() {
         {(() => {
           type WineEntry = { id: string; name: string; image: string; origin: string; varietal: string; abv: string; tag: string; notes: string; pairings: string[]; fromDb?: boolean }
           const allWines: WineEntry[] = [
-            ...WINES,
+            ...WINES.map(w => ({ ...w, image: wineImageOverrides[w.id] ?? w.image })),
             ...dbWines.map(w => ({ ...w, pairings: JSON.parse(w.pairings || '[]') as string[], fromDb: true })),
           ]
           return (
@@ -235,6 +241,11 @@ export default async function FoodPage() {
                       <div style={{ position: 'absolute', bottom: 14, right: 13, zIndex: 3, fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 700, color: 'rgba(200,155,60,0.85)', textShadow: '0 1px 6px rgba(0,0,0,0.9)' }}>
                         {wine.abv} ABV
                       </div>
+
+                      {/* Admin: edit image button on every card */}
+                      {session?.user?.role === 'ADMIN' && (
+                        <WineImageEditor wineId={wine.id} isDb={wine.fromDb} />
+                      )}
 
                       {/* Admin delete (DB wines only) */}
                       {wine.fromDb && session?.user?.role === 'ADMIN' && (
