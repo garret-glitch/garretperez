@@ -70,6 +70,7 @@ interface GS {
   bossFlightAngle: number; bossFlightSpeed: number
   bossFlightRadius: number; bossFlightCenter: V2
   bossFleeTimer: number
+  tailWhipCd: number
 }
 interface PlayerState {
   pos: V2; vel: V2; targetPos: V2 | null
@@ -224,6 +225,7 @@ function mkState(wpn: WeaponDef, boss: BossDef, gear: GearId[]): GS {
     bossFlightRadius: boss.id === 1 ? 200 : boss.id === 2 ? 240 : 0,
     bossFlightCenter: v(WW / 2, WH / 2 - 80),
     bossFleeTimer: 0,
+    tailWhipCd: 0,
   }
 }
 
@@ -739,6 +741,27 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
       g.lavaParticles.push({ id: ++g.nextPartId, pos: v(b.pos.x + rnd(-bossDef.size*0.9, bossDef.size*0.9), b.pos.y + rnd(-bossDef.size*0.3, bossDef.size*0.55)), vel: v(rnd(-28, 28) + side * rnd(8, 36), rnd(-95, -28)), life: rnd(0.5, 1.5), maxLife: 1.5, color: cols[Math.floor(Math.random()*cols.length)], size: rnd(2.5, 7) })
     }
     g.lavaParticles = g.lavaParticles.filter(pt => { pt.life -= dt; pt.pos.x += pt.vel.x * dt; pt.pos.y += pt.vel.y * dt; return pt.life > 0 })
+    // Tail whip — check if tail end segments hit the player
+    if (g.tailWhipCd > 0) { g.tailWhipCd -= dt } else if (p.iframeTimer <= 0) {
+      const ca2 = Math.cos(b.angle), sa2 = Math.sin(b.angle)
+      const w3t = Math.sin(g.gtime * 1.6 - 1.7) * bossDef.size * 0.18
+      // Last 3 anchors in local space (matches render coords)
+      const tailPts: [number,number][] = [
+        [-bossDef.size*0.96, bossDef.size*1.12 + w3t],
+        [-bossDef.size*0.03, bossDef.size*1.52],
+        [ bossDef.size*0.42, bossDef.size*1.00],
+      ]
+      for (const [lx, ly] of tailPts) {
+        const wx = b.pos.x + ca2*lx - sa2*ly
+        const wy = b.pos.y + sa2*lx + ca2*ly
+        if (dist(p.pos, v(wx, wy)) < 42) {
+          dealDmgToPlayer(g, 14, wpn, gear, norm(v(p.pos.x - wx, p.pos.y - wy)))
+          g.tailWhipCd = 1.1
+          spawnParticles(g, v(wx,wy), 6, '#FF6600', 110)
+          break
+        }
+      }
+    }
   }
 }
 
@@ -1001,8 +1024,8 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
     ctx.save(); ctx.rotate(b.angle)
 
     // ── COILED BODY — 8 anchor points, C-coil: head(right)→up→top→left→down→tail ──
-    const px2 = [ sz*1.44, sz*0.82+w1, -sz*0.44+w1, -sz*1.88, -sz*2.10+w2, -sz*1.48, -sz*0.05+w3, sz*0.64 ]
-    const py2 = [       0, -sz*1.74,   -sz*2.34,    -sz*1.62+w2, sz*0.06,   sz*1.74+w3, sz*2.34,   sz*1.54 ]
+    const px2 = [ sz*1.44, sz*0.54+w1, -sz*0.28+w1, -sz*1.22, -sz*1.36+w2, -sz*0.96, -sz*0.03+w3, sz*0.42 ]
+    const py2 = [       0, -sz*1.12,   -sz*1.52,    -sz*1.04+w2, sz*0.04,   sz*1.12+w3, sz*1.52,   sz*1.00 ]
     const bw2 = [ sz*0.76, sz*0.64, sz*0.53, sz*0.43, sz*0.34, sz*0.24, sz*0.15, sz*0.07 ]
     const N2 = px2.length
     // Segment start/end using midpoint quadratic technique
@@ -1046,6 +1069,15 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
         ctx.lineWidth = bw2[i]*0.40; ctx.lineCap = 'round'
         ctx.beginPath(); ctx.moveTo(s2.x,s2.y); ctx.quadraticCurveTo(px2[i],py2[i],e2.x,e2.y); ctx.stroke()
       }
+    }
+    // Tail tip danger glow — pulses when tail whip cooldown is near 0 (= can hit again)
+    if (!hitW && g.tailWhipCd <= 0.3) {
+      const tipX2 = px2[N2-1], tipY2 = py2[N2-1]
+      const tipPulse = 0.5 + 0.5*Math.sin(t * 18)
+      ctx.shadowColor = '#FFFF00'; ctx.shadowBlur = 14 * tipPulse
+      ctx.fillStyle = `rgba(255,${Math.round(200+55*tipPulse)},0,${0.65+0.35*tipPulse})`
+      ctx.beginPath(); ctx.arc(tipX2, tipY2, bw2[N2-1]*1.8 + tipPulse*4, 0, Math.PI*2); ctx.fill()
+      ctx.shadowBlur = 0
     }
 
     // ── SCALE ARCS along body ──
