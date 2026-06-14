@@ -1468,6 +1468,7 @@ export default function BossHunter() {
   const [equippedAttack, setEquippedAttack] = useState<GearId | null>(null)
   const [equippedDefense, setEquippedDefense] = useState<GearId | null>(null)
   const [victoryBoss, setVictoryBoss] = useState(0)
+  const [lastUnlockedGear, setLastUnlockedGear] = useState<GearId | null>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const gsRef = useRef<GS|null>(null)
   const rafRef = useRef<number>(0)
@@ -1563,7 +1564,9 @@ export default function BossHunter() {
       if (g.phase === 'victory') {
         setVictoryBoss(selBoss)
         const newGear = BOSS_DEFS[selBoss].rewards.filter(r => !unlockedGear.includes(r)) as GearId[]
-        if (newGear.length > 0) setUnlockedGear(prev => [...prev, ...newGear])
+        const toUnlock = newGear[0] ?? null
+        if (toUnlock) setUnlockedGear(prev => [...prev, toUnlock])
+        setLastUnlockedGear(toUnlock)
         setScreen('victory')
         return
       }
@@ -1772,30 +1775,46 @@ export default function BossHunter() {
   // ─── VICTORY ───
   if (screen === 'victory') {
     const boss = BOSS_DEFS[victoryBoss]
-    const newGear = boss.rewards
+    const collectedCount = boss.rewards.filter(r => unlockedGear.includes(r)).length
+    const allCollected = collectedCount === boss.rewards.length
+    const remaining = boss.rewards.length - collectedCount
     return (
       <div style={{background:'#080814',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'"Press Start 2P",monospace'}}>
         <div className="bh-screen-wrap" style={{textAlign:'center',maxWidth:560,padding:'0 24px'}}>
           <div style={{fontSize:9,color:'#605848',marginBottom:12}}>HUNT COMPLETE</div>
           <div style={{fontSize:22,color:'#C89B3C',textShadow:'0 0 24px #C89B3C88',marginBottom:8}}>VICTORY!</div>
           <div style={{fontSize:10,color:boss.color,marginBottom:24}}>{boss.name} Defeated</div>
-          <div style={{background:'#0d0d1a',border:'1px solid #2a2820',borderRadius:10,padding:20,marginBottom:24,textAlign:'left'}}>
-            <div style={{fontSize:8,color:'#C89B3C',marginBottom:4}}>GEAR UNLOCKED:</div>
-            <div style={{fontSize:7,color:'#605848',marginBottom:12}}>Equip in the loadout panel before your next hunt</div>
-            {newGear.map(gid => {
+          <div style={{background:'#0d0d1a',border:'1px solid #2a2820',borderRadius:10,padding:20,marginBottom:16,textAlign:'left'}}>
+            {lastUnlockedGear ? (() => {
+              const gid = lastUnlockedGear
               const cat = GEAR_CATEGORY[gid]
-              return (
-                <div key={gid} style={{marginBottom:10,display:'flex',alignItems:'flex-start',gap:10}}>
+              return <>
+                <div style={{fontSize:8,color:'#C89B3C',marginBottom:4}}>GEAR UNLOCKED ({collectedCount} / {boss.rewards.length}):</div>
+                <div style={{fontSize:7,color:'#605848',marginBottom:12}}>Equip in the loadout panel before your next hunt</div>
+                <div style={{display:'flex',alignItems:'flex-start',gap:10}}>
                   <span style={{fontSize:16}}>{GEAR_DEFS[gid].icon}</span>
                   <div>
                     <div style={{fontSize:8,color:'#E8E6E0',marginBottom:2}}>{GEAR_DEFS[gid].name} <span style={{fontSize:7,color:cat==='attack'?'#E74C3C':'#3498DB'}}>[{cat.toUpperCase()}]</span></div>
                     <div style={{fontSize:7,color:'#A09880'}}>{GEAR_DEFS[gid].desc}</div>
                   </div>
                 </div>
-              )
-            })}
+              </>
+            })() : (
+              <>
+                <div style={{fontSize:8,color:'#27AE60',marginBottom:4}}>ALL GEAR COLLECTED ({boss.rewards.length} / {boss.rewards.length}):</div>
+                <div style={{fontSize:7,color:'#605848',marginBottom:12}}>You have everything this boss drops</div>
+                {boss.rewards.map(gid => (
+                  <div key={gid} style={{fontSize:7,color:'#27AE60',marginBottom:4}}>✓ {GEAR_DEFS[gid].icon} {GEAR_DEFS[gid].name}</div>
+                ))}
+              </>
+            )}
           </div>
-          {victoryBoss < BOSS_DEFS.length - 1 && (
+          {!allCollected && (
+            <div style={{fontSize:7,color:'#A09880',marginBottom:16}}>
+              {remaining} more {remaining === 1 ? 'reward' : 'rewards'} hidden — defeat {boss.name} again to claim {remaining === 1 ? 'it' : 'them'}
+            </div>
+          )}
+          {victoryBoss < BOSS_DEFS.length - 1 && allCollected && (
             <div style={{fontSize:8,color:'#27AE60',marginBottom:20}}>
               Next hunt unlocked: {BOSS_DEFS[victoryBoss+1].name}!
             </div>
