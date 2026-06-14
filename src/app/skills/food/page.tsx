@@ -39,8 +39,11 @@ const WINES = [
     varietal: 'Syrah, Merlot & Cab',
     abv: '12.4%',
     tag: 'SWEET RED',
-    tagColor: 'rgba(180,40,60,0.7)',
-    glowColor: 'rgba(160,30,50,0.28)',
+    tagColor: '#8b1520',
+    tagSolid: 'rgba(139,21,32,0.92)',
+    glowColor: 'rgba(160,30,50,0.35)',
+    score: 92,
+    editTag: 'HOUSE FAVE',
     notes: 'Blackberry and cherry aromas with soft tannins and a hint of mint. Medium-sweet, smooth finish. Best value Texas red under $11.',
     pairings: ['🦃 Turkey', '🥩 Brisket', '🌶️ Tex-Mex', '🧀 Cheese', '🍫 Chocolate'],
   },
@@ -52,8 +55,11 @@ const WINES = [
     varietal: 'Semi-Sweet Sparkling',
     abv: '5%',
     tag: 'SWEET RED',
-    tagColor: 'rgba(160,30,60,0.7)',
-    glowColor: 'rgba(140,20,50,0.28)',
+    tagColor: '#6e1040',
+    tagSolid: 'rgba(110,16,64,0.92)',
+    glowColor: 'rgba(140,20,60,0.32)',
+    score: 88,
+    editTag: 'CROWD PLEASER',
     notes: 'Ripe blackberry, blueberry, and raspberry with lush floral aromatics. Naturally sparkling, smooth sweetness — best served well chilled.',
     pairings: ['🍫 Chocolate', '🧀 Manchego', '🍓 Berries', '🍰 Cheesecake', '🌭 Bratwurst'],
   },
@@ -65,8 +71,11 @@ const WINES = [
     varietal: '100% Cabernet Sauvignon',
     abv: '14.5%',
     tag: 'BOLD RED',
-    tagColor: 'rgba(140,20,40,0.75)',
-    glowColor: 'rgba(120,10,30,0.32)',
+    tagColor: '#5a0e18',
+    tagSolid: 'rgba(90,14,24,0.95)',
+    glowColor: 'rgba(120,10,30,0.4)',
+    score: 94,
+    editTag: 'MUST HAVE',
     notes: 'Blackberry, huckleberry, and toasted oak on the nose. Spiced plum, dark chocolate, velvety tannins and a long satisfying finish.',
     pairings: ['🥩 Ribeye', '🍖 Lamb', '🧀 Aged Cheddar', '🍝 Bolognese', '🍔 Burgers'],
   },
@@ -74,13 +83,15 @@ const WINES = [
     id: 'matua',
     name: 'Matua Sauvignon Blanc',
     image: 'https://www.kenswineguide.com/images_wine/Matua-2023-Sauvignon-Blanc.gif',
-    noMask: true,
     origin: 'Marlborough, New Zealand',
     varietal: '100% Sauvignon Blanc',
     abv: '13%',
     tag: 'CRISP WHITE',
-    tagColor: 'rgba(50,130,70,0.7)',
-    glowColor: 'rgba(40,100,50,0.2)',
+    tagColor: '#1a5a30',
+    tagSolid: 'rgba(26,90,48,0.92)',
+    glowColor: 'rgba(40,110,55,0.22)',
+    score: 91,
+    editTag: 'DAILY SIP',
     notes: 'Vibrant passion fruit, lemon citrus, and gooseberry on the nose. Crisp green melon, lime zest, and cut grass with a clean zesty finish.',
     pairings: ['🦞 Seafood', '🐟 Grilled Fish', '🥗 Fresh Salads', '🧀 Goat Cheese', '🌿 Herb Dishes'],
   },
@@ -92,8 +103,11 @@ const WINES = [
     varietal: '100% Cabernet Sauvignon',
     abv: '13.5%',
     tag: 'ORGANIC RED',
-    tagColor: 'rgba(120,30,40,0.75)',
-    glowColor: 'rgba(100,20,30,0.28)',
+    tagColor: '#6b2010',
+    tagSolid: 'rgba(107,32,16,0.92)',
+    glowColor: 'rgba(100,20,30,0.32)',
+    score: 90,
+    editTag: 'CERTIFIED',
     notes: 'Dark cherry, plum, and cedar on the nose. Smooth blackcurrant fruit with a touch of vanilla oak and firm but approachable tannins. Certified organic.',
     pairings: ['🥩 Grilled Steak', '🍖 Lamb Chops', '🧀 Aged Gouda', '🍄 Mushroom Pasta', '🫒 Charcuterie'],
   },
@@ -105,8 +119,11 @@ const WINES = [
     varietal: '100% Chardonnay',
     abv: '13.5%',
     tag: 'RICH WHITE',
-    tagColor: 'rgba(180,130,20,0.75)',
-    glowColor: 'rgba(160,110,10,0.25)',
+    tagColor: '#7a5010',
+    tagSolid: 'rgba(122,80,16,0.92)',
+    glowColor: 'rgba(160,110,10,0.28)',
+    score: 89,
+    editTag: 'HOUSE FAVE',
     notes: 'Creamy vanilla, toasted brioche, and ripe peach on the nose. Lush stone fruit with a buttery mid-palate and a smooth, lingering oak finish.',
     pairings: ['🦞 Lobster', '🍗 Roast Chicken', '🧀 Brie', '🍝 Cream Pasta', '🐟 Salmon'],
   },
@@ -118,8 +135,11 @@ const WINES = [
     varietal: '100% Chardonnay',
     abv: '13.5%',
     tag: 'CRISP WHITE',
-    tagColor: 'rgba(160,120,20,0.75)',
-    glowColor: 'rgba(140,100,10,0.22)',
+    tagColor: '#6a4a12',
+    tagSolid: 'rgba(106,74,18,0.92)',
+    glowColor: 'rgba(140,100,10,0.25)',
+    score: 87,
+    editTag: 'BEST VALUE',
     notes: 'Apple, pear, and light citrus on the nose with subtle vanilla oak. Bright and food-friendly with a clean, refreshing finish. Exceptional everyday value.',
     pairings: ['🍗 Grilled Chicken', '🦐 Shrimp', '🥗 Caesar Salad', '🧀 Mild Cheese', '🐟 Fish Tacos'],
   },
@@ -181,132 +201,164 @@ export default async function FoodPage() {
           <div style={{ height: 1, flex: 1, background: 'rgba(200,155,60,0.15)' }} />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {WINES.map(wine => (
             <div
               key={wine.id}
               className="wine-card"
               style={{
-                background: S.card,
-                border: `1px solid rgba(200,155,60,0.22)`,
-                borderRadius: 14, overflow: 'hidden',
-                boxShadow: `0 4px 20px rgba(0,0,0,0.55), inset 0 1px 0 rgba(200,155,60,0.05)`,
+                background: '#0a0810',
+                border: `1px solid rgba(200,155,60,0.18)`,
+                borderRadius: 12, overflow: 'hidden',
+                boxShadow: `0 8px 40px rgba(0,0,0,0.75), 0 2px 8px rgba(0,0,0,0.5)`,
+                display: 'flex', flexDirection: 'column',
               }}
             >
-              {/* ── Bottle stage ── */}
+              {/* ── Bottle showcase ── */}
               <div style={{
-                position: 'relative', overflow: 'hidden',
+                position: 'relative', overflow: 'hidden', height: 320,
                 background: `
-                  radial-gradient(ellipse 60% 80% at 50% 80%, ${wine.glowColor ?? 'rgba(120,20,40,0.22)'} 0%, transparent 70%),
-                  radial-gradient(ellipse 80% 60% at 50% 30%, rgba(200,155,60,0.06) 0%, transparent 65%),
-                  linear-gradient(180deg, #0c0a08 0%, #14100c 60%, #0e0b09 100%)
+                  radial-gradient(ellipse 75% 55% at 50% 80%, ${wine.glowColor} 0%, transparent 68%),
+                  radial-gradient(ellipse 90% 30% at 50% 46%, rgba(90,52,8,0.13) 0%, transparent 100%),
+                  linear-gradient(180deg, #080612 0%, #14091a 18%, #1c1020 40%, #160c10 65%, #0a0607 100%)
                 `,
-                minHeight: 260,
-                display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-                paddingBottom: 24,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                {/* Gold accent line at top */}
+
+                {/* Vineyard horizon atmospheric layer */}
                 <div style={{
-                  position: 'absolute', top: 0, left: 0, right: 0, height: 2,
-                  background: `linear-gradient(90deg, transparent, rgba(200,155,60,0.5) 40%, rgba(200,155,60,0.5) 60%, transparent)`,
+                  position: 'absolute', top: '24%', left: 0, right: 0, height: '22%',
+                  background: 'radial-gradient(ellipse 80% 100% at 50% 50%, rgba(95,55,8,0.1) 0%, transparent 100%)',
+                  pointerEvents: 'none',
                 }} />
 
-                {/* Wine type tag — top left */}
+                {/* Ground shadow / depth fog */}
                 <div style={{
-                  position: 'absolute', top: 12, left: 12,
-                  background: wine.tagColor, backdropFilter: 'blur(4px)',
-                  color: '#f0e8d8',
+                  position: 'absolute', bottom: 0, left: 0, right: 0, height: '38%',
+                  background: 'linear-gradient(to top, rgba(4,2,8,0.82) 0%, transparent 100%)',
+                  pointerEvents: 'none',
+                }} />
+
+                {/* Left-edge ribbon — wine type */}
+                <div style={{
+                  position: 'absolute', top: 18, left: 0, zIndex: 3,
+                  background: wine.tagSolid,
+                  padding: '6px 13px 6px 13px',
+                  borderRadius: '0 4px 4px 0',
                   fontFamily: "'Press Start 2P', monospace", fontSize: 6,
-                  padding: '4px 8px', letterSpacing: '0.08em',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+                  color: '#f5ede0', letterSpacing: '0.1em',
+                  boxShadow: '2px 2px 10px rgba(0,0,0,0.55)',
                 }}>
                   {wine.tag}
                 </div>
 
                 {/* Favorite — top right */}
-                <div style={{ position: 'absolute', top: 8, right: 8 }}>
+                <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 3 }}>
                   <WineFavoriteButton label={wine.name} />
                 </div>
 
-                {/* Bottle image — the hero */}
+                {/* Bottle image — hero, full label visible */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={wine.image}
                   alt={wine.name}
                   className="wine-bottle"
                   style={{
-                    height: 200, width: 'auto', maxWidth: 130,
+                    height: 230, width: 'auto', maxWidth: 145,
                     objectFit: 'contain', display: 'block',
-                    filter: 'drop-shadow(0 10px 22px rgba(0,0,0,0.75)) drop-shadow(0 4px 8px rgba(0,0,0,0.5))',
-                    ...(wine.noMask ? {} : {
-                      maskImage: 'radial-gradient(ellipse 52% 92% at 50% 50%, black 30%, transparent 72%)',
-                      WebkitMaskImage: 'radial-gradient(ellipse 52% 92% at 50% 50%, black 30%, transparent 72%)',
-                    }),
-                    position: 'relative', zIndex: 1,
+                    filter: 'drop-shadow(0 14px 32px rgba(0,0,0,0.92)) drop-shadow(0 4px 12px rgba(0,0,0,0.7))',
+                    position: 'relative', zIndex: 2,
                   }}
                 />
 
-                {/* Subtle floor reflection */}
+                {/* Score — bottom left */}
+                <div style={{ position: 'absolute', bottom: 14, left: 15, zIndex: 3 }}>
+                  <div style={{
+                    fontFamily: "'Press Start 2P', monospace", fontSize: 24,
+                    color: S.gold, lineHeight: 1,
+                    textShadow: '0 0 18px rgba(200,155,60,0.5), 0 2px 4px rgba(0,0,0,0.8)',
+                  }}>
+                    {wine.score}
+                  </div>
+                  <div style={{
+                    fontFamily: "'Press Start 2P', monospace", fontSize: 5,
+                    color: 'rgba(200,155,60,0.5)', letterSpacing: '0.1em', marginTop: 4,
+                  }}>
+                    PTS
+                  </div>
+                </div>
+
+                {/* ABV — bottom right */}
                 <div style={{
-                  position: 'absolute', bottom: 0, left: 0, right: 0, height: 50,
-                  background: 'linear-gradient(to top, rgba(0,0,0,0.35), transparent)',
-                  pointerEvents: 'none',
-                }} />
+                  position: 'absolute', bottom: 16, right: 15, zIndex: 3,
+                  fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 700,
+                  color: 'rgba(200,155,60,0.65)',
+                  textShadow: '0 1px 4px rgba(0,0,0,0.8)',
+                }}>
+                  {wine.abv} ABV
+                </div>
               </div>
 
-              {/* ── Card body ── */}
-              <div style={{ padding: '16px 16px 20px' }}>
-                {/* Name */}
-                <h3 style={{
-                  fontFamily: 'Inter, sans-serif', fontSize: 15, fontWeight: 800,
-                  color: S.text1, marginBottom: 8, lineHeight: 1.3,
-                  letterSpacing: '-0.01em',
-                }}>
-                  {wine.name}
-                </h3>
+              {/* ── Info panel ── */}
+              <div style={{
+                padding: '15px 16px 18px', flex: 1, display: 'flex', flexDirection: 'column', gap: 10,
+                background: '#09070e',
+                borderTop: `1px solid rgba(200,155,60,0.1)`,
+              }}>
 
-                {/* Meta pills */}
-                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
+                {/* Editorial tag + name row */}
+                <div>
+                  <div style={{
+                    fontFamily: "'Press Start 2P', monospace", fontSize: 5.5,
+                    color: wine.tagColor, letterSpacing: '0.12em', marginBottom: 6,
+                    textTransform: 'uppercase',
+                  }}>
+                    ★ {wine.editTag}
+                  </div>
+                  <h3 style={{
+                    fontFamily: 'Inter, sans-serif', fontSize: 15, fontWeight: 800,
+                    color: S.text1, lineHeight: 1.3, letterSpacing: '-0.01em', margin: 0,
+                  }}>
+                    {wine.name}
+                  </h3>
+                </div>
+
+                {/* Origin + Varietal pills */}
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                   {[wine.origin, wine.varietal].map(t => (
                     <span key={t} style={{
                       fontFamily: 'Inter, sans-serif', fontSize: 11, color: S.text3,
-                      background: 'rgba(200,155,60,0.07)', border: `1px solid rgba(200,155,60,0.16)`,
+                      background: 'rgba(200,155,60,0.06)', border: `1px solid rgba(200,155,60,0.14)`,
                       padding: '3px 8px', borderRadius: 4,
                     }}>{t}</span>
                   ))}
-                  <span style={{
-                    fontFamily: 'Inter, sans-serif', fontSize: 11, color: S.gold,
-                    fontWeight: 700, background: 'rgba(200,155,60,0.1)',
-                    border: '1px solid rgba(200,155,60,0.25)', padding: '3px 8px', borderRadius: 4,
-                  }}>
-                    {wine.abv} ABV
-                  </span>
                 </div>
 
                 {/* Tasting notes */}
                 <p style={{
                   fontFamily: 'Inter, sans-serif', fontSize: 12, color: S.text2,
-                  lineHeight: 1.7, marginBottom: 14,
+                  lineHeight: 1.68, margin: 0, flex: 1,
+                  fontStyle: 'italic',
                 }}>
                   {wine.notes}
                 </p>
 
                 {/* Pairings */}
-                <div style={{ borderTop: `1px solid rgba(200,155,60,0.1)`, paddingTop: 14 }}>
+                <div style={{ borderTop: `1px solid rgba(200,155,60,0.09)`, paddingTop: 11 }}>
                   <div style={{
-                    fontFamily: "'Press Start 2P', monospace", fontSize: 6,
-                    color: S.goldDim, letterSpacing: '0.14em', marginBottom: 10,
+                    fontFamily: "'Press Start 2P', monospace", fontSize: 5.5,
+                    color: S.goldDim, letterSpacing: '0.14em', marginBottom: 8,
                   }}>
                     PAIRS WITH
                   </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                     {wine.pairings.map(p => (
                       <span
                         key={p}
                         className="food-pill"
                         style={{
                           fontFamily: 'Inter, sans-serif', fontSize: 11, color: S.text2,
-                          background: 'rgba(200,155,60,0.07)', border: `1px solid rgba(200,155,60,0.2)`,
+                          background: 'rgba(200,155,60,0.06)', border: `1px solid rgba(200,155,60,0.17)`,
                           padding: '4px 9px', borderRadius: 20,
                         }}
                       >
