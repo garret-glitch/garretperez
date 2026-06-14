@@ -8,6 +8,7 @@ import Link from 'next/link'
 import type { SkillType } from '@prisma/client'
 import FishingCatchForm from './FishingCatchForm'
 import FishingFeed, { type FeedPost } from './FishingFeed'
+import TackleBoxToggle from './TackleBoxToggle'
 
 export const dynamic = 'force-dynamic'
 
@@ -117,13 +118,14 @@ export default async function FishingPage() {
   let stats: CatchStats = { totalCatches:0, biggestWeight:0, biggestSpecies:'', favBait:'—', topSpecies:'—' }
   let posts: FeedPost[] = []
   let gear: GearItem[] = DEFAULT_GEAR
+  let tackleHidden = false
 
   try {
     const communityData = await getCommunityXpForSkill('FISHING' as SkillType)
     communityXp = communityData.xp
     memberCount  = communityData.memberCount
 
-    const [allBodies, rawPosts, gearSetting] = await Promise.all([
+    const [allBodies, rawPosts, gearSetting, tackleSetting] = await Promise.all([
       (prisma as any).post.findMany({
         where: { skill: 'FISHING' },
         select: { body: true },
@@ -139,6 +141,7 @@ export default async function FishingPage() {
         },
       }),
       (prisma as any).siteSetting.findUnique({ where: { key: 'fishing_gear' } }),
+      (prisma as any).siteSetting.findUnique({ where: { key: 'fishing_tackle_hidden' } }),
     ])
 
     stats = computeStats(allBodies.map((r: { body: string }) => r.body))
@@ -157,6 +160,7 @@ export default async function FishingPage() {
     if (gearSetting?.value) {
       try { gear = JSON.parse(gearSetting.value) } catch { /* use default */ }
     }
+    tackleHidden = tackleSetting?.value === '1'
   } catch { /* DB not configured */ }
 
   const isAdmin = session?.user?.role === 'ADMIN'
@@ -208,10 +212,12 @@ export default async function FishingPage() {
       </div>
 
       {/* ── Tackle Box ──────────────────────────────────────── */}
+      {(!tackleHidden || isAdmin) && (
       <div style={{
         background: S.card,
         border: `1px solid ${S.border}`,
         padding: '18px 18px 20px',
+        opacity: tackleHidden ? 0.5 : 1,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -225,13 +231,17 @@ export default async function FishingPage() {
               padding: '2px 7px', letterSpacing: '0.08em',
             }}>MY GEAR</span>
           </div>
-          {isAdmin && (
-            <Link href="/admin" style={{ fontSize: 11, color: S.text3, fontFamily: 'Inter, sans-serif', textDecoration: 'none' }}>
-              + Edit gear
-            </Link>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {isAdmin && <TackleBoxToggle hidden={tackleHidden} />}
+            {isAdmin && (
+              <Link href="/admin" style={{ fontSize: 11, color: S.text3, fontFamily: 'Inter, sans-serif', textDecoration: 'none' }}>
+                + Edit gear
+              </Link>
+            )}
+          </div>
         </div>
 
+        {!tackleHidden && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(88px, 1fr))', gap: 10 }}>
           {gear.map(item => {
             const hasLink = item.url.trim().length > 0
@@ -262,7 +272,9 @@ export default async function FishingPage() {
             )
           })}
         </div>
+        )}
       </div>
+      )}
 
       {/* ── Catch Log ───────────────────────────────────────── */}
       <div>
