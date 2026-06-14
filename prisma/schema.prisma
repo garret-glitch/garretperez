@@ -490,3 +490,25 @@ model FeaturedWine {
   pairings  String   @db.Text @default("[]")
   createdAt DateTime @default(now())
 }
+
+model FishingSpot {
+  id        String   @id @default(cuid())
+  name      String
+  image     String   @db.Text
+  location  String
+  type      String
+  notes     String   @db.Text
+  tips      String   @default("")
+  createdAt DateTime @default(now())
+}
+
+model FishingTackle {
+  id        String   @id @default(cuid())
+  name      String
+  image     String   @db.Text
+  brand     String
+  category  String
+  notes     String   @db.Text
+  url       String   @default("")
+  createdAt DateTime @default(now())
+}

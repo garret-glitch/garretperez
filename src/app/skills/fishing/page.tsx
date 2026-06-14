@@ -9,6 +9,8 @@ import type { SkillType } from '@prisma/client'
 import FishingCatchForm from './FishingCatchForm'
 import FishingFeed, { type FeedPost } from './FishingFeed'
 import TackleBoxToggle from './TackleBoxToggle'
+import AdminSpotSection from './AdminSpotSection'
+import AdminTackleItemSection from './AdminTackleItemSection'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,18 +31,28 @@ const S = {
   text4:      '#504030',
 }
 
-/* ── Gear list ─────────────────────────────────────────────────── */
-interface GearItem { id: string; emoji: string; name: string; category: string; url: string }
-const DEFAULT_GEAR: GearItem[] = [
-  { id:'1', emoji:'🎣', name:'Spinning Rod',     category:'Rods',    url:'' },
-  { id:'2', emoji:'⚙️', name:'Spinning Reel',    category:'Reels',   url:'' },
-  { id:'3', emoji:'🪁', name:'Crankbaits',       category:'Lures',   url:'' },
-  { id:'4', emoji:'🐛', name:'Live Bait Rigs',   category:'Bait',    url:'' },
-  { id:'5', emoji:'🧵', name:'Mono Line 10lb',   category:'Line',    url:'' },
-  { id:'6', emoji:'📦', name:'Tackle Box',       category:'Storage', url:'' },
-  { id:'7', emoji:'🦟', name:'Insect Repellent', category:'Gear',    url:'' },
-  { id:'8', emoji:'🎒', name:'Fishing Vest',     category:'Gear',    url:'' },
-]
+/* ── Spot / tackle colour maps ─────────────────────────────────── */
+const SPOT_CONFIG: Record<string, { tagSolid: string }> = {
+  'RIVER':     { tagSolid: 'rgba(22,90,55,0.92)'  },
+  'LAKE':      { tagSolid: 'rgba(18,55,110,0.92)' },
+  'OCEAN':     { tagSolid: 'rgba(10,30,80,0.95)'  },
+  'POND':      { tagSolid: 'rgba(30,80,40,0.92)'  },
+  'CREEK':     { tagSolid: 'rgba(20,75,65,0.92)'  },
+  'RESERVOIR': { tagSolid: 'rgba(25,55,90,0.92)'  },
+  'BEACH':     { tagSolid: 'rgba(130,80,20,0.92)' },
+  'BAY':       { tagSolid: 'rgba(15,40,90,0.92)'  },
+}
+const DEFAULT_SPOT = { tagSolid: 'rgba(40,60,80,0.92)' }
+
+const TACKLE_CONFIG: Record<string, { tagSolid: string }> = {
+  'Rods':        { tagSolid: 'rgba(100,55,20,0.92)' },
+  'Reels':       { tagSolid: 'rgba(55,60,70,0.95)'  },
+  'Lures':       { tagSolid: 'rgba(160,65,15,0.92)' },
+  'Bait':        { tagSolid: 'rgba(70,80,30,0.92)'  },
+  'Line':        { tagSolid: 'rgba(40,75,110,0.92)' },
+  'Accessories': { tagSolid: 'rgba(80,50,30,0.92)'  },
+}
+const DEFAULT_TACKLE = { tagSolid: 'rgba(60,50,30,0.92)' }
 
 /* ── Stats helpers ─────────────────────────────────────────────── */
 interface CatchStats {
@@ -117,16 +129,17 @@ export default async function FishingPage() {
   let memberCount   = 0
   let stats: CatchStats = { totalCatches:0, biggestWeight:0, biggestSpecies:'', favBait:'—', topSpecies:'—' }
   let posts: FeedPost[] = []
-  let gear: GearItem[] = DEFAULT_GEAR
   let tackleHidden = false
   let statsHidden = false
+  let spots: Array<{ id: string; name: string; image: string; location: string; type: string; notes: string; tips: string }> = []
+  let tackleItems: Array<{ id: string; name: string; image: string; brand: string; category: string; notes: string; url: string }> = []
 
   try {
     const communityData = await getCommunityXpForSkill('FISHING' as SkillType)
     communityXp = communityData.xp
     memberCount  = communityData.memberCount
 
-    const [allBodies, rawPosts, gearSetting, tackleSetting, statsSetting] = await Promise.all([
+    const [allBodies, rawPosts, tackleSetting, statsSetting, rawSpots, rawTackleItems] = await Promise.all([
       (prisma as any).post.findMany({
         where: { skill: 'FISHING' },
         select: { body: true },
@@ -141,9 +154,10 @@ export default async function FishingPage() {
           upvotes: { select: { userId: true } },
         },
       }),
-      (prisma as any).siteSetting.findUnique({ where: { key: 'fishing_gear' } }),
       (prisma as any).siteSetting.findUnique({ where: { key: 'fishing_tackle_hidden' } }),
       (prisma as any).siteSetting.findUnique({ where: { key: 'fishing_stats_hidden' } }),
+      (prisma as any).fishingSpot.findMany({ orderBy: { createdAt: 'asc' } }),
+      (prisma as any).fishingTackle.findMany({ orderBy: { createdAt: 'asc' } }),
     ])
 
     stats = computeStats(allBodies.map((r: { body: string }) => r.body))
@@ -159,11 +173,10 @@ export default async function FishingPage() {
       replies: p.replies.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })),
     }))
 
-    if (gearSetting?.value) {
-      try { gear = JSON.parse(gearSetting.value) } catch { /* use default */ }
-    }
     tackleHidden = tackleSetting?.value === '1'
     statsHidden  = statsSetting?.value === '1'
+    spots = rawSpots
+    tackleItems = rawTackleItems
   } catch { /* DB not configured */ }
 
   const isAdmin = session?.user?.role === 'ADMIN'
@@ -219,6 +232,67 @@ export default async function FishingPage() {
       </div>
       )}
 
+      {/* ── Favorite Locations ──────────────────────────────── */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
+          <div style={{ height: 1, flex: 1, background: 'rgba(200,155,60,0.12)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 15 }}>📍</span>
+            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: S.water, letterSpacing: '0.1em' }}>
+              FAVORITE SPOTS
+            </span>
+          </div>
+          <div style={{ height: 1, flex: 1, background: 'rgba(200,155,60,0.12)' }} />
+        </div>
+
+        {spots.length === 0 && !isAdmin && (
+          <div style={{ textAlign: 'center', padding: '32px 0', color: S.text4, fontFamily: 'Inter, sans-serif', fontSize: 13 }}>No spots added yet.</div>
+        )}
+
+        {spots.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5" style={{ marginBottom: 16 }}>
+            {spots.map(spot => {
+              const sc = SPOT_CONFIG[spot.type] ?? DEFAULT_SPOT
+              const speciesList = spot.tips ? spot.tips.split(',').map((t: string) => t.trim()).filter(Boolean) : []
+              return (
+                <div key={spot.id} style={{ background: '#0a0810', border: '1px solid rgba(200,155,60,0.18)', borderRadius: 12, overflow: 'hidden', boxShadow: '0 8px 40px rgba(0,0,0,0.75), 0 2px 8px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+                  <div style={{ position: 'relative', overflow: 'hidden', height: 240 }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={spot.image} alt={spot.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }} />
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '45%', background: 'linear-gradient(to top, #09070e 0%, transparent 100%)', pointerEvents: 'none', zIndex: 1 }} />
+                    <div style={{ position: 'absolute', top: 16, left: 0, zIndex: 3, background: sc.tagSolid, padding: '6px 13px', borderRadius: '0 4px 4px 0', fontFamily: "'Press Start 2P', monospace", fontSize: 6, color: '#f5ede0', letterSpacing: '0.1em', boxShadow: '2px 2px 10px rgba(0,0,0,0.55)' }}>
+                      {spot.type}
+                    </div>
+                    {isAdmin && <AdminSpotSection spotId={spot.id} deleteOnly />}
+                  </div>
+                  <div style={{ padding: '14px 16px 16px', flex: 1, display: 'flex', flexDirection: 'column', gap: 8, background: '#09070e', borderTop: '1px solid rgba(200,155,60,0.1)' }}>
+                    <h3 style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 800, color: S.text1, lineHeight: 1.3, letterSpacing: '-0.01em', margin: 0 }}>{spot.name}</h3>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: S.text3, background: 'rgba(200,155,60,0.06)', border: '1px solid rgba(200,155,60,0.14)', padding: '3px 8px', borderRadius: 4, alignSelf: 'flex-start' }}>{spot.location}</span>
+                    <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: S.text2, lineHeight: 1.68, margin: 0, flex: 1, fontStyle: 'italic' }}>{spot.notes}</p>
+                    {speciesList.length > 0 && (
+                      <div style={{ borderTop: '1px solid rgba(200,155,60,0.09)', paddingTop: 10 }}>
+                        <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 5.5, color: S.goldDim, letterSpacing: '0.14em', marginBottom: 8 }}>BEST SPECIES</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                          {speciesList.map((s: string) => (
+                            <span key={s} style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: S.text2, background: 'rgba(200,155,60,0.06)', border: '1px solid rgba(200,155,60,0.17)', padding: '4px 9px', borderRadius: 20 }}>{s}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {isAdmin && (
+          <div style={{ marginTop: spots.length > 0 ? 4 : 0 }}>
+            <AdminSpotSection />
+          </div>
+        )}
+      </div>
+
       {/* ── Tackle Box ──────────────────────────────────────── */}
       {(!tackleHidden || isAdmin) && (
       <div style={{
@@ -241,44 +315,49 @@ export default async function FishingPage() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {isAdmin && <TackleBoxToggle hidden={tackleHidden} settingKey="fishing_tackle_hidden" />}
-            {isAdmin && (
-              <Link href="/admin" style={{ fontSize: 11, color: S.text3, fontFamily: 'Inter, sans-serif', textDecoration: 'none' }}>
-                + Edit gear
-              </Link>
-            )}
           </div>
         </div>
 
         {!tackleHidden && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(88px, 1fr))', gap: 10 }}>
-          {gear.map(item => {
-            const hasLink = item.url.trim().length > 0
-            const tileBase: React.CSSProperties = {
-              display: 'flex', flexDirection: 'column', alignItems: 'center',
-              gap: 5, padding: '12px 8px',
-              background: S.elevated,
-              border: `1px solid ${S.borderDim}`,
-              cursor: hasLink ? 'pointer' : 'default',
-              textDecoration: 'none',
-            }
-            if (hasLink) return (
-              <a key={item.id} href={item.url} target="_blank" rel="noopener noreferrer" style={tileBase}
-                className="gear-tile">
-                <span style={{ fontSize: 28, lineHeight: 1 }}>{item.emoji}</span>
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#c8b880', textAlign: 'center', lineHeight: 1.3 }}>{item.name}</span>
-                <span style={{ fontSize: 9, color: S.goldDim, fontFamily: "'Press Start 2P', monospace", letterSpacing: '0.06em' }}>{item.category}</span>
-                <span style={{ fontSize: 9, color: '#7a6030' }}>↗</span>
-              </a>
-            )
-            return (
-              <div key={item.id} style={tileBase} className="gear-tile-dead">
-                <span style={{ fontSize: 28, lineHeight: 1 }}>{item.emoji}</span>
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#5a5030', textAlign: 'center', lineHeight: 1.3 }}>{item.name}</span>
-                <span style={{ fontSize: 9, color: '#2a2010', fontFamily: "'Press Start 2P', monospace", letterSpacing: '0.06em' }}>{item.category}</span>
-                <span style={{ fontSize: 8, color: '#2a2010' }}>link soon</span>
-              </div>
-            )
-          })}
+        <div>
+          {tackleItems.length === 0 && !isAdmin && (
+            <div style={{ textAlign: 'center', padding: '32px 0', color: S.text4, fontFamily: 'Inter, sans-serif', fontSize: 13 }}>No tackle added yet.</div>
+          )}
+          {tackleItems.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5" style={{ marginBottom: 16 }}>
+              {tackleItems.map(item => {
+                const tc = TACKLE_CONFIG[item.category] ?? DEFAULT_TACKLE
+                return (
+                  <div key={item.id} style={{ background: '#0a0810', border: '1px solid rgba(200,155,60,0.18)', borderRadius: 12, overflow: 'hidden', boxShadow: '0 8px 40px rgba(0,0,0,0.75), 0 2px 8px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+                    <div style={{ position: 'relative', overflow: 'hidden', height: 240 }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={item.image} alt={item.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }} />
+                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '45%', background: 'linear-gradient(to top, #09070e 0%, transparent 100%)', pointerEvents: 'none', zIndex: 1 }} />
+                      <div style={{ position: 'absolute', top: 16, left: 0, zIndex: 3, background: tc.tagSolid, padding: '6px 13px', borderRadius: '0 4px 4px 0', fontFamily: "'Press Start 2P', monospace", fontSize: 6, color: '#f5ede0', letterSpacing: '0.1em', boxShadow: '2px 2px 10px rgba(0,0,0,0.55)' }}>
+                        {item.category}
+                      </div>
+                      {item.url && (
+                        <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ position: 'absolute', bottom: 14, right: 13, zIndex: 3, fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 700, color: 'rgba(200,155,60,0.85)', textShadow: '0 1px 6px rgba(0,0,0,0.9)', textDecoration: 'none' }}>
+                          Buy ↗
+                        </a>
+                      )}
+                      {isAdmin && <AdminTackleItemSection itemId={item.id} deleteOnly />}
+                    </div>
+                    <div style={{ padding: '14px 16px 16px', flex: 1, display: 'flex', flexDirection: 'column', gap: 8, background: '#09070e', borderTop: '1px solid rgba(200,155,60,0.1)' }}>
+                      <h3 style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 800, color: S.text1, lineHeight: 1.3, letterSpacing: '-0.01em', margin: 0 }}>{item.name}</h3>
+                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: S.text3, background: 'rgba(200,155,60,0.06)', border: '1px solid rgba(200,155,60,0.14)', padding: '3px 8px', borderRadius: 4, alignSelf: 'flex-start' }}>{item.brand}</span>
+                      <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: S.text2, lineHeight: 1.68, margin: 0, flex: 1, fontStyle: 'italic' }}>{item.notes}</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          {isAdmin && (
+            <div style={{ marginTop: tackleItems.length > 0 ? 4 : 0 }}>
+              <AdminTackleItemSection />
+            </div>
+          )}
         </div>
         )}
       </div>
