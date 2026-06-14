@@ -119,13 +119,14 @@ export default async function FishingPage() {
   let posts: FeedPost[] = []
   let gear: GearItem[] = DEFAULT_GEAR
   let tackleHidden = false
+  let statsHidden = false
 
   try {
     const communityData = await getCommunityXpForSkill('FISHING' as SkillType)
     communityXp = communityData.xp
     memberCount  = communityData.memberCount
 
-    const [allBodies, rawPosts, gearSetting, tackleSetting] = await Promise.all([
+    const [allBodies, rawPosts, gearSetting, tackleSetting, statsSetting] = await Promise.all([
       (prisma as any).post.findMany({
         where: { skill: 'FISHING' },
         select: { body: true },
@@ -142,6 +143,7 @@ export default async function FishingPage() {
       }),
       (prisma as any).siteSetting.findUnique({ where: { key: 'fishing_gear' } }),
       (prisma as any).siteSetting.findUnique({ where: { key: 'fishing_tackle_hidden' } }),
+      (prisma as any).siteSetting.findUnique({ where: { key: 'fishing_stats_hidden' } }),
     ])
 
     stats = computeStats(allBodies.map((r: { body: string }) => r.body))
@@ -161,6 +163,7 @@ export default async function FishingPage() {
       try { gear = JSON.parse(gearSetting.value) } catch { /* use default */ }
     }
     tackleHidden = tackleSetting?.value === '1'
+    statsHidden  = statsSetting?.value === '1'
   } catch { /* DB not configured */ }
 
   const isAdmin = session?.user?.role === 'ADMIN'
@@ -178,7 +181,8 @@ export default async function FishingPage() {
       />
 
       {/* ── Fishing Stats ───────────────────────────────────── */}
-      <div>
+      {(!statsHidden || isAdmin) && (
+      <div style={{ opacity: statsHidden ? 0.5 : 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
           <div style={{ height: 1, flex: 1, background: 'rgba(200,155,60,0.12)' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -186,10 +190,12 @@ export default async function FishingPage() {
             <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: S.water, letterSpacing: '0.1em' }}>
               CATCH LOG STATS
             </span>
+            {isAdmin && <TackleBoxToggle hidden={statsHidden} settingKey="fishing_stats_hidden" />}
           </div>
           <div style={{ height: 1, flex: 1, background: 'rgba(200,155,60,0.12)' }} />
         </div>
 
+        {!statsHidden && (
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <StatChip
             value={stats.totalCatches.toString()}
@@ -209,7 +215,9 @@ export default async function FishingPage() {
             label="FAVORITE BAIT"
           />
         </div>
+        )}
       </div>
+      )}
 
       {/* ── Tackle Box ──────────────────────────────────────── */}
       {(!tackleHidden || isAdmin) && (
@@ -232,7 +240,7 @@ export default async function FishingPage() {
             }}>MY GEAR</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            {isAdmin && <TackleBoxToggle hidden={tackleHidden} />}
+            {isAdmin && <TackleBoxToggle hidden={tackleHidden} settingKey="fishing_tackle_hidden" />}
             {isAdmin && (
               <Link href="/admin" style={{ fontSize: 11, color: S.text3, fontFamily: 'Inter, sans-serif', textDecoration: 'none' }}>
                 + Edit gear

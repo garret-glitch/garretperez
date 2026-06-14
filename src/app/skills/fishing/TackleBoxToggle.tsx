@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-export default function TackleBoxToggle({ hidden }: { hidden: boolean }) {
+export default function TackleBoxToggle({ hidden, settingKey }: { hidden: boolean; settingKey: string }) {
   const router = useRouter()
   const [busy, setBusy] = useState(false)
 
@@ -11,7 +11,7 @@ export default function TackleBoxToggle({ hidden }: { hidden: boolean }) {
     await fetch('/api/admin/fishing-tackle', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ hidden: !hidden }),
+      body: JSON.stringify({ key: settingKey, hidden: !hidden }),
     })
     router.refresh()
     setBusy(false)
