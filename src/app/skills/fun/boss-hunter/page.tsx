@@ -1747,7 +1747,7 @@ function render(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, bossId: Bo
 }
 /* ═══ REACT COMPONENT ═══ */
 export default function BossHunter() {
-  const [screen, setScreen] = useState<'menu'|'weapon_select'|'hunt_select'|'playing'|'victory'|'defeat'>('menu')
+  const [screen, setScreen] = useState<'menu'|'hunt_select'|'playing'|'victory'|'defeat'>('menu')
   const [selWeapon, setSelWeapon] = useState<WeaponId>('bow')
   const [selBoss, setSelBoss] = useState<BossId>(0)
   const [unlockedGear, setUnlockedGear] = useState<GearId[]>([])
@@ -1873,174 +1873,183 @@ export default function BossHunter() {
 
   // ─── MENU ───
   if (screen === 'menu') return (
-    <div style={{background:'#080814',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'"Press Start 2P",monospace'}}>
-      <div style={{textAlign:'center',maxWidth:680,padding:'0 24px'}}>
-        <div style={{fontSize:32,color:'#C89B3C',textShadow:'0 0 24px #C89B3C',marginBottom:8}}>BOSS HUNTER</div>
-        <div style={{fontSize:11,color:'#8E44AD',marginBottom:32}}>A Dark RPG Boss Rush</div>
-        <div className="bh-boss-grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14,marginBottom:32}}>
-          {BOSS_DEFS.map((b,i) => (
-            <div key={i} style={{background:'#0d0d1a',border:`1px solid ${b.color}44`,borderRadius:8,padding:'14px 10px',textAlign:'center'}}>
-              <div style={{fontSize:22,marginBottom:8}}>{b.icon}</div>
-              <div style={{fontSize:9,color:b.color,marginBottom:4}}>{b.name}</div>
-              <div style={{fontSize:7,color:'#605848'}}>{i===0?'Spider Lair':i===1?'Lava Cavern':'Storm Peak'}</div>
+    <div style={{background:'radial-gradient(ellipse at 50% 30%, #1a0830 0%, #080814 55%, #020208 100%)',minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',fontFamily:'"Press Start 2P",monospace',position:'relative',overflow:'hidden'}}>
+      <style>{`
+        @keyframes bh-pulse{0%,100%{text-shadow:0 0 20px #C89B3C,0 0 40px #C89B3C55}50%{text-shadow:0 0 50px #C89B3C,0 0 100px #C89B3Caa,0 0 160px #C89B3C44}}
+        @keyframes bh-float{0%,100%{transform:translateY(0px)}50%{transform:translateY(-10px)}}
+        @keyframes bh-flicker{0%,100%{opacity:1}91%{opacity:1}93%{opacity:0.2}95%{opacity:1}97%{opacity:0.4}99%{opacity:1}}
+        @keyframes bh-star{0%,100%{opacity:0.1}50%{opacity:0.9}}
+        @keyframes bh-btn{0%,100%{box-shadow:0 0 20px #C89B3C55,0 4px 20px rgba(0,0,0,0.6)}50%{box-shadow:0 0 48px #C89B3Ccc,0 4px 32px rgba(0,0,0,0.9)}}
+        .bh-title-1{animation:bh-pulse 2.5s ease-in-out infinite}
+        .bh-title-2{animation:bh-pulse 2.5s 0.4s ease-in-out infinite}
+        .bh-begin{animation:bh-btn 2s ease-in-out infinite}
+      `}</style>
+
+      {Array.from({length:70},(_,i)=>(
+        <div key={i} style={{position:'absolute',pointerEvents:'none',left:`${(i*37+i*i*3)%100}%`,top:`${(i*53+i*i*7)%100}%`,width:i%9===0?2:1,height:i%9===0?2:1,background:i%11===0?'#C89B3C':'#ffffff',borderRadius:'50%',animation:`bh-star ${1.4+(i%5)*0.6}s ${(i*0.17)%3}s ease-in-out infinite`}}/>
+      ))}
+
+      <div style={{position:'absolute',inset:0,pointerEvents:'none',background:'linear-gradient(to bottom,transparent 49%,rgba(200,155,60,0.03) 50%,transparent 51%)',backgroundSize:'100% 4px',zIndex:0}}/>
+
+      <div style={{position:'absolute',top:0,left:0,right:0,textAlign:'center',padding:'7px',fontSize:7,color:'#8B0000',borderBottom:'1px solid #8B000033',letterSpacing:2,animation:'bh-flicker 5s 1s infinite',zIndex:2}}>
+        ⚠ WARNING — DANGEROUS BOSSES AHEAD — ENTER AT YOUR OWN RISK ⚠
+      </div>
+
+      <div style={{textAlign:'center',padding:'48px 24px 40px',position:'relative',zIndex:1,maxWidth:760,width:'100%'}}>
+
+        <div style={{fontSize:8,color:'#6B3A9E',letterSpacing:4,marginBottom:20}}>◆ GARRET&apos;S WORLD PRESENTS ◆</div>
+
+        <div className="bh-title-1" style={{fontSize:'48px',color:'#C89B3C',letterSpacing:4,lineHeight:1.1,marginBottom:6}}>BOSS</div>
+        <div className="bh-title-2" style={{fontSize:'48px',color:'#C89B3C',letterSpacing:4,lineHeight:1.1,marginBottom:40}}>HUNTER</div>
+
+        <div style={{display:'flex',gap:48,justifyContent:'center',marginBottom:44,alignItems:'flex-end'}}>
+          {BOSS_DEFS.map((b,i)=>(
+            <div key={i} style={{animation:`bh-float ${2.4+i*0.7}s ${i*0.5}s ease-in-out infinite`,textAlign:'center'}}>
+              <div style={{fontSize:56,marginBottom:10,filter:`drop-shadow(0 0 20px ${b.color}) drop-shadow(0 0 40px ${b.color}66)`}}>{b.icon}</div>
+              <div style={{fontSize:7,color:b.color,marginBottom:3,letterSpacing:1}}>{b.name}</div>
+              <div style={{fontSize:6,color:'#3a3020'}}>{i===0?'SPIDER LAIR':i===1?'LAVA CAVERN':'STORM PEAK'}</div>
             </div>
           ))}
         </div>
-        <div style={{fontSize:9,color:'#605848',marginBottom:24,lineHeight:'1.8'}}>
-          Click to move &bull; WASD / arrows not needed — just click<br/>
-          Space to dodge &bull; Q W E R — abilities &bull; Defeat bosses to collect gear
+
+        <div style={{display:'flex',gap:20,justifyContent:'center',flexWrap:'wrap',marginBottom:40,padding:'12px 20px',borderTop:'1px solid #1e1c18',borderBottom:'1px solid #1e1c18'}}>
+          {([['🖱️','Click to move'],['SPACE','Dodge roll'],['Q W E R','Abilities'],['💀','Collect gear']] as [string,string][]).map(([k,v],i)=>(
+            <div key={i} style={{fontSize:7,color:'#605848'}}><span style={{color:'#8a7a60'}}>{k}</span>&nbsp;{v}</div>
+          ))}
         </div>
-        <button onClick={() => setScreen('hunt_select')} style={{background:'linear-gradient(135deg,#C89B3C,#8B6914)',border:'none',color:'#0d0d14',padding:'12px 36px',borderRadius:6,fontSize:11,cursor:'pointer',fontFamily:'inherit',letterSpacing:1}}>
-          BEGIN HUNT
-        </button>
-        {(equippedAttack || equippedDefense) && (
-          <div style={{marginTop:20,fontSize:8,color:'#A09880'}}>
-            Loadout: {[equippedAttack, equippedDefense].filter(Boolean).map(g => GEAR_DEFS[g!].icon + ' ' + GEAR_DEFS[g!].name).join(' · ')}
+
+        {unlockedGear.length > 0 && (
+          <div style={{fontSize:7,color:'#3a3020',marginBottom:24}}>
+            GEAR COLLECTED: <span style={{color:'#C89B3C'}}>{unlockedGear.length}</span>
+            {(equippedAttack||equippedDefense)&&<span style={{color:'#605848'}}> &bull; LOADOUT: {[equippedAttack,equippedDefense].filter(Boolean).map(g=>GEAR_DEFS[g!].icon).join(' ')}</span>}
           </div>
         )}
+
+        <button className="bh-begin" onClick={()=>setScreen('hunt_select')} style={{background:'linear-gradient(135deg,#C89B3C,#8B6914)',border:'2px solid #C89B3C44',color:'#0d0d14',padding:'16px 56px',borderRadius:6,fontSize:12,cursor:'pointer',fontFamily:'"Press Start 2P",monospace',letterSpacing:3}}>
+          ▶&nbsp;BEGIN HUNT
+        </button>
       </div>
     </div>
   )
 
-  // ─── WEAPON SELECT (step 2: weapon + gear) ───
-  if (screen === 'weapon_select') {
+  // ─── HUNT SELECT + GEAR (combined) ───
+  if (screen === 'hunt_select') {
     const atkGear = unlockedGear.filter(g => GEAR_CATEGORY[g] === 'attack')
     const defGear = unlockedGear.filter(g => GEAR_CATEGORY[g] === 'defense')
     return (
-    <div style={{background:'#080814',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'"Press Start 2P",monospace'}}>
-      <div className="bh-screen-wrap" style={{textAlign:'center',maxWidth:860,padding:'0 24px'}}>
-        <div style={{fontSize:16,color:'#C89B3C',marginBottom:6}}>SELECT YOUR GEAR</div>
-        <div style={{fontSize:8,color:'#605848',marginBottom:28}}>Choose your weapon and equip your gear before the hunt</div>
-        <div className="bh-class-grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16,marginBottom:28}}>
-          {WEAPON_DEFS.map(wpn => {
-            const sel = selWeapon===wpn.id
-            return (
-              <div key={wpn.id} onClick={() => setSelWeapon(wpn.id)} className="bh-class-card" style={{background:sel?'#13131c':'#0d0d1a',border:`2px solid ${sel?wpn.color:'#2a2820'}`,borderRadius:10,padding:18,cursor:'pointer',textAlign:'left',transition:'border-color 0.2s'}}>
-                <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
-                  <div style={{fontSize:28}}>{wpn.icon}</div>
-                  <div>
-                    <div style={{fontSize:10,color:wpn.color,marginBottom:3}}>{wpn.name.toUpperCase()}</div>
-                    <div style={{fontSize:7,color:'#605848'}}>{wpn.element.toUpperCase()}</div>
-                  </div>
-                </div>
-                <div style={{fontSize:7,color:'#A09880',lineHeight:'1.8',marginBottom:12}}>{wpn.desc}</div>
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:12}}>
-                  <div style={{fontSize:7,color:'#605848'}}>DMG <span style={{color:'#C89B3C'}}>{wpn.dmg}</span></div>
-                  <div style={{fontSize:7,color:'#605848'}}>RANGE <span style={{color:'#C89B3C'}}>{wpn.range}</span></div>
-                </div>
-                <div style={{fontSize:7,color:'#605848',marginBottom:6}}>ABILITIES:</div>
-                {wpn.abilities.map((ab,i) => (
-                  <div key={i} style={{fontSize:7,color:'#8a7a60',marginBottom:3}}>
-                    <span style={{color:wpn.color}}>[{['Q','W','E','R'][i]}]</span> {ab.name}
-                  </div>
-                ))}
-                {sel && <div style={{marginTop:10,fontSize:7,color:wpn.color}}>&#9654; SELECTED</div>}
-              </div>
-            )
-          })}
-        </div>
+      <div style={{background:'#080814',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'"Press Start 2P",monospace',padding:'32px 0'}}>
+        <div className="bh-screen-wrap" style={{textAlign:'center',maxWidth:940,padding:'0 24px',width:'100%'}}>
 
-        {/* LOADOUT SLOTS */}
-        {unlockedGear.length > 0 && (
-          <div style={{background:'#0d0d1a',border:'1px solid #2a2820',borderRadius:10,padding:16,marginBottom:20,textAlign:'left'}}>
-            <div style={{fontSize:8,color:'#C89B3C',marginBottom:12,textAlign:'center'}}>LOADOUT — 1 ATTACK SLOT · 1 DEFENSE SLOT</div>
-            <div className="bh-loadout-grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
-              {/* Attack slot */}
-              <div>
-                <div style={{fontSize:7,color:'#E74C3C',marginBottom:8}}>⚔️ ATTACK SLOT</div>
-                <div style={{background:'#13131c',border:`1px solid ${equippedAttack?'#E74C3C44':'#2a2820'}`,borderRadius:6,padding:'8px 10px',marginBottom:8,minHeight:36,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                  {equippedAttack
-                    ? <><span style={{fontSize:7,color:'#E8E6E0'}}>{GEAR_DEFS[equippedAttack].icon} {GEAR_DEFS[equippedAttack].name}</span><button onClick={() => setEquippedAttack(null)} style={{background:'none',border:'none',color:'#605848',fontSize:9,cursor:'pointer',padding:0,fontFamily:'inherit'}}>✕</button></>
-                    : <span style={{fontSize:7,color:'#605848'}}>— empty —</span>
-                  }
-                </div>
-                {atkGear.length === 0 && <div style={{fontSize:7,color:'#605848',fontStyle:'italic'}}>Defeat a boss to unlock attack gear</div>}
-                {atkGear.map(gid => (
-                  <div key={gid} onClick={() => setEquippedAttack(gid)} style={{cursor:'pointer',background:equippedAttack===gid?'#1a1a28':'#0d0d14',border:`1px solid ${equippedAttack===gid?'#E74C3C':'#2a2820'}`,borderRadius:5,padding:'6px 8px',marginBottom:5,display:'flex',alignItems:'center',gap:8,transition:'border-color 0.15s'}}>
-                    <span style={{fontSize:12}}>{GEAR_DEFS[gid].icon}</span>
-                    <div>
-                      <div style={{fontSize:7,color:equippedAttack===gid?'#E74C3C':'#A09880'}}>{GEAR_DEFS[gid].name}{equippedAttack===gid&&' ✓'}</div>
-                      <div style={{fontSize:7,color:'#605848',marginTop:2}}>{GEAR_DEFS[gid].desc}</div>
+          <div style={{fontSize:13,color:'#C89B3C',marginBottom:4}}>PREPARE YOUR HUNT</div>
+          <div style={{fontSize:7,color:'#605848',marginBottom:24}}>Choose your target &bull; pick your weapon &bull; equip your gear</div>
+
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,marginBottom:20,textAlign:'left'}}>
+
+            {/* LEFT — Boss select */}
+            <div>
+              <div style={{fontSize:8,color:'#A09880',marginBottom:12,textAlign:'center',paddingBottom:8,borderBottom:'1px solid #1e1c18'}}>◆ SELECT TARGET</div>
+              <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                {BOSS_DEFS.map((b,i)=>{
+                  const bossId=i as BossId, sel=selBoss===bossId
+                  return (
+                    <div key={i} onClick={()=>setSelBoss(bossId)} style={{background:sel?'#13131c':'#0d0d1a',border:`2px solid ${sel?b.color:'#2a2820'}`,borderRadius:8,padding:'10px 12px',cursor:'pointer',display:'flex',alignItems:'center',gap:12,transition:'border-color 0.2s'}}>
+                      <div style={{fontSize:32,flexShrink:0,filter:sel?`drop-shadow(0 0 10px ${b.color})`:'none'}}>{b.icon}</div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:8,color:b.color,marginBottom:3}}>{b.name}</div>
+                        <div style={{fontSize:6,color:'#605848',marginBottom:5}}>{i===0?'Spider Lair':i===1?'Lava Cavern':'Storm Peak'} &bull; HP <span style={{color:'#E74C3C'}}>{b.hp.toLocaleString()}</span></div>
+                        <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+                          {b.rewards.map(gid=>{
+                            const unlocked=unlockedGear.includes(gid)
+                            return <span key={gid} style={{fontSize:6,color:unlocked?'#27AE60':'#3a3428'}}>{GEAR_DEFS[gid].icon}{unlocked?' ✓':' ?'}</span>
+                          })}
+                        </div>
+                      </div>
+                      {sel&&<div style={{fontSize:10,color:b.color}}>▶</div>}
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
-              {/* Defense slot */}
-              <div>
-                <div style={{fontSize:7,color:'#3498DB',marginBottom:8}}>🛡️ DEFENSE SLOT</div>
-                <div style={{background:'#13131c',border:`1px solid ${equippedDefense?'#3498DB44':'#2a2820'}`,borderRadius:6,padding:'8px 10px',marginBottom:8,minHeight:36,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                  {equippedDefense
-                    ? <><span style={{fontSize:7,color:'#E8E6E0'}}>{GEAR_DEFS[equippedDefense].icon} {GEAR_DEFS[equippedDefense].name}</span><button onClick={() => setEquippedDefense(null)} style={{background:'none',border:'none',color:'#605848',fontSize:9,cursor:'pointer',padding:0,fontFamily:'inherit'}}>✕</button></>
-                    : <span style={{fontSize:7,color:'#605848'}}>— empty —</span>
-                  }
-                </div>
-                {defGear.length === 0 && <div style={{fontSize:7,color:'#605848',fontStyle:'italic'}}>Defeat a boss to unlock defense gear</div>}
-                {defGear.map(gid => (
-                  <div key={gid} onClick={() => setEquippedDefense(gid)} style={{cursor:'pointer',background:equippedDefense===gid?'#1a1a28':'#0d0d14',border:`1px solid ${equippedDefense===gid?'#3498DB':'#2a2820'}`,borderRadius:5,padding:'6px 8px',marginBottom:5,display:'flex',alignItems:'center',gap:8,transition:'border-color 0.15s'}}>
-                    <span style={{fontSize:12}}>{GEAR_DEFS[gid].icon}</span>
-                    <div>
-                      <div style={{fontSize:7,color:equippedDefense===gid?'#3498DB':'#A09880'}}>{GEAR_DEFS[gid].name}{equippedDefense===gid&&' ✓'}</div>
-                      <div style={{fontSize:7,color:'#605848',marginTop:2}}>{GEAR_DEFS[gid].desc}</div>
+            </div>
+
+            {/* RIGHT — Weapon select */}
+            <div>
+              <div style={{fontSize:8,color:'#A09880',marginBottom:12,textAlign:'center',paddingBottom:8,borderBottom:'1px solid #1e1c18'}}>◆ SELECT WEAPON</div>
+              <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                {WEAPON_DEFS.map(wpn=>{
+                  const sel=selWeapon===wpn.id
+                  return (
+                    <div key={wpn.id} onClick={()=>setSelWeapon(wpn.id)} style={{background:sel?'#13131c':'#0d0d1a',border:`2px solid ${sel?wpn.color:'#2a2820'}`,borderRadius:8,padding:'10px 12px',cursor:'pointer',display:'flex',alignItems:'center',gap:12,transition:'border-color 0.2s'}}>
+                      <div style={{fontSize:32,flexShrink:0,filter:sel?`drop-shadow(0 0 10px ${wpn.color})`:'none'}}>{wpn.icon}</div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:8,color:wpn.color,marginBottom:3}}>{wpn.name.toUpperCase()}</div>
+                        <div style={{fontSize:6,color:'#605848',marginBottom:5}}>{wpn.element.toUpperCase()} &bull; DMG <span style={{color:'#C89B3C'}}>{wpn.dmg}</span> &bull; RNG <span style={{color:'#C89B3C'}}>{wpn.range}</span></div>
+                        <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                          {wpn.abilities.slice(0,4).map((ab,i)=>(
+                            <span key={i} style={{fontSize:6,color:'#3a3428'}}><span style={{color:wpn.color}}>[{['Q','W','E','R'][i]}]</span> {ab.name}</span>
+                          ))}
+                        </div>
+                      </div>
+                      {sel&&<div style={{fontSize:10,color:wpn.color}}>▶</div>}
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           </div>
-        )}
 
-        <div style={{display:'flex',gap:12,justifyContent:'center'}}>
-          <button onClick={() => setScreen('hunt_select')} style={{background:'#1a1a28',border:'1px solid #2a2820',color:'#A09880',padding:'10px 24px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>BACK</button>
-          <button onClick={() => startGame(selWeapon, selBoss, gearForBoss(selBoss))} style={{background:'linear-gradient(135deg,#C89B3C,#8B6914)',border:'none',color:'#0d0d14',padding:'10px 28px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>
-            START HUNT
-          </button>
-        </div>
-      </div>
-    </div>
-    )
-  }
-
-  // ─── HUNT SELECT (step 1: boss only) ───
-  if (screen === 'hunt_select') {
-    return (
-      <div style={{background:'#080814',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'"Press Start 2P",monospace'}}>
-        <div className="bh-screen-wrap" style={{textAlign:'center',maxWidth:860,padding:'0 24px',width:'100%'}}>
-          <div style={{fontSize:14,color:'#C89B3C',marginBottom:6}}>SELECT YOUR HUNT</div>
-          <div style={{fontSize:8,color:'#605848',marginBottom:20}}>Choose your target — defeat bosses to unlock gear</div>
-
-          {/* BOSS CARDS */}
-          <div className="bh-boss-grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14,marginBottom:24}}>
-            {BOSS_DEFS.map((b,i) => {
-              const bossId = i as BossId, sel = selBoss===bossId
-              return (
-                <div key={i} onClick={() => setSelBoss(bossId)} className="bh-boss-card" style={{background:sel?'#13131c':'#0d0d1a',border:`2px solid ${sel?b.color:'#2a2820'}`,borderRadius:10,padding:14,cursor:'pointer',textAlign:'left',transition:'border-color 0.2s'}}>
-                  <div style={{textAlign:'center',marginBottom:10}}>
-                    <div style={{fontSize:28,marginBottom:5}}>{b.icon}</div>
-                    <div style={{fontSize:9,color:b.color,marginBottom:2}}>{b.name}</div>
-                    <div style={{fontSize:7,color:'#605848'}}>{i===0?'Spider Lair':i===1?'Lava Cavern':'Storm Peak'}</div>
+          {unlockedGear.length > 0 && (
+            <div style={{background:'#0d0d1a',border:'1px solid #2a2820',borderRadius:10,padding:16,marginBottom:20,textAlign:'left'}}>
+              <div style={{fontSize:8,color:'#C89B3C',marginBottom:12,textAlign:'center'}}>LOADOUT — 1 ATTACK SLOT · 1 DEFENSE SLOT</div>
+              <div className="bh-loadout-grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+                <div>
+                  <div style={{fontSize:7,color:'#E74C3C',marginBottom:8}}>⚔️ ATTACK SLOT</div>
+                  <div style={{background:'#13131c',border:`1px solid ${equippedAttack?'#E74C3C44':'#2a2820'}`,borderRadius:6,padding:'8px 10px',marginBottom:8,minHeight:36,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                    {equippedAttack
+                      ?<><span style={{fontSize:7,color:'#E8E6E0'}}>{GEAR_DEFS[equippedAttack].icon} {GEAR_DEFS[equippedAttack].name}</span><button onClick={()=>setEquippedAttack(null)} style={{background:'none',border:'none',color:'#605848',fontSize:9,cursor:'pointer',padding:0,fontFamily:'inherit'}}>✕</button></>
+                      :<span style={{fontSize:7,color:'#605848'}}>— empty —</span>
+                    }
                   </div>
-                  <div style={{fontSize:7,color:'#8a7a60',marginBottom:6}}>HP: <span style={{color:'#E74C3C'}}>{b.hp.toLocaleString()}</span></div>
-                  <div style={{fontSize:7,color:'#605848',marginBottom:4}}>GEAR DROPS:</div>
-                  {b.rewards.map(gid => {
-                    const unlocked = unlockedGear.includes(gid)
-                    return (
-                      <div key={gid} style={{fontSize:7,color:unlocked?'#27AE60':'#605848',marginBottom:2,paddingLeft:4}}>
-                        {unlocked?'✓ ':'○ '}{GEAR_DEFS[gid].name}
+                  {atkGear.length===0&&<div style={{fontSize:7,color:'#605848',fontStyle:'italic'}}>Defeat a boss to unlock attack gear</div>}
+                  {atkGear.map(gid=>(
+                    <div key={gid} onClick={()=>setEquippedAttack(gid)} style={{cursor:'pointer',background:equippedAttack===gid?'#1a1a28':'#0d0d14',border:`1px solid ${equippedAttack===gid?'#E74C3C':'#2a2820'}`,borderRadius:5,padding:'6px 8px',marginBottom:5,display:'flex',alignItems:'center',gap:8,transition:'border-color 0.15s'}}>
+                      <span style={{fontSize:12}}>{GEAR_DEFS[gid].icon}</span>
+                      <div>
+                        <div style={{fontSize:7,color:equippedAttack===gid?'#E74C3C':'#A09880'}}>{GEAR_DEFS[gid].name}{equippedAttack===gid&&' ✓'}</div>
+                        <div style={{fontSize:7,color:'#605848',marginTop:2}}>{GEAR_DEFS[gid].desc}</div>
                       </div>
-                    )
-                  })}
-                  {sel && <div style={{marginTop:8,fontSize:7,color:b.color}}>&#9654; SELECTED</div>}
+                    </div>
+                  ))}
                 </div>
-              )
-            })}
-          </div>
+                <div>
+                  <div style={{fontSize:7,color:'#3498DB',marginBottom:8}}>🛡️ DEFENSE SLOT</div>
+                  <div style={{background:'#13131c',border:`1px solid ${equippedDefense?'#3498DB44':'#2a2820'}`,borderRadius:6,padding:'8px 10px',marginBottom:8,minHeight:36,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                    {equippedDefense
+                      ?<><span style={{fontSize:7,color:'#E8E6E0'}}>{GEAR_DEFS[equippedDefense].icon} {GEAR_DEFS[equippedDefense].name}</span><button onClick={()=>setEquippedDefense(null)} style={{background:'none',border:'none',color:'#605848',fontSize:9,cursor:'pointer',padding:0,fontFamily:'inherit'}}>✕</button></>
+                      :<span style={{fontSize:7,color:'#605848'}}>— empty —</span>
+                    }
+                  </div>
+                  {defGear.length===0&&<div style={{fontSize:7,color:'#605848',fontStyle:'italic'}}>Defeat a boss to unlock defense gear</div>}
+                  {defGear.map(gid=>(
+                    <div key={gid} onClick={()=>setEquippedDefense(gid)} style={{cursor:'pointer',background:equippedDefense===gid?'#1a1a28':'#0d0d14',border:`1px solid ${equippedDefense===gid?'#3498DB':'#2a2820'}`,borderRadius:5,padding:'6px 8px',marginBottom:5,display:'flex',alignItems:'center',gap:8,transition:'border-color 0.15s'}}>
+                      <span style={{fontSize:12}}>{GEAR_DEFS[gid].icon}</span>
+                      <div>
+                        <div style={{fontSize:7,color:equippedDefense===gid?'#3498DB':'#A09880'}}>{GEAR_DEFS[gid].name}{equippedDefense===gid&&' ✓'}</div>
+                        <div style={{fontSize:7,color:'#605848',marginTop:2}}>{GEAR_DEFS[gid].desc}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
           <div style={{display:'flex',gap:12,justifyContent:'center'}}>
-            <button onClick={() => setScreen('menu')} style={{background:'#1a1a28',border:'1px solid #2a2820',color:'#A09880',padding:'10px 24px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>BACK</button>
-            <button onClick={() => setScreen('weapon_select')} style={{background:'linear-gradient(135deg,#C89B3C,#8B6914)',border:'none',color:'#0d0d14',padding:'10px 28px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>
-              NEXT: SELECT GEAR
+            <button onClick={()=>setScreen('menu')} style={{background:'#1a1a28',border:'1px solid #2a2820',color:'#A09880',padding:'10px 24px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>BACK</button>
+            <button onClick={()=>startGame(selWeapon,selBoss,gearForBoss(selBoss))} style={{background:'linear-gradient(135deg,#C89B3C,#8B6914)',border:'none',color:'#0d0d14',padding:'10px 32px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit',letterSpacing:1}}>
+              ▶ START HUNT
             </button>
           </div>
+
         </div>
       </div>
     )
