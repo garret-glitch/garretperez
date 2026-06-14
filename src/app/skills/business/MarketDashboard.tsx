@@ -35,8 +35,7 @@ const S = {
 
 function fmtPrice(price: number | null, key: string): string {
   if (price === null) return '—'
-  if (key === 'btc')    return '$' + Math.round(price).toLocaleString('en-US')
-  if (key === 'nasdaq') return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  if (key === 'btc') return '$' + Math.round(price).toLocaleString('en-US')
   return '$' + price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
@@ -45,8 +44,7 @@ function fmtDelta(change: number | null, pct: number | null, key: string): strin
   const sign = change >= 0 ? '+' : '−'
   const abs  = Math.abs(change)
   const pctStr = `${change >= 0 ? '+' : '−'}${Math.abs(pct).toFixed(2)}%`
-  if (key === 'btc')    return `${sign}$${Math.round(abs).toLocaleString('en-US')} (${pctStr})`
-  if (key === 'nasdaq') return `${sign}${abs.toFixed(2)} pts (${pctStr})`
+  if (key === 'btc') return `${sign}$${Math.round(abs).toLocaleString('en-US')} (${pctStr})`
   return `${sign}$${abs.toFixed(2)} (${pctStr})`
 }
 
@@ -97,25 +95,24 @@ function StockRow({ tick, rank }: { tick: Tick; rank: number }) {
   )
 }
 
-function TickCard({ tick, wide = false }: { tick: Tick; wide?: boolean }) {
+function TickCard({ tick }: { tick: Tick }) {
   const up = (tick.change ?? 0) >= 0
   const loaded = tick.price !== null
 
   return (
     <div style={{
-      background:  loaded ? (up ? S.upBg   : S.downBg)   : S.card,
-      border:      `1px solid ${loaded ? (up ? S.upBorder : S.downBorder) : S.border}`,
-      padding:     wide ? '22px 28px' : '20px 20px',
-      display:     'flex',
-      flexDirection: wide ? 'row' : 'column',
-      alignItems:  wide ? 'center' : 'flex-start',
-      gap:         wide ? 28 : 14,
-      position:    'relative',
-      overflow:    'hidden',
-      height:      '100%',
-      boxSizing:   'border-box',
+      background:    loaded ? (up ? S.upBg : S.downBg) : S.card,
+      border:        `1px solid ${loaded ? (up ? S.upBorder : S.downBorder) : S.border}`,
+      padding:       '20px',
+      display:       'flex',
+      flexDirection: 'column',
+      alignItems:    'flex-start',
+      gap:           14,
+      position:      'relative',
+      overflow:      'hidden',
+      height:        '100%',
+      boxSizing:     'border-box',
     }}>
-      {/* top gold accent line */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, height: 1,
         background: loaded
@@ -124,87 +121,53 @@ function TickCard({ tick, wide = false }: { tick: Tick; wide?: boolean }) {
           : 'linear-gradient(90deg, transparent, #7a5a20, transparent)',
       }} />
 
-      {/* Symbol badge */}
       <div style={{
-        flexShrink:   0,
-        background:   'rgba(200,155,60,0.07)',
-        border:       '1px solid rgba(200,155,60,0.18)',
-        width:        wide ? 68 : 54,
-        height:       wide ? 68 : 54,
-        display:      'flex',
-        alignItems:   'center',
-        justifyContent: 'center',
-        fontFamily:   tick.category === 'metals' ? "'Press Start 2P', monospace" : 'Inter, sans-serif',
-        fontSize:     tick.category === 'metals' ? (wide ? 15 : 12) : (wide ? 26 : 20),
-        fontWeight:   tick.category !== 'metals' ? 900 : 400,
-        color:        S.gold,
+        flexShrink: 0, width: 54, height: 54,
+        background: 'rgba(200,155,60,0.07)', border: '1px solid rgba(200,155,60,0.18)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: tick.category === 'metals' ? "'Press Start 2P', monospace" : 'Inter, sans-serif',
+        fontSize:   tick.category === 'metals' ? 12 : 20,
+        fontWeight: tick.category !== 'metals' ? 900 : 400,
+        color: S.gold,
         letterSpacing: tick.category === 'metals' ? '0.04em' : 0,
       }}>
         {tick.display}
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        {/* Asset name label */}
         <div style={{
-          fontFamily:    "'Press Start 2P', monospace",
-          fontSize:      wide ? 8 : 7,
-          color:         S.text3,
-          letterSpacing: '0.1em',
-          marginBottom:  wide ? 10 : 8,
-          whiteSpace:    'nowrap',
-          overflow:      'hidden',
-          textOverflow:  'ellipsis',
+          fontFamily: "'Press Start 2P', monospace", fontSize: 7,
+          color: S.text3, letterSpacing: '0.1em', marginBottom: 8,
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>
           {tick.name.toUpperCase()}
         </div>
-
-        {/* Price */}
         <div style={{
-          fontFamily:        'Inter, sans-serif',
-          fontSize:          wide ? 34 : 26,
-          fontWeight:        800,
-          color:             S.text1,
-          letterSpacing:     '-0.025em',
-          fontVariantNumeric:'tabular-nums',
-          lineHeight:        1,
-          marginBottom:      wide ? 12 : 8,
-          whiteSpace:        'nowrap',
+          fontFamily: 'Inter, sans-serif', fontSize: 26, fontWeight: 800,
+          color: S.text1, letterSpacing: '-0.025em', fontVariantNumeric: 'tabular-nums',
+          lineHeight: 1, marginBottom: 8, whiteSpace: 'nowrap',
         }}>
           {loaded ? fmtPrice(tick.price, tick.key) : (
             <span style={{ color: S.text4 }}>Loading…</span>
           )}
         </div>
-
-        {/* Change row */}
         <div style={{
-          fontFamily: 'Inter, sans-serif',
-          fontSize:   wide ? 15 : 13,
-          fontWeight: 600,
-          color:      loaded ? (up ? S.up : S.down) : S.text4,
-          display:    'flex',
-          alignItems: 'center',
-          gap:        5,
+          fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 600,
+          color: loaded ? (up ? S.up : S.down) : S.text4,
+          display: 'flex', alignItems: 'center', gap: 5,
         }}>
-          {loaded && (
-            <span style={{ fontSize: wide ? 17 : 15, lineHeight: 1 }}>
-              {up ? '▲' : '▼'}
-            </span>
-          )}
+          {loaded && <span style={{ fontSize: 15, lineHeight: 1 }}>{up ? '▲' : '▼'}</span>}
           <span style={{ fontVariantNumeric: 'tabular-nums' }}>
             {loaded ? fmtDelta(tick.change, tick.changePercent, tick.key) : '—'}
           </span>
         </div>
       </div>
 
-      {/* Market state badge (REGULAR / PRE / POST / CLOSED) */}
       {tick.marketState && tick.marketState !== 'REGULAR' && (
         <div style={{
-          position:   'absolute',
-          bottom:     10, right: 12,
-          fontFamily: "'Press Start 2P', monospace",
-          fontSize:   6,
-          color:      S.text4,
-          letterSpacing: '0.06em',
+          position: 'absolute', bottom: 10, right: 12,
+          fontFamily: "'Press Start 2P', monospace", fontSize: 6,
+          color: S.text4, letterSpacing: '0.06em',
         }}>
           {tick.marketState}
         </div>
@@ -254,29 +217,48 @@ export default function MarketDashboard() {
 
   const metals  = data?.filter(d => d.category === 'metals')  ?? []
   const crypto  = data?.filter(d => d.category === 'crypto')  ?? []
-  const nasdaq  = data?.find(d => d.category === 'index')
   const stocks  = data?.filter(d => d.category === 'stocks')  ?? []
 
   const timeStr = updatedAt?.toLocaleTimeString('en-US', {
     hour: 'numeric', minute: '2-digit', second: '2-digit',
   }) ?? ''
 
-  const SectionHead = ({ icon, label }: { icon: string; label: string }) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 9, flexShrink: 0,
-        background: '#2a2218',
-        border: '2px solid #c89b3c',
-        padding: '10px 20px',
-        boxShadow: '0 2px 12px rgba(200,155,60,0.25), inset 0 1px 0 rgba(200,155,60,0.15)',
+  const SectionHead = ({ icon, label, badge, color }: { icon: string; label: string; badge: string; color: string }) => (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16,
+      background: 'rgba(200,155,60,0.04)',
+      border: '1px solid rgba(200,155,60,0.14)',
+      borderLeft: '3px solid #c89b3c',
+      padding: '10px 14px',
+    }}>
+      <span style={{
+        flexShrink: 0, width: 36, height: 36, borderRadius: 8,
+        background: color,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 17,
       }}>
-        <span style={{ fontSize: 15, lineHeight: 1 }}>{icon}</span>
-        <span style={{
-          fontFamily: "'Press Start 2P', monospace", fontSize: 8,
-          color: '#f0d060', letterSpacing: '0.12em',
-        }}>{label}</span>
-      </div>
-      <div style={{ flex: 1, height: 1, background: 'rgba(200,155,60,0.25)' }} />
+        {icon}
+      </span>
+      <span style={{
+        flex: 1,
+        fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 700,
+        color: '#dcc898', letterSpacing: '0.01em',
+      }}>
+        {label}
+      </span>
+      <span style={{
+        flexShrink: 0,
+        background: 'rgba(200,155,60,0.13)',
+        border: '1px solid rgba(200,155,60,0.32)',
+        borderRadius: 4,
+        padding: '3px 8px',
+        fontSize: 8,
+        fontFamily: "'Press Start 2P', monospace",
+        color: '#c89b3c',
+        letterSpacing: '0.04em',
+      }}>
+        {badge}
+      </span>
     </div>
   )
 
@@ -333,7 +315,7 @@ export default function MarketDashboard() {
 
       {/* ── Precious Metals ── */}
       <div>
-        <SectionHead icon="🪙" label="PRECIOUS METALS" />
+        <SectionHead icon="🪙" label="Precious Metals" badge="SPOT" color="#2a1808" />
         <div className="grid sm:grid-cols-3 gap-4">
           {metals.length > 0
             ? metals.map(t => <TickCard key={t.key} tick={t} />)
@@ -346,7 +328,7 @@ export default function MarketDashboard() {
 
       {/* ── Cryptocurrency ── */}
       <div>
-        <SectionHead icon="🔗" label="CRYPTOCURRENCY" />
+        <SectionHead icon="🔗" label="Cryptocurrency" badge="24H" color="#0c1830" />
         <div className="grid sm:grid-cols-2 gap-4">
           {crypto.length > 0
             ? crypto.map(t => <TickCard key={t.key} tick={t} />)
@@ -357,18 +339,9 @@ export default function MarketDashboard() {
         </div>
       </div>
 
-      {/* ── Markets / Indices ── */}
-      <div>
-        <SectionHead icon="📈" label="MARKETS" />
-        {nasdaq
-          ? <TickCard tick={nasdaq} wide />
-          : <TickCard wide tick={{ key:'nasdaq', name:'NASDAQ Composite', display:'IXIC', category:'index', unit:'', price:null, change:null, changePercent:null, marketState:null }} />
-        }
-      </div>
-
       {/* ── Top 10 US Stocks ── */}
       <div>
-        <SectionHead icon="🏆" label="TOP 10 US STOCKS" />
+        <SectionHead icon="🏆" label="Top 10 US Stocks" badge="TOP 10" color="#0e2018" />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {stocks.length > 0
             ? stocks.map((t, i) => <StockRow key={t.key} tick={t} rank={i + 1} />)
