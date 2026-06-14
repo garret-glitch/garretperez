@@ -241,14 +241,26 @@ export default function SkillsPanelClient({
       </Link>
 
       {/* Section label */}
-      <div style={{ padding: '10px 14px 6px', fontSize: 9, color: '#a07848', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: "'Press Start 2P', monospace", display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span>⚔ Communities</span>
-        {isAdmin && saveMsg && (
-          <span style={{ fontSize: 7, color: saveMsg.startsWith('✓') ? '#4caf50' : saveMsg.startsWith('✗') ? '#f44336' : '#c89b3c', fontFamily: "'Press Start 2P', monospace" }}>
-            {saveMsg}
-          </span>
-        )}
+      <div style={{ padding: '10px 14px 6px', fontSize: 9, color: '#a07848', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: "'Press Start 2P', monospace" }}>
+        ⚔ Communities
       </div>
+
+      {/* Save toast */}
+      {isAdmin && saveMsg && (
+        <div style={{
+          margin: '0 10px 6px',
+          padding: '6px 10px',
+          borderRadius: 6,
+          fontSize: 9,
+          fontFamily: "'Press Start 2P', monospace",
+          textAlign: 'center',
+          background: saveMsg.startsWith('✓') ? 'rgba(76,175,80,0.15)' : saveMsg.startsWith('✗') ? 'rgba(244,67,54,0.15)' : 'rgba(200,155,60,0.12)',
+          border: `1px solid ${saveMsg.startsWith('✓') ? 'rgba(76,175,80,0.4)' : saveMsg.startsWith('✗') ? 'rgba(244,67,54,0.4)' : 'rgba(200,155,60,0.3)'}`,
+          color: saveMsg.startsWith('✓') ? '#4caf50' : saveMsg.startsWith('✗') ? '#f44336' : '#c89b3c',
+        }}>
+          {saveMsg}
+        </div>
+      )}
 
       {/* Draggable community channels */}
       <DndContext
