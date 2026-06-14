@@ -14,15 +14,30 @@ export default async function SkillsPanel() {
   const communityLevels: Record<string, number> = {}
   let channelOrder: ChanKey[] = DEFAULT_CHAN_ORDER
 
+  // Read saved order independently so any other DB failure can't reset it to default
   try {
-    const [postRows, adminUser, communityXpMap, orderSetting] = await Promise.all([
+    const orderSetting = await (prisma as any).siteSetting.findUnique({ where: { key: 'skills:order' } })
+    if (orderSetting?.value) {
+      const parsed = JSON.parse(orderSetting.value)
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const filtered = parsed.filter((k: string) => DEFAULT_CHAN_ORDER.includes(k as ChanKey))
+        const deduped = filtered.filter((k: string, i: number) => filtered.indexOf(k) === i)
+        if (deduped.length > 0) {
+          const missing = DEFAULT_CHAN_ORDER.filter(k => !deduped.includes(k))
+          channelOrder = [...deduped, ...missing] as ChanKey[]
+        }
+      }
+    }
+  } catch { /* use default order */ }
+
+  try {
+    const [postRows, adminUser, communityXpMap] = await Promise.all([
       prisma.post.groupBy({ by: ['skill'], _count: { id: true } }),
       prisma.user.findFirst({
         where: { role: 'ADMIN' },
         select: { skills: { select: { skill: true, xp: true } } },
       }),
       getCommunityXpAll(),
-      (prisma as any).siteSetting.findUnique({ where: { key: 'skills:order' } }),
     ])
 
     for (const r of postRows) postCounts[r.skill] = r._count.id
@@ -32,21 +47,6 @@ export default async function SkillsPanel() {
     for (const [skill, xp] of Object.entries(communityXpMap)) {
       communityLevels[skill] = xpToLevel(xp as number)
     }
-    if (orderSetting?.value) {
-      try {
-        const parsed = JSON.parse(orderSetting.value)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const filtered = parsed.filter((k: string) => DEFAULT_CHAN_ORDER.includes(k as ChanKey))
-          const deduped = filtered.filter((k: string, i: number) => filtered.indexOf(k) === i)
-
-          if (deduped.length > 0) {
-            const missing = DEFAULT_CHAN_ORDER.filter(k => !deduped.includes(k))
-            channelOrder = [...deduped, ...missing] as ChanKey[]
-          }
-        }
-      } catch { /* use default */ }
-    }
-
   } catch { /* DB not ready */ }
 
   return (
