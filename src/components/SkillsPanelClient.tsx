@@ -184,6 +184,7 @@ export default function SkillsPanelClient({
   initialOrder, communityLevels, postCounts, isAdmin,
 }: Props) {
   const [order, setOrder] = useState<ChanKey[]>(initialOrder)
+  const [saveMsg, setSaveMsg] = useState<string | null>(null)
   const pathname = usePathname()
 
   const sensors = useSensors(
@@ -197,13 +198,23 @@ export default function SkillsPanelClient({
     const to   = order.indexOf(over.id   as ChanKey)
     const next = arrayMove(order, from, to)
     setOrder(next)
+    setSaveMsg('saving...')
     fetch('/api/admin/skills-order', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ order: next }),
     })
-      .then(r => { if (!r.ok) r.text().then(t => console.error('[sidebar-save] failed', r.status, t)) })
-      .catch(e => console.error('[sidebar-save] network error', e))
+      .then(async r => {
+        if (r.ok) {
+          setSaveMsg('✓ saved')
+          setTimeout(() => setSaveMsg(null), 2500)
+        } else {
+          const t = await r.text()
+          setSaveMsg(`✗ error ${r.status}`)
+          console.error('[sidebar-save] failed', r.status, t)
+        }
+      })
+      .catch(e => { setSaveMsg('✗ network error'); console.error('[sidebar-save]', e) })
   }
 
   const isHome = pathname === '/'
@@ -228,8 +239,13 @@ export default function SkillsPanelClient({
       </Link>
 
       {/* Section label */}
-      <div style={{ padding: '10px 14px 6px', fontSize: 9, color: '#a07848', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: "'Press Start 2P', monospace" }}>
-        ⚔ Communities
+      <div style={{ padding: '10px 14px 6px', fontSize: 9, color: '#a07848', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: "'Press Start 2P', monospace", display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span>⚔ Communities</span>
+        {isAdmin && saveMsg && (
+          <span style={{ fontSize: 7, color: saveMsg.startsWith('✓') ? '#4caf50' : saveMsg.startsWith('✗') ? '#f44336' : '#c89b3c', fontFamily: "'Press Start 2P', monospace" }}>
+            {saveMsg}
+          </span>
+        )}
       </div>
 
       {/* Draggable community channels */}
