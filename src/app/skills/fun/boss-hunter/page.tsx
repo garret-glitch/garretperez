@@ -1564,7 +1564,7 @@ export default function BossHunter() {
       if (g.phase === 'victory') {
         setVictoryBoss(selBoss)
         const newGear = BOSS_DEFS[selBoss].rewards.filter(r => !unlockedGear.includes(r)) as GearId[]
-        const toUnlock = newGear[0] ?? null
+        const toUnlock = newGear.length > 0 ? newGear[Math.floor(Math.random() * newGear.length)] : null
         if (toUnlock) setUnlockedGear(prev => [...prev, toUnlock])
         setLastUnlockedGear(toUnlock)
         setScreen('victory')
