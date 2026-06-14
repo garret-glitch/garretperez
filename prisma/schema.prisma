@@ -477,3 +477,16 @@ model CoolItem {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+model FeaturedWine {
+  id        String   @id @default(cuid())
+  name      String
+  image     String   @db.Text
+  origin    String
+  varietal  String
+  abv       String
+  tag       String
+  notes     String   @db.Text
+  pairings  String   @db.Text @default("[]")
+  createdAt DateTime @default(now())
+}

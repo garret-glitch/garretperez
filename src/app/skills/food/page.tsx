@@ -8,6 +8,7 @@ import WineFavoriteButton from './WineFavoriteButton'
 import FoodRecipeForm from './FoodRecipeForm'
 import FoodPostForm from './FoodPostForm'
 import WineIdentifier from './WineIdentifier'
+import AdminWineSection from './AdminWineSection'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,6 +30,18 @@ const S = {
   text4:    '#4a3820',
 }
 
+/* ── Tag color config (used for both hardcoded + DB wines) ─── */
+const TAG_CONFIG: Record<string, { tagSolid: string; glowColor: string }> = {
+  'SWEET RED':   { tagSolid: 'rgba(139,21,32,0.92)',  glowColor: 'rgba(160,30,50,0.35)' },
+  'BOLD RED':    { tagSolid: 'rgba(90,14,24,0.95)',   glowColor: 'rgba(120,10,30,0.4)'  },
+  'ORGANIC RED': { tagSolid: 'rgba(107,32,16,0.92)',  glowColor: 'rgba(100,20,30,0.32)' },
+  'CRISP WHITE': { tagSolid: 'rgba(26,90,48,0.92)',   glowColor: 'rgba(40,110,55,0.22)' },
+  'RICH WHITE':  { tagSolid: 'rgba(122,80,16,0.92)',  glowColor: 'rgba(160,110,10,0.28)'},
+  'ROSÉ':        { tagSolid: 'rgba(139,32,80,0.92)',  glowColor: 'rgba(160,40,80,0.28)' },
+  'SPARKLING':   { tagSolid: 'rgba(58,74,138,0.92)',  glowColor: 'rgba(60,80,140,0.25)' },
+}
+const DEFAULT_TAG = { tagSolid: 'rgba(100,40,20,0.9)', glowColor: 'rgba(100,40,20,0.25)' }
+
 /* ── Wine data ─────────────────────────────────────────────── */
 const WINES = [
   {
@@ -39,11 +52,6 @@ const WINES = [
     varietal: 'Syrah, Merlot & Cab',
     abv: '12.4%',
     tag: 'SWEET RED',
-    tagColor: '#8b1520',
-    tagSolid: 'rgba(139,21,32,0.92)',
-    glowColor: 'rgba(160,30,50,0.35)',
-    score: 92,
-    editTag: 'HOUSE FAVE',
     notes: 'Blackberry and cherry aromas with soft tannins and a hint of mint. Medium-sweet, smooth finish. Best value Texas red under $11.',
     pairings: ['🦃 Turkey', '🥩 Brisket', '🌶️ Tex-Mex', '🧀 Cheese', '🍫 Chocolate'],
   },
@@ -55,11 +63,6 @@ const WINES = [
     varietal: 'Semi-Sweet Sparkling',
     abv: '5%',
     tag: 'SWEET RED',
-    tagColor: '#6e1040',
-    tagSolid: 'rgba(110,16,64,0.92)',
-    glowColor: 'rgba(140,20,60,0.32)',
-    score: 88,
-    editTag: 'CROWD PLEASER',
     notes: 'Ripe blackberry, blueberry, and raspberry with lush floral aromatics. Naturally sparkling, smooth sweetness — best served well chilled.',
     pairings: ['🍫 Chocolate', '🧀 Manchego', '🍓 Berries', '🍰 Cheesecake', '🌭 Bratwurst'],
   },
@@ -71,11 +74,6 @@ const WINES = [
     varietal: '100% Cabernet Sauvignon',
     abv: '14.5%',
     tag: 'BOLD RED',
-    tagColor: '#5a0e18',
-    tagSolid: 'rgba(90,14,24,0.95)',
-    glowColor: 'rgba(120,10,30,0.4)',
-    score: 94,
-    editTag: 'MUST HAVE',
     notes: 'Blackberry, huckleberry, and toasted oak on the nose. Spiced plum, dark chocolate, velvety tannins and a long satisfying finish.',
     pairings: ['🥩 Ribeye', '🍖 Lamb', '🧀 Aged Cheddar', '🍝 Bolognese', '🍔 Burgers'],
   },
@@ -87,11 +85,6 @@ const WINES = [
     varietal: '100% Sauvignon Blanc',
     abv: '13%',
     tag: 'CRISP WHITE',
-    tagColor: '#1a5a30',
-    tagSolid: 'rgba(26,90,48,0.92)',
-    glowColor: 'rgba(40,110,55,0.22)',
-    score: 91,
-    editTag: 'DAILY SIP',
     notes: 'Vibrant passion fruit, lemon citrus, and gooseberry on the nose. Crisp green melon, lime zest, and cut grass with a clean zesty finish.',
     pairings: ['🦞 Seafood', '🐟 Grilled Fish', '🥗 Fresh Salads', '🧀 Goat Cheese', '🌿 Herb Dishes'],
   },
@@ -103,11 +96,6 @@ const WINES = [
     varietal: '100% Cabernet Sauvignon',
     abv: '13.5%',
     tag: 'ORGANIC RED',
-    tagColor: '#6b2010',
-    tagSolid: 'rgba(107,32,16,0.92)',
-    glowColor: 'rgba(100,20,30,0.32)',
-    score: 90,
-    editTag: 'CERTIFIED',
     notes: 'Dark cherry, plum, and cedar on the nose. Smooth blackcurrant fruit with a touch of vanilla oak and firm but approachable tannins. Certified organic.',
     pairings: ['🥩 Grilled Steak', '🍖 Lamb Chops', '🧀 Aged Gouda', '🍄 Mushroom Pasta', '🫒 Charcuterie'],
   },
@@ -119,11 +107,6 @@ const WINES = [
     varietal: '100% Chardonnay',
     abv: '13.5%',
     tag: 'RICH WHITE',
-    tagColor: '#7a5010',
-    tagSolid: 'rgba(122,80,16,0.92)',
-    glowColor: 'rgba(160,110,10,0.28)',
-    score: 89,
-    editTag: 'HOUSE FAVE',
     notes: 'Creamy vanilla, toasted brioche, and ripe peach on the nose. Lush stone fruit with a buttery mid-palate and a smooth, lingering oak finish.',
     pairings: ['🦞 Lobster', '🍗 Roast Chicken', '🧀 Brie', '🍝 Cream Pasta', '🐟 Salmon'],
   },
@@ -135,11 +118,6 @@ const WINES = [
     varietal: '100% Chardonnay',
     abv: '13.5%',
     tag: 'CRISP WHITE',
-    tagColor: '#6a4a12',
-    tagSolid: 'rgba(106,74,18,0.92)',
-    glowColor: 'rgba(140,100,10,0.25)',
-    score: 87,
-    editTag: 'BEST VALUE',
     notes: 'Apple, pear, and light citrus on the nose with subtle vanilla oak. Bright and food-friendly with a clean, refreshing finish. Exceptional everyday value.',
     pairings: ['🍗 Grilled Chicken', '🦐 Shrimp', '🥗 Caesar Salad', '🧀 Mild Cheese', '🐟 Fish Tacos'],
   },
@@ -161,6 +139,8 @@ export default async function FoodPage() {
     createdAt: Date; user: { username: string }
   }> = []
 
+  let dbWines: Array<{ id: string; name: string; image: string; origin: string; varietal: string; abv: string; tag: string; notes: string; pairings: string }> = []
+
   try {
     const communityData = await getCommunityXpForSkill('FOOD')
     communityXp = communityData.xp
@@ -174,6 +154,7 @@ export default async function FoodPage() {
       orderBy: { createdAt: 'desc' }, take: 10,
       include: { user: { select: { username: true } } },
     })
+    dbWines = await (prisma as any).featuredWine.findMany({ orderBy: { createdAt: 'asc' } })
   } catch { /* DB not configured */ }
 
   return (
@@ -201,176 +182,109 @@ export default async function FoodPage() {
           <div style={{ height: 1, flex: 1, background: 'rgba(200,155,60,0.15)' }} />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {WINES.map(wine => (
-            <div
-              key={wine.id}
-              className="wine-card"
-              style={{
-                background: '#0a0810',
-                border: `1px solid rgba(200,155,60,0.18)`,
-                borderRadius: 12, overflow: 'hidden',
-                boxShadow: `0 8px 40px rgba(0,0,0,0.75), 0 2px 8px rgba(0,0,0,0.5)`,
-                display: 'flex', flexDirection: 'column',
-              }}
-            >
-              {/* ── Bottle showcase ── */}
-              <div style={{
-                position: 'relative', overflow: 'hidden', height: 320,
-                background: `
-                  radial-gradient(ellipse 75% 55% at 50% 80%, ${wine.glowColor} 0%, transparent 68%),
-                  radial-gradient(ellipse 90% 30% at 50% 46%, rgba(90,52,8,0.13) 0%, transparent 100%),
-                  linear-gradient(180deg, #080612 0%, #14091a 18%, #1c1020 40%, #160c10 65%, #0a0607 100%)
-                `,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
+        {/* Combined hardcoded + admin-added wines */}
+        {(() => {
+          type WineEntry = { id: string; name: string; image: string; origin: string; varietal: string; abv: string; tag: string; notes: string; pairings: string[]; fromDb?: boolean }
+          const allWines: WineEntry[] = [
+            ...WINES,
+            ...dbWines.map(w => ({ ...w, pairings: JSON.parse(w.pairings || '[]') as string[], fromDb: true })),
+          ]
+          return (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {allWines.map(wine => {
+                const tc = TAG_CONFIG[wine.tag] ?? DEFAULT_TAG
+                return (
+                  <div
+                    key={wine.id}
+                    className="wine-card"
+                    style={{
+                      background: '#0a0810',
+                      border: `1px solid rgba(200,155,60,0.18)`,
+                      borderRadius: 12, overflow: 'hidden',
+                      boxShadow: `0 8px 40px rgba(0,0,0,0.75), 0 2px 8px rgba(0,0,0,0.5)`,
+                      display: 'flex', flexDirection: 'column', position: 'relative',
+                    }}
+                  >
+                    {/* ── Bottle showcase ── */}
+                    <div style={{
+                      position: 'relative', overflow: 'hidden', height: 320,
+                      background: `
+                        radial-gradient(ellipse 75% 55% at 50% 80%, ${tc.glowColor} 0%, transparent 68%),
+                        radial-gradient(ellipse 90% 30% at 50% 46%, rgba(90,52,8,0.13) 0%, transparent 100%),
+                        linear-gradient(180deg, #080612 0%, #14091a 18%, #1c1020 40%, #160c10 65%, #0a0607 100%)
+                      `,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      {/* Horizon atmosphere */}
+                      <div style={{ position: 'absolute', top: '24%', left: 0, right: 0, height: '22%', background: 'radial-gradient(ellipse 80% 100% at 50% 50%, rgba(95,55,8,0.1) 0%, transparent 100%)', pointerEvents: 'none' }} />
+                      {/* Ground fog */}
+                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '38%', background: 'linear-gradient(to top, rgba(4,2,8,0.82) 0%, transparent 100%)', pointerEvents: 'none' }} />
 
-                {/* Vineyard horizon atmospheric layer */}
-                <div style={{
-                  position: 'absolute', top: '24%', left: 0, right: 0, height: '22%',
-                  background: 'radial-gradient(ellipse 80% 100% at 50% 50%, rgba(95,55,8,0.1) 0%, transparent 100%)',
-                  pointerEvents: 'none',
-                }} />
+                      {/* Left-edge ribbon */}
+                      <div style={{ position: 'absolute', top: 18, left: 0, zIndex: 3, background: tc.tagSolid, padding: '6px 13px', borderRadius: '0 4px 4px 0', fontFamily: "'Press Start 2P', monospace", fontSize: 6, color: '#f5ede0', letterSpacing: '0.1em', boxShadow: '2px 2px 10px rgba(0,0,0,0.55)' }}>
+                        {wine.tag}
+                      </div>
 
-                {/* Ground shadow / depth fog */}
-                <div style={{
-                  position: 'absolute', bottom: 0, left: 0, right: 0, height: '38%',
-                  background: 'linear-gradient(to top, rgba(4,2,8,0.82) 0%, transparent 100%)',
-                  pointerEvents: 'none',
-                }} />
+                      {/* Favorite */}
+                      <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 3 }}>
+                        <WineFavoriteButton label={wine.name} />
+                      </div>
 
-                {/* Left-edge ribbon — wine type */}
-                <div style={{
-                  position: 'absolute', top: 18, left: 0, zIndex: 3,
-                  background: wine.tagSolid,
-                  padding: '6px 13px 6px 13px',
-                  borderRadius: '0 4px 4px 0',
-                  fontFamily: "'Press Start 2P', monospace", fontSize: 6,
-                  color: '#f5ede0', letterSpacing: '0.1em',
-                  boxShadow: '2px 2px 10px rgba(0,0,0,0.55)',
-                }}>
-                  {wine.tag}
-                </div>
+                      {/* Bottle */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={wine.image} alt={wine.name} className="wine-bottle" style={{ height: 230, width: 'auto', maxWidth: 145, objectFit: 'contain', display: 'block', filter: 'drop-shadow(0 14px 32px rgba(0,0,0,0.92)) drop-shadow(0 4px 12px rgba(0,0,0,0.7))', position: 'relative', zIndex: 2 }} />
 
-                {/* Favorite — top right */}
-                <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 3 }}>
-                  <WineFavoriteButton label={wine.name} />
-                </div>
+                      {/* ABV */}
+                      <div style={{ position: 'absolute', bottom: 16, right: 15, zIndex: 3, fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 700, color: 'rgba(200,155,60,0.65)', textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
+                        {wine.abv} ABV
+                      </div>
 
-                {/* Bottle image — hero, full label visible */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={wine.image}
-                  alt={wine.name}
-                  className="wine-bottle"
-                  style={{
-                    height: 230, width: 'auto', maxWidth: 145,
-                    objectFit: 'contain', display: 'block',
-                    filter: 'drop-shadow(0 14px 32px rgba(0,0,0,0.92)) drop-shadow(0 4px 12px rgba(0,0,0,0.7))',
-                    position: 'relative', zIndex: 2,
-                  }}
-                />
+                      {/* Admin delete button (DB wines only) */}
+                      {wine.fromDb && session?.user?.role === 'ADMIN' && (
+                        <AdminWineSection wineId={wine.id} deleteOnly />
+                      )}
+                    </div>
 
-                {/* Score — bottom left */}
-                <div style={{ position: 'absolute', bottom: 14, left: 15, zIndex: 3 }}>
-                  <div style={{
-                    fontFamily: "'Press Start 2P', monospace", fontSize: 24,
-                    color: S.gold, lineHeight: 1,
-                    textShadow: '0 0 18px rgba(200,155,60,0.5), 0 2px 4px rgba(0,0,0,0.8)',
-                  }}>
-                    {wine.score}
+                    {/* ── Info panel ── */}
+                    <div style={{ padding: '15px 16px 18px', flex: 1, display: 'flex', flexDirection: 'column', gap: 10, background: '#09070e', borderTop: `1px solid rgba(200,155,60,0.1)` }}>
+                      <h3 style={{ fontFamily: 'Inter, sans-serif', fontSize: 15, fontWeight: 800, color: S.text1, lineHeight: 1.3, letterSpacing: '-0.01em', margin: 0 }}>
+                        {wine.name}
+                      </h3>
+
+                      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                        {[wine.origin, wine.varietal].map(t => (
+                          <span key={t} style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: S.text3, background: 'rgba(200,155,60,0.06)', border: `1px solid rgba(200,155,60,0.14)`, padding: '3px 8px', borderRadius: 4 }}>{t}</span>
+                        ))}
+                      </div>
+
+                      <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: S.text2, lineHeight: 1.68, margin: 0, flex: 1, fontStyle: 'italic' }}>
+                        {wine.notes}
+                      </p>
+
+                      {wine.pairings.length > 0 && (
+                        <div style={{ borderTop: `1px solid rgba(200,155,60,0.09)`, paddingTop: 11 }}>
+                          <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 5.5, color: S.goldDim, letterSpacing: '0.14em', marginBottom: 8 }}>PAIRS WITH</div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                            {wine.pairings.map(p => (
+                              <span key={p} className="food-pill" style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: S.text2, background: 'rgba(200,155,60,0.06)', border: `1px solid rgba(200,155,60,0.17)`, padding: '4px 9px', borderRadius: 20 }}>{p}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div style={{
-                    fontFamily: "'Press Start 2P', monospace", fontSize: 5,
-                    color: 'rgba(200,155,60,0.5)', letterSpacing: '0.1em', marginTop: 4,
-                  }}>
-                    PTS
-                  </div>
-                </div>
-
-                {/* ABV — bottom right */}
-                <div style={{
-                  position: 'absolute', bottom: 16, right: 15, zIndex: 3,
-                  fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 700,
-                  color: 'rgba(200,155,60,0.65)',
-                  textShadow: '0 1px 4px rgba(0,0,0,0.8)',
-                }}>
-                  {wine.abv} ABV
-                </div>
-              </div>
-
-              {/* ── Info panel ── */}
-              <div style={{
-                padding: '15px 16px 18px', flex: 1, display: 'flex', flexDirection: 'column', gap: 10,
-                background: '#09070e',
-                borderTop: `1px solid rgba(200,155,60,0.1)`,
-              }}>
-
-                {/* Editorial tag + name row */}
-                <div>
-                  <div style={{
-                    fontFamily: "'Press Start 2P', monospace", fontSize: 5.5,
-                    color: wine.tagColor, letterSpacing: '0.12em', marginBottom: 6,
-                    textTransform: 'uppercase',
-                  }}>
-                    ★ {wine.editTag}
-                  </div>
-                  <h3 style={{
-                    fontFamily: 'Inter, sans-serif', fontSize: 15, fontWeight: 800,
-                    color: S.text1, lineHeight: 1.3, letterSpacing: '-0.01em', margin: 0,
-                  }}>
-                    {wine.name}
-                  </h3>
-                </div>
-
-                {/* Origin + Varietal pills */}
-                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                  {[wine.origin, wine.varietal].map(t => (
-                    <span key={t} style={{
-                      fontFamily: 'Inter, sans-serif', fontSize: 11, color: S.text3,
-                      background: 'rgba(200,155,60,0.06)', border: `1px solid rgba(200,155,60,0.14)`,
-                      padding: '3px 8px', borderRadius: 4,
-                    }}>{t}</span>
-                  ))}
-                </div>
-
-                {/* Tasting notes */}
-                <p style={{
-                  fontFamily: 'Inter, sans-serif', fontSize: 12, color: S.text2,
-                  lineHeight: 1.68, margin: 0, flex: 1,
-                  fontStyle: 'italic',
-                }}>
-                  {wine.notes}
-                </p>
-
-                {/* Pairings */}
-                <div style={{ borderTop: `1px solid rgba(200,155,60,0.09)`, paddingTop: 11 }}>
-                  <div style={{
-                    fontFamily: "'Press Start 2P', monospace", fontSize: 5.5,
-                    color: S.goldDim, letterSpacing: '0.14em', marginBottom: 8,
-                  }}>
-                    PAIRS WITH
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                    {wine.pairings.map(p => (
-                      <span
-                        key={p}
-                        className="food-pill"
-                        style={{
-                          fontFamily: 'Inter, sans-serif', fontSize: 11, color: S.text2,
-                          background: 'rgba(200,155,60,0.06)', border: `1px solid rgba(200,155,60,0.17)`,
-                          padding: '4px 9px', borderRadius: 20,
-                        }}
-                      >
-                        {p}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
+                )
+              })}
             </div>
-          ))}
-        </div>
+          )
+        })()}
+
+        {/* Admin add wine */}
+        {session?.user?.role === 'ADMIN' && (
+          <div style={{ marginTop: 20 }}>
+            <AdminWineSection />
+          </div>
+        )}
       </div>
 
       {/* ── AI WINE IDENTIFIER (admin only) ─────────────────── */}
