@@ -1238,7 +1238,7 @@ export default function WineStockerRush() {
 
               {/* Controls */}
               <div style={{ background: 'rgba(200,155,60,0.05)', border: '1px solid rgba(200,155,60,0.2)', borderRadius: 8, padding: '11px 14px' }}>
-                <div style={{ fontFamily: '"Press Start 2P", monospace', color: '#C89B3C', fontSize: 6, marginBottom: 10, letterSpacing: 1 }}>⌨ CONTROLS</div>
+                <div style={{ fontFamily: '"Press Start 2P", monospace', color: '#C89B3C', fontSize: 9, marginBottom: 10, letterSpacing: 1 }}>⌨ CONTROLS</div>
 
                 {/* Arrow keys row */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
@@ -1259,7 +1259,7 @@ export default function WineStockerRush() {
                 {/* Spacebar row */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                   <span style={{
-                    fontFamily: '"Press Start 2P", monospace', fontSize: 7,
+                    fontFamily: '"Press Start 2P", monospace', fontSize: 9,
                     color: '#c89b3c', background: 'rgba(200,155,60,0.13)',
                     border: '1px solid rgba(200,155,60,0.45)',
                     borderBottom: '3px solid rgba(200,155,60,0.55)',
@@ -1272,7 +1272,7 @@ export default function WineStockerRush() {
                 {/* Stockroom */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{
-                    fontFamily: '"Press Start 2P", monospace', fontSize: 6,
+                    fontFamily: '"Press Start 2P", monospace', fontSize: 8,
                     color: '#88CCFF', background: 'rgba(100,180,255,0.1)',
                     border: '1px solid rgba(100,180,255,0.3)',
                     borderBottom: '3px solid rgba(100,180,255,0.4)',
@@ -1284,7 +1284,7 @@ export default function WineStockerRush() {
 
               {/* How to play */}
               <div style={{ background: 'rgba(100,180,255,0.04)', border: '1px solid rgba(100,180,255,0.16)', borderRadius: 8, padding: '11px 14px' }}>
-                <div style={{ fontFamily: '"Press Start 2P", monospace', color: '#88CCFF', fontSize: 6, marginBottom: 10, letterSpacing: 1 }}>ℹ HOW TO PLAY</div>
+                <div style={{ fontFamily: '"Press Start 2P", monospace', color: '#88CCFF', fontSize: 9, marginBottom: 10, letterSpacing: 1 }}>ℹ HOW TO PLAY</div>
                 {([
                   ['📦', 'Go left → grab wine cases'],
                   ['🏃', 'Run to shelves → auto-stocks'],
@@ -1315,7 +1315,7 @@ export default function WineStockerRush() {
                   padding: '4px 9px', borderRadius: 20,
                 }}>
                   <span style={{ fontSize: 13 }}>{p.em}</span>
-                  <span style={{ fontFamily: '"Press Start 2P", monospace', color: p.col, fontSize: 5, whiteSpace: 'nowrap' }}>{p.name}</span>
+                  <span style={{ fontFamily: '"Press Start 2P", monospace', color: p.col, fontSize: 7, whiteSpace: 'nowrap' }}>{p.name}</span>
                 </div>
               ))}
             </div>
@@ -1325,7 +1325,7 @@ export default function WineStockerRush() {
               <button onClick={startGame} className="osrs-btn" style={{ padding: '11px 48px' }}>
                 ▶ Start Shift
               </button>
-              <div style={{ fontFamily: '"Press Start 2P", monospace', color: 'rgba(200,155,60,0.45)', fontSize: 6, marginTop: 7, letterSpacing: 1 }}>
+              <div style={{ fontFamily: '"Press Start 2P", monospace', color: 'rgba(200,155,60,0.45)', fontSize: 8, marginTop: 7, letterSpacing: 1 }}>
                 Reach {XP_THRESHOLD} pts → +25 Fun XP
               </div>
             </div>
