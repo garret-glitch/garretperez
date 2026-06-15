@@ -1756,6 +1756,8 @@ export default function BossHunter() {
   const [victoryBoss, setVictoryBoss] = useState(0)
   const [lastUnlockedGear, setLastUnlockedGear] = useState<GearId | null>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const playWrapRef = useRef<HTMLDivElement>(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const gsRef = useRef<GS|null>(null)
   const rafRef = useRef<number>(0)
   const mouseWorldRef = useRef<V2>({x:CW/2,y:CH/2})
@@ -1771,6 +1773,32 @@ export default function BossHunter() {
     gsRef.current = mkState(wpn, bossDef, gear)
     setScreen('playing')
   }, [getWpn])
+
+  const toggleFullscreen = useCallback(() => {
+    const el = playWrapRef.current as (HTMLDivElement & { webkitRequestFullscreen?: () => void }) | null
+    const doc = document as Document & { webkitFullscreenElement?: Element; webkitExitFullscreen?: () => void }
+    const fsEl = document.fullscreenElement || doc.webkitFullscreenElement
+    if (!fsEl) {
+      if (el?.requestFullscreen) el.requestFullscreen().catch(() => {})
+      else if (el?.webkitRequestFullscreen) el.webkitRequestFullscreen()
+    } else {
+      if (document.exitFullscreen) document.exitFullscreen().catch(() => {})
+      else if (doc.webkitExitFullscreen) doc.webkitExitFullscreen()
+    }
+  }, [])
+
+  useEffect(() => {
+    const onFsChange = () => {
+      const doc = document as Document & { webkitFullscreenElement?: Element }
+      setIsFullscreen(!!(document.fullscreenElement || doc.webkitFullscreenElement))
+    }
+    document.addEventListener('fullscreenchange', onFsChange)
+    document.addEventListener('webkitfullscreenchange', onFsChange)
+    return () => {
+      document.removeEventListener('fullscreenchange', onFsChange)
+      document.removeEventListener('webkitfullscreenchange', onFsChange)
+    }
+  }, [])
 
   const activeGear = useCallback((): GearId[] => [equippedAttack, equippedDefense].filter(Boolean) as GearId[], [equippedAttack, equippedDefense])
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -2081,11 +2109,12 @@ export default function BossHunter() {
 
   // ─── PLAYING ───
   if (screen === 'playing') return (
-    <div style={{background:'#000',display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'"Press Start 2P",monospace'}}>
-      <div style={{position:'relative'}}>
-        <canvas ref={canvasRef} width={CW} height={CH} style={{display:'block',cursor:'crosshair',maxWidth:'100vw',maxHeight:'100vh',objectFit:'contain'}} />
-        <div style={{position:'absolute',top:8,right:8}}>
-          <button onClick={() => { cancelAnimationFrame(rafRef.current); setScreen('menu') }} style={{background:'rgba(4,4,14,0.85)',border:'1px solid #2a2820',color:'#605848',padding:'4px 10px',borderRadius:4,fontSize:7,cursor:'pointer',fontFamily:'inherit'}}>✕ QUIT</button>
+    <div ref={playWrapRef} style={{position:'fixed',inset:0,zIndex:9999,background:'#000',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'"Press Start 2P",monospace'}}>
+      <div style={{position:'relative',lineHeight:0}}>
+        <canvas ref={canvasRef} width={CW} height={CH} style={{display:'block',cursor:'crosshair',width:'auto',height:'auto',maxWidth:'100vw',maxHeight:'100vh',objectFit:'contain'}} />
+        <div style={{position:'absolute',top:8,right:8,display:'flex',gap:6}}>
+          <button onClick={toggleFullscreen} style={{background:'rgba(4,4,14,0.85)',border:'1px solid #2a2820',color:'#605848',padding:'4px 10px',borderRadius:4,fontSize:7,cursor:'pointer',fontFamily:'inherit'}}>{isFullscreen ? '⊠ WINDOW' : '⛶ FULLSCREEN'}</button>
+          <button onClick={() => { cancelAnimationFrame(rafRef.current); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); setScreen('menu') }} style={{background:'rgba(4,4,14,0.85)',border:'1px solid #2a2820',color:'#605848',padding:'4px 10px',borderRadius:4,fontSize:7,cursor:'pointer',fontFamily:'inherit'}}>✕ QUIT</button>
         </div>
       </div>
     </div>
