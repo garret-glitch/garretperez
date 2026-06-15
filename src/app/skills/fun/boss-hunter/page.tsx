@@ -1788,6 +1788,13 @@ export default function BossHunter() {
   }, [])
 
   useEffect(() => {
+    if (screen !== 'playing') return
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prevOverflow }
+  }, [screen])
+
+  useEffect(() => {
     const onFsChange = () => {
       const doc = document as Document & { webkitFullscreenElement?: Element }
       setIsFullscreen(!!(document.fullscreenElement || doc.webkitFullscreenElement))
@@ -2109,17 +2116,16 @@ export default function BossHunter() {
 
   // ─── PLAYING ───
   if (screen === 'playing') return (
-    <div ref={playWrapRef} style={{position:'fixed',inset:0,zIndex:9999,background:'#000',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'"Press Start 2P",monospace'}}>
+    <div ref={playWrapRef} style={{position:'fixed',inset:0,zIndex:9999,background:'#000',fontFamily:'"Press Start 2P",monospace'}}>
       <style>{`
-        .bh-canvas{display:block;cursor:crosshair;width:auto;height:auto;object-fit:contain;
-          max-width:100vw;max-height:100vh;max-width:100dvw;max-height:100dvh;}
+        .bh-canvas{display:block;cursor:crosshair;max-width:100%;max-height:100%;object-fit:contain;}
       `}</style>
-      <div style={{position:'relative',lineHeight:0}}>
+      <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',lineHeight:0}}>
         <canvas ref={canvasRef} width={CW} height={CH} className="bh-canvas" />
-        <div style={{position:'absolute',top:8,right:8,display:'flex',gap:6}}>
-          <button onClick={toggleFullscreen} style={{background:'rgba(4,4,14,0.85)',border:'1px solid #2a2820',color:'#605848',padding:'4px 10px',borderRadius:4,fontSize:7,cursor:'pointer',fontFamily:'inherit'}}>{isFullscreen ? '⊠ WINDOW' : '⛶ FULLSCREEN'}</button>
-          <button onClick={() => { cancelAnimationFrame(rafRef.current); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); setScreen('menu') }} style={{background:'rgba(4,4,14,0.85)',border:'1px solid #2a2820',color:'#605848',padding:'4px 10px',borderRadius:4,fontSize:7,cursor:'pointer',fontFamily:'inherit'}}>✕ QUIT</button>
-        </div>
+      </div>
+      <div style={{position:'absolute',top:8,right:8,display:'flex',gap:6,zIndex:1}}>
+        <button onClick={toggleFullscreen} style={{background:'rgba(4,4,14,0.85)',border:'1px solid #2a2820',color:'#605848',padding:'4px 10px',borderRadius:4,fontSize:7,cursor:'pointer',fontFamily:'inherit'}}>{isFullscreen ? '⊠ WINDOW' : '⛶ FULLSCREEN'}</button>
+        <button onClick={() => { cancelAnimationFrame(rafRef.current); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); setScreen('menu') }} style={{background:'rgba(4,4,14,0.85)',border:'1px solid #2a2820',color:'#605848',padding:'4px 10px',borderRadius:4,fontSize:7,cursor:'pointer',fontFamily:'inherit'}}>✕ QUIT</button>
       </div>
     </div>
   )
