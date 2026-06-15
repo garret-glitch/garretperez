@@ -1916,21 +1916,6 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
       const rr = 24+prog*70; ctx.strokeStyle=af.color; ctx.lineWidth=5-prog*3; ctx.shadowColor=af.color; ctx.shadowBlur=16
       ctx.beginPath(); ctx.arc(28,0,rr*0.5,0,Math.PI*2); ctx.stroke()
       ctx.globalAlpha=alpha*0.35; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(28,0,rr,0,Math.PI*2); ctx.stroke()
-    } else if (af.type === 'greatslash') {
-      // huge sweeping overhead arc that travels across the swing
-      const R = 150, half = 1.25
-      // motion-blur wedge fanning out from the player
-      const grad = ctx.createRadialGradient(0,0,40,0,0,R)
-      grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(0.7,`${af.color}55`); grad.addColorStop(1,`${af.color}00`)
-      ctx.globalAlpha = alpha*0.6; ctx.fillStyle = grad
-      ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,R,-half,half); ctx.closePath(); ctx.fill()
-      // thick outer arc of the swing
-      ctx.globalAlpha = alpha*0.8; ctx.strokeStyle = af.color; ctx.lineWidth = 7-prog*4; ctx.shadowColor = af.color; ctx.shadowBlur = 24
-      ctx.beginPath(); ctx.arc(0,0,R*(0.78+prog*0.28),-half,half); ctx.stroke()
-      // bright leading edge sweeping from one side to the other
-      const lead = -half + prog*(half*2)
-      ctx.globalAlpha = alpha; ctx.strokeStyle = '#FFE8B0'; ctx.lineWidth = 8; ctx.shadowBlur = 26
-      ctx.beginPath(); ctx.arc(0,0,R*(0.78+prog*0.28),lead-0.55,lead+0.1); ctx.stroke()
     } else if (af.type === 'shot') {
       const len = 32+prog*45; ctx.strokeStyle=af.color; ctx.lineWidth=3; ctx.shadowColor=af.color; ctx.shadowBlur=10
       ctx.beginPath(); ctx.moveTo(18,0); ctx.lineTo(18+len,0); ctx.stroke()
@@ -2082,28 +2067,58 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
       drawBlade(0.5 + Math.sin(t * 3.5) * 0.05, 52, 1, 12)   // idle ready stance
     }
   } else if (wid === 'greatsword') {
-    // ── MASSIVE greatsword: long broad blade, fuller, huge crossguard ──
-    ctx.shadowColor='#E67E22'; ctx.shadowBlur=22
-    // grip + pommel behind the body
-    ctx.strokeStyle=hw?'#FFF':'#3A2410'; ctx.lineWidth=7; ctx.lineCap='round'
-    ctx.beginPath(); ctx.moveTo(-2,0); ctx.lineTo(18,0); ctx.stroke()
-    ctx.fillStyle=hw?'#FFF':'#8A6510'; ctx.beginPath(); ctx.arc(-4,0,5,0,Math.PI*2); ctx.fill()
-    // huge crossguard
-    ctx.fillStyle=hw?'#FFF':'#8A6510'; ctx.fillRect(16,-20,8,40)
-    ctx.fillStyle=hw?'#FFF':'#C8881E'; ctx.fillRect(16,-20,4,40)
-    // broad blade — wide at the guard, tapering to a point far out
-    const bladeGrad=ctx.createLinearGradient(24,0,118,0)
-    bladeGrad.addColorStop(0,hw?'#FFF':'#C0651A'); bladeGrad.addColorStop(0.5,hw?'#FFF':'#E67E22'); bladeGrad.addColorStop(1,hw?'#FFF':'#F6B24A')
-    ctx.fillStyle=bladeGrad
-    ctx.beginPath()
-    ctx.moveTo(24,-17); ctx.lineTo(104,-12); ctx.lineTo(122,0); ctx.lineTo(104,12); ctx.lineTo(24,17); ctx.closePath(); ctx.fill()
-    // central fuller groove
-    ctx.strokeStyle=hw?'#EEE':'rgba(120,50,0,0.6)'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(26,0); ctx.lineTo(106,0); ctx.stroke()
-    // glowing hot edges
-    ctx.strokeStyle=hw?'#FFF':'rgba(255,210,120,0.85)'; ctx.lineWidth=2
-    ctx.beginPath(); ctx.moveTo(24,-17); ctx.lineTo(104,-12); ctx.lineTo(122,0); ctx.stroke()
-    ctx.beginPath(); ctx.moveTo(24,17); ctx.lineTo(104,12); ctx.lineTo(122,0); ctx.stroke()
-    ctx.lineCap='butt'
+    // ── MASSIVE Drake Greatsword — heavy wind-up into an explosive overhead cleave ──
+    const drawBig = (rot: number, alpha: number, glow: number) => {
+      ctx.save(); ctx.rotate(rot); ctx.globalAlpha = alpha
+      ctx.shadowColor = '#E67E22'; ctx.shadowBlur = glow
+      ctx.strokeStyle = hw ? '#FFF' : '#3A2410'; ctx.lineWidth = 7; ctx.lineCap = 'round'
+      ctx.beginPath(); ctx.moveTo(-2, 0); ctx.lineTo(18, 0); ctx.stroke()
+      ctx.fillStyle = hw ? '#FFF' : '#8A6510'; ctx.beginPath(); ctx.arc(-4, 0, 5, 0, Math.PI * 2); ctx.fill()
+      ctx.fillStyle = hw ? '#FFF' : '#8A6510'; ctx.fillRect(16, -20, 8, 40)
+      ctx.fillStyle = hw ? '#FFF' : '#C8881E'; ctx.fillRect(16, -20, 4, 40)
+      const bladeGrad = ctx.createLinearGradient(24, 0, 118, 0)
+      bladeGrad.addColorStop(0, hw ? '#FFF' : '#C0651A'); bladeGrad.addColorStop(0.5, hw ? '#FFF' : '#E67E22'); bladeGrad.addColorStop(1, hw ? '#FFF' : '#F6B24A')
+      ctx.fillStyle = bladeGrad
+      ctx.beginPath(); ctx.moveTo(24, -17); ctx.lineTo(104, -12); ctx.lineTo(122, 0); ctx.lineTo(104, 12); ctx.lineTo(24, 17); ctx.closePath(); ctx.fill()
+      ctx.strokeStyle = hw ? '#EEE' : 'rgba(120,50,0,0.6)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(26, 0); ctx.lineTo(106, 0); ctx.stroke()
+      ctx.strokeStyle = hw ? '#FFF' : 'rgba(255,210,120,0.85)'; ctx.lineWidth = 2
+      ctx.beginPath(); ctx.moveTo(24, -17); ctx.lineTo(104, -12); ctx.lineTo(122, 0); ctx.stroke()
+      ctx.beginPath(); ctx.moveTo(24, 17); ctx.lineTo(104, 12); ctx.lineTo(122, 0); ctx.stroke()
+      ctx.lineCap = 'butt'; ctx.restore()
+    }
+    const slash = g.attackFlash && g.attackFlash.type === 'greatslash' && g.attackFlash.timer > 0 ? g.attackFlash : null
+    const half = 1.3, backR = -half - 0.55   // raised/wound-up angle
+    if (slash) {
+      const p = 1 - slash.timer / slash.maxTimer
+      let rot: number, cleave: number
+      if (p < 0.34) { rot = -half + (backR - -half) * (p / 0.34); cleave = 0 }   // slow heavy wind-up overhead
+      else { const e = (p - 0.34) / 0.66; cleave = 1 - Math.pow(1 - e, 2.4); rot = backR + cleave * (2 * half + 0.55) }   // explosive cleave across
+      // huge crescent slash trail during the cleave
+      if (cleave > 0.02) {
+        const r0 = 22, r1 = 128
+        ctx.save()
+        ctx.globalAlpha = Math.min(1, cleave * 1.4) * 0.5
+        const tg = ctx.createRadialGradient(0, 0, r0, 0, 0, r1)
+        tg.addColorStop(0, 'rgba(255,140,40,0)'); tg.addColorStop(1, 'rgba(255,160,60,0.7)')
+        ctx.fillStyle = tg; ctx.shadowColor = '#FF7A1A'; ctx.shadowBlur = 26
+        ctx.beginPath(); ctx.arc(0, 0, r1, backR, rot); ctx.arc(0, 0, r0, rot, backR, true); ctx.closePath(); ctx.fill()
+        ctx.globalAlpha = Math.min(1, cleave * 1.6); ctx.strokeStyle = 'rgba(255,240,200,0.95)'; ctx.lineWidth = 5
+        ctx.beginPath(); ctx.arc(0, 0, r1, rot - 0.34, rot); ctx.stroke()
+        ctx.restore()
+      }
+      // motion-blur ghost blades trailing the cleave
+      for (let i = 3; i >= 1; i--) { const grot = rot - i * 0.26 * cleave; if (grot > backR - 0.05) drawBig(grot, 0.10 * (4 - i), 8) }
+      drawBig(rot, 1, 26)
+      // impact flash at the blade tip as the cleave bottoms out
+      if (cleave > 0.72) {
+        const sv = (cleave - 0.72) / 0.28
+        ctx.globalAlpha = sv; ctx.fillStyle = '#FFE3B0'; ctx.shadowColor = '#FF9A33'; ctx.shadowBlur = 26
+        ctx.beginPath(); ctx.arc(Math.cos(rot) * 120, Math.sin(rot) * 120, 6 + sv * 8, 0, Math.PI * 2); ctx.fill()
+      }
+      ctx.globalAlpha = 1
+    } else {
+      drawBig(-0.18 + Math.sin(t * 2.0) * 0.05, 1, 16)   // idle: shouldered, slow heavy bob
+    }
   } else if (wid === 'thunder_sword') {
     const lp = 0.5+0.5*Math.sin(t*10)
     ctx.shadowColor='#F1C40F'; ctx.shadowBlur=16+lp*10
