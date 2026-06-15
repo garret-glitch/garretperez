@@ -239,7 +239,7 @@ interface GS {
   webProcAnim: { timer: number; pos: V2 } | null
   bossFlightAngle: number; bossFlightSpeed: number
   bossFlightRadius: number; bossFlightCenter: V2
-  griffinState: { mode: number; timer: number; dive: V2 }
+  griffinState: { mode: number; timer: number; dive: V2; shotT: number }
   bossFleeTimer: number
   tailWhipCd: number
   snakeTrail: Array<{x: number; y: number}>
@@ -425,7 +425,7 @@ function mkState(wpn: WeaponDef, boss: BossDef, gear: GearId[]): GS {
     bossDesperate: false, phaseBanner: null,
     sigTimer: 0,
     mageCircle: 0,
-    griffinState: { mode: 0, timer: 3.0, dive: v(1, 0) },
+    griffinState: { mode: 0, timer: 3.0, dive: v(1, 0), shotT: 0 },
   }
 }
 
@@ -1038,40 +1038,59 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
 
   // Boss movement
   if (g.bossFlightSpeed > 0 && b.stunTimer <= 0) {
-    // ── STORM GRIFFIN — aerial predator: dynamic orbit + telegraphed swoop dives ──
+    // ── STORM GRIFFIN — aerial predator: orbit, telegraphed swoop dives, and a hovering lightning barrage ──
     const gs = g.griffinState
-    // orbit centre loosely follows the player
-    const trackRate = Math.min(1, dt * 2.0)
+    // orbit centre drifts slowly toward the player (loose, so it keeps its distance)
+    const trackRate = Math.min(1, dt * 1.1)
     g.bossFlightCenter.x += (p.pos.x - g.bossFlightCenter.x) * trackRate
     g.bossFlightCenter.y += (p.pos.y - g.bossFlightCenter.y) * trackRate
     g.bossFlightCenter.x = clamp(g.bossFlightCenter.x, 150, WW - 150)
     g.bossFlightCenter.y = clamp(g.bossFlightCenter.y, 130, WH - 130)
     gs.timer -= dt
     if (gs.mode === 2) {
-      // SWOOP DIVE — a committed dash through the player's spot (slower, readable)
-      const spd = g.bossEnraged ? 560 : 470
+      // SWOOP DIVE — a committed dash along the PRE-LOCKED line (just step off it)
+      const spd = g.bossEnraged ? 520 : 440
       b.pos.x = clamp(b.pos.x + gs.dive.x * spd * dt, 80, WW - 80)
       b.pos.y = clamp(b.pos.y + gs.dive.y * spd * dt, 80, WH - 80)
-      if (dist(b.pos, p.pos) < bossDef.size + 16 && p.iframeTimer <= 0) { dealDmgToPlayer(g, g.bossEnraged ? 22 : 16, wpn, gear, gs.dive); spawnParticles(g, p.pos, 12, '#5fe6ff', 240) }
-      if (gs.timer <= 0) { gs.mode = 0; gs.timer = rnd(3.0, 4.6) / (g.bossDesperate ? 1.5 : g.bossEnraged ? 1.25 : 1.0); g.bossFlightAngle = Math.atan2(b.pos.y - g.bossFlightCenter.y, b.pos.x - g.bossFlightCenter.x) }
+      if (dist(b.pos, p.pos) < bossDef.size + 14 && p.iframeTimer <= 0) { dealDmgToPlayer(g, g.bossEnraged ? 20 : 15, wpn, gear, gs.dive); spawnParticles(g, p.pos, 12, '#5fe6ff', 240) }
+      if (gs.timer <= 0) { gs.mode = 0; gs.timer = rnd(3.4, 5.0) / (g.bossDesperate ? 1.4 : g.bossEnraged ? 1.2 : 1.0); g.bossFlightAngle = Math.atan2(b.pos.y - g.bossFlightCenter.y, b.pos.x - g.bossFlightCenter.x) }
     } else if (gs.mode === 1) {
-      // WIND-UP — long, clear telegraph: rise and pull back while the dive line tracks the player
+      // WIND-UP — the dive line is LOCKED on entry; griffin just rises/pulls back so you can read & sidestep it
       const away = norm(v(b.pos.x - p.pos.x, b.pos.y - p.pos.y))
-      b.pos.x = clamp(b.pos.x + away.x * 70 * dt, 80, WW - 80)
-      b.pos.y = clamp(b.pos.y + away.y * 70 * dt - 36 * dt, 80, WH - 80)
-      // lock the dive direction for the final ~0.25s so a good player can read and sidestep it
-      if (gs.timer > 0.25) gs.dive = norm(v(p.pos.x - b.pos.x, p.pos.y - b.pos.y))
-      if (gs.timer <= 0) { gs.mode = 2; gs.timer = g.bossEnraged ? 0.7 : 0.8; Sfx.gust(); g.screenShake = Math.max(g.screenShake, 0.25) }
+      b.pos.x = clamp(b.pos.x + away.x * 60 * dt, 80, WW - 80)
+      b.pos.y = clamp(b.pos.y + away.y * 60 * dt - 32 * dt, 80, WH - 80)
+      if (gs.timer <= 0) { gs.mode = 2; gs.timer = g.bossEnraged ? 0.72 : 0.85; Sfx.gust(); g.screenShake = Math.max(g.screenShake, 0.22) }
+    } else if (gs.mode === 3) {
+      // HOVER & BARRAGE — nearly stationary, rains aimed lightning bolts at the player
+      const toC = v(g.bossFlightCenter.x - b.pos.x, g.bossFlightCenter.y - b.pos.y)
+      b.pos.x = clamp(b.pos.x + toC.x * 0.5 * dt, 80, WW - 80)
+      b.pos.y = clamp(b.pos.y + toC.y * 0.5 * dt + Math.sin(g.gtime * 2.4) * 10 * dt, 80, WH - 80)
+      gs.shotT -= dt
+      if (gs.shotT <= 0) {
+        gs.shotT = g.bossEnraged ? 0.5 : 0.62
+        const dir = norm(v(p.pos.x - b.pos.x, p.pos.y - b.pos.y))
+        g.projectiles.push({ id: ++g.nextProjId, pos: { ...b.pos }, vel: v(dir.x * 330, dir.y * 330), dmg: g.bossEnraged ? 15 : 11, radius: 8, fromBoss: true, life: 4.0, color: '#00EEFF', isLightning: true, trail: [] })
+        spawnParticles(g, b.pos, 6, '#7DFFB0', 150); Sfx.shot()
+      }
+      if (gs.timer <= 0) { gs.mode = 0; gs.timer = rnd(3.4, 5.0) / (g.bossDesperate ? 1.4 : g.bossEnraged ? 1.2 : 1.0); g.bossFlightAngle = Math.atan2(b.pos.y - g.bossFlightCenter.y, b.pos.x - g.bossFlightCenter.x) }
     } else {
       // DYNAMIC ORBIT — gentle breathing radius, mild speed variation, occasional direction flips + vertical bob
       const dir = Math.sin(g.gtime * 0.4) >= 0 ? 1 : -1
       const breathe = 1 + 0.28 * Math.sin(g.gtime * 0.8)
-      const spd = g.bossFlightSpeed * (g.bossEnraged ? 1.25 : 0.92) * (b.slowTimer > 0 ? 0.3 : 1.0) * (1 + 0.28 * Math.sin(g.gtime * 1.1))
+      const spd = g.bossFlightSpeed * (g.bossEnraged ? 1.2 : 0.9) * (b.slowTimer > 0 ? 0.3 : 1.0) * (1 + 0.25 * Math.sin(g.gtime * 1.1))
       g.bossFlightAngle += spd * dir * dt
       const r = g.bossFlightRadius * breathe, fc = g.bossFlightCenter
       b.pos.x = clamp(fc.x + Math.cos(g.bossFlightAngle) * r, 80, WW - 80)
       b.pos.y = clamp(fc.y + Math.sin(g.bossFlightAngle) * r * 0.6 + Math.sin(g.gtime * 2.4) * 14, 80, WH - 80)
-      if (gs.timer <= 0) { gs.mode = 1; gs.timer = g.bossEnraged ? 0.78 : 0.95 }   // begin a long swoop wind-up
+      if (gs.timer <= 0) {
+        if (Math.random() < 0.5) {   // ── hover & barrage ──
+          gs.mode = 3; gs.timer = g.bossEnraged ? 3.4 : 2.8; gs.shotT = 0.45
+          spawnParticles(g, b.pos, 16, '#00EEFF', 200); Sfx.warn()
+        } else {                      // ── swoop dive: lock the line NOW ──
+          gs.mode = 1; gs.timer = g.bossEnraged ? 0.85 : 1.05
+          gs.dive = norm(v(p.pos.x - b.pos.x, p.pos.y - b.pos.y))
+        }
+      }
     }
   } else if (bossId === 1 && b.stunTimer <= 0) {
     // Drake: snake locomotion — head slithers toward player with sinusoidal lateral weave
@@ -1258,7 +1277,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
         resolveBossAttack(g, bossId, wpn, gear); g.bossAttack = null; g.nextAttackTimer = rnd(2.0, 3.4) / (g.bossEnraged ? 1.7 : 1.0)
       }
     }
-  } else if (g.nextAttackTimer <= 0 && b.stunTimer <= 0) {
+  } else if (g.nextAttackTimer <= 0 && b.stunTimer <= 0 && !(bossId === 2 && g.griffinState.mode === 3)) {
     startBossAttack(g, bossId, selectBossAttack(bossId, g.bossEnraged, g.bossDesperate, dist(p.pos, b.pos)))
   }
 
