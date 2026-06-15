@@ -132,6 +132,7 @@ interface GS {
   projectiles: Projectile[]; bossAttack: BossAttack | null; nextAttackTimer: number
   damageNums: DamageNumber[]; particles: Particle[]; slowTraps: SlowTrap[]; zones: HazardZone[]
   attackFlash: AttackFlash | null; screenShake: number; bossDeathAnim: number; playerDeathAnim: number
+  meleeHit: { timer: number; maxTimer: number; dmg: number; reach: number; arc: number; angle: number; hit: boolean } | null
   lavaParticles: Particle[]; skyArrows: SkyArrow[]; envObjects: EnvObject[]
   nextProjId: number; nextDmgId: number; nextPartId: number; nextTrapId: number; nextZoneId: number
   gtime: number; bossEnraged: boolean; poisonTimer: number; playerDmgFlash: number; tooCloseFlash: number
@@ -303,7 +304,7 @@ function mkState(wpn: WeaponDef, boss: BossDef, gear: GearId[]): GS {
     },
     projectiles: [], bossAttack: null, nextAttackTimer: 3.5,
     damageNums: [], particles: [], slowTraps: [], zones: [],
-    attackFlash: null, screenShake: 0, bossDeathAnim: 0, playerDeathAnim: 0,
+    attackFlash: null, screenShake: 0, bossDeathAnim: 0, playerDeathAnim: 0, meleeHit: null,
     lavaParticles: [], skyArrows: [], envObjects: generateEnvObjects(boss.id),
     nextProjId: 0, nextDmgId: 0, nextPartId: 0, nextTrapId: 0, nextZoneId: 0,
     gtime: 0, bossEnraged: false, poisonTimer: 0, playerDmgFlash: 0, tooCloseFlash: 0,
@@ -795,6 +796,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   const isRangedAtk = wpn.id !== 'sword' && !gear.includes('spider_fang')
   // melee reach per weapon: dagger short, sword balanced, greatsword long+wide, thunder mid
   const meleeReach = wid === 'dagger' ? 70 : wid === 'greatsword' ? 160 : wid === 'thunder_sword' ? 108 : 100
+  const meleeArc = wid === 'greatsword' ? 2.0 : wid === 'dagger' ? 1.2 : 1.6   // swing cone half-width *2
   const weaponReach = isRangedAtk ? wpn.range : meleeReach
   // target the nearest threat: boss by default, or a closer spiderling if one is swarming
   let tgtMinion: Minion | null = null, tgtDist = dToBoss
@@ -814,8 +816,8 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
     } else if (tgtDist <= atkRange && tgtDist >= minRange) {
       p.atkTimer = atkCd
       const atkAngle = Math.atan2(tgtPos.y - p.pos.y, tgtPos.x - p.pos.x)
-      const flashType = wid === 'greatsword' ? 'greatslash' : gear.includes('spider_fang') ? 'slash' : wpn.id !== 'sword' ? 'shot' : 'slam'
-      const flashDur = wid === 'greatsword' ? 0.34 : 0.22
+      const flashType = wid === 'greatsword' ? 'greatslash' : (wid === 'dagger' || wid === 'sword') ? 'slash' : isRangedAtk ? 'shot' : 'slam'
+      const flashDur = wid === 'greatsword' ? 0.34 : wid === 'sword' ? 0.28 : 0.22
       g.attackFlash = { angle: atkAngle, timer: flashDur, maxTimer: flashDur, type: flashType, color: flashColor }
       if (gear.includes('venom_bow') && g.poisonTimer <= 0) g.poisonTimer = 5.0
       if (isRangedAtk) {
@@ -825,12 +827,36 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
         const projSpeed = wpn.id === 'staff' ? 380 : 440
         g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * projSpeed, dir.y * projSpeed), dmg: wpn.dmg, radius: 6, fromBoss: false, life: 4.0, color: projColor, aoe: isStorm ? 40 : undefined, isLightning: isStorm, trail: [] })
         if (wpn.id === 'staff') Sfx.cast(); else Sfx.shot()
-      } else if (tgtMinion) {
-        dealDmgToMinion(g, tgtMinion, wpn.dmg); spawnParticles(g, tgtMinion.pos, 4, wpn.color, 80); Sfx.swing()
       } else {
-        dealDmgToBoss(g, wpn.dmg, gear); spawnParticles(g, b.pos, 4, wpn.color, 80); Sfx.swing()
+        // melee: damage is deferred — it only lands when the blade sweeps through the target (see meleeHit)
+        g.meleeHit = { timer: flashDur, maxTimer: flashDur, dmg: wpn.dmg, reach: meleeReach, arc: meleeArc, angle: atkAngle, hit: false }
+        Sfx.swing()
       }
     }
+  }
+
+  // Melee contact — damage lands only when the swinging blade actually touches the target
+  if (g.meleeHit) {
+    const mh = g.meleeHit
+    mh.timer = Math.max(0, mh.timer - dt)
+    const sp = 1 - mh.timer / mh.maxTimer
+    if (!mh.hit && sp >= 0.28 && sp <= 0.74) {
+      const reaches = (pos: V2, size: number) => {
+        if (dist(p.pos, pos) > mh.reach + size) return false
+        let da = Math.abs(Math.atan2(pos.y - p.pos.y, pos.x - p.pos.x) - mh.angle)
+        while (da > Math.PI) da = Math.abs(da - Math.PI * 2)
+        return da <= mh.arc / 2
+      }
+      let landed = false
+      if (reaches(b.pos, bossDef.size)) {
+        dealDmgToBoss(g, mh.dmg, gear)
+        spawnParticles(g, v(p.pos.x + Math.cos(mh.angle) * mh.reach * 0.6, p.pos.y + Math.sin(mh.angle) * mh.reach * 0.6), 6, '#FFFFFF', 110)
+        landed = true
+      }
+      for (const m of g.minions) { if (m.hp > 0 && reaches(m.pos, 16)) { dealDmgToMinion(g, m, mh.dmg); landed = true } }
+      if (landed) mh.hit = true
+    }
+    if (mh.timer <= 0) g.meleeHit = null
   }
 
   // Ability activation
@@ -1882,8 +1908,8 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
       ctx.beginPath(); ctx.moveTo(18,0); ctx.lineTo(18+(60+prog*50),0); ctx.stroke()
       ctx.strokeStyle = 'rgba(255,255,150,0.5)'; ctx.lineWidth = 12
       ctx.beginPath(); ctx.moveTo(18,0); ctx.lineTo(18+(35+prog*30),0); ctx.stroke()
-    } else if ((af.type==='slash' && wid!=='dagger') || af.type==='shadow') {
-      const r2 = 52+prog*22, arc = af.type==='shadow'?1.3:1.0
+    } else if (af.type==='shadow') {
+      const r2 = 52+prog*22, arc = 1.3
       ctx.strokeStyle = af.color; ctx.lineWidth = 3+(1-prog)*3; ctx.shadowColor = af.color; ctx.shadowBlur = 14
       ctx.beginPath(); ctx.arc(0,0,r2,-arc/2,arc/2); ctx.stroke()
     } else if (af.type === 'slam') {
@@ -2007,6 +2033,53 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
       const bob = Math.sin(t * 4) * 1.2
       drawFang(6, -8 + bob, 0.34, 26, hw ? '#FFF' : '#9B59B6', 10)
       drawFang(6, 8 - bob, -0.34, 26, hw ? '#FFF' : '#8E44AD', 10)
+    }
+  } else if (wid === 'sword') {
+    // ── STARTER SWORD — steel blade with a sweeping crescent slash ──
+    const drawBlade = (rot: number, len: number, alpha: number, glow: number) => {
+      ctx.save(); ctx.rotate(rot); ctx.globalAlpha = alpha
+      ctx.shadowColor = '#E74C3C'; ctx.shadowBlur = glow
+      const grad = ctx.createLinearGradient(10, 0, len, 0)
+      grad.addColorStop(0, hw ? '#FFF' : '#AEB8C4'); grad.addColorStop(0.5, hw ? '#FFF' : '#D8E0EA'); grad.addColorStop(1, hw ? '#FFF' : '#F2F6FB')
+      ctx.fillStyle = grad
+      ctx.beginPath(); ctx.moveTo(9, -3.6); ctx.lineTo(len - 8, -2.6); ctx.lineTo(len, 0); ctx.lineTo(len - 8, 2.6); ctx.lineTo(9, 3.6); ctx.closePath(); ctx.fill()
+      ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(10, -1.3); ctx.lineTo(len - 5, 0); ctx.stroke()
+      // crossguard
+      ctx.fillStyle = hw ? '#FFF' : '#7a1d12'; ctx.fillRect(5, -8, 5, 16)
+      ctx.fillStyle = hw ? '#FFF' : '#E74C3C'; ctx.fillRect(5, -8, 2.5, 16)
+      // grip + pommel
+      ctx.strokeStyle = '#3a1510'; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-1, 0); ctx.lineTo(5, 0); ctx.stroke()
+      ctx.fillStyle = hw ? '#FFF' : '#C0392B'; ctx.beginPath(); ctx.arc(-2, 0, 3.4, 0, Math.PI * 2); ctx.fill()
+      ctx.lineCap = 'butt'; ctx.restore()
+    }
+    const slash = g.attackFlash && g.attackFlash.type === 'slash' && g.attackFlash.timer > 0 ? g.attackFlash : null
+    if (slash) {
+      const p = 1 - slash.timer / slash.maxTimer
+      const e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2   // ease, fast through the middle
+      const startR = -1.15, endR = 1.2, rot = startR + (endR - startR) * e
+      const len = 54, r0 = 16, r1 = len + 8
+      // crescent slash trail from start angle to current
+      ctx.save()
+      ctx.globalAlpha = (1 - Math.abs(e - 0.5) * 1.2) * 0.65
+      ctx.fillStyle = 'rgba(255,120,90,0.5)'; ctx.shadowColor = '#E74C3C'; ctx.shadowBlur = 18
+      ctx.beginPath(); ctx.arc(0, 0, r1, startR, rot); ctx.arc(0, 0, r0, rot, startR, true); ctx.closePath(); ctx.fill()
+      // bright leading edge of the crescent
+      ctx.globalAlpha = 1 - Math.abs(e - 0.5); ctx.strokeStyle = 'rgba(255,238,205,0.95)'; ctx.lineWidth = 3
+      ctx.beginPath(); ctx.arc(0, 0, r1, rot - 0.28, rot); ctx.stroke()
+      ctx.restore()
+      // motion-blur ghost blades
+      for (let i = 3; i >= 1; i--) drawBlade(startR + (endR - startR) * Math.max(0, e - i * 0.12), len, 0.10 * (4 - i), 5)
+      // main blade
+      drawBlade(rot, len, 1, 14)
+      // contact spark as the edge passes mid-swing
+      if (e > 0.42 && e < 0.72) {
+        const spv = 1 - Math.abs(e - 0.57) / 0.15
+        ctx.globalAlpha = Math.max(0, spv); ctx.fillStyle = '#FFE3B0'; ctx.shadowColor = '#FFAA66'; ctx.shadowBlur = 20
+        ctx.beginPath(); ctx.arc(Math.cos(rot) * len * 0.82, Math.sin(rot) * len * 0.82, 4 + spv * 4, 0, Math.PI * 2); ctx.fill()
+      }
+      ctx.globalAlpha = 1
+    } else {
+      drawBlade(0.5 + Math.sin(t * 3.5) * 0.05, 52, 1, 12)   // idle ready stance
     }
   } else if (wid === 'greatsword') {
     // ── MASSIVE greatsword: long broad blade, fuller, huge crossguard ──
