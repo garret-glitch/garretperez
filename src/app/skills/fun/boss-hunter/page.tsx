@@ -1368,16 +1368,6 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
       ctx.shadowBlur = 0
     }
 
-    // ── hind lion haunches + legs ──
-    for (const side of [-1, 1]) {
-      ctx.fillStyle = cDark
-      ctx.beginPath(); ctx.ellipse(-sz * 0.40, side * sz * 0.32, sz * 0.30, sz * 0.21, side * 0.3, 0, Math.PI * 2); ctx.fill()
-      ctx.strokeStyle = cMid; ctx.lineWidth = sz * 0.15; ctx.lineCap = 'round'
-      ctx.beginPath(); ctx.moveTo(-sz * 0.46, side * sz * 0.42); ctx.lineTo(-sz * 0.32, side * sz * 0.66); ctx.stroke()
-      ctx.lineCap = 'butt'; ctx.strokeStyle = cGold; ctx.lineWidth = 2
-      for (let c = -1; c <= 1; c++) { ctx.beginPath(); ctx.moveTo(-sz * 0.32, side * sz * 0.66); ctx.lineTo(-sz * 0.28 + c * sz * 0.06, side * sz * 0.79); ctx.stroke() }
-    }
-
     // ── body (eagle breast → lion rear) — slim torso ──
     const bodyG = ctx.createLinearGradient(sz * 0.5, -sz * 0.34, -sz * 0.6, sz * 0.34)
     bodyG.addColorStop(0, cLight); bodyG.addColorStop(0.55, cMid); bodyG.addColorStop(1, cDark)
@@ -1402,20 +1392,6 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
       ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(sz * 0.22, 0, sz * 0.52, 0, Math.PI * 2); ctx.fill()
     }
 
-    // ── front raptor legs + talons ──
-    for (const side of [-1, 1]) {
-      ctx.strokeStyle = cGoldDk; ctx.lineWidth = sz * 0.13; ctx.lineCap = 'round'
-      const lx = sz * 0.36, ly = side * sz * 0.30
-      ctx.beginPath(); ctx.moveTo(sz * 0.2, side * sz * 0.22); ctx.lineTo(lx, ly + side * sz * 0.18); ctx.stroke()
-      ctx.lineCap = 'butt'; ctx.strokeStyle = cGold; ctx.lineWidth = sz * 0.045
-      const fx = lx, fy = ly + side * sz * 0.2
-      for (let c = 0; c < 3; c++) {
-        const ta = -0.5 + c * 0.45
-        ctx.beginPath(); ctx.moveTo(fx, fy)
-        ctx.quadraticCurveTo(fx + sz * 0.18, fy + side * sz * 0.04, fx + Math.cos(ta) * sz * 0.22, fy + Math.sin(ta) * sz * 0.22 + side * sz * 0.05); ctx.stroke()
-      }
-    }
-
     // ── neck ruff + head (front-facing fierce raptor) ──
     const hx = sz * 0.72
     // neck ruff feathers fanning around base of skull
@@ -1428,10 +1404,16 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
       const fr = (i / 6 - 0.5)
       feather(hx - sz * 0.18, fr * sz * 0.22, Math.PI + fr * 0.9 + flap * 0.05, sz * (0.52 - Math.abs(fr) * 0.18), sz * 0.11, cMid, cEdge, Math.abs(fr) < 0.2)
     }
-    // skull
-    const headG = ctx.createRadialGradient(hx + sz * 0.06, -sz * 0.06, 0, hx, 0, sz * 0.4)
+    // skull — triangular raptor face (wide crown -> apex at the beak)
+    const headG = ctx.createRadialGradient(hx + sz * 0.06, -sz * 0.06, 0, hx, 0, sz * 0.42)
     headG.addColorStop(0, cLight); headG.addColorStop(1, cMid)
-    ctx.fillStyle = headG; ctx.beginPath(); ctx.ellipse(hx, 0, sz * 0.34, sz * 0.31, 0, 0, Math.PI * 2); ctx.fill()
+    ctx.fillStyle = headG
+    ctx.beginPath()
+    ctx.moveTo(hx + sz * 0.40, 0)                                   // apex toward beak (front)
+    ctx.quadraticCurveTo(hx + sz * 0.06, -sz * 0.30, hx - sz * 0.30, -sz * 0.40)  // top edge to crown corner
+    ctx.quadraticCurveTo(hx - sz * 0.42, 0, hx - sz * 0.30, sz * 0.40)            // wide back of skull
+    ctx.quadraticCurveTo(hx + sz * 0.06, sz * 0.30, hx + sz * 0.40, 0)            // bottom edge to apex
+    ctx.closePath(); ctx.fill()
     // fierce brow ridges (a frowning ">  <")
     ctx.fillStyle = cDark
     for (const side of [-1, 1]) {
