@@ -1456,13 +1456,15 @@ export default function WineStockerRush() {
 
         {/* ── On-screen controls (scale with the game so they read in fullscreen) ── */}
         {screen === 'playing' && (
-          <>
+          <div style={{
+            position: 'absolute', bottom: 14, left: 14,
+            transformOrigin: 'bottom left', transform: `scale(${Math.max(1, uiScale)})`,
+            display: 'flex', alignItems: 'flex-end', gap: 12, opacity: 0.93,
+          }}>
             {/* Movement d-pad */}
             <div style={{
-              position: 'absolute', bottom: 14, left: 14,
-              transformOrigin: 'bottom left', transform: `scale(${Math.max(1, uiScale)})`,
               display: 'grid', gridTemplateColumns: 'repeat(3, 48px)', gridTemplateRows: 'repeat(3, 48px)',
-              gap: 3, opacity: 0.92,
+              gap: 3,
             }}>
               {DPAD.map((k, i) => k ? (
                 <button key={i}
@@ -1479,16 +1481,14 @@ export default function WineStockerRush() {
                 </button>
               ) : <div key={i} />)}
             </div>
-            {/* Sprint = SPACE bar */}
+            {/* Sprint = SPACE bar, right next to the arrows */}
             <button
               style={{
-                position: 'absolute', bottom: 14, right: 14,
-                transformOrigin: 'bottom right', transform: `scale(${Math.max(1, uiScale)})`,
                 width: 150, height: 64, padding: 0,
                 background: 'rgba(200,155,60,0.45)', border: '2px solid rgba(200,155,60,0.9)',
                 borderRadius: 12, color: '#fff',
                 fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
-                cursor: 'pointer', opacity: 0.95,
+                cursor: 'pointer',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
                 WebkitUserSelect: 'none', userSelect: 'none', touchAction: 'none',
               }}
@@ -1499,7 +1499,7 @@ export default function WineStockerRush() {
               <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: 1 }}>⚡ SPRINT</span>
               <span style={{ fontSize: 10, fontWeight: 700, opacity: 0.85, letterSpacing: 1 }}>hold SPACE</span>
             </button>
-          </>
+          </div>
         )}
        </div>
       </div>
