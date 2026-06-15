@@ -1454,18 +1454,22 @@ export default function WineStockerRush() {
           </div>
         )}
 
-        {/* ── Touch D-pad ── */}
+        {/* ── On-screen controls (scale with the game so they read in fullscreen) ── */}
         {screen === 'playing' && (
           <>
+            {/* Movement d-pad */}
             <div style={{
-              position: 'absolute', bottom: 12, left: 12,
-              display: 'grid', gridTemplateColumns: 'repeat(3, 46px)', gridTemplateRows: 'repeat(3, 46px)',
-              gap: 2, opacity: 0.7,
+              position: 'absolute', bottom: 14, left: 14,
+              transformOrigin: 'bottom left', transform: `scale(${Math.max(1, uiScale)})`,
+              display: 'grid', gridTemplateColumns: 'repeat(3, 48px)', gridTemplateRows: 'repeat(3, 48px)',
+              gap: 3, opacity: 0.92,
             }}>
               {DPAD.map((k, i) => k ? (
                 <button key={i}
-                  style={{ background: 'rgba(200,155,60,0.28)', border: '1px solid rgba(200,155,60,0.48)', borderRadius: 6,
-                    color: '#C89B3C', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  style={{ background: 'rgba(200,155,60,0.42)', border: '2px solid rgba(200,155,60,0.85)', borderRadius: 8,
+                    color: '#fff', fontSize: 22, fontWeight: 800, cursor: 'pointer',
+                    fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
                     WebkitUserSelect: 'none', userSelect: 'none', touchAction: 'none' }}
                   onPointerDown={e => { e.preventDefault(); touchKey(k, true) }}
                   onPointerUp={() => touchKey(k, false)}
@@ -1475,22 +1479,25 @@ export default function WineStockerRush() {
                 </button>
               ) : <div key={i} />)}
             </div>
+            {/* Sprint = SPACE bar */}
             <button
               style={{
-                position: 'absolute', bottom: 12, right: 12, width: 84, height: 84,
-                background: 'rgba(200,155,60,0.45)', border: '2px solid rgba(200,155,60,0.85)',
-                borderRadius: 42, color: '#fff',
+                position: 'absolute', bottom: 14, right: 14,
+                transformOrigin: 'bottom right', transform: `scale(${Math.max(1, uiScale)})`,
+                width: 150, height: 64, padding: 0,
+                background: 'rgba(200,155,60,0.45)', border: '2px solid rgba(200,155,60,0.9)',
+                borderRadius: 12, color: '#fff',
                 fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
-                cursor: 'pointer', opacity: 0.92,
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1,
+                cursor: 'pointer', opacity: 0.95,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
                 WebkitUserSelect: 'none', userSelect: 'none', touchAction: 'none',
               }}
               onPointerDown={e => { e.preventDefault(); touchKey('ShiftLeft', true) }}
               onPointerUp={() => touchKey('ShiftLeft', false)}
               onPointerLeave={() => touchKey('ShiftLeft', false)}
             >
-              <span style={{ fontSize: 22, lineHeight: 1 }}>⚡</span>
-              <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: 0.5 }}>SPRINT</span>
+              <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: 1 }}>⚡ SPRINT</span>
+              <span style={{ fontSize: 10, fontWeight: 700, opacity: 0.85, letterSpacing: 1 }}>hold SPACE</span>
             </button>
           </>
         )}
