@@ -152,6 +152,7 @@ const Sfx = (() => {
   return {
     resume, setMuted, isMuted, playMusic, stopMusic,
     uiClick() { const c = ok('ui', 30); if (!c) return; blip(c, 660, 0.06, 'square', 0.12, 880) },
+    heartbeat() { const c = ok('hb', 680); if (!c) return; blip(c, 72, 0.12, 'sine', 0.3, 54); blip(c, 64, 0.14, 'sine', 0.26, 48, 0.17) },
     swing() { const c = ok('swing', 60); if (!c) return; noise(c, 0.14, 0.5, 'bandpass', 1400, 0.8, 600); blip(c, 220, 0.1, 'triangle', 0.18, 120) },
     shot() { const c = ok('shot', 45); if (!c) return; blip(c, 900, 0.12, 'triangle', 0.22, 260); noise(c, 0.05, 0.3, 'highpass', 2200) },
     cast() { const c = ok('cast', 50); if (!c) return; blip(c, 420, 0.18, 'sine', 0.2, 760); blip(c, 630, 0.18, 'sine', 0.12, 1140) },
@@ -797,6 +798,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   g.playerDmgFlash = Math.max(0, g.playerDmgFlash - dt * 2.8)
   g.tooCloseFlash = Math.max(0, g.tooCloseFlash - dt * 2.0)
   g.mageCircle = Math.max(0, g.mageCircle - dt)
+  if (p.hp > 0 && p.hp / p.maxHp < 0.25) Sfx.heartbeat()   // critical-HP heartbeat (throttled)
   if (g.rageTimer > 0) { g.rageTimer = Math.max(0, g.rageTimer - dt); if (g.rageTimer <= 0) g.rageActive = false }
   if (g.poisonTimer > 0) { g.poisonTimer = Math.max(0, g.poisonTimer - dt); b.hp = Math.max(0, b.hp - 15 * dt) }
   if (g.chainResetTimer > 0) { g.chainResetTimer = Math.max(0, g.chainResetTimer - dt); if (g.chainResetTimer <= 0) g.chainHits = 0 }
@@ -3160,7 +3162,7 @@ export default function BossHunter() {
     const wpn = getWpn(weaponId)
     const bossDef = BOSS_DEFS[bossId]
     gsRef.current = mkState(wpn, bossDef, gear)
-    Sfx.resume()
+    Sfx.resume(); Sfx.roar()
     setScreen('playing')
   }, [getWpn])
 
@@ -3298,6 +3300,7 @@ export default function BossHunter() {
   }, [])
 
   const beginHunt = useCallback(() => {
+    Sfx.resume(); Sfx.uiClick()
     const lw = LOADOUT_WEAPONS.find(w => w.id === selWeapon) ?? LOADOUT_WEAPONS[1]
     startGame(lw.base, selBoss, [lw.gear, selArmour].filter(Boolean) as GearId[])
   }, [selWeapon, selBoss, selArmour, startGame])
