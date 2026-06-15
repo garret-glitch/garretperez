@@ -1061,6 +1061,9 @@ export default function WineStockerRush() {
   const goFiredRef  = useRef(false)   // guard against repeated setState in RAF
   const xpRef       = useRef(false)
 
+  const wrapRef     = useRef<HTMLDivElement | null>(null)
+  const [uiScale, setUiScale] = useState(1)
+
   const [screen, setScreen]   = useState<'menu' | 'playing' | 'gameover'>('menu')
   const [xpMsg, setXpMsg]     = useState('')
   const [finalScore, setFinalScore] = useState(0)
@@ -1143,6 +1146,19 @@ export default function WineStockerRush() {
     setScreen('playing')
   }, [])
 
+  // Keep the HTML overlays scaled to match the canvas (which is drawn at
+  // CW×CH but displayed at the container width). Without this the overlay
+  // text stays at fixed px and looks tiny next to the scaled-up game.
+  useEffect(() => {
+    const el = wrapRef.current
+    if (!el) return
+    const update = () => setUiScale(el.clientWidth / CW)
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
   // RAF game loop
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -1197,7 +1213,7 @@ export default function WineStockerRush() {
 
   return (
     <div className="space-y-4">
-      <div style={{ position: 'relative', width: '100%', maxWidth: 1050, margin: '0 auto' }}>
+      <div ref={wrapRef} style={{ position: 'relative', width: '100%', maxWidth: 1280, margin: '0 auto' }}>
         <canvas
           ref={canvasRef}
           width={CW}
@@ -1212,13 +1228,15 @@ export default function WineStockerRush() {
           }}
         />
 
-        {/* ── Menu overlay ── */}
+        {/* ── Menu overlay (scaled to match the canvas) ── */}
         {screen === 'menu' && (
+          <div style={{ position: 'absolute', inset: 0, borderRadius: 8, overflow: 'hidden' }}>
           <div style={{
-            position: 'absolute', inset: 0,
-            background: 'rgba(5,5,14,0.97)', borderRadius: 8,
+            width: CW, height: CH, transformOrigin: 'top left', transform: `scale(${uiScale})`,
+            boxSizing: 'border-box',
+            background: 'rgba(5,5,14,0.97)',
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            padding: '18px 24px', gap: 14,
+            padding: '20px 30px', gap: 14,
           }}>
 
             {/* ── Title ── */}
@@ -1333,14 +1351,18 @@ export default function WineStockerRush() {
             </div>
 
           </div>
+          </div>
         )}
 
-        {/* ── Game Over overlay ── */}
+        {/* ── Game Over overlay (scaled to match the canvas) ── */}
         {screen === 'gameover' && (
+          <div style={{ position: 'absolute', inset: 0, borderRadius: 8, overflow: 'hidden' }}>
           <div style={{
-            position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+            width: CW, height: CH, transformOrigin: 'top left', transform: `scale(${uiScale})`,
+            boxSizing: 'border-box',
+            display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center', gap: 14,
-            background: 'rgba(10,10,20,0.95)', borderRadius: 8,
+            background: 'rgba(10,10,20,0.95)',
           }}>
             <div style={{ fontSize: 46 }}>📋</div>
             <h2 style={{ fontFamily: '"Press Start 2P", monospace', color: '#FF4444', fontSize: 12, textAlign: 'center', lineHeight: 1.6 }}>
@@ -1362,6 +1384,7 @@ export default function WineStockerRush() {
             <button onClick={startGame} className="osrs-btn" style={{ marginTop: 4, padding: '10px 28px' }}>
               Try Again
             </button>
+          </div>
           </div>
         )}
 
