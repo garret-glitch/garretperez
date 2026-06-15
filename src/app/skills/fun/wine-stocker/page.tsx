@@ -1023,9 +1023,20 @@ function renderDialogue(ctx: CanvasRenderingContext2D, g: GS) {
     ctx.fillText(raw, bx + 148, by + 70 + i * 36)
   })
 
-  // ── Movement hint ──
-  ctx.font = '11px "Press Start 2P", monospace'; ctx.fillStyle = '#3A6890'; ctx.textAlign = 'center'
-  ctx.fillText('↑ ↓ ← →  keep moving!', bx + bw / 2, by + bh - 36)
+  // ── Movement hint (arrows in a uniform sans font so ←→ match ↑↓) ──
+  {
+    const arrowFont = 'bold 13px system-ui, -apple-system, "Segoe UI", sans-serif'
+    const wordFont  = '11px "Press Start 2P", monospace'
+    const arrows = '↑ ↓ ← →  '
+    const words  = 'keep moving!'
+    ctx.textAlign = 'left'; ctx.fillStyle = '#3A6890'
+    ctx.font = arrowFont; const aW = ctx.measureText(arrows).width
+    ctx.font = wordFont;  const wW = ctx.measureText(words).width
+    const sx = bx + bw / 2 - (aW + wW) / 2, hy = by + bh - 36
+    ctx.font = arrowFont; ctx.fillText(arrows, sx, hy)
+    ctx.font = wordFont;  ctx.fillText(words, sx + aW, hy)
+    ctx.textAlign = 'center'
+  }
 
   // ── Auto-continue timer bar ──
   const maxTimer = g.strikes >= 3 ? 5 : 4.2
