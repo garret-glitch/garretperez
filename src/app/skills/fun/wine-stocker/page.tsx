@@ -25,6 +25,160 @@ const BASE_CUST_SPD = 55
 
 const XP_THRESHOLD = 400
 
+/* ═══════════════════════ AUDIO (synthesized, no files) ═══════════════════════
+   A tiny Web-Audio engine: gentle SFX for every event plus a soft lounge loop.
+   Everything routes through a master gain so the SOUND toggle mutes it all.   */
+const Sfx = (() => {
+  let ctx: AudioContext | null = null
+  let master: GainNode | null = null
+  let music: GainNode | null = null
+  let muted = false
+  let loopTimer: ReturnType<typeof setInterval> | null = null
+  let step = 0
+  let nextT = 0
+  const last: Record<string, number> = {}
+
+  function ensure(): AudioContext | null {
+    if (typeof window === 'undefined') return null
+    if (!ctx) {
+      const AC = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+      if (!AC) return null
+      ctx = new AC()
+      master = ctx.createGain(); master.gain.value = muted ? 0 : 0.85; master.connect(ctx.destination)
+      music = ctx.createGain(); music.gain.value = 0.0001; music.connect(master)
+    }
+    return ctx
+  }
+
+  function unlock() { const c = ensure(); if (c && c.state === 'suspended') c.resume() }
+
+  function setMuted(m: boolean) {
+    muted = m
+    const c = ensure()
+    if (c && master) {
+      const t = c.currentTime
+      master.gain.cancelScheduledValues(t)
+      master.gain.setValueAtTime(master.gain.value, t)
+      master.gain.linearRampToValueAtTime(m ? 0.0001 : 0.85, t + 0.12)
+    }
+  }
+
+  function gate(key: string, gap: number) {
+    if (!ctx) return false
+    const t = ctx.currentTime
+    if (last[key] && t - last[key] < gap) return false
+    last[key] = t; return true
+  }
+
+  // a single decaying oscillator voice
+  function voice(freq: number, o: {
+    type?: OscillatorType; t?: number; dur?: number; vol?: number; glide?: number; dest?: AudioNode
+  } = {}) {
+    const c = ensure(); if (!c || !master || muted) return
+    const { type = 'sine', t = 0, dur = 0.18, vol = 0.3, glide, dest } = o
+    const osc = c.createOscillator(); const g = c.createGain()
+    const s = c.currentTime + t
+    osc.type = type
+    osc.frequency.setValueAtTime(freq, s)
+    if (glide) osc.frequency.exponentialRampToValueAtTime(Math.max(1, glide), s + dur)
+    g.gain.setValueAtTime(0.0001, s)
+    g.gain.exponentialRampToValueAtTime(vol, s + 0.006)
+    g.gain.exponentialRampToValueAtTime(0.0006, s + dur)
+    osc.connect(g); g.connect(dest || master)
+    osc.start(s); osc.stop(s + dur + 0.03)
+  }
+
+  // short band-passed noise burst — adds a soft "clink/place" texture
+  function noise(o: { t?: number; dur?: number; vol?: number; freq?: number } = {}) {
+    const c = ensure(); if (!c || !master || muted) return
+    const { t = 0, dur = 0.1, vol = 0.12, freq = 2600 } = o
+    const len = Math.max(1, Math.floor(c.sampleRate * dur))
+    const buf = c.createBuffer(1, len, c.sampleRate)
+    const d = buf.getChannelData(0)
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len)
+    const src = c.createBufferSource(); src.buffer = buf
+    const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = freq; bp.Q.value = 0.9
+    const g = c.createGain(); g.gain.value = vol
+    src.connect(bp); bp.connect(g); g.connect(master)
+    src.start(c.currentTime + t)
+  }
+
+  const arp = (ns: number[], gapS: number, o: Parameters<typeof voice>[1] = {}) =>
+    ns.forEach((f, i) => voice(f, { ...o, t: (o.t || 0) + i * gapS }))
+
+  // ── soft lounge loop: pad + bell arpeggio + bass, all very quiet ──
+  const CH7 = [
+    [131, 165, 196, 247], // Cmaj7
+    [110, 131, 165, 196], // Am7
+    [117, 147, 175, 220], // Dm7
+    [98, 123, 147, 196],  // G7
+  ]
+  function scheduleStep(time: number, st: number) {
+    const c = ctx; if (!c || !music) return
+    const chord = CH7[Math.floor(st / 4) % CH7.length]
+    const beat = st % 4
+    const pluck = (f: number, type: OscillatorType, peak: number, dur: number) => {
+      const o = c.createOscillator(); const g = c.createGain()
+      o.type = type; o.frequency.value = f
+      g.gain.setValueAtTime(0.0001, time)
+      g.gain.exponentialRampToValueAtTime(peak, time + 0.02)
+      g.gain.exponentialRampToValueAtTime(0.0004, time + dur)
+      o.connect(g); g.connect(music!)
+      o.start(time); o.stop(time + dur + 0.05)
+    }
+    if (beat === 0) chord.forEach(f => {                 // sustained pad
+      const o = c.createOscillator(); const g = c.createGain()
+      o.type = 'sine'; o.frequency.value = f
+      g.gain.setValueAtTime(0.0001, time)
+      g.gain.exponentialRampToValueAtTime(0.05, time + 0.5)
+      g.gain.exponentialRampToValueAtTime(0.0004, time + 2.2)
+      o.connect(g); g.connect(music!)
+      o.start(time); o.stop(time + 2.3)
+    })
+    pluck(chord[beat % chord.length] * 4, 'triangle', 0.05, 0.5)   // bell arpeggio
+    if (beat === 0 || beat === 2) pluck(chord[0] / 2, 'sine', 0.09, 0.42) // bass
+  }
+  function playMusic() {
+    const c = ensure(); if (!c || !music || loopTimer) return
+    music.gain.cancelScheduledValues(c.currentTime)
+    music.gain.setValueAtTime(0.0001, c.currentTime)
+    music.gain.linearRampToValueAtTime(0.6, c.currentTime + 2)
+    nextT = c.currentTime + 0.15
+    loopTimer = setInterval(() => {
+      if (!ctx) return
+      while (nextT < ctx.currentTime + 0.25) { scheduleStep(nextT, step); step++; nextT += 0.6 }
+    }, 60)
+  }
+  function stopMusic() {
+    if (loopTimer) { clearInterval(loopTimer); loopTimer = null }
+    if (ctx && music) {
+      const t = ctx.currentTime
+      music.gain.cancelScheduledValues(t)
+      music.gain.setValueAtTime(music.gain.value, t)
+      music.gain.linearRampToValueAtTime(0.0001, t + 0.4)
+    }
+    step = 0
+  }
+
+  return {
+    unlock, setMuted, isMuted: () => muted, playMusic, stopMusic,
+    click()  { if (gate('click', 0.04)) voice(660, { type: 'square', dur: 0.05, vol: 0.1 }) },
+    start()  { arp([392, 523, 659, 784], 0.07, { type: 'triangle', dur: 0.22, vol: 0.18 }) },
+    pickup() { if (!gate('pickup', 0.05)) return; voice(523, { type: 'triangle', dur: 0.08, vol: 0.2 }); voice(784, { type: 'triangle', t: 0.05, dur: 0.09, vol: 0.16 }) },
+    stock()  { if (!gate('stock', 0.05)) return; const b = 600 + Math.random() * 130; voice(b, { type: 'sine', dur: 0.07, vol: 0.16, glide: b * 1.5 }); noise({ dur: 0.05, vol: 0.06, freq: 3200 }) },
+    ask()    { if (!gate('ask', 0.25)) return; voice(988, { type: 'sine', dur: 0.16, vol: 0.15 }); voice(1319, { type: 'sine', t: 0.12, dur: 0.22, vol: 0.12 }) },
+    correct(){ arp([523, 659, 784, 1047], 0.07, { type: 'triangle', dur: 0.2, vol: 0.18 }) },
+    wrong()  { voice(300, { type: 'sawtooth', dur: 0.18, vol: 0.12, glide: 170 }); voice(150, { type: 'square', t: 0.02, dur: 0.2, vol: 0.08 }) },
+    powerup(){ arp([659, 784, 988, 1319, 1568], 0.05, { type: 'triangle', dur: 0.16, vol: 0.15 }) },
+    levelup(){ arp([523, 659, 784, 1047, 1319], 0.08, { type: 'square', dur: 0.2, vol: 0.13 }); voice(262, { type: 'sine', dur: 0.5, vol: 0.1 }) },
+    inspectGood() { [523, 659, 784].forEach(f => voice(f, { type: 'sine', dur: 0.5, vol: 0.12 })); arp([784, 988, 1047], 0.09, { type: 'triangle', t: 0.18, dur: 0.22, vol: 0.11 }) },
+    inspectBad()  { arp([440, 392, 330], 0.13, { type: 'sawtooth', dur: 0.3, vol: 0.11 }); voice(165, { type: 'sine', dur: 0.6, vol: 0.1 }) },
+    warn()   { if (!gate('warn', 0.6)) return; voice(440, { type: 'square', dur: 0.12, vol: 0.13 }); voice(440, { type: 'square', t: 0.16, dur: 0.12, vol: 0.13 }) },
+    gameover() { arp([523, 494, 440, 392, 294], 0.16, { type: 'triangle', dur: 0.4, vol: 0.14 }); voice(147, { type: 'sine', t: 0.16, dur: 1.2, vol: 0.11 }) },
+    xp()     { arp([1047, 1319, 1568, 2093], 0.06, { type: 'sine', dur: 0.3, vol: 0.12 }) },
+  }
+})()
+
 const SHELF_DEFS = [
   { id: 0, x: 207, y: 148, w: 94, h: 38, label: 'Cabernet',   clr: '#9B2335' },
   { id: 1, x: 354, y: 148, w: 94, h: 38, label: 'Merlot',     clr: '#C0392B' },
@@ -121,7 +275,7 @@ function tick(g: GS, dt: number, keys: Set<string>) {
   if (g.phase === 'dialogue') {
     g.mgr.dialogueTimer -= dt
     if (g.mgr.dialogueTimer <= 0) {
-      if (g.strikes >= 3) { g.phase = 'gameover'; return }
+      if (g.strikes >= 3) { g.phase = 'gameover'; Sfx.stopMusic(); Sfx.gameover(); return }
       g.phase = 'playing'
       g.mgr.state = 'returning'
       g.mgr.target = { ...g.mgr.homePos }
@@ -133,7 +287,7 @@ function tickPlay(g: GS, dt: number, keys: Set<string>) {
   g.time += dt
   const prevLevel = g.level
   g.level = Math.max(g.level, 1 + Math.floor(g.score/160) + Math.floor(g.time/45))
-  if (g.level > prevLevel) g.levelUpTimer = 2.5
+  if (g.level > prevLevel) { g.levelUpTimer = 2.5; Sfx.levelup() }
   const diff = 1 + (g.level - 1) * 0.20
 
   // Effects countdown
@@ -199,6 +353,7 @@ function tickPlay(g: GS, dt: number, keys: Set<string>) {
   if (g.player.pos.x < SR_W + 10 && g.player.cases < g.player.maxCases) {
     g.player.cases = g.player.maxCases
     g.emptyCaseTimer = 0
+    Sfx.pickup()
   }
 
   // Auto-stock nearby shelves
@@ -211,6 +366,7 @@ function tickPlay(g: GS, dt: number, keys: Set<string>) {
         g.player.cases--
         g.score += Math.round(12 * e.multi)
         g.stockFlashes.push({ shelfId: sh.id, timer: 0.55 })
+        Sfx.stock()
       }
     }
   }
@@ -267,6 +423,7 @@ function tickPlay(g: GS, dt: number, keys: Set<string>) {
       if (d < 26 && g.activeAsker === null) {
         g.activeAsker = c.id
         c.state = 'asking'
+        Sfx.ask()
       } else {
         // If someone else is being asked, hover nearby instead of crowding
         const hangBack = g.activeAsker !== null ? 55 : 26
@@ -311,7 +468,7 @@ function tickPlay(g: GS, dt: number, keys: Set<string>) {
   // Manager logic
   const m = g.mgr
   m.nextInspection -= dt
-  if (m.state === 'idle' && m.nextInspection <= 0) m.state = 'walking'
+  if (m.state === 'idle' && m.nextInspection <= 0) { m.state = 'walking'; Sfx.warn() }
   if (m.state === 'walking') {
     m.target = { ...g.player.pos }
     const d = dist(m.pos, m.target)
@@ -332,11 +489,13 @@ function tickPlay(g: GS, dt: number, keys: Set<string>) {
         m.mood = 'happy'
         m.lines = HAPPY[rndI(0,7)]
         g.score += Math.round(100 * e.multi)
+        Sfx.inspectGood()
       } else {
         m.mood = 'angry'
         m.lines = ANGRY[Math.min(g.strikes, 2)]
         g.strikes++
         g.score = Math.max(0, g.score - 50)
+        Sfx.inspectBad()
       }
       m.dialogueTimer = g.strikes >= 3 ? 5 : 4.2
       g.phase = 'dialogue'
@@ -369,7 +528,7 @@ function tickPlay(g: GS, dt: number, keys: Set<string>) {
   g.pups = g.pups.filter(pu => {
     pu.life -= dt
     if (pu.life <= 0) return false
-    if (dist(g.player.pos, pu.pos) < 22) { applyPU(g, pu.type); return false }
+    if (dist(g.player.pos, pu.pos) < 22) { applyPU(g, pu.type); Sfx.powerup(); return false }
     return true
   })
 }
@@ -1085,6 +1244,7 @@ export default function WineStockerRush() {
   const [stageSize, setStageSize] = useState<{ w: number; h: number } | null>(null)
 
   const [screen, setScreen]   = useState<'menu' | 'playing' | 'gameover'>('menu')
+  const [soundOn, setSoundOn] = useState(true)
   const [xpMsg, setXpMsg]     = useState('')
   const [finalScore, setFinalScore] = useState(0)
   const [finalTime, setFinalTime]   = useState(0)
@@ -1112,6 +1272,7 @@ export default function WineStockerRush() {
         const xp = d.xpAwarded ?? 25
         emitXpGained(xp)
         setXpMsg(`+${xp} Fun XP earned!`)
+        Sfx.xp()
       } else if (r.status === 401) {
         setXpMsg('Login to save XP next time!')
       }
@@ -1147,9 +1308,11 @@ export default function WineStockerRush() {
           asker.state = 'walking'
           asker.target = v(sh.x + sh.w/2, sh.y + sh.h + 22)
           grantCustomerPerk(g)
+          Sfx.correct()
         } else {
           // Wrong shelf
           g.wrongFlash = 1.6
+          Sfx.wrong()
         }
         break
       }
@@ -1164,6 +1327,8 @@ export default function WineStockerRush() {
     touchRef.current.clear()
     setXpMsg('')
     setScreen('playing')
+    // Audio (the click gesture unlocks the AudioContext on browsers that need it).
+    Sfx.unlock(); Sfx.start(); Sfx.playMusic()
     // Go fullscreen for the duration of the shift (must run in the click gesture).
     const el = wrapRef.current as (HTMLDivElement & { webkitRequestFullscreen?: () => Promise<void> }) | null
     if (el && !document.fullscreenElement) {
@@ -1171,6 +1336,31 @@ export default function WineStockerRush() {
       try { Promise.resolve(req?.()).catch(() => {}) } catch {}
     }
   }, [])
+
+  // Restore the saved sound preference on mount.
+  useEffect(() => {
+    let on = true
+    try { const s = localStorage.getItem('wr-sound'); if (s !== null) on = s === '1' } catch {}
+    setSoundOn(on)
+    Sfx.setMuted(!on)
+  }, [])
+
+  // Stop the loop (and free the scheduler) whenever we leave the play screen.
+  useEffect(() => {
+    if (screen !== 'playing') Sfx.stopMusic()
+    return () => { if (screen === 'playing') Sfx.stopMusic() }
+  }, [screen])
+
+  const toggleSound = () => {
+    setSoundOn(prev => {
+      const next = !prev
+      Sfx.unlock(); Sfx.setMuted(!next)
+      if (next && screen === 'playing') Sfx.playMusic()
+      else if (!next) Sfx.stopMusic()
+      try { localStorage.setItem('wr-sound', next ? '1' : '0') } catch {}
+      return next
+    })
+  }
 
   // Keep the canvas + HTML overlays sized/scaled together. The game is drawn
   // at CW×CH but displayed at the container width; in fullscreen we letterbox
@@ -1258,6 +1448,7 @@ export default function WineStockerRush() {
       cancelAnimationFrame(rafRef.current)
       window.removeEventListener('keydown', down)
       window.removeEventListener('keyup', up)
+      Sfx.stopMusic()
     }
   }, [awardXP, submitScore])
 
@@ -1507,6 +1698,24 @@ export default function WineStockerRush() {
             </button>
           </div>
         )}
+
+        {/* Sound toggle — top-right, on every screen, scales with the game */}
+        <button
+          onClick={toggleSound}
+          aria-label={soundOn ? 'Mute sound' : 'Unmute sound'}
+          title={soundOn ? 'Sound on' : 'Sound off'}
+          style={{
+            position: 'absolute', top: 10, right: 10, zIndex: 5,
+            transformOrigin: 'top right', transform: `scale(${Math.max(1, uiScale)})`,
+            width: 34, height: 34, borderRadius: 8, padding: 0,
+            background: 'rgba(8,8,20,0.72)', border: '1px solid rgba(200,155,60,0.55)',
+            color: '#C89B3C', fontSize: 16, cursor: 'pointer', opacity: 0.9,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            WebkitUserSelect: 'none', userSelect: 'none',
+          }}
+        >
+          {soundOn ? '🔊' : '🔇'}
+        </button>
        </div>
       </div>
 
