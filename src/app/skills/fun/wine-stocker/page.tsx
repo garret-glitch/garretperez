@@ -1459,7 +1459,7 @@ export default function WineStockerRush() {
           <div style={{
             position: 'absolute', bottom: 14, left: 14,
             transformOrigin: 'bottom left', transform: `scale(${Math.max(1, uiScale)})`,
-            display: 'flex', alignItems: 'flex-end', gap: 12, opacity: 0.93,
+            display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, opacity: 0.93,
           }}>
             {/* Movement d-pad */}
             <div style={{
@@ -1481,10 +1481,10 @@ export default function WineStockerRush() {
                 </button>
               ) : <div key={i} />)}
             </div>
-            {/* Sprint = SPACE bar, right next to the arrows */}
+            {/* Sprint = SPACE bar, directly under the arrows */}
             <button
               style={{
-                width: 150, height: 64, padding: 0,
+                width: 150, height: 52, padding: 0,
                 background: 'rgba(200,155,60,0.45)', border: '2px solid rgba(200,155,60,0.9)',
                 borderRadius: 12, color: '#fff',
                 fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
