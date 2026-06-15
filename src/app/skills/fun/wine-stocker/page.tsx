@@ -169,6 +169,7 @@ const Sfx = (() => {
     ask()    { if (!gate('ask', 0.25)) return; voice(988, { type: 'sine', dur: 0.16, vol: 0.15 }); voice(1319, { type: 'sine', t: 0.12, dur: 0.22, vol: 0.12 }) },
     correct(){ arp([523, 659, 784, 1047], 0.07, { type: 'triangle', dur: 0.2, vol: 0.18 }) },
     wrong()  { voice(300, { type: 'sawtooth', dur: 0.18, vol: 0.12, glide: 170 }); voice(150, { type: 'square', t: 0.02, dur: 0.2, vol: 0.08 }) },
+    stuck()  { if (!gate('stuck', 0.4)) return; voice(190, { type: 'square', dur: 0.13, vol: 0.11, glide: 120 }); voice(95, { type: 'square', t: 0.02, dur: 0.15, vol: 0.07 }) },
     powerup(){ arp([659, 784, 988, 1319, 1568], 0.05, { type: 'triangle', dur: 0.16, vol: 0.15 }) },
     levelup(){ arp([523, 659, 784, 1047, 1319], 0.08, { type: 'square', dur: 0.2, vol: 0.13 }); voice(262, { type: 'sine', dur: 0.5, vol: 0.1 }) },
     inspectGood() { [523, 659, 784].forEach(f => voice(f, { type: 'sine', dur: 0.5, vol: 0.12 })); arp([784, 988, 1047], 0.09, { type: 'triangle', t: 0.18, dur: 0.22, vol: 0.11 }) },
@@ -313,6 +314,9 @@ function tickPlay(g: GS, dt: number, keys: Set<string>) {
   // Player input — locked while a customer is asking
   if (g.activeAsker !== null) {
     g.player.vel = v(0, 0)
+    // Buzz if the player tries to walk away instead of helping the customer.
+    const tryMove = ['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].some(k => keys.has(k))
+    if (tryMove) Sfx.stuck()
   } else {
     const up = keys.has('KeyW') || keys.has('ArrowUp')
     const dn = keys.has('KeyS') || keys.has('ArrowDown')
@@ -873,17 +877,23 @@ function render(ctx: CanvasRenderingContext2D, g: GS, t: number) {
       const wine = sh?.label ?? '?'
       const wineClr = sh?.clr ?? '#88CCFF'
 
-      // Banner at the bottom-right (shifted right so it clears the controls)
+      // Banner at the bottom-right (shifted right so it clears the controls).
+      // It blinks while you owe the customer an answer, to nag you to click.
+      const blink = 0.5 + 0.5 * Math.sin(t * 6.5)
       const bnCx = CW - 276
-      ctx.fillStyle = 'rgba(8,8,20,0.92)'
+      ctx.fillStyle = `rgba(8,8,20,${0.9 + 0.08 * blink})`
       rrect(ctx, bnCx - 260, CH - 74, 520, 64, 10); ctx.fill()
-      ctx.strokeStyle = wineClr; ctx.lineWidth = 2; ctx.stroke()
+      ctx.save()
+      ctx.shadowColor = wineClr; ctx.shadowBlur = 6 + blink * 18
+      ctx.strokeStyle = wineClr; ctx.lineWidth = 2 + blink * 1.6
+      rrect(ctx, bnCx - 260, CH - 74, 520, 64, 10); ctx.stroke()
+      ctx.restore()
 
       ctx.font = '16px "Press Start 2P", monospace'
       ctx.fillStyle = wineClr; ctx.textAlign = 'center'
       ctx.fillText(`"Where is the ${wine}?"`, bnCx, CH - 48)
       ctx.font = '14px "Press Start 2P", monospace'
-      ctx.fillStyle = '#C89B3C'
+      ctx.fillStyle = `rgba(200,155,60,${0.45 + 0.55 * blink})`   // blinking call-to-action
       ctx.fillText('CLICK THE CORRECT SHELF', bnCx, CH - 25)
 
       // Wrong flash feedback
