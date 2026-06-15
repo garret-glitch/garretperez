@@ -1188,18 +1188,20 @@ function renderDialogue(ctx: CanvasRenderingContext2D, g: GS) {
     ctx.fillText(raw, bx + 148, by + 70 + i * 36)
   })
 
-  // ── Movement hint (arrows in a uniform sans font so ←→ match ↑↓) ──
+  // ── Hint: the game keeps running, so you can move while the manager talks ──
   {
-    const arrowFont = 'bold 13px system-ui, -apple-system, "Segoe UI", sans-serif'
-    const wordFont  = '11px "Press Start 2P", monospace'
-    const arrows = '↑ ↓ ← →  '
-    const words  = 'keep moving!'
-    ctx.textAlign = 'left'; ctx.fillStyle = '#3A6890'
-    ctx.font = arrowFont; const aW = ctx.measureText(arrows).width
-    ctx.font = wordFont;  const wW = ctx.measureText(words).width
-    const sx = bx + bw / 2 - (aW + wW) / 2, hy = by + bh - 36
-    ctx.font = arrowFont; ctx.fillText(arrows, sx, hy)
-    ctx.font = wordFont;  ctx.fillText(words, sx + aW, hy)
+    const tagFont  = 'bold 13px system-ui, -apple-system, "Segoe UI", sans-serif'
+    const wordFont = '11px "Press Start 2P", monospace'
+    const tag   = '↑↓←→ HINT: '
+    const words = 'walk while we talk!'
+    ctx.textAlign = 'left'
+    ctx.font = tagFont;  const aW = ctx.measureText(tag).width
+    ctx.font = wordFont; const wW = ctx.measureText(words).width
+    // Centre within the text column (right of the portrait) so nothing overlaps.
+    const cx = bx + 148 + (bw - 148 - 16) / 2
+    const sx = cx - (aW + wW) / 2, hy = by + bh - 36
+    ctx.fillStyle = '#F1C40F'; ctx.font = tagFont;  ctx.fillText(tag, sx, hy)
+    ctx.fillStyle = '#6FA8DC'; ctx.font = wordFont; ctx.fillText(words, sx + aW, hy)
     ctx.textAlign = 'center'
   }
 
