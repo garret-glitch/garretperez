@@ -1266,73 +1266,243 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
     }
 
   } else {
-    // ── STORM GRIFFIN ── Kree'arra-style: muscular, gorilla body with huge wings
-    ctx.shadowColor=g.bossEnraged?'#00CCFF':'#8888FF'; ctx.shadowBlur=g.bossEnraged?55:30
-    ctx.save(); ctx.rotate(b.angle)
-    const sz=bossDef.size
-    const wf=Math.sin(t*3.2)*0.28  // wing flap
-    const wspan=sz*2.8
+    // ── STORM GRIFFIN ── majestic feathered raptor-lion, storm-charged wings
+    const sz = bossDef.size
+    const enr = g.bossEnraged
+    const flap = Math.sin(t * 3.0)               // wing-flap cycle (-1..1)
+    const charge = 0.5 + 0.5 * Math.sin(t * 5.0) // storm-charge pulse (0..1)
 
-    // Huge outstretched wings (behind body)
-    ctx.fillStyle=g.bossEnraged?'rgba(60,180,255,0.32)':'rgba(120,120,220,0.26)'
-    ctx.strokeStyle=g.bossEnraged?'rgba(80,220,255,0.75)':'rgba(160,160,255,0.55)'; ctx.lineWidth=2.2
-    // Left wing
-    ctx.beginPath(); ctx.moveTo(-sz*0.3,-sz*0.1); ctx.quadraticCurveTo(-wspan*0.45,-(sz*(1.4+wf)),-wspan,sz*(0.2+wf*0.6)); ctx.quadraticCurveTo(-wspan*0.5,sz*0.5,-sz*0.3,sz*0.2); ctx.closePath(); ctx.fill(); ctx.stroke()
-    ctx.strokeStyle=g.bossEnraged?'rgba(120,240,255,0.4)':'rgba(180,180,255,0.3)'; ctx.lineWidth=1.2
-    for (let i=1;i<=4;i++){const tt=i/5;ctx.beginPath();ctx.moveTo(-sz*0.3,-sz*0.1);ctx.quadraticCurveTo(-wspan*0.4*tt,-(sz*(1.1+wf)*tt),-wspan*tt,sz*(0.15+wf*0.5)*tt);ctx.stroke()}
-    // Right wing
-    ctx.fillStyle=g.bossEnraged?'rgba(60,180,255,0.32)':'rgba(120,120,220,0.26)'
-    ctx.strokeStyle=g.bossEnraged?'rgba(80,220,255,0.75)':'rgba(160,160,255,0.55)'; ctx.lineWidth=2.2
-    ctx.beginPath(); ctx.moveTo(-sz*0.3,sz*0.1); ctx.quadraticCurveTo(-wspan*0.45,sz*(1.4+wf),-wspan,-(sz*(0.2+wf*0.6))); ctx.quadraticCurveTo(-wspan*0.5,-sz*0.5,-sz*0.3,-sz*0.2); ctx.closePath(); ctx.fill(); ctx.stroke()
-    ctx.strokeStyle=g.bossEnraged?'rgba(120,240,255,0.4)':'rgba(180,180,255,0.3)'; ctx.lineWidth=1.2
-    for (let i=1;i<=4;i++){const tt=i/5;ctx.beginPath();ctx.moveTo(-sz*0.3,sz*0.1);ctx.quadraticCurveTo(-wspan*0.4*tt,sz*(1.1+wf)*tt,-wspan*tt,-(sz*(0.15+wf*0.5)*tt));ctx.stroke()}
+    // ── palette ──
+    const cDark   = hitW ? '#FFFFFF' : (enr ? '#27324d' : '#2b3043')
+    const cMid    = hitW ? '#FFFFFF' : (enr ? '#52688f' : '#535b73')
+    const cLight  = hitW ? '#FFFFFF' : (enr ? '#d4ecff' : '#c6cee0')
+    const cEdge   = enr ? '#62e6ff' : '#a4c2ff'
+    const cGlow   = enr ? '#00d6ff' : '#7099ff'
+    const cViolet = enr ? '#b388ff' : '#9d86e0'
+    const cGold   = hitW ? '#FFF' : '#dcad3c'
+    const cGoldDk = hitW ? '#DDD' : '#7d5811'
 
-    // Muscular gorilla-like torso (dark stone-grey)
-    const torsoG=ctx.createRadialGradient(-sz*0.1,-sz*0.1,0,0,0,sz*0.95)
-    torsoG.addColorStop(0,hitW?'#FFF':(g.bossEnraged?'#A0A860':'#7A7850'))
-    torsoG.addColorStop(0.5,hitW?'#EEE':(g.bossEnraged?'#707040':'#585530'))
-    torsoG.addColorStop(1,hitW?'#DDD':(g.bossEnraged?'#404020':'#303018'))
-    ctx.fillStyle=torsoG; ctx.beginPath(); ctx.ellipse(-sz*0.05,sz*0.05,sz*0.92,sz*0.88,0,0,Math.PI*2); ctx.fill()
-    // chest muscle highlights
+    // ── lighting/feather helpers ──
+    const feather = (cx: number, cy: number, ang: number, len: number, wid: number, base: string, tip: string, lit: boolean) => {
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(ang)
+      const gr = ctx.createLinearGradient(0, 0, len, 0)
+      gr.addColorStop(0, base); gr.addColorStop(0.62, tip); gr.addColorStop(1, lit ? cEdge : tip)
+      ctx.fillStyle = gr
+      ctx.beginPath()
+      ctx.moveTo(0, 0)
+      ctx.quadraticCurveTo(len * 0.45, -wid, len, -wid * 0.16)
+      ctx.quadraticCurveTo(len * 1.06, 0, len, wid * 0.16)
+      ctx.quadraticCurveTo(len * 0.45, wid, 0, 0)
+      ctx.closePath(); ctx.fill()
+      ctx.strokeStyle = lit ? cEdge : 'rgba(18,22,38,0.5)'; ctx.lineWidth = Math.max(1, wid * 0.12)
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len * 0.95, 0); ctx.stroke()
+      ctx.restore()
+    }
+    const bolt = (x1: number, y1: number, x2: number, y2: number, segs: number, jit: number, col: string, w: number) => {
+      ctx.strokeStyle = col; ctx.lineWidth = w; ctx.shadowColor = col; ctx.shadowBlur = 12; ctx.lineCap = 'round'
+      ctx.beginPath(); ctx.moveTo(x1, y1)
+      const nx = -(y2 - y1), ny = (x2 - x1), nl = Math.hypot(nx, ny) || 1
+      for (let s = 1; s < segs; s++) {
+        const f = s / segs, mx = x1 + (x2 - x1) * f, my = y1 + (y2 - y1) * f
+        const off = (Math.sin(t * 22 + s * 2.3 + x1 * 0.05) + Math.cos(s * 3.7 + y1 * 0.05)) * jit
+        ctx.lineTo(mx + nx / nl * off, my + ny / nl * off)
+      }
+      ctx.lineTo(x2, y2); ctx.stroke(); ctx.shadowBlur = 0; ctx.lineCap = 'butt'
+    }
+
+    // ── storm backlight (unrotated) ──
+    {
+      const ar = sz * (2.0 + charge * 0.22)
+      const bg = ctx.createRadialGradient(0, 0, sz * 0.3, 0, 0, ar)
+      bg.addColorStop(0, enr ? `rgba(0,200,255,${0.20 + charge * 0.12})` : `rgba(95,135,235,${0.12 + charge * 0.06})`)
+      bg.addColorStop(1, 'rgba(40,30,80,0)')
+      ctx.fillStyle = bg; ctx.beginPath(); ctx.arc(0, 0, ar, 0, Math.PI * 2); ctx.fill()
+    }
+
+    ctx.shadowColor = enr ? '#00ccff' : '#7a9cff'; ctx.shadowBlur = enr ? 32 : 16
+    ctx.save(); ctx.rotate(b.angle)   // head faces +x (toward player)
+
+    // ── wings (behind body) ──
+    const drawWing = (side: number) => {
+      const shX = -sz * 0.05, shY = side * sz * 0.28
+      const lenScale = 0.90 + Math.max(0, flap) * 0.14
+      const flapAng = side * flap * 0.20
+      const N = 11
+      // back layer — darker, longer, for depth
+      for (let i = 0; i < N; i++) {
+        const frac = i / (N - 1)
+        feather(shX, shY, side * (Math.PI / 2 - 0.66 + frac * 1.62) + flapAng, sz * (1.45 + frac * 1.45) * lenScale, sz * (0.40 - frac * 0.16), cDark, cMid, false)
+      }
+      // front layer — lighter, glowing outer primaries
+      for (let i = 0; i < N; i++) {
+        const frac = i / (N - 1)
+        feather(shX + side * sz * 0.02, shY, side * (Math.PI / 2 - 0.60 + frac * 1.54) + flapAng, sz * (1.18 + frac * 1.30) * lenScale, sz * (0.30 - frac * 0.11), cMid, cLight, i >= N - 4)
+      }
+      // shoulder coverts
+      for (let i = 0; i < 6; i++) {
+        const frac = i / 5
+        feather(shX, shY, side * (Math.PI / 2 - 0.5 + frac * 1.3) + flapAng * 0.5, sz * (0.55 + frac * 0.3), sz * 0.20, cDark, cMid, false)
+      }
+    }
+    drawWing(-1); drawWing(1)
+    ctx.shadowBlur = 0
+
+    // ── lion tail (electric tuft) ──
+    {
+      const tw = Math.sin(t * 2.2) * sz * 0.20
+      ctx.strokeStyle = cMid; ctx.lineWidth = sz * 0.12; ctx.lineCap = 'round'
+      ctx.beginPath(); ctx.moveTo(-sz * 0.7, 0); ctx.quadraticCurveTo(-sz * 1.35, tw, -sz * 1.72, tw * 0.4 - sz * 0.1); ctx.stroke()
+      ctx.fillStyle = cEdge; ctx.shadowColor = cGlow; ctx.shadowBlur = 16
+      ctx.beginPath(); ctx.arc(-sz * 1.72, tw * 0.4 - sz * 0.1, sz * 0.12 + charge * sz * 0.03, 0, Math.PI * 2); ctx.fill()
+      ctx.shadowBlur = 0; ctx.lineCap = 'butt'
+    }
+
+    // ── hind lion haunches + legs ──
+    for (const side of [-1, 1]) {
+      ctx.fillStyle = cDark
+      ctx.beginPath(); ctx.ellipse(-sz * 0.42, side * sz * 0.42, sz * 0.34, sz * 0.27, side * 0.3, 0, Math.PI * 2); ctx.fill()
+      ctx.strokeStyle = cMid; ctx.lineWidth = sz * 0.16; ctx.lineCap = 'round'
+      ctx.beginPath(); ctx.moveTo(-sz * 0.5, side * sz * 0.5); ctx.lineTo(-sz * 0.34, side * sz * 0.74); ctx.stroke()
+      ctx.lineCap = 'butt'; ctx.strokeStyle = cGold; ctx.lineWidth = 2
+      for (let c = -1; c <= 1; c++) { ctx.beginPath(); ctx.moveTo(-sz * 0.34, side * sz * 0.74); ctx.lineTo(-sz * 0.30 + c * sz * 0.06, side * sz * 0.87); ctx.stroke() }
+    }
+
+    // ── body (eagle breast → lion rear) ──
+    const bodyG = ctx.createLinearGradient(sz * 0.5, -sz * 0.4, -sz * 0.6, sz * 0.4)
+    bodyG.addColorStop(0, cLight); bodyG.addColorStop(0.55, cMid); bodyG.addColorStop(1, cDark)
+    ctx.fillStyle = bodyG; ctx.beginPath(); ctx.ellipse(-sz * 0.02, 0, sz * 0.82, sz * 0.66, 0, 0, Math.PI * 2); ctx.fill()
     if (!hitW) {
-      ctx.strokeStyle=g.bossEnraged?'rgba(200,220,80,0.35)':'rgba(160,160,80,0.25)'; ctx.lineWidth=2.5
-      ctx.beginPath(); ctx.arc(-sz*0.28,-sz*0.1,sz*0.36,Math.PI*0.1,Math.PI*0.9); ctx.stroke()
-      ctx.beginPath(); ctx.arc(sz*0.1,-sz*0.1,sz*0.36,Math.PI*0.1,Math.PI*0.9); ctx.stroke()
+      // breast feather scallops
+      ctx.strokeStyle = enr ? 'rgba(185,238,255,0.4)' : 'rgba(195,210,240,0.32)'; ctx.lineWidth = 1.6
+      for (let r = 0; r < 4; r++) for (let cI = -2; cI <= 2; cI++) {
+        const bxp = sz * (0.18 + r * 0.16), byp = cI * sz * 0.16 + (r % 2) * sz * 0.07
+        if (Math.hypot(bxp, byp) > sz * 0.72) continue
+        ctx.beginPath(); ctx.arc(bxp, byp, sz * 0.10, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke()
+      }
+      // lion fur lines (rear)
+      ctx.strokeStyle = 'rgba(18,22,38,0.35)'; ctx.lineWidth = 1.4
+      for (let i = 0; i < 5; i++) { const fy = -sz * 0.34 + i * sz * 0.17; ctx.beginPath(); ctx.moveTo(-sz * 0.18, fy); ctx.lineTo(-sz * 0.62, fy + Math.sign(fy || 1) * sz * 0.06); ctx.stroke() }
     }
-    // Arms / huge taloned claws (the distinctive Kree'arra wing-arm blades)
-    ctx.strokeStyle=hitW?'#FFF':(g.bossEnraged?'#8080C0':'#606090'); ctx.lineWidth=sz*0.28; ctx.lineCap='round'
-    ctx.beginPath(); ctx.moveTo(-sz*0.5,sz*0.3); ctx.lineTo(-sz*0.2,sz*0.85); ctx.stroke() // left arm
-    ctx.beginPath(); ctx.moveTo(sz*0.2,sz*0.3); ctx.lineTo(-sz*0.05,sz*0.85); ctx.stroke()  // right arm
-    ctx.lineCap='butt'
-    // big swept-back blade talons
-    ctx.fillStyle=hitW?'#FFF':(g.bossEnraged?'#CCDD66':'#AAAA44')
-    const bladeAngles=[[-sz*0.2,sz*0.85,-0.9],[sz*0.0,sz*0.88,-0.65],[-sz*0.45,sz*0.82,-1.2]]
-    bladeAngles.forEach(([bx,by,ba])=>{ctx.save();ctx.translate(bx as number,by as number);ctx.rotate(ba as number);ctx.beginPath();ctx.moveTo(0,-4);ctx.lineTo(sz*0.65,-12);ctx.lineTo(sz*0.7,0);ctx.lineTo(sz*0.65,12);ctx.lineTo(0,4);ctx.closePath();ctx.fill();ctx.restore()})
-    // Bird head
-    const headG=ctx.createRadialGradient(sz*0.2,-sz*0.05,0,sz*0.2,-sz*0.05,sz*0.52)
-    headG.addColorStop(0,hitW?'#FFF':(g.bossEnraged?'#B8C060':'#8A8840'))
-    headG.addColorStop(1,hitW?'#DDD':(g.bossEnraged?'#505028':'#383818'))
-    ctx.fillStyle=headG; ctx.beginPath(); ctx.ellipse(sz*0.22,-sz*0.05,sz*0.52,sz*0.46,0.2,0,Math.PI*2); ctx.fill()
-    // beak
-    ctx.fillStyle=hitW?'#FFF':(g.bossEnraged?'#CCAA00':'#886600')
-    ctx.beginPath(); ctx.moveTo(sz*0.7,-sz*0.08); ctx.lineTo(sz*1.05,-sz*0.04); ctx.lineTo(sz*0.7,sz*0.06); ctx.closePath(); ctx.fill()
-    // Glowing eyes
-    ctx.fillStyle=g.bossEnraged?'#00EEFF':'#BBDDFF'; ctx.shadowColor=g.bossEnraged?'#00CCFF':'#AAAAFF'; ctx.shadowBlur=16
-    ctx.beginPath(); ctx.arc(sz*0.5,-sz*0.14,6.5,0,Math.PI*2); ctx.fill()
-    ctx.beginPath(); ctx.arc(sz*0.5,sz*0.1,6.5,0,Math.PI*2); ctx.fill()
-    ctx.fillStyle='#000'; ctx.shadowBlur=0; ctx.beginPath(); ctx.arc(sz*0.52,-sz*0.14,3,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(sz*0.52,sz*0.1,3,0,Math.PI*2); ctx.fill()
-    // tail feathers
-    ctx.strokeStyle=hitW?'#FFF':(g.bossEnraged?'rgba(80,200,255,0.7)':'rgba(180,180,100,0.6)'); ctx.lineWidth=4
-    for (let i=0;i<5;i++){const fa=Math.PI*0.7+i*(Math.PI*0.6/4)+Math.sin(t*1.8+i*0.6)*0.08;ctx.beginPath();ctx.moveTo(-sz*0.6,0);ctx.lineTo(-sz*0.6+Math.cos(fa)*sz*0.8,Math.sin(fa)*sz*0.8);ctx.stroke()}
-    ctx.restore()
-    // lightning aura
-    if (g.bossEnraged) {
-      for (let i=0;i<5;i++){const sa=(t*3.5+i*Math.PI*0.4)%(Math.PI*2),sr=sz+16;ctx.fillStyle=`rgba(80,220,255,${0.5+0.4*Math.sin(t*7+i)})`;ctx.shadowColor='#00CCFF';ctx.shadowBlur=12;ctx.beginPath();ctx.arc(Math.cos(sa)*sr,Math.sin(sa)*sr,4.5,0,Math.PI*2);ctx.fill()}
-      ctx.shadowBlur=0
+    // storm-charge core glow on chest
+    {
+      const cg = ctx.createRadialGradient(sz * 0.22, 0, 0, sz * 0.22, 0, sz * 0.52)
+      cg.addColorStop(0, enr ? `rgba(120,240,255,${0.5 + charge * 0.3})` : `rgba(155,195,255,${0.32 + charge * 0.2})`)
+      cg.addColorStop(1, 'rgba(60,90,180,0)')
+      ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(sz * 0.22, 0, sz * 0.52, 0, Math.PI * 2); ctx.fill()
     }
-    // Storm lightning arcs orbiting body
-    ctx.strokeStyle=`rgba(150,220,255,${0.3+0.25*Math.sin(t*8)})`; ctx.lineWidth=1.5
-    for (let i=0;i<3;i++){const sa=t*4+i*(Math.PI*2/3);ctx.beginPath();ctx.moveTo(Math.cos(sa)*sz,Math.sin(sa)*sz);ctx.lineTo(Math.cos(sa+0.5)*sz*1.2,Math.sin(sa+0.5)*sz*1.2);ctx.lineTo(Math.cos(sa+0.9)*sz*0.9,Math.sin(sa+0.9)*sz*0.9);ctx.stroke()}
+
+    // ── front raptor legs + talons ──
+    for (const side of [-1, 1]) {
+      ctx.strokeStyle = cGoldDk; ctx.lineWidth = sz * 0.13; ctx.lineCap = 'round'
+      const lx = sz * 0.36, ly = side * sz * 0.30
+      ctx.beginPath(); ctx.moveTo(sz * 0.2, side * sz * 0.22); ctx.lineTo(lx, ly + side * sz * 0.18); ctx.stroke()
+      ctx.lineCap = 'butt'; ctx.strokeStyle = cGold; ctx.lineWidth = sz * 0.045
+      const fx = lx, fy = ly + side * sz * 0.2
+      for (let c = 0; c < 3; c++) {
+        const ta = -0.5 + c * 0.45
+        ctx.beginPath(); ctx.moveTo(fx, fy)
+        ctx.quadraticCurveTo(fx + sz * 0.18, fy + side * sz * 0.04, fx + Math.cos(ta) * sz * 0.22, fy + Math.sin(ta) * sz * 0.22 + side * sz * 0.05); ctx.stroke()
+      }
+    }
+
+    // ── neck ruff + head (front-facing fierce raptor) ──
+    const hx = sz * 0.72
+    // neck ruff feathers fanning around base of skull
+    if (!hitW) for (let i = 0; i < 9; i++) {
+      const fr = (i / 8 - 0.5)
+      feather(sz * 0.40, fr * sz * 0.72, fr * 1.1, sz * (0.40 - Math.abs(fr) * 0.12), sz * 0.13, cDark, cLight, false)
+    }
+    // crest feathers (swept back over crown)
+    for (let i = 0; i < 7; i++) {
+      const fr = (i / 6 - 0.5)
+      feather(hx - sz * 0.18, fr * sz * 0.22, Math.PI + fr * 0.9 + flap * 0.05, sz * (0.52 - Math.abs(fr) * 0.18), sz * 0.11, cMid, cEdge, Math.abs(fr) < 0.2)
+    }
+    // skull
+    const headG = ctx.createRadialGradient(hx + sz * 0.06, -sz * 0.06, 0, hx, 0, sz * 0.4)
+    headG.addColorStop(0, cLight); headG.addColorStop(1, cMid)
+    ctx.fillStyle = headG; ctx.beginPath(); ctx.ellipse(hx, 0, sz * 0.34, sz * 0.31, 0, 0, Math.PI * 2); ctx.fill()
+    // fierce brow ridges (a frowning ">  <")
+    ctx.fillStyle = cDark
+    for (const side of [-1, 1]) {
+      ctx.beginPath()
+      ctx.moveTo(hx - sz * 0.02, side * sz * 0.02)
+      ctx.quadraticCurveTo(hx + sz * 0.18, side * sz * 0.04, hx + sz * 0.26, side * sz * 0.24)
+      ctx.quadraticCurveTo(hx + sz * 0.12, side * sz * 0.13, hx - sz * 0.02, side * sz * 0.16)
+      ctx.closePath(); ctx.fill()
+    }
+    // ── hooked beak (centered, pointing +x) ──
+    ctx.fillStyle = cGold
+    ctx.beginPath()
+    ctx.moveTo(hx + sz * 0.14, -sz * 0.12)
+    ctx.quadraticCurveTo(hx + sz * 0.56, -sz * 0.05, hx + sz * 0.6, sz * 0.0)
+    ctx.quadraticCurveTo(hx + sz * 0.5, sz * 0.12, hx + sz * 0.42, sz * 0.04)   // hook underside
+    ctx.quadraticCurveTo(hx + sz * 0.56, sz * 0.05, hx + sz * 0.14, sz * 0.12)
+    ctx.closePath(); ctx.fill()
+    // beak ridge shading + dark hook tip
+    ctx.fillStyle = cGoldDk
+    ctx.beginPath(); ctx.moveTo(hx + sz * 0.42, -sz * 0.02); ctx.quadraticCurveTo(hx + sz * 0.62, sz * 0.0, hx + sz * 0.42, sz * 0.05); ctx.quadraticCurveTo(hx + sz * 0.5, sz * 0.02, hx + sz * 0.42, -sz * 0.02); ctx.closePath(); ctx.fill()
+    // mouth line + cere nostrils
+    ctx.strokeStyle = 'rgba(20,15,5,0.55)'; ctx.lineWidth = 1.5
+    ctx.beginPath(); ctx.moveTo(hx + sz * 0.16, 0); ctx.lineTo(hx + sz * 0.5, 0); ctx.stroke()
+    ctx.fillStyle = 'rgba(20,15,5,0.7)'
+    for (const side of [-1, 1]) { ctx.beginPath(); ctx.ellipse(hx + sz * 0.2, side * sz * 0.05, sz * 0.025, sz * 0.018, 0, 0, Math.PI * 2); ctx.fill() }
+    // ── glowing eyes ──
+    const eg = 0.6 + 0.4 * Math.sin(t * 4.5)
+    for (const side of [-1, 1]) {
+      const ex = hx + sz * 0.04, ey = side * sz * 0.13
+      ctx.fillStyle = cDark; ctx.beginPath(); ctx.ellipse(ex, ey, sz * 0.1, sz * 0.085, 0, 0, Math.PI * 2); ctx.fill()
+      ctx.shadowColor = cGlow; ctx.shadowBlur = 22 * eg
+      ctx.fillStyle = enr ? '#7af6ff' : '#bfe4ff'
+      ctx.beginPath(); ctx.arc(ex, ey, sz * 0.06, 0, Math.PI * 2); ctx.fill()
+      ctx.shadowBlur = 0; ctx.fillStyle = '#05060a'
+      ctx.beginPath(); ctx.ellipse(ex + sz * 0.012, ey, sz * 0.022, sz * 0.04, 0, 0, Math.PI * 2); ctx.fill()
+      ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.arc(ex - sz * 0.02, ey - sz * 0.02, sz * 0.016, 0, Math.PI * 2); ctx.fill()
+    }
+
+    // ── storm lighting overlays ──
+    // wingtip positions (back primary of each wing)
+    const tipOf = (side: number) => {
+      const shX = -sz * 0.05, shY = side * sz * 0.28
+      const ang = side * (Math.PI / 2 - 0.66 + 1.62) + side * flap * 0.20
+      const len = sz * (1.45 + 1.45) * (0.90 + Math.max(0, flap) * 0.14)
+      return { x: shX + Math.cos(ang) * len, y: shY + Math.sin(ang) * len }
+    }
+    const wl = tipOf(-1), wr = tipOf(1)
+    // rim light along leading edge of each wing
+    ctx.shadowColor = cGlow; ctx.shadowBlur = enr ? 16 : 9
+    ctx.strokeStyle = enr ? 'rgba(130,246,255,0.9)' : 'rgba(175,205,255,0.7)'; ctx.lineWidth = 2.2; ctx.lineCap = 'round'
+    for (const side of [-1, 1]) {
+      const shX = -sz * 0.05, shY = side * sz * 0.28
+      const a = side * (Math.PI / 2 - 0.66) + side * flap * 0.20
+      const l = sz * 1.45 * (0.90 + Math.max(0, flap) * 0.14)
+      ctx.beginPath(); ctx.moveTo(shX, shY); ctx.lineTo(shX + Math.cos(a) * l, shY + Math.sin(a) * l); ctx.stroke()
+    }
+    ctx.shadowBlur = 0; ctx.lineCap = 'butt'
+    // crackle from wingtips toward the head
+    const arcA = enr ? 0.85 : 0.4
+    bolt(wl.x, wl.y, hx + sz * 0.2, 0, 6, sz * 0.1, `rgba(150,225,255,${arcA})`, enr ? 2.4 : 1.5)
+    bolt(wr.x, wr.y, hx + sz * 0.2, 0, 6, sz * 0.1, `rgba(150,225,255,${arcA})`, enr ? 2.4 : 1.5)
+    if (enr) {
+      bolt(wl.x, wl.y, wr.x, wr.y, 9, sz * 0.18, 'rgba(120,240,255,0.7)', 2.0)   // arc across the back
+      bolt(wl.x, wl.y, wl.x - sz * 0.3, wl.y + sz * 0.4, 5, sz * 0.12, `rgba(${cViolet === '#b388ff' ? '179,136,255' : '157,134,224'},0.7)`, 1.6)
+      bolt(wr.x, wr.y, wr.x + sz * 0.3, wr.y + sz * 0.4, 5, sz * 0.12, 'rgba(179,136,255,0.7)', 1.6)
+    }
+    ctx.restore()   // end rotated frame
+
+    // ── orbiting storm sparks + halo (unrotated) ──
+    const sparkN = enr ? 7 : 4
+    ctx.shadowColor = cGlow; ctx.shadowBlur = 12
+    for (let i = 0; i < sparkN; i++) {
+      const sa = t * (enr ? 3.2 : 2.0) + i * (Math.PI * 2 / sparkN)
+      const sr = sz * 1.15 + Math.sin(t * 4 + i) * sz * 0.1
+      ctx.fillStyle = enr ? `rgba(120,240,255,${0.5 + 0.4 * Math.sin(t * 6 + i)})` : `rgba(155,185,255,${0.45 + 0.35 * Math.sin(t * 6 + i)})`
+      ctx.beginPath(); ctx.arc(Math.cos(sa) * sr, Math.sin(sa) * sr, enr ? 4.5 : 3, 0, Math.PI * 2); ctx.fill()
+    }
+    ctx.shadowBlur = 0
+    if (enr) for (let i = 0; i < 6; i++) {
+      const a = t * 4 + i * (Math.PI / 3)
+      bolt(Math.cos(a) * sz * 1.05, Math.sin(a) * sz * 1.05, Math.cos(a + 0.4) * sz * 1.5, Math.sin(a + 0.4) * sz * 1.5, 4, sz * 0.08, 'rgba(100,230,255,0.6)', 1.6)
+    }
   }
   ctx.restore()
 }
