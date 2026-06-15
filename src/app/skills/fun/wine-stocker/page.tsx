@@ -8,7 +8,7 @@ import GameLeaderboard from '@/components/GameLeaderboard'
 /* ═══════════════════════ CONSTANTS ═══════════════════════ */
 const CW = 800, CH = 570
 const SR_W = 148                                            // stock room width
-const OFF = { x: 630, y: 0, w: CW - 630, h: 108 }         // manager office
+const OFF = { x: 630, y: 102, w: CW - 630, h: 100 }       // manager office (below the HUD band)
 const ENT_X = 315, ENT_W = 170                             // entrance strip
 
 const PR = 13, MR = 16                                     // player / manager radius
@@ -467,7 +467,7 @@ function render(ctx: CanvasRenderingContext2D, g: GS, t: number) {
   ctx.font = '13px "Press Start 2P", monospace'; ctx.fillStyle = '#7878A0'; ctx.textAlign = 'center'
   ctx.fillText('MANAGER', OFF.x+OFF.w/2, OFF.y+20); ctx.fillText('OFFICE', OFF.x+OFF.w/2, OFF.y+34)
   // Door gap
-  ctx.fillStyle = '#EDE4C8'; ctx.fillRect(OFF.x+OFF.w/2-18, OFF.h, 36, 4)
+  ctx.fillStyle = '#EDE4C8'; ctx.fillRect(OFF.x+OFF.w/2-18, OFF.y+OFF.h, 36, 4)
 
   // ── Shelves ─────────────────────────────────────────────────
   for (const sh of g.shelves) {
