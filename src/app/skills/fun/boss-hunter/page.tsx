@@ -1882,7 +1882,7 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
       ctx.beginPath(); ctx.moveTo(18,0); ctx.lineTo(18+(60+prog*50),0); ctx.stroke()
       ctx.strokeStyle = 'rgba(255,255,150,0.5)'; ctx.lineWidth = 12
       ctx.beginPath(); ctx.moveTo(18,0); ctx.lineTo(18+(35+prog*30),0); ctx.stroke()
-    } else if (af.type==='slash' || af.type==='shadow') {
+    } else if ((af.type==='slash' && wid!=='dagger') || af.type==='shadow') {
       const r2 = 52+prog*22, arc = af.type==='shadow'?1.3:1.0
       ctx.strokeStyle = af.color; ctx.lineWidth = 3+(1-prog)*3; ctx.shadowColor = af.color; ctx.shadowBlur = 14
       ctx.beginPath(); ctx.arc(0,0,r2,-arc/2,arc/2); ctx.stroke()
@@ -1946,9 +1946,68 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
 
   ctx.save(); ctx.rotate(facing)
   if (wid === 'dagger') {
-    ctx.shadowColor='#8E44AD'; ctx.shadowBlur=10
-    ctx.save(); ctx.rotate(0.4); ctx.fillStyle=hw?'#FFF':'#9B59B6'; ctx.beginPath(); ctx.moveTo(14,-3); ctx.lineTo(30,0); ctx.lineTo(14,3); ctx.closePath(); ctx.fill(); ctx.restore()
-    ctx.save(); ctx.rotate(-0.4); ctx.fillStyle=hw?'#FFF':'#8E44AD'; ctx.beginPath(); ctx.moveTo(14,-3); ctx.lineTo(30,0); ctx.lineTo(14,3); ctx.closePath(); ctx.fill(); ctx.restore()
+    // ── SPIDER FANG DAGGERS — animated dual-blade flurry ──
+    // draw one curved fang dagger pivoting at (px,py), rotated by ang, blade length len
+    const drawFang = (px: number, py: number, ang: number, len: number, col: string, glow: number) => {
+      ctx.save(); ctx.translate(px, py); ctx.rotate(ang)
+      ctx.shadowColor = '#8E44AD'; ctx.shadowBlur = glow
+      // curved fang blade (slight inward hook)
+      ctx.fillStyle = col
+      ctx.beginPath()
+      ctx.moveTo(5, -2.8)
+      ctx.quadraticCurveTo(len * 0.6, -3.2, len, -0.6)
+      ctx.quadraticCurveTo(len + 2, 0, len, 0.8)
+      ctx.quadraticCurveTo(len * 0.55, 3.2, 5, 2.8)
+      ctx.closePath(); ctx.fill()
+      // bright edge line
+      ctx.strokeStyle = 'rgba(225,185,255,0.85)'; ctx.lineWidth = 1
+      ctx.beginPath(); ctx.moveTo(6, -1.1); ctx.quadraticCurveTo(len * 0.6, -1.4, len - 1, 0); ctx.stroke()
+      // crossguard + hilt
+      ctx.fillStyle = '#2c113f'; ctx.fillRect(1, -4, 4, 8)
+      ctx.fillStyle = '#7a4fae'; ctx.fillRect(-6, -1.7, 7, 3.4)
+      ctx.restore()
+    }
+    const slash = g.attackFlash && g.attackFlash.type === 'slash' && g.attackFlash.timer > 0 ? g.attackFlash : null
+    if (slash) {
+      // fast crossing X-slash: blades snap from a wide guard to crossed + thrust, then back
+      const p = 1 - slash.timer / slash.maxTimer
+      const tri = p < 0.5 ? p / 0.5 : 1 - (p - 0.5) / 0.5          // 0→1→0
+      const open = 1.08, cross = -0.30
+      // one symmetric pose at a given sweep value e (0 wide .. 1 crossed)
+      const pose = (e: number, alpha: number, glow: number) => {
+        const ang = open + (cross - open) * e
+        const reach = 24 + e * 22
+        const pyA = -7 + e * 6, pyB = 7 - e * 6
+        ctx.globalAlpha = alpha
+        drawFang(4, pyA, ang, reach, hw ? '#FFF' : '#9B59B6', glow)   // upper fang
+        drawFang(4, pyB, -ang, reach, hw ? '#FFF' : '#8E44AD', glow)  // lower fang (mirror)
+      }
+      // motion-blur ghosts trailing the strike
+      for (let i = 3; i >= 1; i--) pose(Math.max(0, tri - i * 0.18), 0.10 * (4 - i), 4)
+      // crossing swoosh arcs
+      if (tri > 0.15) {
+        ctx.globalAlpha = tri * 0.7; ctx.strokeStyle = 'rgba(190,140,255,0.9)'; ctx.lineWidth = 2.5
+        ctx.shadowColor = '#8E44AD'; ctx.shadowBlur = 14
+        ctx.beginPath(); ctx.arc(4, 0, 40, -open, -cross); ctx.stroke()
+        ctx.beginPath(); ctx.arc(4, 0, 40, cross, open); ctx.stroke()
+      }
+      // main blades
+      pose(tri, 1, 12)
+      // bright crossing spark at the apex of the strike
+      if (tri > 0.55) {
+        const sp = (tri - 0.55) / 0.45
+        ctx.globalAlpha = sp; ctx.fillStyle = '#EBD2FF'; ctx.shadowColor = '#C39BD3'; ctx.shadowBlur = 22
+        ctx.beginPath(); ctx.arc(40, 0, 3.5 + sp * 4, 0, Math.PI * 2); ctx.fill()
+        ctx.strokeStyle = `rgba(235,210,255,${sp})`; ctx.lineWidth = 2
+        for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2 + 0.4; ctx.beginPath(); ctx.moveTo(40, 0); ctx.lineTo(40 + Math.cos(a) * (8 + sp * 8), Math.sin(a) * (8 + sp * 8)); ctx.stroke() }
+      }
+      ctx.globalAlpha = 1
+    } else {
+      // idle ready-guard with a subtle breathing bob
+      const bob = Math.sin(t * 4) * 1.2
+      drawFang(6, -8 + bob, 0.34, 26, hw ? '#FFF' : '#9B59B6', 10)
+      drawFang(6, 8 - bob, -0.34, 26, hw ? '#FFF' : '#8E44AD', 10)
+    }
   } else if (wid === 'greatsword') {
     // ── MASSIVE greatsword: long broad blade, fuller, huge crossguard ──
     ctx.shadowColor='#E67E22'; ctx.shadowBlur=22
