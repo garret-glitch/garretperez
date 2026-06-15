@@ -544,19 +544,23 @@ function dealDmgToMinion(g: GS, m: Minion, dmg: number) {
 }
 
 /* ═══ BOSS AI ═══ */
-function selectBossAttack(bossId: BossId, enraged: boolean, d2p: number): string {
+function selectBossAttack(bossId: BossId, enraged: boolean, desperate: boolean, d2p: number): string {
   if (bossId === 0) {
     const pool = d2p < 150 ? ['leg_sweep', 'venom_spit', 'web_spray', 'toxic_cloud', 'summon', 'web_wall'] : ['venom_spit', 'toxic_cloud', 'web_spray', 'web_shot', 'leg_sweep', 'summon', 'web_wall', 'spider_charge']
     if (enraged) pool.push('spider_leap', 'venom_burst', 'web_spray', 'summon', 'spider_charge')
     return pool[rndI(0, pool.length - 1)]
   }
   if (bossId === 1) {
+    // ── LAVA DRAKE — escalating stages ──
     const pool = d2p < 150 ? ['stomp', 'tail_swipe', 'tail_slam', 'fire_breath', 'fire_line'] : ['fire_breath', 'flame_wave', 'fire_line', 'stomp', 'fireball', 'tail_slam', 'lava_puddle']
-    if (enraged) pool.push('ember_barrage', 'fireball', 'lava_puddle')
+    if (enraged) pool.push('ember_barrage', 'fireball', 'lava_puddle', 'magma_geyser', 'fire_fan')   // stage 2 unlocks eruptions
+    if (desperate) pool.push('magma_geyser', 'fire_fan', 'flame_wave', 'fireball', 'ember_barrage')   // stage 3: relentless fire
     return pool[rndI(0, pool.length - 1)]
   }
+  // ── STORM GRIFFIN — escalating stages ──
   const pool = d2p < 160 ? ['talon_dive', 'wind_buffet', 'dive_bomb', 'lightning_strike', 'lightning_barrage'] : ['lightning_strike', 'chain_lightning', 'wind_blade', 'lightning_barrage', 'dive_bomb', 'wind_buffet', 'static_field']
-  if (enraged) pool.push('thunderstorm', 'wind_blade', 'chain_lightning')
+  if (enraged) pool.push('thunderstorm', 'wind_blade', 'chain_lightning', 'gale_ring', 'thunder_cross')   // stage 2 unlocks storm patterns
+  if (desperate) pool.push('gale_ring', 'thunder_cross', 'thunderstorm', 'lightning_barrage', 'wind_blade')   // stage 3: the full tempest
   return pool[rndI(0, pool.length - 1)]
 }
 
@@ -566,7 +570,7 @@ function startBossAttack(g: GS, bossId: BossId, type: string) {
   const telegraphs: Record<string, number> = {
     venom_spit: 0.9, web_shot: 0.8, web_spray: 0.85, leg_sweep: 1.0, spider_leap: 1.1, toxic_cloud: 0.75, venom_burst: 1.2, summon: 1.05, web_wall: 1.1, spider_charge: 0.9,
     fire_breath: 1.2, stomp: 0.85, tail_swipe: 0.8, ember_barrage: 0.7, flame_wave: 1.0, lava_puddle: 0.75, fire_line: 1.5,
-    fireball: 1.0, tail_slam: 0.95,
+    fireball: 1.0, tail_slam: 0.95, magma_geyser: 1.15, fire_fan: 0.9, gale_ring: 0.85, thunder_cross: 1.3,
     lightning_strike: 0.95, talon_dive: 0.9, wind_buffet: 0.8, thunderstorm: 0.75, static_field: 0.7, chain_lightning: 0.85, lightning_barrage: 0.5,
     wind_blade: 0.85, dive_bomb: 0.9,
   }
@@ -599,9 +603,13 @@ function startBossAttack(g: GS, bossId: BossId, type: string) {
   else if (type === 'dive_bomb') { data.dmg = 36; data.radius = 130 }
   else if (type === 'web_wall') { data.dmg = 0; data.angle = b.angle + Math.PI / 2 }
   else if (type === 'spider_charge') { data.dmg = 30; data.angle = angle }
+  else if (type === 'magma_geyser') { data.dmg = 26; data.radius = 122; data.targetPos = { ...p.pos } }
+  else if (type === 'fire_fan') { data.dmg = 22; data.count = g.bossEnraged ? 7 : 5; data.projSpeed = 215; data.angle = angle }
+  else if (type === 'gale_ring') { data.dmg = 16; data.count = g.bossEnraged ? 14 : 11; data.projSpeed = 250 }
+  else if (type === 'thunder_cross') { data.dmg = 24; data.angle = angle }
   g.bossAttack = { type, telegraphTime: telegraphs[type] ?? 1.0, elapsed: 0, active: false, data }
   // ── telegraph: audio warning + charge-up burst (readability/fairness) ──
-  const BIG_ATTACKS = ['spider_leap', 'venom_burst', 'fire_line', 'flame_wave', 'fire_breath', 'lava_puddle', 'lightning_barrage', 'thunderstorm', 'meteor', 'talon_dive', 'fireball', 'tail_slam', 'dive_bomb', 'spider_charge']
+  const BIG_ATTACKS = ['spider_leap', 'venom_burst', 'fire_line', 'flame_wave', 'fire_breath', 'lava_puddle', 'lightning_barrage', 'thunderstorm', 'meteor', 'talon_dive', 'fireball', 'tail_slam', 'dive_bomb', 'spider_charge', 'magma_geyser', 'thunder_cross', 'gale_ring']
   if (BIG_ATTACKS.includes(type)) Sfx.warnBig(); else Sfx.warn()
   const chargeCol = bossId === 0 ? '#B370E0' : bossId === 1 ? '#FF7A1A' : '#5fe6ff'
   spawnParticles(g, b.pos, BIG_ATTACKS.includes(type) ? 16 : 9, chargeCol, 70, (telegraphs[type] ?? 1.0) * 0.7)
@@ -650,6 +658,30 @@ function resolveBossAttack(g: GS, bossId: BossId, wpn: WeaponDef, gear: GearId[]
     const target = d.targetPos!, r = d.radius ?? 130
     if (dist(p.pos, target) <= r) dealDmgToPlayer(g, d.dmg ?? 36, wpn, gear, norm(v(p.pos.x - target.x, p.pos.y - target.y)))
     spawnParticles(g, target, 26, '#5fe6ff', 280); g.screenShake = Math.max(g.screenShake, 0.55)
+  } else if (type === 'magma_geyser') {
+    // Drake: a ring of lava geysers erupts around the player — sprint to the centre or out of the band
+    const target = d.targetPos!, r = d.radius ?? 122
+    for (let i = 0; i < 11; i++) { const a = i / 11 * Math.PI * 2, zx = clamp(target.x + Math.cos(a) * r, 80, WW - 80), zy = clamp(target.y + Math.sin(a) * r, 80, WH - 80)
+      spawnZone(g, v(zx, zy), 'fire', 50, 16, 2.6); spawnParticles(g, v(zx, zy), 9, '#FF6600', 220, 0.8) }
+    g.screenShake = Math.max(g.screenShake, 0.6); Sfx.explosion()
+  } else if (type === 'fire_fan') {
+    // Drake: a wide sweeping fan of slow exploding fireballs
+    const count = d.count ?? 5, baseA = d.angle ?? Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
+    for (let i = 0; i < count; i++) { const a = baseA + (i - (count - 1) / 2) * 0.27
+      g.projectiles.push({ id: ++g.nextProjId, pos: { ...b.pos }, vel: v(Math.cos(a) * (d.projSpeed ?? 215), Math.sin(a) * (d.projSpeed ?? 215)), dmg: d.dmg ?? 22, radius: 13, fromBoss: true, life: 3.4, color: '#FF6600', isFireball: true, aoe: 60, trail: [] }) }
+    spawnParticles(g, b.pos, 14, '#FF7700', 170); Sfx.fireball()
+  } else if (type === 'gale_ring') {
+    // Griffin: a full-circle burst of wind blades — thread the gaps
+    fireFeatherVolley(g, d.count ?? 11, d.projSpeed ?? 250, d.dmg ?? 16, g.gtime)
+    fireFeatherVolley(g, Math.round((d.count ?? 11) / 2), (d.projSpeed ?? 250) * 0.7, d.dmg ?? 16, g.gtime + 0.3)   // inner slower ring
+    g.screenShake = Math.max(g.screenShake, 0.45)
+  } else if (type === 'thunder_cross') {
+    // Griffin: a crackling cross of lightning carves the arena
+    const a0 = d.angle ?? 0
+    for (const la of [a0, a0 + Math.PI / 2]) for (let i = 0; i < 14; i++) { const t2 = (i / 13) * 2 - 1
+      const zx = clamp(b.pos.x + Math.cos(la) * 760 * t2, 80, WW - 80), zy = clamp(b.pos.y + Math.sin(la) * 760 * t2, 80, WH - 80)
+      spawnZone(g, v(zx, zy), 'lightning', 52, 18, 3.0); if (i % 3 === 0) spawnParticles(g, v(zx, zy), 4, '#00EEFF', 150, 0.5) }
+    g.screenShake = Math.max(g.screenShake, 0.7); Sfx.explosion()
   } else if (type === 'web_wall') {
     // Spider: weaves a wall of sticky web across the arena — slows and chips on contact
     const lineAngle = d.angle ?? 0, lineLen = 760, lineCount = 16
@@ -1187,7 +1219,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
       }
     }
   } else if (g.nextAttackTimer <= 0 && b.stunTimer <= 0) {
-    startBossAttack(g, bossId, selectBossAttack(bossId, g.bossEnraged, dist(p.pos, b.pos)))
+    startBossAttack(g, bossId, selectBossAttack(bossId, g.bossEnraged, g.bossDesperate, dist(p.pos, b.pos)))
   }
 
   const hpFrac = b.hp / b.maxHp
@@ -2610,7 +2642,7 @@ function renderTelegraph(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t
   const atk = g.bossAttack; if (!atk || atk.active) return
   const progress = atk.elapsed/atk.telegraphTime, pulse = 0.4+0.6*progress, b = g.boss
   const bossDef = BOSS_DEFS[bossId]
-  const BIG = ['spider_leap','venom_burst','fire_line','flame_wave','fire_breath','lava_puddle','lightning_barrage','thunderstorm','talon_dive','fireball','tail_slam','dive_bomb','spider_charge'].includes(atk.type)
+  const BIG = ['spider_leap','venom_burst','fire_line','flame_wave','fire_breath','lava_puddle','lightning_barrage','thunderstorm','talon_dive','fireball','tail_slam','dive_bomb','spider_charge','magma_geyser','thunder_cross','gale_ring'].includes(atk.type)
   const dCol = bossId===0 ? '180,112,224' : bossId===1 ? '255,122,26' : '95,230,255'
   ctx.save()
   // ── boss charge-up aura (every telegraph): pulsing ring that fills as the attack nears ──
@@ -2637,9 +2669,9 @@ function renderTelegraph(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t
     }
     ctx.restore()
   }
-  if (atk.type==='venom_spit'||atk.type==='ember_barrage'||atk.type==='fireball'||atk.type==='wind_blade') {
+  if (atk.type==='venom_spit'||atk.type==='ember_barrage'||atk.type==='fireball'||atk.type==='wind_blade'||atk.type==='fire_fan') {
     const count=atk.data.count??3, baseA=atk.data.angle??0
-    const spread=atk.type==='fireball'?0.16:atk.type==='wind_blade'?0.20:0.28
+    const spread=atk.type==='fireball'?0.16:atk.type==='wind_blade'?0.20:atk.type==='fire_fan'?0.27:0.28
     for (let i=0;i<count;i++) { const a=baseA+(i-(count-1)/2)*spread; ctx.strokeStyle=`rgba(${dCol},${pulse})`; ctx.lineWidth=atk.type==='fireball'?3:2; ctx.setLineDash([6,4]); ctx.shadowColor=`rgba(${dCol},0.7)`; ctx.shadowBlur=8*pulse; ctx.beginPath(); ctx.moveTo(b.pos.x,b.pos.y); ctx.lineTo(b.pos.x+Math.cos(a)*520,b.pos.y+Math.sin(a)*520); ctx.stroke(); ctx.setLineDash([]); ctx.shadowBlur=0 }
   } else if (atk.type==='web_shot'||atk.type==='talon_dive') {
     const a=atk.data.angle??0; ctx.strokeStyle=`rgba(255,100,200,${pulse})`; ctx.lineWidth=2; ctx.setLineDash([6,4]); ctx.beginPath(); ctx.moveTo(b.pos.x,b.pos.y); ctx.lineTo(b.pos.x+Math.cos(a)*600,b.pos.y+Math.sin(a)*600); ctx.stroke(); ctx.setLineDash([])
@@ -2699,6 +2731,31 @@ function renderTelegraph(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t
     ctx.beginPath(); ctx.moveTo(b.pos.x+px2,b.pos.y+py2); ctx.lineTo(ex+px2,ey+py2); ctx.lineTo(ex-px2,ey-py2); ctx.lineTo(b.pos.x-px2,b.pos.y-py2); ctx.closePath(); ctx.fill()
     ctx.strokeStyle=`rgba(${dCol},${pulse})`; ctx.lineWidth=3
     for (let k=1;k<=3;k++){ const cd=len*(k/3.6); const cx=b.pos.x+Math.cos(a)*cd, cy=b.pos.y+Math.sin(a)*cd; ctx.beginPath(); ctx.moveTo(cx+Math.cos(a+2.5)*14,cy+Math.sin(a+2.5)*14); ctx.lineTo(cx,cy); ctx.lineTo(cx+Math.cos(a-2.5)*14,cy+Math.sin(a-2.5)*14); ctx.stroke() }
+    ctx.restore()
+  } else if (atk.type==='magma_geyser') {
+    // ring of eruptions — danger band, safe centre
+    const target=atk.data.targetPos!, r=atk.data.radius??122
+    ctx.save(); ctx.shadowColor='#FF6600'; ctx.shadowBlur=14*pulse
+    ctx.strokeStyle=`rgba(255,120,20,${0.5+0.5*pulse})`; ctx.lineWidth=4+progress*4
+    ctx.beginPath(); ctx.arc(target.x,target.y,r,0,Math.PI*2); ctx.stroke()
+    ctx.fillStyle=`rgba(255,90,0,${0.10+0.12*pulse})`; ctx.beginPath(); ctx.arc(target.x,target.y,r+22,0,Math.PI*2); ctx.arc(target.x,target.y,r-22,0,Math.PI*2,true); ctx.fill()
+    // erupting markers around the ring
+    for (let i=0;i<11;i++){ const a=i/11*Math.PI*2; ctx.fillStyle=`rgba(255,160,40,${pulse})`; ctx.beginPath(); ctx.arc(target.x+Math.cos(a)*r,target.y+Math.sin(a)*r,3+progress*3,0,Math.PI*2); ctx.fill() }
+    ctx.restore()
+  } else if (atk.type==='thunder_cross') {
+    // two perpendicular lightning lines through the boss
+    const a0=atk.data.angle??0, len=780
+    ctx.save(); ctx.shadowColor='#00EEFF'; ctx.shadowBlur=18*pulse
+    ctx.strokeStyle=`rgba(120,235,255,${pulse*0.9})`; ctx.lineWidth=6+progress*8; ctx.setLineDash([16,8])
+    for (const la of [a0, a0+Math.PI/2]) { ctx.beginPath(); ctx.moveTo(b.pos.x-Math.cos(la)*len,b.pos.y-Math.sin(la)*len); ctx.lineTo(b.pos.x+Math.cos(la)*len,b.pos.y+Math.sin(la)*len); ctx.stroke() }
+    ctx.setLineDash([]); ctx.restore()
+  } else if (atk.type==='gale_ring') {
+    // expanding wind ring warning around the boss
+    ctx.save(); ctx.shadowColor='#9fc0ff'; ctx.shadowBlur=12*pulse
+    ctx.strokeStyle=`rgba(180,220,255,${pulse})`; ctx.lineWidth=2.5+progress*2
+    ctx.beginPath(); ctx.arc(b.pos.x,b.pos.y,40+progress*120,0,Math.PI*2); ctx.stroke()
+    ctx.strokeStyle=`rgba(180,220,255,${pulse*0.5})`; ctx.lineWidth=1.5
+    ctx.beginPath(); ctx.arc(b.pos.x,b.pos.y,40+progress*60,0,Math.PI*2); ctx.stroke()
     ctx.restore()
   }
   void t
