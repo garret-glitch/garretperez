@@ -78,6 +78,7 @@ const Sfx = (() => {
     summon() { const c = ok('summon', 120); if (!c) return; blip(c, 300, 0.3, 'sawtooth', 0.18, 520); blip(c, 200, 0.34, 'square', 0.14, 360, 0.04); noise(c, 0.25, 0.16, 'bandpass', 1200, 1.4, 600) },
     minionDeath() { const c = ok('mdeath', 40); if (!c) return; blip(c, 380, 0.12, 'square', 0.16, 120); noise(c, 0.08, 0.2, 'highpass', 1800) },
     phaseShift() { const c = ok('phase', 200); if (!c) return; blip(c, 160, 0.7, 'sawtooth', 0.32, 70); blip(c, 320, 0.5, 'square', 0.18, 540, 0.05); noise(c, 0.6, 0.28, 'lowpass', 900, 0.8, 200) },
+    gust() { const c = ok('gust', 110); if (!c) return; noise(c, 0.32, 0.3, 'bandpass', 900, 0.7, 2600); blip(c, 600, 0.18, 'sine', 0.08, 1200) },
     ability() { const c = ok('abil', 40); if (!c) return; blip(c, 520, 0.2, 'sine', 0.2, 980); blip(c, 780, 0.2, 'triangle', 0.12, 1400) },
     victory() { const c = ok('vic', 300); if (!c) return;[523, 659, 784, 1047].forEach((f, i) => blip(c, f, 0.22, 'triangle', 0.22, undefined, i * 0.12)) },
     loot() { const c = ok('loot', 120); if (!c) return; blip(c, 880, 0.1, 'triangle', 0.18, 1320); blip(c, 1320, 0.12, 'sine', 0.14, undefined, 0.08) },
@@ -107,7 +108,7 @@ interface Projectile {
   id: number; pos: V2; vel: V2; dmg: number; radius: number
   fromBoss: boolean; life: number; color: string
   aoe?: number; poison?: boolean; isWeb?: boolean
-  isPowerShot?: boolean; isFireball?: boolean; isLightning?: boolean
+  isPowerShot?: boolean; isFireball?: boolean; isLightning?: boolean; isFeather?: boolean
   trail?: V2[]
 }
 interface BossAttack { type: string; telegraphTime: number; elapsed: number; active: boolean; data: AttackData }
@@ -145,6 +146,7 @@ interface GS {
   snakeTrail: Array<{x: number; y: number}>
   minions: Minion[]; nextMinionId: number
   bossDesperate: boolean; phaseBanner: { text: string; sub: string; timer: number } | null
+  sigTimer: number
 }
 interface PlayerState {
   pos: V2; vel: V2; targetPos: V2 | null
@@ -303,6 +305,7 @@ function mkState(wpn: WeaponDef, boss: BossDef, gear: GearId[]): GS {
     snakeTrail: [],
     minions: [], nextMinionId: 0,
     bossDesperate: false, phaseBanner: null,
+    sigTimer: 0,
   }
 }
 
@@ -385,6 +388,15 @@ function spawnSpiderlings(g: GS, count: number) {
     spawnParticles(g, g.minions[g.minions.length - 1].pos, 8, '#8E44AD', 130, 0.5)
   }
   Sfx.summon()
+}
+function fireFeatherVolley(g: GS, count: number, speed: number, dmg: number, phaseOffset: number) {
+  const b = g.boss
+  for (let i = 0; i < count; i++) {
+    const a = phaseOffset + (i / count) * Math.PI * 2
+    g.projectiles.push({ id: ++g.nextProjId, pos: { ...b.pos }, vel: v(Math.cos(a) * speed, Math.sin(a) * speed), dmg, radius: 8, fromBoss: true, life: 4.0, color: '#cfe9ff', isFeather: true, trail: [] })
+  }
+  spawnParticles(g, b.pos, 10, '#9fc0ff', 150, 0.4)
+  Sfx.gust()
 }
 function dealDmgToMinion(g: GS, m: Minion, dmg: number) {
   m.hp = Math.max(0, m.hp - dmg); m.hitFlash = 0.12
@@ -926,9 +938,44 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
     // shockwave nova — punishes anyone hugging the boss at the transition
     const novaR = bossDef.size + 150
     if (dist(p.pos, b.pos) < novaR && p.iframeTimer <= 0) dealDmgToPlayer(g, 26, wpn, gear, norm(v(p.pos.x - b.pos.x, p.pos.y - b.pos.y)))
-    const p3Sub = bossId === 0 ? 'She calls her brood!' : bossId === 1 ? 'Everything burns!' : 'Skies turn to thunder!'
+    const p3Sub = bossId === 0 ? 'She calls her brood!' : bossId === 1 ? 'The arena turns to magma!' : 'A storm of blades takes wing!'
     g.phaseBanner = { text: 'PHASE 3 — DESPERATE', sub: p3Sub, timer: 3.0 }
-    if (bossId === 0) spawnSpiderlings(g, 4)   // spider floods the arena on entering phase 3
+    // ── signature phase-3 openers ──
+    if (bossId === 0) {
+      spawnSpiderlings(g, 4)               // Spider: flood the arena with brood
+    } else if (bossId === 1) {
+      // Drake: eruption — a ring of lava erupts around her, then a molten wake follows (see below)
+      for (let i = 0; i < 10; i++) {
+        const a = i / 10 * Math.PI * 2, rr = bossDef.size + 92
+        spawnZone(g, v(clamp(b.pos.x + Math.cos(a) * rr, 80, WW - 80), clamp(b.pos.y + Math.sin(a) * rr, 80, WH - 80)), 'fire', 60, 14, 4.5)
+        spawnParticles(g, v(b.pos.x + Math.cos(a) * rr, b.pos.y + Math.sin(a) * rr), 8, '#FF6600', 130, 0.6)
+      }
+      g.sigTimer = 0.36
+    } else {
+      // Griffin: takes wing and looses a feather storm; flies faster and more erratically
+      fireFeatherVolley(g, 14, 240, 18, g.gtime)
+      g.bossFlightSpeed *= 1.32
+      g.sigTimer = 1.2
+    }
+  }
+
+  // ── Phase-3 signature mechanics (ongoing): drake molten wake / griffin feather storm ──
+  if (g.bossDesperate && b.stunTimer <= 0 && g.phase === 'playing') {
+    g.sigTimer -= dt
+    if (g.sigTimer <= 0) {
+      if (bossId === 1) {
+        // Drake leaves a trail of fire under her body as she slithers — area denial that evolves
+        spawnZone(g, { x: b.pos.x, y: b.pos.y }, 'fire', 56, 14, 3.0)
+        spawnParticles(g, b.pos, 4, '#FF7700', 90, 0.5)
+        g.sigTimer = 0.36
+      } else if (bossId === 2) {
+        // Griffin rains radial feather volleys — keep moving to thread the gaps
+        fireFeatherVolley(g, g.bossEnraged ? 12 : 10, 250, 16, g.gtime * 1.3)
+        g.sigTimer = 1.5
+      } else {
+        g.sigTimer = 1.0
+      }
+    }
   }
 
   // Boss death
@@ -1963,6 +2010,13 @@ function renderProjectiles(ctx: CanvasRenderingContext2D, g: GS, t: number) {
       ctx.save(); ctx.translate(proj.pos.x,proj.pos.y); ctx.rotate(a2)
       ctx.strokeStyle='#7DFFB0'; ctx.lineWidth=3
       ctx.beginPath(); ctx.moveTo(-8,0); ctx.lineTo(0,-5); ctx.lineTo(5,0); ctx.lineTo(12,-4); ctx.lineTo(18,0); ctx.stroke()
+      ctx.restore()
+    } else if (proj.isFeather) {
+      const a4=Math.atan2(proj.vel.y,proj.vel.x)
+      ctx.save(); ctx.translate(proj.pos.x,proj.pos.y); ctx.rotate(a4)
+      ctx.fillStyle=proj.color
+      ctx.beginPath(); ctx.moveTo(11,0); ctx.lineTo(-6,-4.5); ctx.lineTo(-3,0); ctx.lineTo(-6,4.5); ctx.closePath(); ctx.fill()
+      ctx.strokeStyle='rgba(255,255,255,0.75)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(11,0); ctx.lineTo(-6,0); ctx.stroke()
       ctx.restore()
     } else {
       ctx.fillStyle=proj.color; ctx.beginPath(); ctx.arc(proj.pos.x,proj.pos.y,proj.radius,0,Math.PI*2); ctx.fill()
