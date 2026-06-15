@@ -1788,10 +1788,13 @@ export default function BossHunter() {
   }, [])
 
   const fitCanvas = useCallback(() => {
-    const c = canvasRef.current, w = playWrapRef.current
-    if (!c || !w) return
-    const vw = w.clientWidth || window.innerWidth
-    const vh = w.clientHeight || window.innerHeight
+    const c = canvasRef.current
+    if (!c) return
+    // Measure the true visible viewport, independent of the overlay element.
+    const de = document.documentElement
+    const vw = Math.min(window.innerWidth || Infinity, de.clientWidth || Infinity)
+    const vh = Math.min(window.innerHeight || Infinity, de.clientHeight || Infinity)
+    if (!isFinite(vw) || !isFinite(vh)) return
     const s = Math.min(vw / CW, vh / CH)
     c.style.width = Math.floor(CW * s) + 'px'
     c.style.height = Math.floor(CH * s) + 'px'
@@ -1799,15 +1802,18 @@ export default function BossHunter() {
 
   useEffect(() => {
     if (screen !== 'playing' && screen !== 'hunt_select') return
-    const prevOverflow = document.body.style.overflow
+    const prevBody = document.body.style.overflow
+    const prevHtml = document.documentElement.style.overflow
     document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
     fitCanvas()
     const raf = requestAnimationFrame(fitCanvas)
     window.addEventListener('resize', fitCanvas)
     document.addEventListener('fullscreenchange', fitCanvas)
     document.addEventListener('webkitfullscreenchange', fitCanvas)
     return () => {
-      document.body.style.overflow = prevOverflow
+      document.body.style.overflow = prevBody
+      document.documentElement.style.overflow = prevHtml
       cancelAnimationFrame(raf)
       window.removeEventListener('resize', fitCanvas)
       document.removeEventListener('fullscreenchange', fitCanvas)
