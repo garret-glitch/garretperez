@@ -546,8 +546,10 @@ function dealDmgToMinion(g: GS, m: Minion, dmg: number) {
 /* ═══ BOSS AI ═══ */
 function selectBossAttack(bossId: BossId, enraged: boolean, desperate: boolean, d2p: number): string {
   if (bossId === 0) {
+    // ── SPIDER QUEEN — escalating stages ──
     const pool = d2p < 150 ? ['leg_sweep', 'venom_spit', 'web_spray', 'toxic_cloud', 'summon', 'web_wall'] : ['venom_spit', 'toxic_cloud', 'web_spray', 'web_shot', 'leg_sweep', 'summon', 'web_wall', 'spider_charge']
-    if (enraged) pool.push('spider_leap', 'venom_burst', 'web_spray', 'summon', 'spider_charge')
+    if (enraged) pool.push('spider_leap', 'venom_burst', 'web_spray', 'summon', 'spider_charge', 'web_burst', 'venom_geyser')   // stage 2 unlocks burst patterns
+    if (desperate) pool.push('web_burst', 'venom_geyser', 'spider_leap', 'venom_burst', 'summon')   // stage 3: the lair turns lethal
     return pool[rndI(0, pool.length - 1)]
   }
   if (bossId === 1) {
@@ -568,7 +570,7 @@ function startBossAttack(g: GS, bossId: BossId, type: string) {
   const p = g.player, b = g.boss
   const angle = Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
   const telegraphs: Record<string, number> = {
-    venom_spit: 0.9, web_shot: 0.8, web_spray: 0.85, leg_sweep: 1.0, spider_leap: 1.1, toxic_cloud: 0.75, venom_burst: 1.2, summon: 1.05, web_wall: 1.1, spider_charge: 0.9,
+    venom_spit: 0.9, web_shot: 0.8, web_spray: 0.85, leg_sweep: 1.0, spider_leap: 1.1, toxic_cloud: 0.75, venom_burst: 1.2, summon: 1.05, web_wall: 1.1, spider_charge: 0.9, web_burst: 0.85, venom_geyser: 1.15,
     fire_breath: 1.2, stomp: 0.85, tail_swipe: 0.8, ember_barrage: 0.7, flame_wave: 1.0, lava_puddle: 0.75, fire_line: 1.5,
     fireball: 1.0, tail_slam: 0.95, magma_geyser: 1.15, fire_fan: 0.9, gale_ring: 0.85, thunder_cross: 1.3,
     lightning_strike: 0.95, talon_dive: 0.9, wind_buffet: 0.8, thunderstorm: 0.75, static_field: 0.7, chain_lightning: 0.85, lightning_barrage: 0.5,
@@ -607,9 +609,11 @@ function startBossAttack(g: GS, bossId: BossId, type: string) {
   else if (type === 'fire_fan') { data.dmg = 22; data.count = g.bossEnraged ? 7 : 5; data.projSpeed = 215; data.angle = angle }
   else if (type === 'gale_ring') { data.dmg = 16; data.count = g.bossEnraged ? 14 : 11; data.projSpeed = 250 }
   else if (type === 'thunder_cross') { data.dmg = 24; data.angle = angle }
+  else if (type === 'web_burst') { data.dmg = 12; data.count = g.bossEnraged ? 14 : 11; data.projSpeed = 205 }
+  else if (type === 'venom_geyser') { data.dmg = 0; data.radius = 120; data.targetPos = { ...p.pos } }
   g.bossAttack = { type, telegraphTime: telegraphs[type] ?? 1.0, elapsed: 0, active: false, data }
   // ── telegraph: audio warning + charge-up burst (readability/fairness) ──
-  const BIG_ATTACKS = ['spider_leap', 'venom_burst', 'fire_line', 'flame_wave', 'fire_breath', 'lava_puddle', 'lightning_barrage', 'thunderstorm', 'meteor', 'talon_dive', 'fireball', 'tail_slam', 'dive_bomb', 'spider_charge', 'magma_geyser', 'thunder_cross', 'gale_ring']
+  const BIG_ATTACKS = ['spider_leap', 'venom_burst', 'fire_line', 'flame_wave', 'fire_breath', 'lava_puddle', 'lightning_barrage', 'thunderstorm', 'meteor', 'talon_dive', 'fireball', 'tail_slam', 'dive_bomb', 'spider_charge', 'magma_geyser', 'thunder_cross', 'gale_ring', 'venom_geyser', 'web_burst']
   if (BIG_ATTACKS.includes(type)) Sfx.warnBig(); else Sfx.warn()
   const chargeCol = bossId === 0 ? '#B370E0' : bossId === 1 ? '#FF7A1A' : '#5fe6ff'
   spawnParticles(g, b.pos, BIG_ATTACKS.includes(type) ? 16 : 9, chargeCol, 70, (telegraphs[type] ?? 1.0) * 0.7)
@@ -682,6 +686,18 @@ function resolveBossAttack(g: GS, bossId: BossId, wpn: WeaponDef, gear: GearId[]
       const zx = clamp(b.pos.x + Math.cos(la) * 760 * t2, 80, WW - 80), zy = clamp(b.pos.y + Math.sin(la) * 760 * t2, 80, WH - 80)
       spawnZone(g, v(zx, zy), 'lightning', 52, 18, 3.0); if (i % 3 === 0) spawnParticles(g, v(zx, zy), 4, '#00EEFF', 150, 0.5) }
     g.screenShake = Math.max(g.screenShake, 0.7); Sfx.explosion()
+  } else if (type === 'web_burst') {
+    // Spider: a full-circle spray of sticky web bolts — thread the gaps or get rooted
+    const count = d.count ?? 11, sp = d.projSpeed ?? 205, off = g.gtime
+    for (let i = 0; i < count; i++) { const a = off + i / count * Math.PI * 2
+      g.projectiles.push({ id: ++g.nextProjId, pos: { ...b.pos }, vel: v(Math.cos(a) * sp, Math.sin(a) * sp), dmg: d.dmg ?? 12, radius: 11, fromBoss: true, life: 5.0, color: '#8E44AD', isWeb: true }) }
+    spawnParticles(g, b.pos, 16, '#8E44AD', 170); g.screenShake = Math.max(g.screenShake, 0.4); Sfx.summon()
+  } else if (type === 'venom_geyser') {
+    // Spider: a ring of venom geysers erupts around the player — flee to the centre or out of the band
+    const target = d.targetPos!, r = d.radius ?? 120
+    for (let i = 0; i < 11; i++) { const a = i / 11 * Math.PI * 2, zx = clamp(target.x + Math.cos(a) * r, 80, WW - 80), zy = clamp(target.y + Math.sin(a) * r, 80, WH - 80)
+      spawnZone(g, v(zx, zy), 'poison', 50, 13, 3.0); spawnParticles(g, v(zx, zy), 9, '#8E44AD', 200, 0.8) }
+    g.screenShake = Math.max(g.screenShake, 0.55)
   } else if (type === 'web_wall') {
     // Spider: weaves a wall of sticky web across the arena — slows and chips on contact
     const lineAngle = d.angle ?? 0, lineLen = 760, lineCount = 16
@@ -2642,7 +2658,7 @@ function renderTelegraph(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t
   const atk = g.bossAttack; if (!atk || atk.active) return
   const progress = atk.elapsed/atk.telegraphTime, pulse = 0.4+0.6*progress, b = g.boss
   const bossDef = BOSS_DEFS[bossId]
-  const BIG = ['spider_leap','venom_burst','fire_line','flame_wave','fire_breath','lava_puddle','lightning_barrage','thunderstorm','talon_dive','fireball','tail_slam','dive_bomb','spider_charge','magma_geyser','thunder_cross','gale_ring'].includes(atk.type)
+  const BIG = ['spider_leap','venom_burst','fire_line','flame_wave','fire_breath','lava_puddle','lightning_barrage','thunderstorm','talon_dive','fireball','tail_slam','dive_bomb','spider_charge','magma_geyser','thunder_cross','gale_ring','venom_geyser','web_burst'].includes(atk.type)
   const dCol = bossId===0 ? '180,112,224' : bossId===1 ? '255,122,26' : '95,230,255'
   ctx.save()
   // ── boss charge-up aura (every telegraph): pulsing ring that fills as the attack nears ──
@@ -2732,15 +2748,14 @@ function renderTelegraph(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t
     ctx.strokeStyle=`rgba(${dCol},${pulse})`; ctx.lineWidth=3
     for (let k=1;k<=3;k++){ const cd=len*(k/3.6); const cx=b.pos.x+Math.cos(a)*cd, cy=b.pos.y+Math.sin(a)*cd; ctx.beginPath(); ctx.moveTo(cx+Math.cos(a+2.5)*14,cy+Math.sin(a+2.5)*14); ctx.lineTo(cx,cy); ctx.lineTo(cx+Math.cos(a-2.5)*14,cy+Math.sin(a-2.5)*14); ctx.stroke() }
     ctx.restore()
-  } else if (atk.type==='magma_geyser') {
+  } else if (atk.type==='magma_geyser'||atk.type==='venom_geyser') {
     // ring of eruptions — danger band, safe centre
     const target=atk.data.targetPos!, r=atk.data.radius??122
-    ctx.save(); ctx.shadowColor='#FF6600'; ctx.shadowBlur=14*pulse
-    ctx.strokeStyle=`rgba(255,120,20,${0.5+0.5*pulse})`; ctx.lineWidth=4+progress*4
+    ctx.save(); ctx.shadowColor=`rgba(${dCol},1)`; ctx.shadowBlur=14*pulse
+    ctx.strokeStyle=`rgba(${dCol},${0.5+0.5*pulse})`; ctx.lineWidth=4+progress*4
     ctx.beginPath(); ctx.arc(target.x,target.y,r,0,Math.PI*2); ctx.stroke()
-    ctx.fillStyle=`rgba(255,90,0,${0.10+0.12*pulse})`; ctx.beginPath(); ctx.arc(target.x,target.y,r+22,0,Math.PI*2); ctx.arc(target.x,target.y,r-22,0,Math.PI*2,true); ctx.fill()
-    // erupting markers around the ring
-    for (let i=0;i<11;i++){ const a=i/11*Math.PI*2; ctx.fillStyle=`rgba(255,160,40,${pulse})`; ctx.beginPath(); ctx.arc(target.x+Math.cos(a)*r,target.y+Math.sin(a)*r,3+progress*3,0,Math.PI*2); ctx.fill() }
+    ctx.fillStyle=`rgba(${dCol},${0.10+0.12*pulse})`; ctx.beginPath(); ctx.arc(target.x,target.y,r+22,0,Math.PI*2); ctx.arc(target.x,target.y,r-22,0,Math.PI*2,true); ctx.fill()
+    for (let i=0;i<11;i++){ const a=i/11*Math.PI*2; ctx.fillStyle=`rgba(${dCol},${pulse})`; ctx.beginPath(); ctx.arc(target.x+Math.cos(a)*r,target.y+Math.sin(a)*r,3+progress*3,0,Math.PI*2); ctx.fill() }
     ctx.restore()
   } else if (atk.type==='thunder_cross') {
     // two perpendicular lightning lines through the boss
@@ -2749,12 +2764,12 @@ function renderTelegraph(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t
     ctx.strokeStyle=`rgba(120,235,255,${pulse*0.9})`; ctx.lineWidth=6+progress*8; ctx.setLineDash([16,8])
     for (const la of [a0, a0+Math.PI/2]) { ctx.beginPath(); ctx.moveTo(b.pos.x-Math.cos(la)*len,b.pos.y-Math.sin(la)*len); ctx.lineTo(b.pos.x+Math.cos(la)*len,b.pos.y+Math.sin(la)*len); ctx.stroke() }
     ctx.setLineDash([]); ctx.restore()
-  } else if (atk.type==='gale_ring') {
-    // expanding wind ring warning around the boss
-    ctx.save(); ctx.shadowColor='#9fc0ff'; ctx.shadowBlur=12*pulse
-    ctx.strokeStyle=`rgba(180,220,255,${pulse})`; ctx.lineWidth=2.5+progress*2
+  } else if (atk.type==='gale_ring'||atk.type==='web_burst') {
+    // expanding ring warning around the boss (radial burst incoming)
+    ctx.save(); ctx.shadowColor=`rgba(${dCol},1)`; ctx.shadowBlur=12*pulse
+    ctx.strokeStyle=`rgba(${dCol},${pulse})`; ctx.lineWidth=2.5+progress*2
     ctx.beginPath(); ctx.arc(b.pos.x,b.pos.y,40+progress*120,0,Math.PI*2); ctx.stroke()
-    ctx.strokeStyle=`rgba(180,220,255,${pulse*0.5})`; ctx.lineWidth=1.5
+    ctx.strokeStyle=`rgba(${dCol},${pulse*0.5})`; ctx.lineWidth=1.5
     ctx.beginPath(); ctx.arc(b.pos.x,b.pos.y,40+progress*60,0,Math.PI*2); ctx.stroke()
     ctx.restore()
   }
