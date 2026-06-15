@@ -3055,6 +3055,7 @@ export default function BossHunter() {
   const [victoryBoss, setVictoryBoss] = useState(0)
   const [lastUnlockedGear, setLastUnlockedGear] = useState<GearId | null>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const menuCanvasRef = useRef<HTMLCanvasElement>(null)
   const playWrapRef = useRef<HTMLDivElement>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [muted, setMuted] = useState(false)
@@ -3121,6 +3122,64 @@ export default function BossHunter() {
       document.removeEventListener('webkitfullscreenchange', fitCanvas)
     }
   }, [screen, fitCanvas])
+
+  // ── cinematic menu backdrop: a looming, animated game boss in a glowing cavern ──
+  useEffect(() => {
+    if (screen !== 'menu') return
+    const canvas = menuCanvasRef.current; if (!canvas) return
+    const ctx = canvas.getContext('2d'); if (!ctx) return
+    const bossId = Math.floor(Math.random() * 3) as BossId
+    const g = mkState(WEAPON_DEFS[0], BOSS_DEFS[bossId], [])
+    g.bossEnraged = true
+    if (bossId === 1) g.boss.angle = -Math.PI / 2
+    const T = bossId === 0 ? { g0: 'rgba(120,45,170,0.5)', g1: 'rgba(45,12,75,0.5)', rune: '#b370e0', emb: '155,89,182' }
+          : bossId === 1 ? { g0: 'rgba(185,55,0,0.55)', g1: 'rgba(85,18,0,0.5)', rune: '#ff8a1a', emb: '255,95,26' }
+          :                { g0: 'rgba(40,135,215,0.46)', g1: 'rgba(18,40,95,0.5)', rune: '#5fe6ff', emb: '122,160,255' }
+    const embers = Array.from({ length: 46 }, () => ({ x: Math.random(), y: Math.random(), s: 0.6 + Math.random() * 1.6, sp: 0.03 + Math.random() * 0.06, fl: Math.random() * 6.28 }))
+    let raf = 0, lastT = performance.now()
+    const fit = () => { canvas.width = canvas.clientWidth || window.innerWidth; canvas.height = canvas.clientHeight || window.innerHeight }
+    fit(); window.addEventListener('resize', fit)
+    const loop = (now: number) => {
+      const dt = Math.min((now - lastT) / 1000, 0.05); lastT = now
+      g.gtime += dt; g.boss.legPhase += dt * 3.0; g.boss.spinePulse += dt * 2.2; g.boss.lightningPhase += dt * 4.5
+      const t = g.gtime, w = canvas.width, h = canvas.height, cx = w * 0.5, cy = h * 0.42
+      ctx.clearRect(0, 0, w, h)
+      ctx.fillStyle = '#05030a'; ctx.fillRect(0, 0, w, h)
+      const gr = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.min(w, h) * 0.9)
+      gr.addColorStop(0, T.g0); gr.addColorStop(0.5, T.g1); gr.addColorStop(1, 'rgba(0,0,0,0)')
+      ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h)
+      // rising embers (behind boss)
+      ctx.shadowColor = `rgb(${T.emb})`; ctx.shadowBlur = 6
+      embers.forEach(e => { e.y -= e.sp * dt; if (e.y < -0.02) { e.y = 1.02; e.x = Math.random() }
+        ctx.fillStyle = `rgba(${T.emb},${0.35 + 0.4 * Math.sin(t * 4 + e.fl)})`
+        ctx.beginPath(); ctx.arc(e.x * w, e.y * h, e.s, 0, Math.PI * 2); ctx.fill() })
+      ctx.shadowBlur = 0
+      // boss (loom)
+      g.boss.pos.x = cx; g.boss.pos.y = cy - h * 0.04
+      if (bossId === 1) { const segs = []; for (let i = 0; i < 30; i++) { const tt = i / 29; segs.push({ x: g.boss.pos.x + Math.sin((1 - tt) * 3) * 46 * (1 - tt), y: g.boss.pos.y + (1 - tt) * 190 }) } g.snakeTrail = segs }
+      const sc = Math.min(w / 960, h / 600) * 1.85
+      ctx.save(); ctx.translate(g.boss.pos.x, g.boss.pos.y); ctx.scale(sc, sc); ctx.translate(-g.boss.pos.x, -g.boss.pos.y)
+      try { renderBoss(ctx, g, bossId, t) } catch { /* keep the menu alive */ }
+      ctx.restore()
+      // magic rune circle on the ground (foreground)
+      const R = Math.min(w, h) * 0.2, rx = cx, ry = h * 0.78
+      ctx.save(); ctx.translate(rx, ry); ctx.scale(1, 0.4); ctx.globalAlpha = 0.85
+      ctx.strokeStyle = T.rune; ctx.shadowColor = T.rune; ctx.shadowBlur = 22
+      ctx.rotate(t * 0.25); ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.stroke()
+      ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(0, 0, R * 0.78, 0, Math.PI * 2); ctx.stroke()
+      for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; ctx.beginPath(); ctx.moveTo(Math.cos(a) * R * 0.78, Math.sin(a) * R * 0.78); ctx.lineTo(Math.cos(a) * R, Math.sin(a) * R); ctx.stroke() }
+      ctx.rotate(-t * 0.5)
+      for (const off of [0, Math.PI / 3]) { ctx.beginPath(); for (let i = 0; i < 3; i++) { const a = off + i * Math.PI * 2 / 3 - Math.PI / 2, px = Math.cos(a) * R * 0.62, py = Math.sin(a) * R * 0.62; if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py) } ctx.closePath(); ctx.stroke() }
+      ctx.restore()
+      // vignette
+      const vg = ctx.createRadialGradient(cx, h * 0.5, h * 0.18, cx, h * 0.5, Math.max(w, h) * 0.72)
+      vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.88)')
+      ctx.fillStyle = vg; ctx.fillRect(0, 0, w, h)
+      raf = requestAnimationFrame(loop)
+    }
+    raf = requestAnimationFrame(loop)
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', fit) }
+  }, [screen])
 
   useEffect(() => {
     const onFsChange = () => {
@@ -3243,61 +3302,46 @@ export default function BossHunter() {
 
   // ─── MENU ───
   if (screen === 'menu') return (
-    <div style={{background:'radial-gradient(ellipse at 50% 30%, #1a0830 0%, #080814 55%, #020208 100%)',minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',fontFamily:'"Press Start 2P",monospace',position:'relative',overflow:'hidden'}}>
+    <div style={{background:'#05030a',minHeight:'100vh',display:'flex',flexDirection:'column',fontFamily:'"Press Start 2P",monospace',position:'relative',overflow:'hidden'}}>
       <style>{`
         @keyframes bh-pulse{0%,100%{text-shadow:0 0 20px #C89B3C,0 0 40px #C89B3C55}50%{text-shadow:0 0 50px #C89B3C,0 0 100px #C89B3Caa,0 0 160px #C89B3C44}}
-        @keyframes bh-float{0%,100%{transform:translateY(0px)}50%{transform:translateY(-10px)}}
         @keyframes bh-flicker{0%,100%{opacity:1}91%{opacity:1}93%{opacity:0.2}95%{opacity:1}97%{opacity:0.4}99%{opacity:1}}
-        @keyframes bh-star{0%,100%{opacity:0.1}50%{opacity:0.9}}
         @keyframes bh-btn{0%,100%{box-shadow:0 0 20px #C89B3C55,0 4px 20px rgba(0,0,0,0.6)}50%{box-shadow:0 0 48px #C89B3Ccc,0 4px 32px rgba(0,0,0,0.9)}}
         .bh-title-1{animation:bh-pulse 2.5s ease-in-out infinite}
         .bh-title-2{animation:bh-pulse 2.5s 0.4s ease-in-out infinite}
         .bh-begin{animation:bh-btn 2s ease-in-out infinite}
       `}</style>
 
-      {Array.from({length:70},(_,i)=>(
-        <div key={i} style={{position:'absolute',pointerEvents:'none',left:`${(i*37+i*i*3)%100}%`,top:`${(i*53+i*i*7)%100}%`,width:i%9===0?2:1,height:i%9===0?2:1,background:i%11===0?'#C89B3C':'#ffffff',borderRadius:'50%',animation:`bh-star ${1.4+(i%5)*0.6}s ${(i*0.17)%3}s ease-in-out infinite`}}/>
-      ))}
+      <canvas ref={menuCanvasRef} style={{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:0,display:'block'}}/>
+      <div style={{position:'absolute',inset:0,pointerEvents:'none',background:'linear-gradient(to bottom,transparent 49%,rgba(200,155,60,0.03) 50%,transparent 51%)',backgroundSize:'100% 4px',zIndex:1}}/>
 
-      <div style={{position:'absolute',inset:0,pointerEvents:'none',background:'linear-gradient(to bottom,transparent 49%,rgba(200,155,60,0.03) 50%,transparent 51%)',backgroundSize:'100% 4px',zIndex:0}}/>
-
-      <div style={{position:'absolute',top:0,left:0,right:0,textAlign:'center',padding:'7px',fontSize:7,color:'#8B0000',borderBottom:'1px solid #8B000033',letterSpacing:2,animation:'bh-flicker 5s 1s infinite',zIndex:2}}>
+      <div style={{position:'relative',zIndex:2,textAlign:'center',padding:'7px',fontSize:7,color:'#c0392b',letterSpacing:2,animation:'bh-flicker 5s 1s infinite'}}>
         ⚠ WARNING — DANGEROUS BOSSES AHEAD — ENTER AT YOUR OWN RISK ⚠
       </div>
 
-      <div style={{textAlign:'center',padding:'48px 24px 40px',position:'relative',zIndex:1,maxWidth:760,width:'100%'}}>
+      <div style={{position:'relative',zIndex:2,textAlign:'center',paddingTop:'clamp(16px,3vh,34px)'}}>
+        <div style={{fontSize:8,color:'#a07ad0',letterSpacing:4,marginBottom:14,textShadow:'0 0 10px #00000088'}}>◆ GARRET&apos;S WORLD PRESENTS ◆</div>
+        <div className="bh-title-1" style={{fontSize:'clamp(40px,9vw,72px)',color:'#C89B3C',letterSpacing:6,lineHeight:1.04}}>BOSS</div>
+        <div className="bh-title-2" style={{fontSize:'clamp(40px,9vw,72px)',color:'#C89B3C',letterSpacing:6,lineHeight:1.04}}>HUNTER</div>
+      </div>
 
-        <div style={{fontSize:8,color:'#6B3A9E',letterSpacing:4,marginBottom:20}}>◆ GARRET&apos;S WORLD PRESENTS ◆</div>
+      <div style={{flex:1}}/>
 
-        <div className="bh-title-1" style={{fontSize:'48px',color:'#C89B3C',letterSpacing:4,lineHeight:1.1,marginBottom:6}}>BOSS</div>
-        <div className="bh-title-2" style={{fontSize:'48px',color:'#C89B3C',letterSpacing:4,lineHeight:1.1,marginBottom:40}}>HUNTER</div>
-
-        <div style={{display:'flex',gap:48,justifyContent:'center',marginBottom:44,alignItems:'flex-end'}}>
-          {BOSS_DEFS.map((b,i)=>(
-            <div key={i} style={{animation:`bh-float ${2.4+i*0.7}s ${i*0.5}s ease-in-out infinite`,textAlign:'center'}}>
-              <div style={{fontSize:56,marginBottom:10,filter:`drop-shadow(0 0 20px ${b.color}) drop-shadow(0 0 40px ${b.color}66)`}}>{b.icon}</div>
-              <div style={{fontSize:7,color:b.color,marginBottom:3,letterSpacing:1}}>{b.name}</div>
-              <div style={{fontSize:6,color:'#3a3020'}}>{i===0?'SPIDER LAIR':i===1?'LAVA CAVERN':'STORM PEAK'}</div>
-            </div>
-          ))}
-        </div>
-
-        <div style={{display:'flex',gap:20,justifyContent:'center',flexWrap:'wrap',marginBottom:40,padding:'12px 20px',borderTop:'1px solid #1e1c18',borderBottom:'1px solid #1e1c18'}}>
-          {([['🖱️','Click to move'],['SPACE','Dodge roll'],['Q W E R','Abilities'],['💀','Collect gear']] as [string,string][]).map(([k,v],i)=>(
-            <div key={i} style={{fontSize:7,color:'#605848'}}><span style={{color:'#8a7a60'}}>{k}</span>&nbsp;{v}</div>
-          ))}
-        </div>
-
-        {unlockedGear.length > 0 && (
-          <div style={{fontSize:7,color:'#3a3020',marginBottom:24}}>
-            GEAR COLLECTED: <span style={{color:'#C89B3C'}}>{unlockedGear.length}</span>
-            <span style={{color:'#605848'}}> &bull; LOADOUT: {(LOADOUT_WEAPONS.find(w=>w.id===selWeapon)??LOADOUT_WEAPONS[1]).icon}{selArmour?' '+GEAR_DEFS[selArmour].icon:''}</span>
-          </div>
-        )}
-
+      <div style={{position:'relative',zIndex:2,textAlign:'center',paddingBottom:'clamp(20px,4vh,40px)'}}>
         <button className="bh-begin" onClick={()=>setScreen('hunt_select')} style={{background:'linear-gradient(135deg,#C89B3C,#8B6914)',border:'2px solid #C89B3C44',color:'#0d0d14',padding:'16px 56px',borderRadius:6,fontSize:12,cursor:'pointer',fontFamily:'"Press Start 2P",monospace',letterSpacing:3}}>
           ▶&nbsp;BEGIN HUNT
         </button>
+        <div style={{display:'flex',gap:18,justifyContent:'center',flexWrap:'wrap',marginTop:22}}>
+          {([['🖱️','Move'],['SPACE','Dodge'],['Q W E R','Abilities'],['💀','Loot']] as [string,string][]).map(([k,v],i)=>(
+            <div key={i} style={{fontSize:7,color:'#8a7a78',textShadow:'0 0 8px #000'}}><span style={{color:'#caa84a'}}>{k}</span>&nbsp;{v}</div>
+          ))}
+        </div>
+        {unlockedGear.length > 0 && (
+          <div style={{fontSize:7,color:'#6a5a58',marginTop:16,textShadow:'0 0 8px #000'}}>
+            GEAR COLLECTED: <span style={{color:'#C89B3C'}}>{unlockedGear.length}</span>
+            <span style={{color:'#8a7a78'}}> &bull; LOADOUT: {(LOADOUT_WEAPONS.find(w=>w.id===selWeapon)??LOADOUT_WEAPONS[1]).icon}{selArmour?' '+GEAR_DEFS[selArmour].icon:''}</span>
+          </div>
+        )}
       </div>
     </div>
   )
