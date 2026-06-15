@@ -767,7 +767,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   const wid = getWeaponId(wpn, gear)
   const isRangedAtk = wpn.id !== 'sword' && !gear.includes('spider_fang')
   // melee reach per weapon: dagger short, sword balanced, greatsword long+wide, thunder mid
-  const meleeReach = wid === 'dagger' ? 70 : wid === 'greatsword' ? 132 : wid === 'thunder_sword' ? 108 : 100
+  const meleeReach = wid === 'dagger' ? 70 : wid === 'greatsword' ? 160 : wid === 'thunder_sword' ? 108 : 100
   const weaponReach = isRangedAtk ? wpn.range : meleeReach
   // target the nearest threat: boss by default, or a closer spiderling if one is swarming
   let tgtMinion: Minion | null = null, tgtDist = dToBoss
@@ -1907,11 +1907,28 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
     ctx.save(); ctx.rotate(0.4); ctx.fillStyle=hw?'#FFF':'#9B59B6'; ctx.beginPath(); ctx.moveTo(14,-3); ctx.lineTo(30,0); ctx.lineTo(14,3); ctx.closePath(); ctx.fill(); ctx.restore()
     ctx.save(); ctx.rotate(-0.4); ctx.fillStyle=hw?'#FFF':'#8E44AD'; ctx.beginPath(); ctx.moveTo(14,-3); ctx.lineTo(30,0); ctx.lineTo(14,3); ctx.closePath(); ctx.fill(); ctx.restore()
   } else if (wid === 'greatsword') {
-    ctx.shadowColor='#E67E22'; ctx.shadowBlur=14
-    ctx.strokeStyle='#5D3A1A'; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(14,0); ctx.lineTo(52,0); ctx.stroke()
-    ctx.fillStyle=hw?'#FFF':'#E67E22'; ctx.beginPath(); ctx.moveTo(50,-7); ctx.lineTo(62,0); ctx.lineTo(50,7); ctx.closePath(); ctx.fill()
-    ctx.fillStyle=hw?'#FFF':'#F39C12'; ctx.fillRect(20,-2,26,4)
-    ctx.strokeStyle='rgba(255,180,80,0.5)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(14,-12); ctx.lineTo(14,12); ctx.stroke()
+    // ── MASSIVE greatsword: long broad blade, fuller, huge crossguard ──
+    ctx.shadowColor='#E67E22'; ctx.shadowBlur=22
+    // grip + pommel behind the body
+    ctx.strokeStyle=hw?'#FFF':'#3A2410'; ctx.lineWidth=7; ctx.lineCap='round'
+    ctx.beginPath(); ctx.moveTo(-2,0); ctx.lineTo(18,0); ctx.stroke()
+    ctx.fillStyle=hw?'#FFF':'#8A6510'; ctx.beginPath(); ctx.arc(-4,0,5,0,Math.PI*2); ctx.fill()
+    // huge crossguard
+    ctx.fillStyle=hw?'#FFF':'#8A6510'; ctx.fillRect(16,-20,8,40)
+    ctx.fillStyle=hw?'#FFF':'#C8881E'; ctx.fillRect(16,-20,4,40)
+    // broad blade — wide at the guard, tapering to a point far out
+    const bladeGrad=ctx.createLinearGradient(24,0,118,0)
+    bladeGrad.addColorStop(0,hw?'#FFF':'#C0651A'); bladeGrad.addColorStop(0.5,hw?'#FFF':'#E67E22'); bladeGrad.addColorStop(1,hw?'#FFF':'#F6B24A')
+    ctx.fillStyle=bladeGrad
+    ctx.beginPath()
+    ctx.moveTo(24,-17); ctx.lineTo(104,-12); ctx.lineTo(122,0); ctx.lineTo(104,12); ctx.lineTo(24,17); ctx.closePath(); ctx.fill()
+    // central fuller groove
+    ctx.strokeStyle=hw?'#EEE':'rgba(120,50,0,0.6)'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(26,0); ctx.lineTo(106,0); ctx.stroke()
+    // glowing hot edges
+    ctx.strokeStyle=hw?'#FFF':'rgba(255,210,120,0.85)'; ctx.lineWidth=2
+    ctx.beginPath(); ctx.moveTo(24,-17); ctx.lineTo(104,-12); ctx.lineTo(122,0); ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(24,17); ctx.lineTo(104,12); ctx.lineTo(122,0); ctx.stroke()
+    ctx.lineCap='butt'
   } else if (wid === 'thunder_sword') {
     const lp = 0.5+0.5*Math.sin(t*10)
     ctx.shadowColor='#F1C40F'; ctx.shadowBlur=16+lp*10
