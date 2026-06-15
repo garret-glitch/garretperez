@@ -2118,7 +2118,7 @@ export default function BossHunter() {
   if (screen === 'playing') return (
     <div ref={playWrapRef} style={{position:'fixed',inset:0,zIndex:9999,background:'#000',fontFamily:'"Press Start 2P",monospace'}}>
       <style>{`
-        .bh-canvas{display:block;cursor:crosshair;max-width:100%;max-height:100%;object-fit:contain;}
+        .bh-canvas{display:block;cursor:crosshair;width:auto;height:auto;max-width:100%;max-height:100%;min-width:0;min-height:0;object-fit:contain;}
       `}</style>
       <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',lineHeight:0}}>
         <canvas ref={canvasRef} width={CW} height={CH} className="bh-canvas" />
