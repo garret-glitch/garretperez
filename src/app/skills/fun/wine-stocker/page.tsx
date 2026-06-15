@@ -194,7 +194,7 @@ interface Shelf { id: number; x: number; y: number; w: number; h: number; label:
 type CustState = 'entering' | 'approaching' | 'asking' | 'walking' | 'taking' | 'leaving'
 interface Customer { id: number; pos: V2; state: CustState; target: V2; shelfId: number; spd: number; takeTimer: number; clr: string; sz: number }
 type MgrState = 'idle' | 'walking' | 'dialogue' | 'returning'
-interface Mgr { pos: V2; state: MgrState; target: V2; homePos: V2; lines: string[]; mood: 'happy'|'angry'; dialogueTimer: number; nextInspection: number }
+interface Mgr { pos: V2; state: MgrState; target: V2; homePos: V2; lines: string[]; mood: 'happy'|'angry'; dialogueTimer: number; nextInspection: number; hint: number }
 type PUType = 'energy_drink' | 'forklift' | 'vendor_support' | 'eotm' | 'overtime'
 interface PU { id: number; pos: V2; type: PUType; life: number }
 interface Efx { sprint: number; forklift: number; vendor: number; vendorShelf: number; multi: number; multiTimer: number }
@@ -257,7 +257,7 @@ function mkState(): GS {
     player: { pos: v(SR_W + 90, CH/2), vel: v(0,0), cases: 0, maxCases: 1, stamina: STAM_MAX, dir: v(1,0), staminaDepleted: false },
     shelves: SHELF_DEFS.map(s => ({ ...s, stock: SHELF_MAX })),
     custs: [], nextCid: 0, nextCSpawn: BASE_CUST_INT,
-    mgr: { pos: { ...hp }, state: 'idle', target: { ...hp }, homePos: { ...hp }, lines: [], mood: 'happy', dialogueTimer: 0, nextInspection: BASE_MGR_INT },
+    mgr: { pos: { ...hp }, state: 'idle', target: { ...hp }, homePos: { ...hp }, lines: [], mood: 'happy', dialogueTimer: 0, nextInspection: BASE_MGR_INT, hint: 0 },
     pups: [], nextPid: 0, nextPSpawn: rnd(18, 32),
     score: 0, level: 1, strikes: 0, time: 0, emptyCaseTimer: 0,
     efx: { sprint: 0, forklift: 0, vendor: 0, vendorShelf: -1, multi: 1, multiTimer: 0 },
@@ -485,6 +485,7 @@ function tickPlay(g: GS, dt: number, keys: Set<string>) {
       }
       const shopAvg = g.shelves.reduce((a, s) => a + s.stock/SHELF_MAX, 0) / g.shelves.length
       m.state = 'dialogue'
+      m.hint = rndI(0, 1)
       if (shopAvg >= 0.5) {
         m.mood = 'happy'
         m.lines = HAPPY[rndI(0,7)]
@@ -1188,20 +1189,23 @@ function renderDialogue(ctx: CanvasRenderingContext2D, g: GS) {
     ctx.fillText(raw, bx + 148, by + 70 + i * 36)
   })
 
-  // ── Hint: the game keeps running, so you can move while the manager talks ──
+  // ── Rotating gameplay hint (picked once when the dialogue opens) ──
   {
     const tagFont  = 'bold 13px system-ui, -apple-system, "Segoe UI", sans-serif'
     const wordFont = '11px "Press Start 2P", monospace'
-    const tag   = '↑↓←→ HINT: '
-    const words = 'walk while we talk!'
+    const HINTS = [
+      { tag: '↑↓←→ HINT: ', words: 'walk while we talk!' },
+      { tag: 'HINT: ',      words: 'help customers before you move!' },
+    ]
+    const h = HINTS[g.mgr.hint % HINTS.length]
     ctx.textAlign = 'left'
-    ctx.font = tagFont;  const aW = ctx.measureText(tag).width
-    ctx.font = wordFont; const wW = ctx.measureText(words).width
+    ctx.font = tagFont;  const aW = ctx.measureText(h.tag).width
+    ctx.font = wordFont; const wW = ctx.measureText(h.words).width
     // Centre within the text column (right of the portrait) so nothing overlaps.
     const cx = bx + 148 + (bw - 148 - 16) / 2
     const sx = cx - (aW + wW) / 2, hy = by + bh - 36
-    ctx.fillStyle = '#F1C40F'; ctx.font = tagFont;  ctx.fillText(tag, sx, hy)
-    ctx.fillStyle = '#6FA8DC'; ctx.font = wordFont; ctx.fillText(words, sx + aW, hy)
+    ctx.fillStyle = '#F1C40F'; ctx.font = tagFont;  ctx.fillText(h.tag, sx, hy)
+    ctx.fillStyle = '#6FA8DC'; ctx.font = wordFont; ctx.fillText(h.words, sx + aW, hy)
     ctx.textAlign = 'center'
   }
 
