@@ -88,6 +88,7 @@ src/
       fun/page.tsx      # Fun skill — mini-game hub
       fun/wine-trivia/page.tsx  # Wine Trivia quiz (client component)
       fun/matching/page.tsx     # Matching card game (client component)
+      fun/boss-hunter/page.tsx  # Boss Hunter — full canvas action-RPG boss-fight game (see "Boss Hunter" section)
     blog/page.tsx       # Static MDX blog index
     blog/[slug]/page.tsx  # Individual blog post (statically generated)
     api/
@@ -307,6 +308,33 @@ Key CSS classes (all in `globals.css`):
 - `.mobile-block-{type}` — per-block wrapper class used to set mobile ordering (CSS `order` property)
 
 Two fonts: **Press Start 2P** for all headings/labels (default), **Inter** for body text (apply `.body-text` class).
+
+## Boss Hunter mini-game (`/skills/fun/boss-hunter`)
+
+A self-contained **canvas action-RPG** in a single client component (`src/app/skills/fun/boss-hunter/page.tsx`, ~3,400 lines). No assets — all visuals are hand-drawn on a 2D canvas and all audio is synthesized via Web Audio. It is intentionally one big file; keep new work inside it.
+
+**Architecture (all module-scope, outside the React component):**
+- `tick(g, dt, ...)` — pure-ish game-state update (movement, AI, attacks, collisions, phases). Mutates the `GS` game-state object.
+- `render(ctx, g, ...)` — draws a frame; delegates to `renderArena`, `renderBoss`, `renderMinions`, `renderPlayer`, `renderTelegraph`, `renderHazards`, `renderProjectiles`, `renderSkyArrows`, `renderHUD`, etc.
+- `GS` interface — the entire game state (player, boss, projectiles, zones, minions, phase flags, timers). `mkState(wpn, boss, gear)` builds a fresh one.
+- The React component runs the `requestAnimationFrame` loop, owns screen state (`menu | hunt_select | playing | victory | defeat`), input handlers, and the cinematic menu canvas.
+
+**Combat model:**
+- 3 weapon paths (the prep screen has a **Weapon slot** + an **Armour slot**):
+  - **Melee** (sword base): contact-based damage — a swing only hurts what's inside its reach + arc mid-swing (`g.meleeHit`). Per-weapon reach/arc. Highest durability. Loadouts: Starter Sword, Spider Fang Daggers, Drake Greatsword, Thunder Blade — each with its own animated swing.
+  - **Bow** (bow base): balanced; can't fire at point-blank (`minRange`). Loadouts: Starter Bow, Venom Bow, Storm Bow — each with a draw/release animation + unique arrow render.
+  - **Magic** (staff base): glass cannon — longest range (540), lowest HP/defense (`+20%` dmg taken), small move-speed bonus, weak basics but strong abilities. Loadouts: Starter Staff, Fire Staff (firebolt basic, fireball/meteor abilities, magic-circle cast).
+- **Armour** drives the *entire character look* (4 looks: basic / ember / web / feather), independent of weapon. `LOADOUT_WEAPONS` maps weapon-select entries to a `(baseWeapon, gear)` pair; `selArmour` is the equipped armour gear.
+- Player HP/defense vary by weapon path (`baseHp` in `mkState`, multipliers in `dealDmgToPlayer`).
+- Admins (`session.user.role === 'ADMIN'`) start with all weapons/armour unlocked.
+
+**Bosses & stages:** Spider Queen, Lava Drake, Storm Griffin. Each has ~10 attacks and **three escalating stages** — normal → enraged (`bossEnraged`, at `enrageAt`) → desperate (`bossDesperate`, at `enrageAt * 0.45`). `selectBossAttack(bossId, enraged, desperate, d2p)` picks from phase-aware pools. Each boss has a phase-3 signature (spider summons spiderlings/`minions[]`, drake leaves a molten wake, griffin feather-storm). The Griffin uses a flight state machine (`griffinState.mode`): dynamic orbit → telegraphed swoop dive (line locked on wind-up entry so it's dodgeable) → hovering lightning barrage.
+
+**Telegraphs & fairness:** every boss attack has a wind-up (`telegraphs` map in `startBossAttack`, min ~0.95s so all attacks are dodgeable) rendered by `renderTelegraph` (ground rings, cones, lines, charge aura, a floating `!` for `BIG_ATTACKS`) plus a warning sound. A cinematic player-death sequence (`player_dying` phase) plays before the defeat screen.
+
+**Audio — the `Sfx` module (synthesized, no files):** an IIFE near the top of the file. `Sfx.x()` methods for SFX (swing/shot/cast/hit/crit/hurt/dodge/warn/roar/explosion/meteor/etc.), throttled and routed through a master gain. It also contains a **procedural music engine**: `TRACKS` (menu, per-boss battle themes, `battle_final`, victory, defeat) scheduled on the audio clock; `Sfx.playMusic(name)` / `Sfx.stopMusic()`. The in-game **SOUND ON/OFF** button toggles the master gain (covers music + SFX). Audio unlocks on first user interaction (browser autoplay policy).
+
+**Adding to the game:** a new boss attack = add to a pool in `selectBossAttack`, a telegraph time + `data` in `startBossAttack`, a resolve branch in `resolveBossAttack`, and a `renderTelegraph` branch. A new weapon look = a `LOADOUT_WEAPONS` entry + a `wid` branch in `renderPlayer`. A new sound = a method on the `Sfx` return object. Always `npm run build` before pushing — the file is large and easy to typo.
 
 ## Common tasks
 
