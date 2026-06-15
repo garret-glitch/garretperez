@@ -2269,13 +2269,28 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
     // release flare
     if (release > 0) { ctx.save(); ctx.globalAlpha = release; ctx.fillStyle = '#FFE08A'; ctx.shadowColor = '#FF6A1A'; ctx.shadowBlur = 24; ctx.beginPath(); ctx.arc(56, 0, 6 + (1 - release) * 10, 0, Math.PI * 2); ctx.fill(); ctx.restore() }
   } else if (wid === 'staff') {
-    ctx.shadowColor='#9B59B6'; ctx.shadowBlur=16
-    ctx.strokeStyle=hw?'#FFF':'#4A235A'; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(16,0); ctx.lineTo(50,0); ctx.stroke()
-    const ap=0.5+0.5*Math.sin(t*7); ctx.fillStyle=hw?'#FFF':`rgba(155,89,182,${0.85+ap*0.15})`
-    ctx.shadowColor='#CE9EE8'; ctx.shadowBlur=12+ap*8
-    ctx.beginPath(); ctx.arc(54,0,7+ap*2.5,0,Math.PI*2); ctx.fill()
-    ctx.fillStyle=hw?'#FFF':`rgba(220,170,255,${ap*0.6})`
-    ctx.beginPath(); ctx.arc(54,0,4,0,Math.PI*2); ctx.fill()
+    // ── STARTER STAFF — gathers arcane energy at the tip, soft flare on cast (calmer than fire) ──
+    const ap = 0.6 + 0.4 * Math.sin(t * 7)
+    const draw = clamp(1 - p.atkTimer / 0.82, 0, 1)
+    const release = clamp((p.atkTimer - 0.66) / 0.16, 0, 1)
+    // shaft + small prong holder
+    ctx.shadowColor = '#9B59B6'; ctx.shadowBlur = 10
+    ctx.strokeStyle = hw ? '#FFF' : '#4A235A'; ctx.lineWidth = 4; ctx.lineCap = 'round'
+    ctx.beginPath(); ctx.moveTo(4, 0); ctx.lineTo(48, 0); ctx.stroke()
+    ctx.strokeStyle = hw ? '#FFF' : '#6C3483'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(51, 0, 6, -2.0, 2.0); ctx.stroke(); ctx.lineCap = 'butt'
+    // arcane orb at the tip — grows with charge
+    const orbR = 3.5 + draw * 4 + release * 3
+    ctx.shadowColor = '#CE9EE8'; ctx.shadowBlur = 12 + draw * 10
+    const og = ctx.createRadialGradient(53, 0, 0, 53, 0, orbR + 4)
+    og.addColorStop(0, '#F4ECFF'); og.addColorStop(0.45, '#9B59B6'); og.addColorStop(1, 'rgba(123,46,160,0)')
+    ctx.fillStyle = og; ctx.beginPath(); ctx.arc(53, 0, (orbR + 4) * (0.85 + ap * 0.15), 0, Math.PI * 2); ctx.fill()
+    ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(53, 0, orbR * 0.4, 0, Math.PI * 2); ctx.fill()
+    // a couple of orbiting sparkles (fewer than the fire staff)
+    const sp = 2 + Math.round(draw * 2)
+    ctx.fillStyle = `rgba(220,170,255,${0.5 + draw * 0.4})`
+    for (let i = 0; i < sp; i++) { const a = t * 4 + i * (Math.PI * 2 / sp), rr = orbR + 3 + Math.sin(t * 6 + i) * 1.5; ctx.beginPath(); ctx.arc(53 + Math.cos(a) * rr, Math.sin(a) * rr, 1.4, 0, Math.PI * 2); ctx.fill() }
+    // modest release flare
+    if (release > 0) { ctx.save(); ctx.globalAlpha = release; ctx.fillStyle = '#E8D0FF'; ctx.shadowColor = '#CE9EE8'; ctx.shadowBlur = 16; ctx.beginPath(); ctx.arc(56, 0, 4 + (1 - release) * 7, 0, Math.PI * 2); ctx.fill(); ctx.restore() }
   } else if (wid === 'venom_bow') {
     // ── VENOM BOW — organic thorned bow that drips toxin; nocks, draws and looses a venom arrow ──
     const hum = 0.5 + 0.5 * Math.sin(t * 6)
