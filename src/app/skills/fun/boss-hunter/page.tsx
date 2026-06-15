@@ -239,6 +239,7 @@ interface GS {
   webProcAnim: { timer: number; pos: V2 } | null
   bossFlightAngle: number; bossFlightSpeed: number
   bossFlightRadius: number; bossFlightCenter: V2
+  griffinState: { mode: number; timer: number; dive: V2 }
   bossFleeTimer: number
   tailWhipCd: number
   snakeTrail: Array<{x: number; y: number}>
@@ -424,6 +425,7 @@ function mkState(wpn: WeaponDef, boss: BossDef, gear: GearId[]): GS {
     bossDesperate: false, phaseBanner: null,
     sigTimer: 0,
     mageCircle: 0,
+    griffinState: { mode: 0, timer: 3.0, dive: v(1, 0) },
   }
 }
 
@@ -1036,19 +1038,40 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
 
   // Boss movement
   if (g.bossFlightSpeed > 0 && b.stunTimer <= 0) {
-    // Griffin: orbit around the player (center tracks player position)
-    const orbitMult = (g.bossEnraged ? 1.5 : 1.0) * (b.slowTimer > 0 ? 0.3 : 1.0)
-    g.bossFlightAngle += g.bossFlightSpeed * orbitMult * dt
-    // Orbit center lerps toward player so boss always circles near the player
-    const trackRate = Math.min(1, dt * 2.5)
+    // ── STORM GRIFFIN — aerial predator: dynamic orbit + telegraphed swoop dives ──
+    const gs = g.griffinState
+    // orbit centre loosely follows the player
+    const trackRate = Math.min(1, dt * 2.0)
     g.bossFlightCenter.x += (p.pos.x - g.bossFlightCenter.x) * trackRate
     g.bossFlightCenter.y += (p.pos.y - g.bossFlightCenter.y) * trackRate
-    const r = g.bossFlightRadius
-    g.bossFlightCenter.x = clamp(g.bossFlightCenter.x, r + 100, WW - r - 100)
-    g.bossFlightCenter.y = clamp(g.bossFlightCenter.y, r * 0.62 + 100, WH - r * 0.62 - 100)
-    const fc = g.bossFlightCenter
-    b.pos.x = clamp(fc.x + Math.cos(g.bossFlightAngle) * r, 100, WW - 100)
-    b.pos.y = clamp(fc.y + Math.sin(g.bossFlightAngle) * r * 0.62, 100, WH - 100)
+    g.bossFlightCenter.x = clamp(g.bossFlightCenter.x, 150, WW - 150)
+    g.bossFlightCenter.y = clamp(g.bossFlightCenter.y, 130, WH - 130)
+    gs.timer -= dt
+    if (gs.mode === 2) {
+      // SWOOP DIVE — a fast committed dash through the player's spot
+      const spd = g.bossEnraged ? 780 : 610
+      b.pos.x = clamp(b.pos.x + gs.dive.x * spd * dt, 80, WW - 80)
+      b.pos.y = clamp(b.pos.y + gs.dive.y * spd * dt, 80, WH - 80)
+      if (dist(b.pos, p.pos) < bossDef.size + 16 && p.iframeTimer <= 0) { dealDmgToPlayer(g, g.bossEnraged ? 24 : 17, wpn, gear, gs.dive); spawnParticles(g, p.pos, 12, '#5fe6ff', 240) }
+      if (gs.timer <= 0) { gs.mode = 0; gs.timer = rnd(2.2, 3.8) / (g.bossDesperate ? 1.8 : g.bossEnraged ? 1.4 : 1.0); g.bossFlightAngle = Math.atan2(b.pos.y - g.bossFlightCenter.y, b.pos.x - g.bossFlightCenter.x) }
+    } else if (gs.mode === 1) {
+      // WIND-UP — rise and pull back while the dive line telegraphs (tracks the player, locks on launch)
+      const away = norm(v(b.pos.x - p.pos.x, b.pos.y - p.pos.y))
+      b.pos.x = clamp(b.pos.x + away.x * 95 * dt, 80, WW - 80)
+      b.pos.y = clamp(b.pos.y + away.y * 95 * dt - 46 * dt, 80, WH - 80)
+      gs.dive = norm(v(p.pos.x - b.pos.x, p.pos.y - b.pos.y))
+      if (gs.timer <= 0) { gs.mode = 2; gs.timer = g.bossEnraged ? 0.62 : 0.72; Sfx.gust(); g.screenShake = Math.max(g.screenShake, 0.28) }
+    } else {
+      // DYNAMIC ORBIT — breathing radius, varying speed, occasional direction flips + vertical bob
+      const dir = Math.sin(g.gtime * 0.45) >= 0 ? 1 : -1
+      const breathe = 1 + 0.32 * Math.sin(g.gtime * 0.85)
+      const spd = g.bossFlightSpeed * (g.bossEnraged ? 1.55 : 1.0) * (b.slowTimer > 0 ? 0.3 : 1.0) * (1 + 0.45 * Math.sin(g.gtime * 1.25))
+      g.bossFlightAngle += spd * dir * dt
+      const r = g.bossFlightRadius * breathe, fc = g.bossFlightCenter
+      b.pos.x = clamp(fc.x + Math.cos(g.bossFlightAngle) * r, 80, WW - 80)
+      b.pos.y = clamp(fc.y + Math.sin(g.bossFlightAngle) * r * 0.6 + Math.sin(g.gtime * 2.6) * 16, 80, WH - 80)
+      if (gs.timer <= 0) { gs.mode = 1; gs.timer = g.bossEnraged ? 0.5 : 0.62 }   // begin a swoop wind-up
+    }
   } else if (bossId === 1 && b.stunTimer <= 0) {
     // Drake: snake locomotion — head slithers toward player with sinusoidal lateral weave
     const snakeSpeed = (g.bossEnraged ? 178 : 135) * (b.slowTimer > 0 ? 0.28 : 1.0)
@@ -3144,6 +3167,15 @@ function render(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, bossId: Bo
   } else {
     renderHazards(ctx,g); renderSlowTraps(ctx,g,t); renderTelegraph(ctx,g,bossId,t)
     renderSkyArrows(ctx,g,t); renderParticles(ctx,g); renderProjectiles(ctx,g,t)
+    if (bossId===2 && g.griffinState.mode===1) {
+      // griffin swoop-dive telegraph (where it will dive)
+      const b2=g.boss, gd=g.griffinState.dive, pl=0.5+0.5*Math.sin(t*18)
+      ctx.save(); ctx.strokeStyle=`rgba(120,235,255,${0.5+0.4*pl})`; ctx.lineWidth=3+pl*2; ctx.setLineDash([16,9]); ctx.shadowColor='#00EEFF'; ctx.shadowBlur=14
+      ctx.beginPath(); ctx.moveTo(b2.pos.x,b2.pos.y); ctx.lineTo(b2.pos.x+gd.x*620,b2.pos.y+gd.y*620); ctx.stroke(); ctx.setLineDash([])
+      const ex=b2.pos.x+gd.x*620, ey=b2.pos.y+gd.y*620, aa=Math.atan2(gd.y,gd.x)
+      ctx.beginPath(); ctx.moveTo(ex,ey); ctx.lineTo(ex-Math.cos(aa-0.4)*22,ey-Math.sin(aa-0.4)*22); ctx.moveTo(ex,ey); ctx.lineTo(ex-Math.cos(aa+0.4)*22,ey-Math.sin(aa+0.4)*22); ctx.stroke()
+      ctx.restore()
+    }
     renderBoss(ctx,g,bossId,t); renderMinions(ctx,g,t); renderPlayer(ctx,g,wpn,gear,t); renderDamageNumbers(ctx,g)
     if (g.tooCloseFlash > 0) {
       const p = g.player, a = Math.min(1, g.tooCloseFlash * 1.6)
