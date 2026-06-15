@@ -80,6 +80,7 @@ const Sfx = (() => {
     minionDeath() { const c = ok('mdeath', 40); if (!c) return; blip(c, 380, 0.12, 'square', 0.16, 120); noise(c, 0.08, 0.2, 'highpass', 1800) },
     phaseShift() { const c = ok('phase', 200); if (!c) return; blip(c, 160, 0.7, 'sawtooth', 0.32, 70); blip(c, 320, 0.5, 'square', 0.18, 540, 0.05); noise(c, 0.6, 0.28, 'lowpass', 900, 0.8, 200) },
     gust() { const c = ok('gust', 110); if (!c) return; noise(c, 0.32, 0.3, 'bandpass', 900, 0.7, 2600); blip(c, 600, 0.18, 'sine', 0.08, 1200) },
+    playerDeath() { const c = ok('pdeath', 500); if (!c) return; blip(c, 220, 1.3, 'sawtooth', 0.34, 28); blip(c, 95, 1.5, 'square', 0.22, 22, 0.06); noise(c, 1.1, 0.3, 'lowpass', 480, 1, 60); blip(c, 70, 0.5, 'sine', 0.32, 48); blip(c, 70, 0.5, 'sine', 0.3, 48, 0.6) },
     ability() { const c = ok('abil', 40); if (!c) return; blip(c, 520, 0.2, 'sine', 0.2, 980); blip(c, 780, 0.2, 'triangle', 0.12, 1400) },
     victory() { const c = ok('vic', 300); if (!c) return;[523, 659, 784, 1047].forEach((f, i) => blip(c, f, 0.22, 'triangle', 0.22, undefined, i * 0.12)) },
     loot() { const c = ok('loot', 120); if (!c) return; blip(c, 880, 0.1, 'triangle', 0.18, 1320); blip(c, 1320, 0.12, 'sine', 0.14, undefined, 0.08) },
@@ -126,11 +127,11 @@ interface SkyArrow { id: number; targetPos: V2; warnTimer: number; hit: boolean;
 interface EnvObject { type: 'rock' | 'bone' | 'skull' | 'web' | 'ruin' | 'crystal' | 'nest' | 'claw'; pos: V2; size: number; angle: number; variant: number }
 interface Minion { id: number; pos: V2; vel: V2; hp: number; maxHp: number; hitFlash: number; atkCd: number; legPhase: number; spawnAnim: number }
 interface GS {
-  phase: 'playing' | 'dying' | 'victory' | 'defeat'
+  phase: 'playing' | 'dying' | 'player_dying' | 'victory' | 'defeat'
   player: PlayerState; boss: BossState
   projectiles: Projectile[]; bossAttack: BossAttack | null; nextAttackTimer: number
   damageNums: DamageNumber[]; particles: Particle[]; slowTraps: SlowTrap[]; zones: HazardZone[]
-  attackFlash: AttackFlash | null; screenShake: number; bossDeathAnim: number
+  attackFlash: AttackFlash | null; screenShake: number; bossDeathAnim: number; playerDeathAnim: number
   lavaParticles: Particle[]; skyArrows: SkyArrow[]; envObjects: EnvObject[]
   nextProjId: number; nextDmgId: number; nextPartId: number; nextTrapId: number; nextZoneId: number
   gtime: number; bossEnraged: boolean; poisonTimer: number; playerDmgFlash: number; tooCloseFlash: number
@@ -302,7 +303,7 @@ function mkState(wpn: WeaponDef, boss: BossDef, gear: GearId[]): GS {
     },
     projectiles: [], bossAttack: null, nextAttackTimer: 3.5,
     damageNums: [], particles: [], slowTraps: [], zones: [],
-    attackFlash: null, screenShake: 0, bossDeathAnim: 0,
+    attackFlash: null, screenShake: 0, bossDeathAnim: 0, playerDeathAnim: 0,
     lavaParticles: [], skyArrows: [], envObjects: generateEnvObjects(boss.id),
     nextProjId: 0, nextDmgId: 0, nextPartId: 0, nextTrapId: 0, nextZoneId: 0,
     gtime: 0, bossEnraged: false, poisonTimer: 0, playerDmgFlash: 0, tooCloseFlash: 0,
@@ -352,7 +353,7 @@ function dealDmgToPlayer(g: GS, dmg: number, wpn: WeaponDef, gear: GearId[], kno
   Sfx.hurt()
   g.screenShake = Math.max(g.screenShake, 0.32)
   g.damageNums.push({ id: ++g.nextDmgId, pos: { x: p.pos.x + rnd(-20, 20), y: p.pos.y - 20 }, val: Math.round(fd), life: 1.2, isPlayer: true })
-  if (p.hp <= 0) g.phase = 'defeat'
+  if (p.hp <= 0) killPlayer(g)
 }
 
 function spawnZone(g: GS, pos: V2, type: HazardZone['type'], radius: number, dps: number, life: number) {
@@ -363,6 +364,18 @@ function explodeFireball(g: GS, pos: V2) {
   spawnZone(g, { ...pos }, 'fire', 66, 13, 2.2)
   spawnParticles(g, pos, 18, '#FF5500', 230); spawnParticles(g, pos, 8, '#FFCC33', 150)
   g.screenShake = Math.max(g.screenShake, 0.35)
+}
+
+function killPlayer(g: GS) {
+  if (g.phase !== 'playing') return
+  g.phase = 'player_dying'
+  g.playerDeathAnim = 2.6
+  g.bossAttack = null
+  g.screenShake = 1.4
+  spawnParticles(g, g.player.pos, 46, '#E74C3C', 380, 1.3)
+  spawnParticles(g, g.player.pos, 20, '#FFFFFF', 480, 0.9)
+  spawnParticles(g, g.player.pos, 14, '#8B0000', 200, 1.6)
+  Sfx.playerDeath(); Sfx.roar()
 }
 
 function dealDmgToBoss(g: GS, baseDmg: number, gear: GearId[]) {
@@ -633,8 +646,21 @@ function resolveBossAttack(g: GS, bossId: BossId, wpn: WeaponDef, gear: GearId[]
 /* ═══ TICK ═══ */
 function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[], mousePos: V2, keys: Set<string>, abilityTarget: V2, pendingAbility: number | null) {
   void keys; void mousePos
-  if (g.phase !== 'playing' && g.phase !== 'dying') return
+  if (g.phase !== 'playing' && g.phase !== 'dying' && g.phase !== 'player_dying') return
   const p = g.player, b = g.boss, bossDef = BOSS_DEFS[bossId]
+
+  if (g.phase === 'player_dying') {
+    g.gtime += dt; g.playerDeathAnim -= dt; g.screenShake = Math.max(0, g.screenShake - dt * 0.8)
+    // rising soul embers drifting up from the fallen hunter
+    if (Math.random() < dt * 24) {
+      const ox = rnd(-22, 22)
+      spawnParticles(g, v(p.pos.x + ox, p.pos.y + rnd(-10, 10)), 1, ['#E74C3C', '#8B0000', '#FFFFFF', '#C0392B'][rndI(0, 3)], rnd(20, 90), rnd(0.8, 1.8))
+    }
+    g.particles = g.particles.filter(pt => { pt.life -= dt; pt.pos.x += pt.vel.x * dt; pt.pos.y += pt.vel.y * dt - 16 * dt; pt.vel.x *= Math.pow(0.2, dt); pt.vel.y *= Math.pow(0.2, dt); return pt.life > 0 })
+    g.damageNums = g.damageNums.filter(d2 => { d2.life -= dt; d2.pos.y -= 28 * dt; return d2.life > 0 })
+    if (g.playerDeathAnim <= 0) g.phase = 'defeat'
+    return
+  }
 
   if (g.phase === 'dying') {
     g.gtime += dt; g.bossDeathAnim -= dt; g.screenShake = Math.max(0, g.screenShake - dt * 1.5)
@@ -910,7 +936,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
       if (p.iframeTimer <= 0 && zone.dps > 0) {
         const tick2 = zone.dps * dt; p.hp = Math.max(0, p.hp - tick2); p.hitFlash = Math.max(p.hitFlash, 0.06)
         if (zone.type === 'poison' && Math.random() < dt * 2) g.damageNums.push({ id: ++g.nextDmgId, pos: { x: p.pos.x + rnd(-14, 14), y: p.pos.y - 18 }, val: Math.round(tick2), life: 0.8, isPlayer: true })
-        if (p.hp <= 0) g.phase = 'defeat'
+        if (p.hp <= 0) killPlayer(g)
       }
     }
     return true
@@ -2324,6 +2350,32 @@ function renderMinions(ctx: CanvasRenderingContext2D, g: GS, t: number) {
   })
 }
 
+function renderPlayerDeath(ctx: CanvasRenderingContext2D, g: GS, t: number) {
+  const p = g.player, total = 2.6, prog = clamp(1 - g.playerDeathAnim / total, 0, 1)
+  const x = p.pos.x, y = p.pos.y
+  // dark pool spreading beneath the fallen hunter
+  ctx.save(); ctx.globalAlpha = Math.min(0.7, prog * 1.2)
+  const pool = ctx.createRadialGradient(x, y + 8, 2, x, y + 8, 32 + prog * 44)
+  pool.addColorStop(0, 'rgba(95,0,0,0.9)'); pool.addColorStop(1, 'rgba(40,0,0,0)')
+  ctx.fillStyle = pool; ctx.beginPath(); ctx.ellipse(x, y + 8, 32 + prog * 44, 14 + prog * 20, 0, 0, Math.PI * 2); ctx.fill()
+  ctx.restore()
+  // body — collapsing, fading, reddening, sinking
+  const sink = prog * 9, r = Math.max(1, 16 * (1 - prog * 0.5))
+  ctx.save(); ctx.globalAlpha = 1 - prog * 0.78
+  ctx.shadowColor = '#FF0000'; ctx.shadowBlur = 16
+  const bg = ctx.createRadialGradient(x - 3, y - 3 + sink, 0, x, y + sink, r)
+  bg.addColorStop(0, '#F1948A'); bg.addColorStop(0.6, '#C0392B'); bg.addColorStop(1, '#5b0a0a')
+  ctx.fillStyle = bg; ctx.beginPath(); ctx.arc(x, y + sink, r, 0, Math.PI * 2); ctx.fill()
+  ctx.globalAlpha = (1 - prog) * 0.8; ctx.strokeStyle = '#2a0000'; ctx.lineWidth = 1.5
+  for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2 + prog; ctx.beginPath(); ctx.moveTo(x, y + sink); ctx.lineTo(x + Math.cos(a) * r, y + sink + Math.sin(a) * r); ctx.stroke() }
+  ctx.restore()
+  // soul wisp drifting up
+  ctx.save(); ctx.globalAlpha = Math.max(0, 0.65 - prog * 0.65)
+  ctx.fillStyle = 'rgba(220,230,255,0.85)'; ctx.shadowColor = '#aaccff'; ctx.shadowBlur = 12
+  ctx.beginPath(); ctx.arc(x + Math.sin(t * 3) * 6, y - prog * 64, 4 * (1 - prog), 0, Math.PI * 2); ctx.fill()
+  ctx.restore()
+}
+
 function render(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, bossId: BossId, gear: GearId[], t: number) {
   ctx.save()
   if (g.screenShake>0.05) ctx.translate(rnd(-g.screenShake*8,g.screenShake*8),rnd(-g.screenShake*8,g.screenShake*8))
@@ -2334,6 +2386,10 @@ function render(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, bossId: Bo
   if (g.phase==='dying') {
     renderParticles(ctx,g); renderBossDeath(ctx,g,bossId)
     renderPlayer(ctx,g,wpn,gear,t); renderDamageNumbers(ctx,g)
+  } else if (g.phase==='player_dying') {
+    renderHazards(ctx,g); renderProjectiles(ctx,g,t)
+    renderBoss(ctx,g,bossId,t); renderMinions(ctx,g,t)
+    renderParticles(ctx,g); renderPlayerDeath(ctx,g,t)
   } else {
     renderHazards(ctx,g); renderSlowTraps(ctx,g,t); renderTelegraph(ctx,g,bossId,t)
     renderSkyArrows(ctx,g,t); renderParticles(ctx,g); renderProjectiles(ctx,g,t)
@@ -2350,7 +2406,27 @@ function render(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, bossId: Bo
     }
   }
   ctx.restore()
-  if (g.phase!=='dying') renderHUD(ctx,g,wpn,bossDef,gear,t)
+  if (g.phase==='playing') renderHUD(ctx,g,wpn,bossDef,gear,t)
+  // ── cinematic death sequence overlay ──
+  if (g.phase==='player_dying') {
+    const total = 2.6, prog = clamp(1 - g.playerDeathAnim / total, 0, 1)
+    if (prog < 0.14) { ctx.fillStyle = `rgba(170,18,18,${(0.14-prog)/0.14*0.6})`; ctx.fillRect(0,0,CW,CH) }   // impact flash
+    const vg = ctx.createRadialGradient(CW/2, CH/2, CH*0.10, CW/2, CH/2, CH*0.98)
+    vg.addColorStop(0, `rgba(24,0,0,${0.10+prog*0.45})`); vg.addColorStop(1, `rgba(0,0,0,${0.35+prog*0.6})`)
+    ctx.fillStyle = vg; ctx.fillRect(0,0,CW,CH)
+    ctx.fillStyle = `rgba(0,0,0,${Math.min(0.5, prog*0.65)})`; ctx.fillRect(0, CH*0.5-56, CW, 112)
+    const tShow = clamp((prog-0.30)/0.32, 0, 1)
+    if (tShow > 0) {
+      ctx.save(); ctx.textAlign='center'; ctx.globalAlpha = tShow
+      ctx.translate(CW/2, CH/2); ctx.scale(1.14 - tShow*0.14, 1.14 - tShow*0.14)
+      ctx.fillStyle = '#8a0e0e'; ctx.shadowColor = '#ff1a1a'; ctx.shadowBlur = 28
+      ctx.font = 'bold 30px "Press Start 2P", monospace'; ctx.fillText('YOU DIED', 0, 8)
+      ctx.shadowBlur = 0; ctx.strokeStyle = `rgba(180,30,30,${tShow})`; ctx.lineWidth = 2
+      const ul = tShow*210; ctx.beginPath(); ctx.moveTo(-ul, 30); ctx.lineTo(ul, 30); ctx.stroke()
+      ctx.restore(); ctx.textAlign='left'
+    }
+    if (prog > 0.82) { ctx.fillStyle = `rgba(0,0,0,${(prog-0.82)/0.18})`; ctx.fillRect(0,0,CW,CH) }   // fade to black handoff
+  }
   if (g.playerDmgFlash > 0) {
     const a = g.playerDmgFlash * 0.55
     const vgn = ctx.createRadialGradient(CW/2, CH/2, CH*0.08, CW/2, CH/2, CH*0.85)
@@ -2863,17 +2939,24 @@ export default function BossHunter() {
 
   // ─── DEFEAT ───
   return (
-    <div style={{background:'#080814',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'"Press Start 2P",monospace'}}>
-      <div className="bh-screen-wrap" style={{textAlign:'center',maxWidth:480,padding:'0 24px'}}>
-        <div style={{fontSize:22,color:'#E74C3C',textShadow:'0 0 24px #E74C3C88',marginBottom:8}}>DEFEATED</div>
-        <div style={{fontSize:9,color:'#605848',marginBottom:24}}>{BOSS_DEFS[selBoss].name} was too powerful...</div>
-        <div style={{fontSize:8,color:'#A09880',marginBottom:28,lineHeight:'2'}}>
-          Tip: Use gear from previous hunts to gain an edge.<br/>
-          Watch the boss telegraph &mdash; the glowing circles warn of incoming attacks.
+    <div style={{background:'radial-gradient(ellipse at 50% 42%, #2a0606 0%, #0a0204 55%, #050203 100%)',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'"Press Start 2P",monospace',overflow:'hidden'}}>
+      <style>{`
+        @keyframes bh-die-in{0%{opacity:0;transform:translateY(14px) scale(0.94)}100%{opacity:1;transform:none}}
+        @keyframes bh-skull-pulse{0%,100%{transform:scale(1);filter:drop-shadow(0 0 18px #c0151588)}50%{transform:scale(1.06);filter:drop-shadow(0 0 34px #e74c3ccc)}}
+        @keyframes bh-died-glow{0%,100%{text-shadow:0 0 18px #c01515aa,0 0 40px #6e0a0a66}50%{text-shadow:0 0 30px #ff2a2a,0 0 64px #c01515aa}}
+        .bh-die{animation:bh-die-in 0.6s cubic-bezier(.2,.8,.2,1) both}
+      `}</style>
+      <div className="bh-die" style={{textAlign:'center',maxWidth:480,padding:'0 24px'}}>
+        <div style={{fontSize:64,marginBottom:10,animation:'bh-skull-pulse 2.4s ease-in-out infinite'}}>💀</div>
+        <div style={{fontSize:30,color:'#a01212',letterSpacing:4,marginBottom:10,animation:'bh-died-glow 2.6s ease-in-out infinite'}}>YOU DIED</div>
+        <div style={{fontSize:9,color:'#7a5a5a',marginBottom:26}}>Slain by the {BOSS_DEFS[selBoss].name}</div>
+        <div style={{fontSize:8,color:'#9a8a86',marginBottom:30,lineHeight:'2'}}>
+          Read the telegraphs &mdash; every attack can be dodged.<br/>
+          Keep your distance with ranged weapons; close in with melee.
         </div>
         <div style={{display:'flex',gap:10,justifyContent:'center'}}>
-          <button onClick={beginHunt} style={{background:'linear-gradient(135deg,#E74C3C,#922B21)',border:'none',color:'#fff',padding:'10px 24px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>TRY AGAIN</button>
-          <button onClick={() => setScreen('menu')} style={{background:'#1a1a28',border:'1px solid #2a2820',color:'#A09880',padding:'10px 20px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>MENU</button>
+          <button onClick={beginHunt} style={{background:'linear-gradient(135deg,#E74C3C,#922B21)',border:'none',color:'#fff',padding:'12px 28px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit',letterSpacing:1,boxShadow:'0 0 20px #e74c3c44'}}>↻ TRY AGAIN</button>
+          <button onClick={() => setScreen('menu')} style={{background:'#160a0a',border:'1px solid #3a1a1a',color:'#A09880',padding:'12px 22px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>MENU</button>
         </div>
       </div>
     </div>
