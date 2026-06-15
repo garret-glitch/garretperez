@@ -205,7 +205,7 @@ const WEAPON_DEFS: WeaponDef[] = [
     abilities: [
       { key: 'Q', name: 'Arcane Bolt', desc: 'Fast arcane missile — 115 dmg toward cursor', cd: 5 },
       { key: 'W', name: 'Mana Shield', desc: '1.5s full invulnerability bubble', cd: 14 },
-      { key: 'E', name: 'Blink', desc: 'Instant teleport up to 350px toward cursor', cd: 7 },
+      { key: 'E', name: 'Arcane Surge', desc: 'Blink toward cursor and erupt — 100 dmg nova on arrival', cd: 8 },
       { key: 'R', name: 'Meteor', desc: 'Giant meteor — 270 dmg in 110px AOE at cursor', cd: 22 },
     ],
   },
@@ -1268,15 +1268,21 @@ function activateAbility(g: GS, idx: number, wpn: WeaponDef, gear: GearId[], abi
       p.iframeTimer = Math.max(p.iframeTimer, 1.5)
       spawnParticles(g, p.pos, 22, '#9B59B6', 150); Sfx.ability()
       g.screenShake = Math.max(g.screenShake, 0.12)
-    } else if (idx === 2) { // Blink
+    } else if (idx === 2) { // Arcane Surge — blink toward cursor and erupt in a nova on arrival
       const dir = norm(v(abilityTarget.x - p.pos.x, abilityTarget.y - p.pos.y))
-      const blinkDist = Math.min(dist(p.pos, abilityTarget), 350)
-      for (let i = 0; i < 5; i++) p.shadowDashTrail.push({ pos: { ...p.pos }, a: 0.65 - i * 0.1 })
+      const blinkDist = Math.min(dist(p.pos, abilityTarget), 300)
+      for (let i = 0; i < 6; i++) p.shadowDashTrail.push({ pos: { ...p.pos }, a: 0.7 - i * 0.1 })
       p.pos.x = clamp(p.pos.x + dir.x * blinkDist, 20, WW - 20)
       p.pos.y = clamp(p.pos.y + dir.y * blinkDist, 20, WH - 20)
-      p.iframeTimer = Math.max(p.iframeTimer, 0.3)
-      spawnParticles(g, p.pos, 14, '#9B59B6', 180, 0.5)
-      g.attackFlash = { angle: Math.atan2(dir.y, dir.x), timer: 0.25, maxTimer: 0.25, type: 'shadow', color: '#9B59B6' }
+      p.iframeTimer = Math.max(p.iframeTimer, 0.4)
+      const fire = gear.includes('fire_staff'), col = fire ? '#FF6A1A' : '#9B59B6'
+      const novaR = 130, novaDmg = 100
+      if (dist(b.pos, p.pos) < novaR + BOSS_DEFS[bossId].size) dealDmgToBoss(g, novaDmg, gear)
+      g.minions.forEach(m => { if (m.hp > 0 && dist(m.pos, p.pos) < novaR) { dealDmgToMinion(g, m, novaDmg); const kd = norm(v(m.pos.x - p.pos.x, m.pos.y - p.pos.y)); m.pos.x += kd.x * 42; m.pos.y += kd.y * 42 } })
+      spawnParticles(g, p.pos, 30, col, 340); spawnParticles(g, p.pos, 14, '#FFFFFF', 210)
+      if (fire) { spawnParticles(g, p.pos, 10, '#FFD24A', 170); spawnZone(g, p.pos, 'fire', 72, 12, 1.8); Sfx.fireCast(); Sfx.explosion() } else { Sfx.ability() }
+      g.screenShake = Math.max(g.screenShake, 0.5); g.mageCircle = Math.max(g.mageCircle, 0.5)
+      g.attackFlash = { angle: Math.atan2(dir.y, dir.x), timer: 0.3, maxTimer: 0.3, type: 'shadow', color: col }
     } else if (idx === 3) { // Meteor
       g.skyArrows.push({ id: ++g.nextProjId, targetPos: { ...abilityTarget }, warnTimer: 1.2, hit: false, dmg: 270, kind: 'meteor' })
       spawnParticles(g, p.pos, 12, gear.includes('fire_staff') ? '#FF6A1A' : '#9B59B6', 130, 0.5); Sfx.meteorCast()
@@ -2037,10 +2043,19 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
     ctx.strokeStyle=hw?'#FFF':'#caa84a'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(-9,4.5); ctx.lineTo(9,4.5); ctx.stroke()
     if (el==='lightning'&&Math.sin(t*12)>0.6){ ctx.strokeStyle='#7DFFB0'; ctx.lineWidth=1.4; ctx.globalAlpha=0.7; ctx.beginPath(); ctx.moveTo(-5,-9); ctx.lineTo(0,-3); ctx.lineTo(4,-8); ctx.stroke(); ctx.globalAlpha=1 }
     else if (el==='arcane'&&Math.sin(t*9)>0.6){ ctx.strokeStyle='#CE9EE8'; ctx.lineWidth=1.3; ctx.globalAlpha=0.55; ctx.beginPath(); ctx.arc(0,0,17,0,Math.PI*2); ctx.stroke(); ctx.globalAlpha=1 }
-    // arms
+    // arms — staves are gripped with both hands
     ctx.strokeStyle=robeMid; ctx.lineWidth=4; ctx.lineCap='round'
-    ctx.beginPath(); ctx.moveTo(3,-8); ctx.lineTo(11,-5); ctx.stroke()
-    ctx.beginPath(); ctx.moveTo(3,8); ctx.lineTo(9,6); ctx.stroke(); ctx.lineCap='butt'
+    if (wpn.id==='staff') {
+      ctx.beginPath(); ctx.moveTo(2,-7); ctx.lineTo(25,-3); ctx.stroke()   // lead hand up the shaft
+      ctx.beginPath(); ctx.moveTo(2,7); ctx.lineTo(13,3); ctx.stroke()     // off hand lower
+      ctx.fillStyle=hw?'#FFF':'#E8B98C'
+      ctx.beginPath(); ctx.arc(25,-1.5,2.7,0,Math.PI*2); ctx.fill()
+      ctx.beginPath(); ctx.arc(13,1.5,2.7,0,Math.PI*2); ctx.fill()
+    } else {
+      ctx.beginPath(); ctx.moveTo(3,-8); ctx.lineTo(11,-5); ctx.stroke()
+      ctx.beginPath(); ctx.moveTo(3,8); ctx.lineTo(9,6); ctx.stroke()
+    }
+    ctx.lineCap='butt'
     // head
     const skin = hw?'#FFF':'#E8B98C'
     ctx.fillStyle=skin; ctx.beginPath(); ctx.arc(5,0,6.5,0,Math.PI*2); ctx.fill()
