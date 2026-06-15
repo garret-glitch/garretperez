@@ -1,5 +1,6 @@
 ﻿'use client'
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { useSession } from 'next-auth/react'
 
 /* ═══ CONSTANTS ═══ */
 const CW = 960, CH = 600, WW = 2400, WH = 1500
@@ -2379,6 +2380,13 @@ export default function BossHunter() {
   const [selBoss, setSelBoss] = useState<BossId>(0)
   const [unlockedGear, setUnlockedGear] = useState<GearId[]>([])
   const [selArmour, setSelArmour] = useState<GearId | null>(null)
+
+  // Admins start with every weapon and armour unlocked
+  const { data: session } = useSession()
+  const isAdmin = (session?.user as { role?: string } | undefined)?.role === 'ADMIN'
+  useEffect(() => {
+    if (isAdmin) setUnlockedGear(Object.keys(GEAR_DEFS) as GearId[])
+  }, [isAdmin])
   const [victoryBoss, setVictoryBoss] = useState(0)
   const [lastUnlockedGear, setLastUnlockedGear] = useState<GearId | null>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
