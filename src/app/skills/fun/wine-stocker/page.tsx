@@ -440,8 +440,8 @@ function render(ctx: CanvasRenderingContext2D, g: GS, t: number) {
   ctx.fillStyle = 'rgba(255,195,70,0.14)'
   ctx.fillRect(cpx-38, cpy-54, 76, 3); ctx.fillRect(cpx-38, cpy-32, 76, 3)
   // Labels
-  ctx.font = '14px "Press Start 2P", monospace'; ctx.fillStyle = '#C89B3C'; ctx.textAlign = 'center'
-  ctx.fillText('STOCK', SR_W/2, 22); ctx.fillText('ROOM', SR_W/2, 38)
+  ctx.font = '16px "Press Start 2P", monospace'; ctx.fillStyle = '#C89B3C'; ctx.textAlign = 'center'
+  ctx.fillText('STOCK', SR_W/2, 23); ctx.fillText('ROOM', SR_W/2, 41)
   // Stock room blink — pulses after 5s with no cases
   if (g.emptyCaseTimer >= 5 && g.player.pos.x >= SR_W) {
     const blink = 0.5 + 0.5 * Math.sin(t * 6)
@@ -454,9 +454,9 @@ function render(ctx: CanvasRenderingContext2D, g: GS, t: number) {
 
   // Prompt when player needs cases
   if (g.player.cases < g.player.maxCases && g.player.pos.x >= SR_W) {
-    ctx.font = '12px "Press Start 2P", monospace'
+    ctx.font = '14px "Press Start 2P", monospace'
     ctx.fillStyle = g.player.pos.x < SR_W + 65 ? '#4CAF50' : '#C89B3C'
-    ctx.fillText('← GET', SR_W/2, cpy-88); ctx.fillText('CASES', SR_W/2, cpy-74)
+    ctx.fillText('← GET', SR_W/2, cpy-88); ctx.fillText('CASES', SR_W/2, cpy-72)
   }
 
   // ── Manager office ──────────────────────────────────────────
@@ -464,8 +464,8 @@ function render(ctx: CanvasRenderingContext2D, g: GS, t: number) {
   ctx.strokeStyle = '#2C2C44'; ctx.lineWidth = 2; ctx.strokeRect(OFF.x, OFF.y, OFF.w, OFF.h)
   ctx.fillStyle = '#291E0C'; ctx.fillRect(OFF.x+16, OFF.y+42, OFF.w-32, 36)
   ctx.fillStyle = '#38280E'; ctx.fillRect(OFF.x+16, OFF.y+42, OFF.w-32, 4)
-  ctx.font = '11px "Press Start 2P", monospace'; ctx.fillStyle = '#7878A0'; ctx.textAlign = 'center'
-  ctx.fillText('MANAGER', OFF.x+OFF.w/2, OFF.y+20); ctx.fillText('OFFICE', OFF.x+OFF.w/2, OFF.y+33)
+  ctx.font = '13px "Press Start 2P", monospace'; ctx.fillStyle = '#7878A0'; ctx.textAlign = 'center'
+  ctx.fillText('MANAGER', OFF.x+OFF.w/2, OFF.y+20); ctx.fillText('OFFICE', OFF.x+OFF.w/2, OFF.y+34)
   // Door gap
   ctx.fillStyle = '#EDE4C8'; ctx.fillRect(OFF.x+OFF.w/2-18, OFF.h, 36, 4)
 
@@ -510,7 +510,7 @@ function render(ctx: CanvasRenderingContext2D, g: GS, t: number) {
     if (sh.stock === 0) {
       const flash = 0.5 + 0.5 * Math.sin(t*5.5)
       ctx.fillStyle = `rgba(255,50,50,${flash*0.22})`; ctx.fillRect(sh.x, sh.y, sh.w, sh.h)
-      ctx.font = 'bold 13px sans-serif'; ctx.fillStyle = `rgba(255,80,80,${0.7+flash*0.3})`
+      ctx.font = 'bold 15px sans-serif'; ctx.fillStyle = `rgba(255,80,80,${0.7+flash*0.3})`
       ctx.textAlign = 'center'; ctx.fillText('EMPTY', sh.x+sh.w/2, sh.y+sh.h/2+4)
     }
 
@@ -522,7 +522,7 @@ function render(ctx: CanvasRenderingContext2D, g: GS, t: number) {
 
     // Shelf label — black on beige floor for maximum contrast
     ctx.shadowColor = 'rgba(255,255,255,0.6)'; ctx.shadowBlur = 4
-    ctx.font = '14px "Press Start 2P", monospace'; ctx.fillStyle = '#000000'; ctx.textAlign = 'center'
+    ctx.font = '16px "Press Start 2P", monospace'; ctx.fillStyle = '#000000'; ctx.textAlign = 'center'
     ctx.fillText(sh.label, sh.x+sh.w/2, sh.y - 12)
     ctx.shadowBlur = 0
 
@@ -560,16 +560,16 @@ function render(ctx: CanvasRenderingContext2D, g: GS, t: number) {
       ctx.strokeRect(sh.x-4, sh.y-4, sh.w+8, sh.h+10)
       ctx.shadowBlur = 0
       // "CLICK" label above shelf label
-      ctx.font = '13px "Press Start 2P", monospace'
+      ctx.font = '15px "Press Start 2P", monospace'
       ctx.fillStyle = isTarget ? `rgba(200,155,60,${pulse})` : `rgba(100,180,255,${pulse * 0.7})`
       ctx.textAlign = 'center'
-      ctx.fillText('CLICK', sh.x+sh.w/2, sh.y - 28)
+      ctx.fillText('CLICK', sh.x+sh.w/2, sh.y - 29)
     }
   }
 
   // ── Entrance strip ──────────────────────────────────────────
   ctx.fillStyle = '#9A8E6C'; ctx.fillRect(ENT_X, CH-12, ENT_W, 12)
-  ctx.font = '11px "Press Start 2P", monospace'; ctx.fillStyle = '#D8C888'; ctx.textAlign = 'center'
+  ctx.font = '13px "Press Start 2P", monospace'; ctx.fillStyle = '#D8C888'; ctx.textAlign = 'center'
   ctx.fillText('ENTRANCE', ENT_X+ENT_W/2, CH-1)
 
   // ── Power-ups ───────────────────────────────────────────────
@@ -613,7 +613,7 @@ function render(ctx: CanvasRenderingContext2D, g: GS, t: number) {
       const sh = g.shelves.find(s => s.id === c.shelfId)
       const wine = sh?.label ?? '?'
       const wineClr = sh?.clr ?? '#9B2335'
-      const bw = 142, bh = 56, bx = c.pos.x - bw/2, by = c.pos.y - c.sz - 68
+      const bw = 162, bh = 60, bx = c.pos.x - bw/2, by = c.pos.y - c.sz - 72
       ctx.fillStyle = 'rgba(255,255,255,0.97)'
       rrect(ctx, bx, by, bw, bh, 7); ctx.fill()
       ctx.strokeStyle = wineClr; ctx.lineWidth = 2; ctx.stroke()
@@ -625,11 +625,11 @@ function render(ctx: CanvasRenderingContext2D, g: GS, t: number) {
       ctx.closePath(); ctx.fillStyle = 'rgba(255,255,255,0.97)'; ctx.fill()
       ctx.strokeStyle = wineClr; ctx.lineWidth = 1; ctx.stroke()
       // Text
-      ctx.font = '13px "Press Start 2P", monospace'
+      ctx.font = '15px "Press Start 2P", monospace'
       ctx.fillStyle = '#1A1A2A'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-      ctx.fillText('Where is', c.pos.x, by + 20)
+      ctx.fillText('Where is', c.pos.x, by + 21)
       ctx.fillStyle = wineClr
-      ctx.fillText(wine + '?', c.pos.x, by + 40)
+      ctx.fillText(wine + '?', c.pos.x, by + 43)
       ctx.textBaseline = 'alphabetic'
     }
     ctx.restore()
@@ -655,8 +655,8 @@ function render(ctx: CanvasRenderingContext2D, g: GS, t: number) {
   ctx.fillText(moji, m.pos.x, m.pos.y - MR*0.3)
   ctx.textBaseline = 'alphabetic'
   // Label
-  ctx.font = '13px "Press Start 2P", monospace'; ctx.fillStyle = '#F1C40F'; ctx.textAlign = 'center'
-  ctx.fillText('MGR', m.pos.x, m.pos.y + MR + 14)
+  ctx.font = '15px "Press Start 2P", monospace'; ctx.fillStyle = '#F1C40F'; ctx.textAlign = 'center'
+  ctx.fillText('MGR', m.pos.x, m.pos.y + MR + 15)
   // Inspection warning when approaching — visible from farther away
   if (m.state === 'walking') {
     const d2p = dist(m.pos, g.player.pos)
@@ -713,18 +713,18 @@ function render(ctx: CanvasRenderingContext2D, g: GS, t: number) {
       rrect(ctx, CW/2 - 260, CH - 74, 520, 64, 10); ctx.fill()
       ctx.strokeStyle = wineClr; ctx.lineWidth = 2; ctx.stroke()
 
-      ctx.font = '14px "Press Start 2P", monospace'
+      ctx.font = '16px "Press Start 2P", monospace'
       ctx.fillStyle = wineClr; ctx.textAlign = 'center'
       ctx.fillText(`"Where is the ${wine}?"`, CW/2, CH - 48)
-      ctx.font = '12px "Press Start 2P", monospace'
+      ctx.font = '14px "Press Start 2P", monospace'
       ctx.fillStyle = '#C89B3C'
-      ctx.fillText('CLICK THE CORRECT SHELF', CW/2, CH - 26)
+      ctx.fillText('CLICK THE CORRECT SHELF', CW/2, CH - 25)
 
       // Wrong flash feedback
       if (g.wrongFlash > 0) {
         ctx.fillStyle = `rgba(255,50,50,${Math.min(0.4, g.wrongFlash * 0.32)})`
         ctx.fillRect(0, 0, CW, CH)
-        ctx.font = '18px "Press Start 2P", monospace'
+        ctx.font = '22px "Press Start 2P", monospace'
         ctx.fillStyle = '#FF5555'; ctx.textAlign = 'center'
         ctx.fillText("That's not it!", CW/2, CH/2 - 10)
       }
@@ -743,10 +743,10 @@ function render(ctx: CanvasRenderingContext2D, g: GS, t: number) {
     rrect(ctx, lbx, lby, lbw, lbh, 12); ctx.fill()
     ctx.strokeStyle = '#C89B3C'; ctx.lineWidth = 2.5; ctx.stroke()
     ctx.shadowBlur = 0
-    ctx.font = '17px "Press Start 2P", monospace'
+    ctx.font = '20px "Press Start 2P", monospace'
     ctx.fillStyle = '#C89B3C'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-    ctx.fillText(`⭐ LEVEL ${g.level}! ⭐`, CW/2, lby + 26)
-    ctx.font = '12px "Press Start 2P", monospace'
+    ctx.fillText(`⭐ LEVEL ${g.level}! ⭐`, CW/2, lby + 25)
+    ctx.font = '14px "Press Start 2P", monospace'
     ctx.fillStyle = '#A09880'
     ctx.fillText('Getting harder...', CW/2, lby + 50)
     ctx.textBaseline = 'alphabetic'
@@ -771,7 +771,7 @@ function render(ctx: CanvasRenderingContext2D, g: GS, t: number) {
     ctx.save()
     ctx.globalAlpha = fade
 
-    const bw = 320, bh = 66
+    const bw = 360, bh = 70
     const bx = CW/2 - bw/2, by = CH/2 - 88 - rise
 
     ctx.shadowColor = info.col; ctx.shadowBlur = 24
@@ -786,12 +786,12 @@ function render(ctx: CanvasRenderingContext2D, g: GS, t: number) {
 
     // Text
     ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left'
-    ctx.font = '12px "Press Start 2P", monospace'
+    ctx.font = '13px "Press Start 2P", monospace'
     ctx.fillStyle = '#A09880'
-    ctx.fillText('CUSTOMER PERK!', bx + 64, by + 26)
-    ctx.font = '14px "Press Start 2P", monospace'
+    ctx.fillText('CUSTOMER PERK!', bx + 66, by + 28)
+    ctx.font = '15px "Press Start 2P", monospace'
     ctx.fillStyle = info.col
-    ctx.fillText(PERK_LABELS[type], bx + 64, by + 52)
+    ctx.fillText(PERK_LABELS[type], bx + 66, by + 54)
 
     ctx.restore()
     ctx.textBaseline = 'alphabetic'
@@ -813,15 +813,15 @@ function renderHUD(ctx: CanvasRenderingContext2D, g: GS, t: number) {
   // Gold accent bar on left edge
   ctx.fillStyle = '#C89B3C'; ctx.fillRect(6, 20, 3, 22)
 
-  ctx.font = '10px "Press Start 2P", monospace'; ctx.fillStyle = '#524020'; ctx.textAlign = 'left'
+  ctx.font = '12px "Press Start 2P", monospace'; ctx.fillStyle = '#524020'; ctx.textAlign = 'left'
   ctx.fillText('SCORE', 14, 19)
 
   const scoreStr = String(Math.floor(g.score))
-  ctx.font = '17px "Press Start 2P", monospace'; ctx.fillStyle = '#C89B3C'
-  ctx.fillText(scoreStr, 14, 42)
+  ctx.font = '20px "Press Start 2P", monospace'; ctx.fillStyle = '#C89B3C'
+  ctx.fillText(scoreStr, 14, 43)
   if (g.efx.multi > 1) {
     const sw = ctx.measureText(scoreStr).width
-    ctx.font = '10px "Press Start 2P", monospace'; ctx.fillStyle = '#FF9800'
+    ctx.font = '11px "Press Start 2P", monospace'; ctx.fillStyle = '#FF9800'
     ctx.fillText(`×${g.efx.multi}`, 14 + sw + 5, 36)
   }
 
@@ -847,7 +847,7 @@ function renderHUD(ctx: CanvasRenderingContext2D, g: GS, t: number) {
   }
   if (g.player.staminaDepleted) {
     const fl = 0.5 + 0.5 * Math.sin(t * 8)
-    ctx.font = '10px "Press Start 2P", monospace'; ctx.fillStyle = `rgba(255,80,80,${fl})`
+    ctx.font = '11px "Press Start 2P", monospace'; ctx.fillStyle = `rgba(255,80,80,${fl})`
     ctx.textAlign = 'right'; ctx.fillText('DEPLETED', 207, 82)
   }
 
@@ -857,7 +857,7 @@ function renderHUD(ctx: CanvasRenderingContext2D, g: GS, t: number) {
   rrect(ctx, CPX, 6, CPW, 54, 8); ctx.fill()
   ctx.strokeStyle = hclr + '50'; ctx.lineWidth = 1.5; ctx.stroke()
 
-  ctx.font = '10px "Press Start 2P", monospace'; ctx.fillStyle = '#524020'; ctx.textAlign = 'center'
+  ctx.font = '12px "Press Start 2P", monospace'; ctx.fillStyle = '#524020'; ctx.textAlign = 'center'
   ctx.fillText('STORE HEALTH', CPX + CPW / 2, 19)
 
   // Segmented bar
@@ -872,7 +872,7 @@ function renderHUD(ctx: CanvasRenderingContext2D, g: GS, t: number) {
   }
   ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 0.5; ctx.strokeRect(bx, byS, bwS, 20)
 
-  ctx.font = '16px "Press Start 2P", monospace'; ctx.fillStyle = hclr; ctx.textAlign = 'right'
+  ctx.font = '18px "Press Start 2P", monospace'; ctx.fillStyle = hclr; ctx.textAlign = 'right'
   ctx.fillText(`${Math.round(avg * 100)}%`, CPX + CPW - 8, 50)
 
   // ── Right panel: Strikes + Inspection ──────────────────────
@@ -886,7 +886,7 @@ function renderHUD(ctx: CanvasRenderingContext2D, g: GS, t: number) {
   ctx.fillStyle = alert ? `rgba(220,60,60,${ap})` : '#C89B3C'
   ctx.fillRect(RPX + RPW - 3, 20, 3, 22)
 
-  ctx.font = '10px "Press Start 2P", monospace'
+  ctx.font = '12px "Press Start 2P", monospace'
   ctx.fillStyle = alert ? `rgba(255,100,100,${ap})` : '#524020'; ctx.textAlign = 'center'
   ctx.fillText('STRIKES', RPX + RPW / 2, 19)
 
@@ -904,7 +904,7 @@ function renderHUD(ctx: CanvasRenderingContext2D, g: GS, t: number) {
     const ibx = RPX + 10, ibw = RPW - 20
     ctx.fillStyle = '#090912'; ctx.fillRect(ibx, 69, ibw, 7)
     ctx.fillStyle = iclr;     ctx.fillRect(ibx, 69, ibw * ipct, 7)
-    ctx.font = '11px "Press Start 2P", monospace'; ctx.fillStyle = '#302818'; ctx.textAlign = 'center'
+    ctx.font = '12px "Press Start 2P", monospace'; ctx.fillStyle = '#302818'; ctx.textAlign = 'center'
     ctx.fillText('INSPECTION', RPX + RPW / 2, 84)
   }
 
@@ -914,7 +914,7 @@ function renderHUD(ctx: CanvasRenderingContext2D, g: GS, t: number) {
     ctx.fillStyle = `rgba(24,4,4,${pulse * 0.92})`
     rrect(ctx, CPX, 66, CPW, 22, 5); ctx.fill()
     ctx.strokeStyle = `rgba(255,70,70,${pulse})`; ctx.lineWidth = 1.5; ctx.stroke()
-    ctx.font = '11px "Press Start 2P", monospace'
+    ctx.font = '12px "Press Start 2P", monospace'
     ctx.fillStyle = '#FFCCCC'; ctx.textAlign = 'center'
     ctx.fillText('⚠  MANAGER INCOMING!', CPX + CPW / 2, 81)
   }
@@ -999,7 +999,7 @@ function renderDialogue(ctx: CanvasRenderingContext2D, g: GS) {
   ctx.textBaseline = 'alphabetic'
 
   // "MANAGER" label under portrait
-  ctx.font = '11px "Press Start 2P", monospace'; ctx.fillStyle = acl + 'AA'; ctx.textAlign = 'center'
+  ctx.font = '12px "Press Start 2P", monospace'; ctx.fillStyle = acl + 'AA'; ctx.textAlign = 'center'
   ctx.fillText('MANAGER', px, py + 60)
 
   // Divider line
@@ -1007,7 +1007,7 @@ function renderDialogue(ctx: CanvasRenderingContext2D, g: GS) {
   ctx.beginPath(); ctx.moveTo(bx + 132, by + 14); ctx.lineTo(bx + 132, by + bh - 14); ctx.stroke()
 
   // Status header
-  ctx.font = '13px "Press Start 2P", monospace'; ctx.textAlign = 'left'
+  ctx.font = '14px "Press Start 2P", monospace'; ctx.textAlign = 'left'
   ctx.fillStyle = acl
   ctx.fillText(
     isAngry ? `✗  STRIKE  ${g.strikes} / 3` : '✓  INSPECTION PASSED',
@@ -1017,14 +1017,14 @@ function renderDialogue(ctx: CanvasRenderingContext2D, g: GS) {
   // Dialogue lines
   g.mgr.lines.forEach((line, i) => {
     const raw = line.replace(/&apos;/g, "'").replace(/&amp;/g, '&')
-    ctx.font = (i === 0 ? '15' : '12') + 'px "Press Start 2P", monospace'
+    ctx.font = (i === 0 ? '16' : '13') + 'px "Press Start 2P", monospace'
     ctx.fillStyle = i === 0 ? '#E8E6E0' : '#807060'
     ctx.textAlign = 'left'
     ctx.fillText(raw, bx + 148, by + 70 + i * 36)
   })
 
   // ── Movement hint ──
-  ctx.font = '10px "Press Start 2P", monospace'; ctx.fillStyle = '#3A6890'; ctx.textAlign = 'center'
+  ctx.font = '11px "Press Start 2P", monospace'; ctx.fillStyle = '#3A6890'; ctx.textAlign = 'center'
   ctx.fillText('↑ ↓ ← →  keep moving!', bx + bw / 2, by + bh - 36)
 
   // ── Auto-continue timer bar ──
@@ -1033,13 +1033,13 @@ function renderDialogue(ctx: CanvasRenderingContext2D, g: GS) {
   const tbarX = bx + 148, tbarW = bw - 164
   ctx.fillStyle = '#0a0a18'; ctx.fillRect(tbarX, by + bh - 24, tbarW, 7)
   ctx.fillStyle = acl + 'CC'; ctx.fillRect(tbarX, by + bh - 24, tbarW * pct, 7)
-  ctx.font = '11px "Press Start 2P", monospace'; ctx.fillStyle = '#303028'; ctx.textAlign = 'right'
+  ctx.font = '12px "Press Start 2P", monospace'; ctx.fillStyle = '#303028'; ctx.textAlign = 'right'
   ctx.fillText('AUTO-CONTINUES', bx + bw - 8, by + bh - 10)
 
   // FIRED banner
   if (g.strikes >= 3 && isAngry) {
     ctx.save()
-    ctx.font = '17px "Press Start 2P", monospace'
+    ctx.font = '19px "Press Start 2P", monospace'
     ctx.fillStyle = '#FF2222'; ctx.textAlign = 'center'
     ctx.shadowColor = '#FF0000'; ctx.shadowBlur = 24
     ctx.fillText('VENDOR COMPLAINT FILED!', CW / 2, by - 16)
