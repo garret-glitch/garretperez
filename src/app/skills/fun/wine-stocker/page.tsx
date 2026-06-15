@@ -83,6 +83,7 @@ const HAPPY = [
   ["Great work!", "Everything looks perfect.", "+100 BONUS POINTS!"],
   ["Beautiful shelves!", "You&apos;re a natural.", "+100 BONUS POINTS!"],
   ["Top notch!", "The vendor will love this!", "+100 BONUS POINTS!"],
+  ["My best reps work & talk.", "I don't mind both at once.", "+100 BONUS POINTS!"],
 ]
 const ANGRY = [
   ["What happened here?!", "Get those shelves stocked!", "I'm watching you."],
@@ -325,7 +326,7 @@ function tickPlay(g: GS, dt: number, keys: Set<string>) {
       m.state = 'dialogue'
       if (shopAvg >= 0.5) {
         m.mood = 'happy'
-        m.lines = HAPPY[rndI(0,2)]
+        m.lines = HAPPY[rndI(0,3)]
         g.score += Math.round(100 * e.multi)
       } else {
         m.mood = 'angry'
