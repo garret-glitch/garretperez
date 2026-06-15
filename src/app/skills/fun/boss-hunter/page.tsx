@@ -2249,12 +2249,26 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
     const fp = 0.6 + 0.4 * Math.sin(t * 8)
     const draw = clamp(1 - p.atkTimer / 0.82, 0, 1)            // 0 just-cast -> 1 charged
     const release = clamp((p.atkTimer - 0.66) / 0.16, 0, 1)    // 1 right after a cast
-    // charred runed shaft
-    ctx.shadowColor = '#FF4500'; ctx.shadowBlur = 10
-    ctx.strokeStyle = hw ? '#FFF' : '#5A2400'; ctx.lineWidth = 4.5; ctx.lineCap = 'round'
-    ctx.beginPath(); ctx.moveTo(2, 0); ctx.lineTo(46, 0); ctx.stroke()
-    // claw holder at the tip
-    ctx.strokeStyle = hw ? '#FFF' : '#8a4a10'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(50, 0, 7, -2.2, 2.2); ctx.stroke(); ctx.lineCap = 'butt'
+    // ── ornate charred shaft ──
+    ctx.shadowColor = '#FF4500'; ctx.shadowBlur = 8
+    ctx.strokeStyle = hw ? '#FFF' : '#4A1E00'; ctx.lineWidth = 5; ctx.lineCap = 'round'
+    ctx.beginPath(); ctx.moveTo(-3, 0); ctx.lineTo(43, 0); ctx.stroke()
+    ctx.strokeStyle = hw ? '#EEE' : '#7A3A10'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(0, -1); ctx.lineTo(42, -1); ctx.stroke()
+    // glowing ember crack running up the wood
+    ctx.strokeStyle = `rgba(255,${90 + Math.round(fp * 80)},0,${0.5 + 0.4 * fp})`; ctx.lineWidth = 1; ctx.shadowColor = '#FF6A1A'; ctx.shadowBlur = 6
+    ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(16, -1.5); ctx.lineTo(22, 0.5); ctx.lineTo(30, -1); ctx.stroke(); ctx.shadowBlur = 8
+    // leather grip wrap near the base
+    ctx.strokeStyle = hw ? '#FFF' : '#2a1606'; ctx.lineWidth = 5.5; ctx.beginPath(); ctx.moveTo(2, 0); ctx.lineTo(16, 0); ctx.stroke()
+    ctx.strokeStyle = hw ? '#DDD' : '#160a03'; ctx.lineWidth = 1; for (let i = 0; i < 5; i++) { const gx = 3 + i * 3; ctx.beginPath(); ctx.moveTo(gx, -3); ctx.lineTo(gx + 2, 3); ctx.stroke() }
+    // brass bands
+    ctx.strokeStyle = hw ? '#FFF' : '#C8881E'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(22, -3.2); ctx.lineTo(22, 3.2); ctx.moveTo(40, -3.5); ctx.lineTo(40, 3.5); ctx.stroke()
+    // pommel counterweight
+    ctx.fillStyle = hw ? '#FFF' : '#8a4a10'; ctx.beginPath(); ctx.arc(-5, 0, 3.6, 0, Math.PI * 2); ctx.fill()
+    // brass claw head cradling the orb
+    ctx.strokeStyle = hw ? '#FFF' : '#9a5a14'; ctx.lineWidth = 2.6; ctx.lineCap = 'round'
+    ctx.beginPath(); ctx.moveTo(43, -2); ctx.quadraticCurveTo(50, -10, 58, -4); ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(43, 2); ctx.quadraticCurveTo(50, 10, 58, 4); ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(44, 0); ctx.lineTo(49, 0); ctx.stroke(); ctx.lineCap = 'butt'
     // gathering fire orb — grows with charge, flares on release
     const orbR = 3 + draw * 5 + release * 4
     ctx.shadowColor = '#FF6A1A'; ctx.shadowBlur = 18 + draw * 14
@@ -2273,11 +2287,23 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
     const ap = 0.6 + 0.4 * Math.sin(t * 7)
     const draw = clamp(1 - p.atkTimer / 0.82, 0, 1)
     const release = clamp((p.atkTimer - 0.66) / 0.16, 0, 1)
-    // shaft + small prong holder
-    ctx.shadowColor = '#9B59B6'; ctx.shadowBlur = 10
-    ctx.strokeStyle = hw ? '#FFF' : '#4A235A'; ctx.lineWidth = 4; ctx.lineCap = 'round'
-    ctx.beginPath(); ctx.moveTo(4, 0); ctx.lineTo(48, 0); ctx.stroke()
-    ctx.strokeStyle = hw ? '#FFF' : '#6C3483'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(51, 0, 6, -2.0, 2.0); ctx.stroke(); ctx.lineCap = 'butt'
+    // ── ornate arcane shaft ──
+    ctx.shadowColor = '#9B59B6'; ctx.shadowBlur = 8
+    ctx.strokeStyle = hw ? '#FFF' : '#3A1D49'; ctx.lineWidth = 5; ctx.lineCap = 'round'
+    ctx.beginPath(); ctx.moveTo(-3, 0); ctx.lineTo(44, 0); ctx.stroke()
+    ctx.strokeStyle = hw ? '#EEE' : '#5E2E73'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(0, -1); ctx.lineTo(43, -1); ctx.stroke()
+    // leather grip wrap near the base
+    ctx.strokeStyle = hw ? '#FFF' : '#241030'; ctx.lineWidth = 5.5; ctx.beginPath(); ctx.moveTo(2, 0); ctx.lineTo(16, 0); ctx.stroke()
+    ctx.strokeStyle = hw ? '#DDD' : '#160a20'; ctx.lineWidth = 1; for (let i = 0; i < 5; i++) { const gx = 3 + i * 3; ctx.beginPath(); ctx.moveTo(gx, -3); ctx.lineTo(gx + 2, 3); ctx.stroke() }
+    // silver bands
+    ctx.strokeStyle = hw ? '#FFF' : '#B0A8C0'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(23, -3.2); ctx.lineTo(23, 3.2); ctx.moveTo(41, -3.5); ctx.lineTo(41, 3.5); ctx.stroke()
+    // pommel gem
+    ctx.fillStyle = hw ? '#FFF' : '#6C3483'; ctx.beginPath(); ctx.arc(-5, 0, 3.3, 0, Math.PI * 2); ctx.fill()
+    // silver prongs cradling the orb
+    ctx.strokeStyle = hw ? '#FFF' : '#9E86B8'; ctx.lineWidth = 2.4; ctx.lineCap = 'round'
+    ctx.beginPath(); ctx.moveTo(44, -2); ctx.quadraticCurveTo(51, -9, 58, -3); ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(44, 2); ctx.quadraticCurveTo(51, 9, 58, 3); ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(45, 0); ctx.lineTo(50, 0); ctx.stroke(); ctx.lineCap = 'butt'
     // arcane orb at the tip — grows with charge
     const orbR = 3.5 + draw * 4 + release * 3
     ctx.shadowColor = '#CE9EE8'; ctx.shadowBlur = 12 + draw * 10
