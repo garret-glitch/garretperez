@@ -120,7 +120,7 @@ interface DamageNumber { id: number; pos: V2; val: number; life: number; isPlaye
 interface Particle { id: number; pos: V2; vel: V2; life: number; maxLife: number; color: string; size: number }
 interface SlowTrap { id: number; pos: V2; life: number; fromPlayer: boolean }
 interface HazardZone { id: number; pos: V2; radius: number; type: 'poison' | 'fire' | 'lightning' | 'web'; dps: number; life: number; maxLife: number }
-interface AttackFlash { angle: number; timer: number; maxTimer: number; type: 'slash' | 'slam' | 'shot' | 'magic' | 'shadow' | 'power_shot'; color: string }
+interface AttackFlash { angle: number; timer: number; maxTimer: number; type: 'slash' | 'slam' | 'shot' | 'magic' | 'shadow' | 'power_shot' | 'greatslash'; color: string }
 interface SkyArrow { id: number; targetPos: V2; warnTimer: number; hit: boolean; dmg: number }
 interface EnvObject { type: 'rock' | 'bone' | 'skull' | 'web' | 'ruin' | 'crystal' | 'nest' | 'claw'; pos: V2; size: number; angle: number; variant: number }
 interface Minion { id: number; pos: V2; vel: V2; hp: number; maxHp: number; hitFlash: number; atkCd: number; legPhase: number; spawnAnim: number }
@@ -787,8 +787,9 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
     } else if (tgtDist <= atkRange && tgtDist >= minRange) {
       p.atkTimer = atkCd
       const atkAngle = Math.atan2(tgtPos.y - p.pos.y, tgtPos.x - p.pos.x)
-      const flashType = gear.includes('spider_fang') ? 'slash' : wpn.id !== 'sword' ? 'shot' : 'slam'
-      g.attackFlash = { angle: atkAngle, timer: 0.22, maxTimer: 0.22, type: flashType, color: flashColor }
+      const flashType = wid === 'greatsword' ? 'greatslash' : gear.includes('spider_fang') ? 'slash' : wpn.id !== 'sword' ? 'shot' : 'slam'
+      const flashDur = wid === 'greatsword' ? 0.34 : 0.22
+      g.attackFlash = { angle: atkAngle, timer: flashDur, maxTimer: flashDur, type: flashType, color: flashColor }
       if (gear.includes('venom_bow') && g.poisonTimer <= 0) g.poisonTimer = 5.0
       if (isRangedAtk) {
         const dir = v(Math.cos(atkAngle), Math.sin(atkAngle))
@@ -1862,6 +1863,21 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
       const rr = 24+prog*70; ctx.strokeStyle=af.color; ctx.lineWidth=5-prog*3; ctx.shadowColor=af.color; ctx.shadowBlur=16
       ctx.beginPath(); ctx.arc(28,0,rr*0.5,0,Math.PI*2); ctx.stroke()
       ctx.globalAlpha=alpha*0.35; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(28,0,rr,0,Math.PI*2); ctx.stroke()
+    } else if (af.type === 'greatslash') {
+      // huge sweeping overhead arc that travels across the swing
+      const R = 150, half = 1.25
+      // motion-blur wedge fanning out from the player
+      const grad = ctx.createRadialGradient(0,0,40,0,0,R)
+      grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(0.7,`${af.color}55`); grad.addColorStop(1,`${af.color}00`)
+      ctx.globalAlpha = alpha*0.6; ctx.fillStyle = grad
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,R,-half,half); ctx.closePath(); ctx.fill()
+      // thick outer arc of the swing
+      ctx.globalAlpha = alpha*0.8; ctx.strokeStyle = af.color; ctx.lineWidth = 7-prog*4; ctx.shadowColor = af.color; ctx.shadowBlur = 24
+      ctx.beginPath(); ctx.arc(0,0,R*(0.78+prog*0.28),-half,half); ctx.stroke()
+      // bright leading edge sweeping from one side to the other
+      const lead = -half + prog*(half*2)
+      ctx.globalAlpha = alpha; ctx.strokeStyle = '#FFE8B0'; ctx.lineWidth = 8; ctx.shadowBlur = 26
+      ctx.beginPath(); ctx.arc(0,0,R*(0.78+prog*0.28),lead-0.55,lead+0.1); ctx.stroke()
     } else if (af.type === 'shot') {
       const len = 32+prog*45; ctx.strokeStyle=af.color; ctx.lineWidth=3; ctx.shadowColor=af.color; ctx.shadowBlur=10
       ctx.beginPath(); ctx.moveTo(18,0); ctx.lineTo(18+len,0); ctx.stroke()
