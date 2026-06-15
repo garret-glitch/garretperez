@@ -226,19 +226,33 @@ const BOSS_DEFS: BossDef[] = [
 const GEAR_DEFS: Record<GearId, GearDef> = {
   spider_fang:   { id: 'spider_fang',   name: 'Spider Fang Daggers', icon: '🗡️', desc: 'Dual daggers — attack 40% faster, unique dagger animations' },
   venom_bow:     { id: 'venom_bow',     name: 'Venom Bow',           icon: '🏹', desc: 'Purple poison bow — arrows inflict 15 dmg/s for 5s' },
-  web_amulet:    { id: 'web_amulet',    name: 'Web Amulet',          icon: '🕸️', desc: '15% chance per hit to web-stun the boss for 2s' },
+  web_amulet:    { id: 'web_amulet',    name: 'Web Armour',          icon: '🕸️', desc: 'Webbed plating — reduces incoming damage by 35%, plus 15% chance on hit to web-stun the boss 2s' },
   drake_sword:   { id: 'drake_sword',   name: 'Drake Greatsword',    icon: '⚔️', desc: '+35% damage. 15% chance to stun boss on hit' },
   fire_staff:    { id: 'fire_staff',    name: 'Fire Staff',          icon: '🔥', desc: 'Q fires a Fireball — 100px AOE explosion, 80 dmg' },
-  ember_armor:   { id: 'ember_armor',   name: 'Ember Armor',         icon: '🛡️', desc: 'Reduces all incoming damage by 25%' },
+  ember_armor:   { id: 'ember_armor',   name: 'Ember Armour',        icon: '🛡️', desc: 'Reduces all incoming damage by 25%' },
   thunder_blade: { id: 'thunder_blade', name: 'Thunder Blade',       icon: '⚡', desc: 'Every 3rd hit unleashes a lightning strike (+80 bonus dmg)' },
   storm_bow:     { id: 'storm_bow',     name: 'Storm Bow',           icon: '🌩️', desc: 'Arrows are lightning bolts — AOE on impact (40px, 30 dmg)' },
-  feather_boots: { id: 'feather_boots', name: 'Feather Boots',       icon: '🪶', desc: '+40% movement speed. 3 dash charges that recharge over time' },
+  feather_boots: { id: 'feather_boots', name: 'Feather Armour',      icon: '🪶', desc: 'Reduces all incoming damage by 25%' },
 }
 const GEAR_CATEGORY: Record<GearId, 'attack' | 'defense'> = {
   spider_fang: 'attack', venom_bow: 'attack', web_amulet: 'defense',
   drake_sword: 'attack', fire_staff: 'attack', ember_armor: 'defense',
   thunder_blade: 'attack', storm_bow: 'attack', feather_boots: 'defense',
 }
+
+/* ═══ WEAPON SELECT (base weapons + unlocked weapon rewards) ═══ */
+interface LoadoutWeapon { id: string; base: WeaponId; gear: GearId | null; unlock: GearId | null; name: string; icon: string; color: string; sub: string }
+const LOADOUT_WEAPONS: LoadoutWeapon[] = [
+  { id: 'sword',         base: 'sword', gear: null,            unlock: null,            name: 'Starter Sword',       icon: '⚔️', color: '#E74C3C', sub: 'Melee • balanced' },
+  { id: 'bow',           base: 'bow',   gear: null,            unlock: null,            name: 'Starter Bow',         icon: '🏹', color: '#2ECC71', sub: 'Ranged • precise' },
+  { id: 'staff',         base: 'staff', gear: null,            unlock: null,            name: 'Starter Staff',       icon: '🔮', color: '#9B59B6', sub: 'Ranged • arcane' },
+  { id: 'spider_fang',   base: 'sword', gear: 'spider_fang',   unlock: 'spider_fang',   name: 'Spider Fang Daggers', icon: '🗡️', color: '#8E44AD', sub: 'Melee • +40% attack speed' },
+  { id: 'venom_bow',     base: 'bow',   gear: 'venom_bow',     unlock: 'venom_bow',     name: 'Venom Bow',           icon: '🏹', color: '#8E44AD', sub: 'Ranged • poison DoT' },
+  { id: 'drake_sword',   base: 'sword', gear: 'drake_sword',   unlock: 'drake_sword',   name: 'Drake Greatsword',    icon: '⚔️', color: '#E67E22', sub: 'Melee • +35% dmg, stun' },
+  { id: 'fire_staff',    base: 'staff', gear: 'fire_staff',    unlock: 'fire_staff',    name: 'Fire Staff',          icon: '🔥', color: '#E67E22', sub: 'Ranged • fireball Q' },
+  { id: 'thunder_blade', base: 'sword', gear: 'thunder_blade', unlock: 'thunder_blade', name: 'Thunder Blade',       icon: '⚡', color: '#F1C40F', sub: 'Melee • lightning every 3rd hit' },
+  { id: 'storm_bow',     base: 'bow',   gear: 'storm_bow',     unlock: 'storm_bow',     name: 'Storm Bow',           icon: '🌩️', color: '#F1C40F', sub: 'Ranged • AOE lightning bolts' },
+]
 // PIECE_2_START
 
 /* ═══ INITIAL STATE ═══ */
@@ -266,7 +280,8 @@ function generateEnvObjects(bossId: BossId): EnvObject[] {
 
 function mkState(wpn: WeaponDef, boss: BossDef, gear: GearId[]): GS {
   void wpn
-  const featherMode = gear.includes('feather_boots')
+  void gear
+  const featherMode = false   // armours no longer grant dash charges; all dodges share one cooldown
   const sx = WW / 2, sy = WH - 250
   return {
     phase: 'playing',
@@ -326,7 +341,8 @@ function dealDmgToPlayer(g: GS, dmg: number, wpn: WeaponDef, gear: GearId[], kno
   if (g.rageActive) fd = Math.round(fd * 1.2)
   const isMelee = wpn.id === 'sword' || gear.some(g2 => ['spider_fang','drake_sword','thunder_blade'].includes(g2))
   if (isMelee) fd = Math.round(fd * 0.80)
-  if (gear.includes('ember_armor')) fd = Math.round(fd * 0.75)
+  if (gear.includes('web_amulet')) fd = Math.round(fd * 0.65)
+  else if (gear.includes('ember_armor') || gear.includes('feather_boots')) fd = Math.round(fd * 0.75)
   p.hp = Math.max(0, p.hp - fd)
   p.hitFlash = 0.40; p.iframeTimer = 0.5
   g.playerDmgFlash = 0.70
@@ -716,7 +732,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   }
 
   // Player movement
-  const speedMult = (p.slowTimer > 0 ? 0.45 : 1) * (gear.includes('feather_boots') ? 1.4 : 1)
+  const speedMult = (p.slowTimer > 0 ? 0.45 : 1)
   const speed = 170 * speedMult
   if (!p.dodgeTimer && !g.bullChargeDash.active && !g.whirlwindActive && p.targetPos) {
     const d2t = dist(p.pos, p.targetPos)
@@ -2326,11 +2342,10 @@ function render(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, bossId: Bo
 /* ═══ REACT COMPONENT ═══ */
 export default function BossHunter() {
   const [screen, setScreen] = useState<'menu'|'hunt_select'|'playing'|'victory'|'defeat'>('menu')
-  const [selWeapon, setSelWeapon] = useState<WeaponId>('bow')
+  const [selWeapon, setSelWeapon] = useState<string>('bow')   // loadout weapon id (base or unlocked reward)
   const [selBoss, setSelBoss] = useState<BossId>(0)
   const [unlockedGear, setUnlockedGear] = useState<GearId[]>([])
-  const [equippedAttack, setEquippedAttack] = useState<GearId | null>(null)
-  const [equippedDefense, setEquippedDefense] = useState<GearId | null>(null)
+  const [selArmour, setSelArmour] = useState<GearId | null>(null)
   const [victoryBoss, setVictoryBoss] = useState(0)
   const [lastUnlockedGear, setLastUnlockedGear] = useState<GearId | null>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -2414,15 +2429,18 @@ export default function BossHunter() {
     }
   }, [])
 
-  const activeGear = useCallback((): GearId[] => [equippedAttack, equippedDefense].filter(Boolean) as GearId[], [equippedAttack, equippedDefense])
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const gearForBoss = useCallback((_bossId: BossId): GearId[] => activeGear(), [activeGear])
+  const beginHunt = useCallback(() => {
+    const lw = LOADOUT_WEAPONS.find(w => w.id === selWeapon) ?? LOADOUT_WEAPONS[1]
+    startGame(lw.base, selBoss, [lw.gear, selArmour].filter(Boolean) as GearId[])
+  }, [selWeapon, selBoss, selArmour, startGame])
 
   useEffect(() => {
     if (screen !== 'playing') return
     const canvas = canvasRef.current; if (!canvas) return
     const ctx = canvas.getContext('2d'); if (!ctx) return
-    const wpn = getWpn(selWeapon)
+    const lw = LOADOUT_WEAPONS.find(w => w.id === selWeapon) ?? LOADOUT_WEAPONS[1]
+    const wpn = getWpn(lw.base)
+    const gear: GearId[] = [lw.gear, selArmour].filter(Boolean) as GearId[]
 
     const triggerDodge = () => {
       const g = gsRef.current; if (!g) return
@@ -2490,7 +2508,7 @@ export default function BossHunter() {
       pendingAbilityRef.current = null
       pendingDodgeRef.current = false
 
-      tick(g, dt, wpn, selBoss, gearForBoss(selBoss), mouseWorldRef.current, new Set(), mouseWorldRef.current, pending)
+      tick(g, dt, wpn, selBoss, gear, mouseWorldRef.current, new Set(), mouseWorldRef.current, pending)
 
       if (g.phase === 'victory') {
         setVictoryBoss(selBoss)
@@ -2504,7 +2522,7 @@ export default function BossHunter() {
       }
       if (g.phase === 'defeat') { setScreen('defeat'); return }
 
-      render(ctx, g, wpn, selBoss, gearForBoss(selBoss), g.gtime)
+      render(ctx, g, wpn, selBoss, gear, g.gtime)
       rafRef.current = requestAnimationFrame(loop)
     }
     rafRef.current = requestAnimationFrame(loop)
@@ -2515,7 +2533,7 @@ export default function BossHunter() {
       canvas.removeEventListener('mousemove', handleMouseMove)
       canvas.removeEventListener('click', handleClick)
     }
-  }, [screen, selWeapon, selBoss, unlockedGear, equippedAttack, equippedDefense, getWpn, gearForBoss])
+  }, [screen, selWeapon, selBoss, selArmour, unlockedGear, getWpn])
 
   // ─── MENU ───
   if (screen === 'menu') return (
@@ -2567,7 +2585,7 @@ export default function BossHunter() {
         {unlockedGear.length > 0 && (
           <div style={{fontSize:7,color:'#3a3020',marginBottom:24}}>
             GEAR COLLECTED: <span style={{color:'#C89B3C'}}>{unlockedGear.length}</span>
-            {(equippedAttack||equippedDefense)&&<span style={{color:'#605848'}}> &bull; LOADOUT: {[equippedAttack,equippedDefense].filter(Boolean).map(g=>GEAR_DEFS[g!].icon).join(' ')}</span>}
+            <span style={{color:'#605848'}}> &bull; LOADOUT: {(LOADOUT_WEAPONS.find(w=>w.id===selWeapon)??LOADOUT_WEAPONS[1]).icon}{selArmour?' '+GEAR_DEFS[selArmour].icon:''}</span>
           </div>
         )}
 
@@ -2580,26 +2598,22 @@ export default function BossHunter() {
 
   // ─── PREPARE YOUR HUNT (carousel cards) ───
   if (screen === 'hunt_select') {
-    const weaponIds: WeaponId[] = ['sword','bow','staff']
-    const weaponIdx = weaponIds.indexOf(selWeapon)
-    const selW = WEAPON_DEFS[weaponIdx]
+    const availWeapons = LOADOUT_WEAPONS.filter(w => !w.unlock || unlockedGear.includes(w.unlock))
+    let selWIdx = availWeapons.findIndex(w => w.id === selWeapon); if (selWIdx < 0) selWIdx = 0
+    const selLW = availWeapons[selWIdx]
+    const selWBase = WEAPON_DEFS.find(w => w.id === selLW.base)!
     const selB = BOSS_DEFS[selBoss]
 
     const prevBoss = () => setSelBoss(((selBoss - 1 + 3) % 3) as BossId)
     const nextBoss = () => setSelBoss(((selBoss + 1) % 3) as BossId)
-    const prevWeapon = () => setSelWeapon(weaponIds[(weaponIdx - 1 + 3) % 3])
-    const nextWeapon = () => setSelWeapon(weaponIds[(weaponIdx + 1) % 3])
+    const prevWeapon = () => setSelWeapon(availWeapons[(selWIdx - 1 + availWeapons.length) % availWeapons.length].id)
+    const nextWeapon = () => setSelWeapon(availWeapons[(selWIdx + 1) % availWeapons.length].id)
 
-    const setGearItem = (gid: GearId | null) => {
-      if (!gid) { setEquippedAttack(null); setEquippedDefense(null); return }
-      if (GEAR_CATEGORY[gid] === 'attack') { setEquippedAttack(gid); setEquippedDefense(null) }
-      else { setEquippedDefense(gid); setEquippedAttack(null) }
-    }
-    const currentGear = equippedAttack ?? equippedDefense ?? null
-    const gearOptions: Array<GearId | null> = [null, ...unlockedGear]
-    const gearIdx = Math.max(0, gearOptions.indexOf(currentGear))
-    const prevGear = () => setGearItem(gearOptions[(gearIdx - 1 + gearOptions.length) % gearOptions.length])
-    const nextGear = () => setGearItem(gearOptions[(gearIdx + 1) % gearOptions.length])
+    const armourOptions: Array<GearId | null> = [null, ...unlockedGear.filter(g => GEAR_CATEGORY[g] === 'defense')]
+    const armourIdx = Math.max(0, armourOptions.indexOf(selArmour))
+    const curArmour = selArmour
+    const prevArmour = () => setSelArmour(armourOptions[(armourIdx - 1 + armourOptions.length) % armourOptions.length])
+    const nextArmour = () => setSelArmour(armourOptions[(armourIdx + 1) % armourOptions.length])
 
     const arenaNames = ['Spider Lair','Lava Cavern','Storm Peak']
 
@@ -2643,7 +2657,7 @@ export default function BossHunter() {
                   <div style={{fontSize:7,color:'#3a3020',lineHeight:1.8,marginBottom:10,fontFamily:'"Press Start 2P",monospace'}}>{selB.lore.slice(0,72)}&hellip;</div>
                   <div style={{display:'flex',gap:16,justifyContent:'center'}}>
                     <div style={{fontSize:7,color:'#605848'}}>HP <span style={{color:'#E74C3C'}}>{selB.hp.toLocaleString()}</span></div>
-                    <div style={{fontSize:7,color:'#605848'}}>GEAR <span style={{color:'#C89B3C'}}>{selB.rewards.filter(r=>unlockedGear.includes(r)).length}/{selB.rewards.length}</span></div>
+                    <div style={{fontSize:7,color:'#605848'}}>LOOT <span style={{color:'#C89B3C'}}>{selB.rewards.filter(r=>unlockedGear.includes(r)).length}/{selB.rewards.length}</span></div>
                   </div>
                 </div>
                 {dots(3, selBoss, selB.color)}
@@ -2658,57 +2672,56 @@ export default function BossHunter() {
             <div style={{fontSize:7,color:'#605848',letterSpacing:2,marginBottom:8,textAlign:'left'}}>◆ WEAPON</div>
             <div style={{display:'flex',alignItems:'center',gap:6}}>
               {navBtn(prevWeapon,'‹')}
-              <div key={selWeapon} className="bh-card-anim" style={{flex:1,background:'#0d0d14',border:`1px solid ${selW.color}44`,borderRadius:12,overflow:'hidden'}}>
-                <div style={{background:`radial-gradient(ellipse at 50% 80%, ${selW.color}28 0%, transparent 70%)`,padding:'20px 16px 12px',textAlign:'center'}}>
-                  <div style={{fontSize:64,lineHeight:1,marginBottom:8,filter:`drop-shadow(0 0 20px ${selW.color})`}}>{selW.icon}</div>
-                  <div style={{fontSize:10,color:selW.color,marginBottom:4,letterSpacing:1}}>{selW.name.toUpperCase()}</div>
-                  <div style={{fontSize:7,color:'#605848',marginBottom:10}}>{selW.element.toUpperCase()} &bull; DMG <span style={{color:'#C89B3C'}}>{selW.dmg}</span> &bull; RANGE <span style={{color:'#C89B3C'}}>{selW.range}</span></div>
-                  <div style={{fontSize:7,color:'#3a3020',lineHeight:1.8,marginBottom:10}}>{selW.desc.slice(0,64)}&hellip;</div>
+              <div key={selLW.id} className="bh-card-anim" style={{flex:1,background:'#0d0d14',border:`1px solid ${selLW.color}44`,borderRadius:12,overflow:'hidden'}}>
+                <div style={{background:`radial-gradient(ellipse at 50% 80%, ${selLW.color}28 0%, transparent 70%)`,padding:'20px 16px 12px',textAlign:'center'}}>
+                  <div style={{fontSize:64,lineHeight:1,marginBottom:8,filter:`drop-shadow(0 0 20px ${selLW.color})`}}>{selLW.icon}</div>
+                  <div style={{fontSize:10,color:selLW.color,marginBottom:4,letterSpacing:1}}>{selLW.name.toUpperCase()}</div>
+                  <div style={{fontSize:7,color:'#605848',marginBottom:10}}>{selWBase.element.toUpperCase()} &bull; DMG <span style={{color:'#C89B3C'}}>{selWBase.dmg}</span> &bull; RANGE <span style={{color:'#C89B3C'}}>{selWBase.range}</span></div>
+                  <div style={{fontSize:7,color:'#3a3020',lineHeight:1.8,marginBottom:10}}>{selLW.sub}{selLW.gear?'':' (starter)'}</div>
                   <div style={{display:'flex',gap:8,justifyContent:'center',flexWrap:'wrap'}}>
-                    {selW.abilities.map((ab,i)=>(
-                      <div key={i} style={{fontSize:6,color:'#605848'}}><span style={{color:selW.color}}>[{['Q','W','E','R'][i]}]</span> {ab.name}</div>
+                    {selWBase.abilities.map((ab,i)=>(
+                      <div key={i} style={{fontSize:6,color:'#605848'}}><span style={{color:selLW.color}}>[{['Q','W','E','R'][i]}]</span> {ab.name}</div>
                     ))}
                   </div>
                 </div>
-                {dots(3, weaponIdx, selW.color)}
+                {dots(availWeapons.length, selWIdx, selLW.color)}
                 <div style={{height:12}}/>
               </div>
               {navBtn(nextWeapon,'›')}
             </div>
           </div>
 
-          {/* ── GEAR ── */}
+          {/* ── ARMOUR ── */}
           <div style={{flex:'1 1 0',minWidth:240}}>
-            <div style={{fontSize:7,color:'#605848',letterSpacing:2,marginBottom:8,textAlign:'left'}}>◆ GEAR</div>
+            <div style={{fontSize:7,color:'#605848',letterSpacing:2,marginBottom:8,textAlign:'left'}}>◆ ARMOUR</div>
             <div style={{display:'flex',alignItems:'center',gap:6}}>
-              {navBtn(prevGear,'‹')}
-              <div key={currentGear??'none'} className="bh-card-anim" style={{flex:1,background:'#0d0d14',border:`1px solid ${currentGear?'#C89B3C44':'#1e1c18'}`,borderRadius:12,overflow:'hidden'}}>
-                {currentGear ? (() => {
-                  const g = GEAR_DEFS[currentGear]
-                  const cat = GEAR_CATEGORY[currentGear]
-                  const gc = cat==='attack'?'#E74C3C':'#3498DB'
+              {navBtn(prevArmour,'‹')}
+              <div key={curArmour??'none'} className="bh-card-anim" style={{flex:1,background:'#0d0d14',border:`1px solid ${curArmour?'#3498DB44':'#1e1c18'}`,borderRadius:12,overflow:'hidden'}}>
+                {curArmour ? (() => {
+                  const g = GEAR_DEFS[curArmour]
+                  const gc = '#3498DB'
                   return (
                     <div style={{background:`radial-gradient(ellipse at 50% 80%, ${gc}22 0%, transparent 70%)`,padding:'20px 16px 12px',textAlign:'center'}}>
                       <div style={{fontSize:56,lineHeight:1,marginBottom:8,filter:`drop-shadow(0 0 16px ${gc})`}}>{g.icon}</div>
                       <div style={{fontSize:9,color:'#E8E6E0',marginBottom:4}}>{g.name}</div>
-                      <div style={{fontSize:6,color:gc,marginBottom:8,letterSpacing:1}}>{cat.toUpperCase()} GEAR</div>
+                      <div style={{fontSize:6,color:gc,marginBottom:8,letterSpacing:1}}>ARMOUR</div>
                       <div style={{fontSize:7,color:'#3a3020',lineHeight:1.8}}>{g.desc}</div>
                     </div>
                   )
                 })() : (
                   <div style={{padding:'24px 16px',textAlign:'center'}}>
-                    <div style={{fontSize:40,marginBottom:8,opacity:0.2}}>⬡</div>
-                    <div style={{fontSize:8,color:'#3a3020',marginBottom:4}}>NO GEAR</div>
-                    {unlockedGear.length===0
+                    <div style={{fontSize:40,marginBottom:8,opacity:0.2}}>🛡️</div>
+                    <div style={{fontSize:8,color:'#3a3020',marginBottom:4}}>NO ARMOUR</div>
+                    {armourOptions.length<=1
                       ? <div style={{fontSize:6,color:'#2a2820'}}>defeat a boss to unlock</div>
                       : <div style={{fontSize:6,color:'#2a2820'}}>navigate to equip</div>
                     }
                   </div>
                 )}
-                {dots(gearOptions.length, gearIdx, '#C89B3C')}
+                {dots(armourOptions.length, armourIdx, '#3498DB')}
                 <div style={{height:12}}/>
               </div>
-              {navBtn(nextGear,'›')}
+              {navBtn(nextArmour,'›')}
             </div>
           </div>
 
@@ -2718,7 +2731,7 @@ export default function BossHunter() {
 
           <div style={{display:'flex',gap:12,justifyContent:'center'}}>
             <button onClick={()=>setScreen('menu')} style={{background:'#1a1a28',border:'1px solid #2a2820',color:'#A09880',padding:'10px 24px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>BACK</button>
-            <button onClick={()=>startGame(selWeapon,selBoss,gearForBoss(selBoss))} style={{background:'linear-gradient(135deg,#C89B3C,#8B6914)',border:'none',color:'#0d0d14',padding:'10px 32px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit',letterSpacing:1}}>
+            <button onClick={beginHunt} style={{background:'linear-gradient(135deg,#C89B3C,#8B6914)',border:'none',color:'#0d0d14',padding:'10px 32px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit',letterSpacing:1}}>
               ▶ START HUNT
             </button>
           </div>
@@ -2768,7 +2781,7 @@ export default function BossHunter() {
                 <div style={{display:'flex',alignItems:'flex-start',gap:10}}>
                   <span style={{fontSize:16}}>{GEAR_DEFS[gid].icon}</span>
                   <div>
-                    <div style={{fontSize:8,color:'#E8E6E0',marginBottom:2}}>{GEAR_DEFS[gid].name} <span style={{fontSize:7,color:cat==='attack'?'#E74C3C':'#3498DB'}}>[{cat.toUpperCase()}]</span></div>
+                    <div style={{fontSize:8,color:'#E8E6E0',marginBottom:2}}>{GEAR_DEFS[gid].name} <span style={{fontSize:7,color:cat==='attack'?'#E74C3C':'#3498DB'}}>[{cat==='attack'?'WEAPON':'ARMOUR'}]</span></div>
                     <div style={{fontSize:7,color:'#A09880'}}>{GEAR_DEFS[gid].desc}</div>
                   </div>
                 </div>
@@ -2794,7 +2807,7 @@ export default function BossHunter() {
             </div>
           )}
           <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap'}}>
-            <button onClick={() => startGame(selWeapon, selBoss, gearForBoss(selBoss))} style={{background:'#1a1a28',border:'1px solid #2a2820',color:'#A09880',padding:'10px 20px',borderRadius:6,fontSize:8,cursor:'pointer',fontFamily:'inherit'}}>REMATCH</button>
+            <button onClick={beginHunt} style={{background:'#1a1a28',border:'1px solid #2a2820',color:'#A09880',padding:'10px 20px',borderRadius:6,fontSize:8,cursor:'pointer',fontFamily:'inherit'}}>REMATCH</button>
             {victoryBoss < BOSS_DEFS.length - 1 && (
               <button onClick={() => setScreen('hunt_select')} style={{background:'linear-gradient(135deg,#27AE60,#1a6e3c)',border:'none',color:'#fff',padding:'10px 20px',borderRadius:6,fontSize:8,cursor:'pointer',fontFamily:'inherit'}}>
                 NEXT HUNT
@@ -2818,7 +2831,7 @@ export default function BossHunter() {
           Watch the boss telegraph &mdash; the glowing circles warn of incoming attacks.
         </div>
         <div style={{display:'flex',gap:10,justifyContent:'center'}}>
-          <button onClick={() => startGame(selWeapon, selBoss, gearForBoss(selBoss))} style={{background:'linear-gradient(135deg,#E74C3C,#922B21)',border:'none',color:'#fff',padding:'10px 24px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>TRY AGAIN</button>
+          <button onClick={beginHunt} style={{background:'linear-gradient(135deg,#E74C3C,#922B21)',border:'none',color:'#fff',padding:'10px 24px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>TRY AGAIN</button>
           <button onClick={() => setScreen('menu')} style={{background:'#1a1a28',border:'1px solid #2a2820',color:'#A09880',padding:'10px 20px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>MENU</button>
         </div>
       </div>
