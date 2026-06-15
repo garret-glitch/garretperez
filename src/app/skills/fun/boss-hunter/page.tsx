@@ -110,7 +110,7 @@ interface Projectile {
   id: number; pos: V2; vel: V2; dmg: number; radius: number
   fromBoss: boolean; life: number; color: string
   aoe?: number; poison?: boolean; isWeb?: boolean
-  isPowerShot?: boolean; isFireball?: boolean; isLightning?: boolean; isFeather?: boolean
+  isPowerShot?: boolean; isFireball?: boolean; isLightning?: boolean; isFeather?: boolean; isVenom?: boolean
   trail?: V2[]
 }
 interface BossAttack { type: string; telegraphTime: number; elapsed: number; active: boolean; data: AttackData }
@@ -823,9 +823,10 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
       if (isRangedAtk) {
         const dir = v(Math.cos(atkAngle), Math.sin(atkAngle))
         const isStorm = gear.includes('storm_bow')
-        const projColor = wpn.id === 'staff' ? '#9B59B6' : gear.includes('venom_bow') ? '#9B59B6' : isStorm ? '#7DFFB0' : '#27AE60'
+        const isVenom = gear.includes('venom_bow')
+        const projColor = wpn.id === 'staff' ? '#9B59B6' : isVenom ? '#9B59B6' : isStorm ? '#7DFFB0' : '#27AE60'
         const projSpeed = wpn.id === 'staff' ? 380 : 440
-        g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * projSpeed, dir.y * projSpeed), dmg: wpn.dmg, radius: 6, fromBoss: false, life: 4.0, color: projColor, aoe: isStorm ? 40 : undefined, isLightning: isStorm, trail: [] })
+        g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * projSpeed, dir.y * projSpeed), dmg: wpn.dmg, radius: 6, fromBoss: false, life: 4.0, color: projColor, aoe: isStorm ? 40 : undefined, isLightning: isStorm, isVenom, trail: [] })
         if (wpn.id === 'staff') Sfx.cast(); else Sfx.shot()
       } else {
         // melee: damage is deferred — it only lands when the blade sweeps through the target (see meleeHit)
@@ -1917,7 +1918,7 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
       const rr = 24+prog*70; ctx.strokeStyle=af.color; ctx.lineWidth=5-prog*3; ctx.shadowColor=af.color; ctx.shadowBlur=16
       ctx.beginPath(); ctx.arc(28,0,rr*0.5,0,Math.PI*2); ctx.stroke()
       ctx.globalAlpha=alpha*0.35; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(28,0,rr,0,Math.PI*2); ctx.stroke()
-    } else if (af.type === 'shot' && wid !== 'storm_bow') {
+    } else if (af.type === 'shot' && wid !== 'storm_bow' && wid !== 'venom_bow') {
       const len = 32+prog*45; ctx.strokeStyle=af.color; ctx.lineWidth=3; ctx.shadowColor=af.color; ctx.shadowBlur=10
       ctx.beginPath(); ctx.moveTo(18,0); ctx.lineTo(18+len,0); ctx.stroke()
     }
@@ -2200,10 +2201,47 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
     ctx.fillStyle=hw?'#FFF':`rgba(220,170,255,${ap*0.6})`
     ctx.beginPath(); ctx.arc(54,0,4,0,Math.PI*2); ctx.fill()
   } else if (wid === 'venom_bow') {
-    ctx.strokeStyle=hw?'#FFF':'#9B59B6'; ctx.shadowColor='#8E44AD'; ctx.shadowBlur=12; ctx.lineWidth=2.8
-    ctx.beginPath(); ctx.arc(22,0,16,-Math.PI*0.65,Math.PI*0.65); ctx.stroke()
-    ctx.strokeStyle='rgba(200,150,255,0.5)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(22+16*Math.cos(-Math.PI*0.65),16*Math.sin(-Math.PI*0.65)); ctx.lineTo(22+16*Math.cos(Math.PI*0.65),16*Math.sin(Math.PI*0.65)); ctx.stroke()
-    ctx.strokeStyle='#C39BD3'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(18,0); ctx.lineTo(34,0); ctx.stroke()
+    // ── VENOM BOW — organic thorned bow that drips toxin; nocks, draws and looses a venom arrow ──
+    const hum = 0.5 + 0.5 * Math.sin(t * 6)
+    const bx = 16, limb = 19
+    const draw = clamp(1 - p.atkTimer / 0.44, 0, 1)
+    const release = clamp((p.atkTimer - 0.30) / 0.14, 0, 1)
+    const drawD = 3 + draw * 16, charge = draw, nockX = bx - drawD
+    const col = hw ? '#FFF' : '#8E44AD'
+    // thorned limbs (recurve, with barbs)
+    ctx.shadowColor = '#7D3C98'; ctx.shadowBlur = 10 + hum * 6; ctx.strokeStyle = col; ctx.lineWidth = 3.2; ctx.lineCap = 'round'
+    ctx.beginPath(); ctx.moveTo(9, 0); ctx.quadraticCurveTo(bx + 6, -limb * 0.5, bx, -limb); ctx.moveTo(9, 0); ctx.quadraticCurveTo(bx + 6, limb * 0.5, bx, limb); ctx.stroke()
+    // barbs along the limbs
+    ctx.lineWidth = 1.6; ctx.strokeStyle = hw ? '#FFF' : '#6A2C84'
+    for (const sd of [-1, 1]) for (let k = 1; k <= 3; k++) { const yy = sd * limb * (k / 3.4); const xx = bx + 5 - 5 * (k / 3.4); ctx.beginPath(); ctx.moveTo(xx, yy); ctx.lineTo(xx + 5, yy + sd * 4); ctx.stroke() }
+    // grip
+    ctx.lineCap = 'round'; ctx.strokeStyle = hw ? '#FFF' : '#3a1d49'; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(8, -5); ctx.lineTo(8, 5); ctx.stroke(); ctx.lineCap = 'butt'
+    // sickly green-purple string
+    ctx.strokeStyle = `rgba(170,210,90,${0.7 + hum * 0.3})`; ctx.lineWidth = 1.6; ctx.shadowColor = '#9ACD00'; ctx.shadowBlur = 6
+    ctx.beginPath(); ctx.moveTo(bx, -limb); ctx.lineTo(nockX, 0); ctx.lineTo(bx, limb); ctx.stroke()
+    // venom dripping from the limbs (idle + drawn)
+    for (const sd of [-1, 1]) { const dy = sd * limb + Math.sin(t * 3 + sd) * 2 + 4 + charge * 3; ctx.fillStyle = `rgba(140,200,20,${0.4 + 0.3 * Math.sin(t * 4 + sd)})`; ctx.beginPath(); ctx.ellipse(bx - 1, dy, 1.8, 3, 0, 0, Math.PI * 2); ctx.fill() }
+    // nocked venom arrow, drawn back
+    if (charge > 0.25 && release < 0.4) {
+      ctx.save(); ctx.globalAlpha = Math.min(1, charge * 1.3)
+      ctx.strokeStyle = '#7D3C98'; ctx.lineWidth = 2.3; ctx.shadowColor = '#8E44AD'; ctx.shadowBlur = 10
+      const aLen = 26; ctx.beginPath(); ctx.moveTo(nockX, 0); ctx.lineTo(nockX + aLen, 0); ctx.stroke()
+      ctx.fillStyle = '#9ACD00'; ctx.shadowColor = '#7FBA00'; ctx.shadowBlur = 12
+      ctx.beginPath(); ctx.moveTo(nockX + aLen + 4, 0); ctx.lineTo(nockX + aLen - 4, -4); ctx.lineTo(nockX + aLen - 1, 0); ctx.lineTo(nockX + aLen - 4, 4); ctx.closePath(); ctx.fill()
+      ctx.restore()
+    }
+    // toxic glob gathering at the nock
+    if (charge > 0.45) {
+      ctx.save(); ctx.globalAlpha = (charge - 0.45) / 0.55; ctx.fillStyle = '#B6E61A'; ctx.shadowColor = '#7FBA00'; ctx.shadowBlur = 14
+      ctx.beginPath(); ctx.arc(nockX, 0, 2 + charge * 3, 0, Math.PI * 2); ctx.fill(); ctx.restore()
+    }
+    // release: venom splash burst + arrow streak
+    if (release > 0) {
+      ctx.save(); ctx.globalAlpha = release; ctx.strokeStyle = '#B6E61A'; ctx.lineWidth = 2.6; ctx.shadowColor = '#7FBA00'; ctx.shadowBlur = 16
+      ctx.beginPath(); ctx.moveTo(bx, 0); ctx.lineTo(bx + 28 + (1 - release) * 46, 0); ctx.stroke()
+      for (let k = 0; k < 6; k++) { const a = k * 1.05 + 0.2; ctx.fillStyle = `rgba(150,205,0,${release})`; ctx.beginPath(); ctx.arc(bx + Math.cos(a) * 11, Math.sin(a) * 11, 2, 0, Math.PI * 2); ctx.fill() }
+      ctx.restore()
+    }
   } else if (wid === 'storm_bow') {
     // ── STORM BOW — recurve storm bow that nocks, draws, and releases a lightning arrow ──
     const hum = 0.5 + 0.5 * Math.sin(t * 9)
@@ -2424,6 +2462,22 @@ function renderProjectiles(ctx: CanvasRenderingContext2D, g: GS, t: number) {
       ctx.strokeStyle='rgba(120,225,255,0.7)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(-12,0); ctx.lineTo(-4,3); ctx.lineTo(4,-3); ctx.lineTo(16,0); ctx.stroke()
       // arrowhead
       ctx.fillStyle='#FFFFFF'; ctx.beginPath(); ctx.moveTo(16,0); ctx.lineTo(10,-4); ctx.lineTo(10,4); ctx.closePath(); ctx.fill()
+      ctx.restore()
+    } else if (proj.isVenom) {
+      const av=Math.atan2(proj.vel.y,proj.vel.x)
+      ctx.save(); ctx.translate(proj.pos.x,proj.pos.y); ctx.rotate(av)
+      ctx.shadowColor='#8E44AD'; ctx.shadowBlur=12
+      // purple shaft
+      ctx.strokeStyle='#7D3C98'; ctx.lineWidth=2.4; ctx.beginPath(); ctx.moveTo(-12,0); ctx.lineTo(8,0); ctx.stroke()
+      // fletching
+      ctx.strokeStyle='#C39BD3'; ctx.lineWidth=1.5
+      ctx.beginPath(); ctx.moveTo(-12,0); ctx.lineTo(-16,-3); ctx.moveTo(-12,0); ctx.lineTo(-16,3); ctx.stroke()
+      // barbed venom head (toxic green)
+      ctx.fillStyle='#9ACD00'; ctx.shadowColor='#7FBA00'; ctx.shadowBlur=14
+      ctx.beginPath(); ctx.moveTo(16,0); ctx.lineTo(7,-5); ctx.lineTo(10,0); ctx.lineTo(7,5); ctx.closePath(); ctx.fill()
+      // dripping venom glob
+      ctx.fillStyle=`rgba(127,186,0,${0.6+0.4*Math.sin(proj.life*18)})`
+      ctx.beginPath(); ctx.arc(11,4+Math.sin(proj.life*14)*1.5,2,0,Math.PI*2); ctx.fill()
       ctx.restore()
     } else if (proj.isFeather) {
       const a4=Math.atan2(proj.vel.y,proj.vel.x)
