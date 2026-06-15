@@ -999,7 +999,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
     }
     if (!proj.fromBoss && dist(proj.pos, b.pos) < proj.radius + bossDef.size) {
       dealDmgToBoss(g, proj.dmg, gear)
-      if (proj.isPowerShot) { b.stunTimer = Math.max(b.stunTimer, 0.7); spawnParticles(g, proj.pos, 22, '#F1C40F', 280); g.screenShake = Math.max(g.screenShake, 0.5) }
+      if (proj.isPowerShot) { b.stunTimer = Math.max(b.stunTimer, 0.7); spawnParticles(g, proj.pos, 22, proj.color, 280); g.screenShake = Math.max(g.screenShake, 0.5) }
       if (proj.aoe && proj.isLightning) { spawnParticles(g, proj.pos, 14, '#7DFFB0', 180); g.screenShake = Math.max(g.screenShake, 0.22); if (dist(b.pos, proj.pos) < proj.aoe) dealDmgToBoss(g, 30, gear) }
       if (proj.isFireball && proj.aoe) { spawnParticles(g, proj.pos, 24, '#FF4500', 240); spawnParticles(g, proj.pos, 12, '#F1C40F', 160); g.screenShake = Math.max(g.screenShake, 0.4); if (dist(b.pos, proj.pos) < proj.aoe) dealDmgToBoss(g, 50, gear) }
       spawnParticles(g, proj.pos, 6, proj.color, 100); return false
@@ -1176,9 +1176,10 @@ function activateAbility(g: GS, idx: number, wpn: WeaponDef, gear: GearId[], abi
   if (wpn.id === 'bow') {
     if (idx === 0) { // Power Shot
       const dir = norm(v(abilityTarget.x - p.pos.x, abilityTarget.y - p.pos.y))
-      g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * 560, dir.y * 560), dmg: wpn.dmg * 3, radius: 14, fromBoss: false, life: 4.0, color: '#F1C40F', isPowerShot: true, trail: [] })
-      spawnParticles(g, p.pos, 18, '#F1C40F', 200)
-      g.attackFlash = { angle: Math.atan2((abilityTarget.y - p.pos.y), (abilityTarget.x - p.pos.x)), timer: 0.4, maxTimer: 0.4, type: 'power_shot', color: '#F1C40F' }
+      const ps = gear.includes('storm_bow') ? '#5fe0ff' : gear.includes('venom_bow') ? '#9B59B6' : '#F1C40F'
+      g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * 560, dir.y * 560), dmg: wpn.dmg * 3, radius: 14, fromBoss: false, life: 4.0, color: ps, isPowerShot: true, trail: [] })
+      spawnParticles(g, p.pos, 18, ps, 200)
+      g.attackFlash = { angle: Math.atan2((abilityTarget.y - p.pos.y), (abilityTarget.x - p.pos.x)), timer: 0.4, maxTimer: 0.4, type: 'power_shot', color: ps }
     } else if (idx === 1) { // Trap
       g.slowTraps.push({ id: ++g.nextTrapId, pos: { ...abilityTarget }, life: 20.0, fromPlayer: true })
       if (dist(b.pos, abilityTarget) < BOSS_DEFS[bossId].size + 22) { dealDmgToBoss(g, 110, gear); b.slowTimer = 3.0 }
@@ -1903,10 +1904,10 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
     const af = g.attackFlash, prog = 1 - af.timer/af.maxTimer, alpha = 1-prog
     ctx.save(); ctx.translate(p.pos.x, p.pos.y); ctx.rotate(af.angle); ctx.globalAlpha = alpha*0.9
     if (af.type === 'power_shot') {
-      ctx.shadowColor = '#F1C40F'; ctx.shadowBlur = 24
-      ctx.strokeStyle = '#F1C40F'; ctx.lineWidth = 5+alpha*4
+      ctx.shadowColor = af.color; ctx.shadowBlur = 24
+      ctx.strokeStyle = af.color; ctx.lineWidth = 5+alpha*4
       ctx.beginPath(); ctx.moveTo(18,0); ctx.lineTo(18+(60+prog*50),0); ctx.stroke()
-      ctx.strokeStyle = 'rgba(255,255,150,0.5)'; ctx.lineWidth = 12
+      ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 12
       ctx.beginPath(); ctx.moveTo(18,0); ctx.lineTo(18+(35+prog*30),0); ctx.stroke()
     } else if (af.type==='shadow') {
       const r2 = 52+prog*22, arc = 1.3
@@ -1916,7 +1917,7 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
       const rr = 24+prog*70; ctx.strokeStyle=af.color; ctx.lineWidth=5-prog*3; ctx.shadowColor=af.color; ctx.shadowBlur=16
       ctx.beginPath(); ctx.arc(28,0,rr*0.5,0,Math.PI*2); ctx.stroke()
       ctx.globalAlpha=alpha*0.35; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(28,0,rr,0,Math.PI*2); ctx.stroke()
-    } else if (af.type === 'shot') {
+    } else if (af.type === 'shot' && wid !== 'storm_bow') {
       const len = 32+prog*45; ctx.strokeStyle=af.color; ctx.lineWidth=3; ctx.shadowColor=af.color; ctx.shadowBlur=10
       ctx.beginPath(); ctx.moveTo(18,0); ctx.lineTo(18+len,0); ctx.stroke()
     }
@@ -2204,11 +2205,48 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
     ctx.strokeStyle='rgba(200,150,255,0.5)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(22+16*Math.cos(-Math.PI*0.65),16*Math.sin(-Math.PI*0.65)); ctx.lineTo(22+16*Math.cos(Math.PI*0.65),16*Math.sin(Math.PI*0.65)); ctx.stroke()
     ctx.strokeStyle='#C39BD3'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(18,0); ctx.lineTo(34,0); ctx.stroke()
   } else if (wid === 'storm_bow') {
-    const ep=0.5+0.5*Math.sin(t*9)
-    ctx.strokeStyle=hw?'#FFF':`rgba(100,220,255,${0.8+ep*0.2})`; ctx.shadowColor='#00CCFF'; ctx.shadowBlur=14+ep*8; ctx.lineWidth=2.5
-    ctx.beginPath(); ctx.arc(22,0,16,-Math.PI*0.65,Math.PI*0.65); ctx.stroke()
-    ctx.strokeStyle='rgba(150,240,255,0.5)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(22+16*Math.cos(-Math.PI*0.65),16*Math.sin(-Math.PI*0.65)); ctx.lineTo(22+16*Math.cos(Math.PI*0.65),16*Math.sin(Math.PI*0.65)); ctx.stroke()
-    ctx.strokeStyle='#7DFFB0'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(18,0); ctx.lineTo(34,0); ctx.stroke()
+    // ── STORM BOW — recurve storm bow that nocks, draws, and releases a lightning arrow ──
+    const hum = 0.5 + 0.5 * Math.sin(t * 9)
+    const bx = 16, limb = 20
+    // draw cycle from the attack cooldown: 0 just-fired (relaxed) -> 1 fully drawn (ready)
+    const draw = clamp(1 - p.atkTimer / 0.44, 0, 1)
+    const release = clamp((p.atkTimer - 0.30) / 0.14, 0, 1)   // 1 right after a shot -> 0
+    const drawD = 3 + draw * 16, charge = draw, nockX = bx - drawD
+    const col = hw ? '#FFF' : '#5fe0ff'
+    // recurve limbs
+    ctx.shadowColor = '#00CCFF'; ctx.shadowBlur = 12 + hum * 8; ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.lineCap = 'round'
+    ctx.beginPath(); ctx.moveTo(9, 0); ctx.quadraticCurveTo(bx + 5, -limb * 0.55, bx, -limb); ctx.moveTo(9, 0); ctx.quadraticCurveTo(bx + 5, limb * 0.55, bx, limb); ctx.stroke()
+    ctx.lineWidth = 2.4; ctx.beginPath(); ctx.moveTo(bx, -limb); ctx.quadraticCurveTo(bx - 5, -limb - 4, bx - 8, -limb - 1); ctx.moveTo(bx, limb); ctx.quadraticCurveTo(bx - 5, limb + 4, bx - 8, limb + 1); ctx.stroke()
+    // grip
+    ctx.strokeStyle = hw ? '#FFF' : '#14323f'; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(8, -5); ctx.lineTo(8, 5); ctx.stroke(); ctx.lineCap = 'butt'
+    // lightning crackle across the limbs while charged
+    if (charge > 0.35) {
+      ctx.strokeStyle = `rgba(170,240,255,${charge * 0.75})`; ctx.lineWidth = 1.3; ctx.shadowColor = '#AEE4FF'; ctx.shadowBlur = 10
+      ctx.beginPath(); ctx.moveTo(bx, -limb); for (let k = 1; k <= 5; k++) ctx.lineTo(bx - 4 + Math.sin(t * 40 + k * 2) * 4 * charge, -limb + 2 * limb * (k / 5)); ctx.stroke()
+    }
+    // electric string (V when drawn)
+    ctx.strokeStyle = `rgba(220,250,255,${0.7 + hum * 0.3})`; ctx.lineWidth = 1.6; ctx.shadowColor = '#CFF6FF'; ctx.shadowBlur = 8
+    ctx.beginPath(); ctx.moveTo(bx, -limb); ctx.lineTo(nockX, 0); ctx.lineTo(bx, limb); ctx.stroke()
+    // nocked lightning arrow, drawn back with the string
+    if (charge > 0.25 && release < 0.4) {
+      ctx.save(); ctx.globalAlpha = Math.min(1, charge * 1.3)
+      ctx.strokeStyle = '#EAFBFF'; ctx.lineWidth = 2.3; ctx.shadowColor = '#5fe0ff'; ctx.shadowBlur = 12
+      const aLen = 26
+      ctx.beginPath(); ctx.moveTo(nockX, 0); ctx.lineTo(nockX + aLen * 0.35, -3); ctx.lineTo(nockX + aLen * 0.62, 2.5); ctx.lineTo(nockX + aLen, 0); ctx.stroke()
+      ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.moveTo(nockX + aLen, 0); ctx.lineTo(nockX + aLen - 6, -4); ctx.lineTo(nockX + aLen - 6, 4); ctx.closePath(); ctx.fill(); ctx.restore()
+    }
+    // charge orb gathering at the nock
+    if (charge > 0.45) {
+      ctx.save(); ctx.globalAlpha = (charge - 0.45) / 0.55; ctx.fillStyle = '#FFFFFF'; ctx.shadowColor = '#AEE4FF'; ctx.shadowBlur = 16
+      ctx.beginPath(); ctx.arc(nockX, 0, 2 + charge * 3, 0, Math.PI * 2); ctx.fill(); ctx.restore()
+    }
+    // release: forward streak + spark burst
+    if (release > 0) {
+      ctx.save(); ctx.globalAlpha = release; ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 3; ctx.shadowColor = '#5fe0ff'; ctx.shadowBlur = 20
+      ctx.beginPath(); ctx.moveTo(bx, 0); ctx.lineTo(bx + 32 + (1 - release) * 50, 0); ctx.stroke()
+      for (let k = 0; k < 5; k++) { const a = k * 1.25 + 0.3; ctx.beginPath(); ctx.moveTo(bx, 0); ctx.lineTo(bx + Math.cos(a) * 12, Math.sin(a) * 12); ctx.stroke() }
+      ctx.restore()
+    }
   } else if (wid === 'bow') {
     ctx.strokeStyle=hw?'#FFF':'#2ECC71'; ctx.shadowColor='#2ECC71'; ctx.shadowBlur=8; ctx.lineWidth=2.5
     ctx.beginPath(); ctx.arc(20,0,14,-Math.PI*0.6,Math.PI*0.6); ctx.stroke()
@@ -2368,16 +2406,24 @@ function renderProjectiles(ctx: CanvasRenderingContext2D, g: GS, t: number) {
     if (proj.isPowerShot) {
       const a = Math.atan2(proj.vel.y,proj.vel.x)
       ctx.save(); ctx.translate(proj.pos.x,proj.pos.y); ctx.rotate(a)
-      ctx.fillStyle='#F1C40F'; ctx.beginPath(); ctx.moveTo(-20,-5); ctx.lineTo(10,-5); ctx.lineTo(10,-10); ctx.lineTo(24,0); ctx.lineTo(10,10); ctx.lineTo(10,5); ctx.lineTo(-20,5); ctx.closePath(); ctx.fill()
-      ctx.strokeStyle='#FFEE88'; ctx.lineWidth=1; ctx.stroke(); ctx.restore()
+      ctx.fillStyle=proj.color; ctx.beginPath(); ctx.moveTo(-20,-5); ctx.lineTo(10,-5); ctx.lineTo(10,-10); ctx.lineTo(24,0); ctx.lineTo(10,10); ctx.lineTo(10,5); ctx.lineTo(-20,5); ctx.closePath(); ctx.fill()
+      ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=1; ctx.stroke(); ctx.restore()
     } else if (proj.isFireball) {
       ctx.fillStyle=proj.color; ctx.beginPath(); ctx.arc(proj.pos.x,proj.pos.y,proj.radius,0,Math.PI*2); ctx.fill()
       ctx.fillStyle='rgba(255,200,50,0.7)'; ctx.beginPath(); ctx.arc(proj.pos.x,proj.pos.y,proj.radius*0.5,0,Math.PI*2); ctx.fill()
     } else if (proj.isLightning) {
       const a2=Math.atan2(proj.vel.y,proj.vel.x)
       ctx.save(); ctx.translate(proj.pos.x,proj.pos.y); ctx.rotate(a2)
-      ctx.strokeStyle='#7DFFB0'; ctx.lineWidth=3
-      ctx.beginPath(); ctx.moveTo(-8,0); ctx.lineTo(0,-5); ctx.lineTo(5,0); ctx.lineTo(12,-4); ctx.lineTo(18,0); ctx.stroke()
+      // glowing core
+      ctx.fillStyle='rgba(180,245,255,0.9)'; ctx.shadowColor='#00CCFF'; ctx.shadowBlur=18
+      ctx.beginPath(); ctx.arc(0,0,3.5,0,Math.PI*2); ctx.fill()
+      // white-hot jagged bolt body
+      ctx.strokeStyle='#FFFFFF'; ctx.lineWidth=2.4; ctx.shadowBlur=14
+      ctx.beginPath(); ctx.moveTo(-12,0); ctx.lineTo(-5,-4); ctx.lineTo(2,2); ctx.lineTo(9,-3); ctx.lineTo(16,0); ctx.stroke()
+      // cyan crackle strand
+      ctx.strokeStyle='rgba(120,225,255,0.7)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(-12,0); ctx.lineTo(-4,3); ctx.lineTo(4,-3); ctx.lineTo(16,0); ctx.stroke()
+      // arrowhead
+      ctx.fillStyle='#FFFFFF'; ctx.beginPath(); ctx.moveTo(16,0); ctx.lineTo(10,-4); ctx.lineTo(10,4); ctx.closePath(); ctx.fill()
       ctx.restore()
     } else if (proj.isFeather) {
       const a4=Math.atan2(proj.vel.y,proj.vel.x)
