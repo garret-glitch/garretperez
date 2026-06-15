@@ -167,6 +167,7 @@ interface PlayerState {
   webTrapPlaced: boolean; dodgeChargeMode: boolean; facing: number
   gearHitCount: number; webProcCd: number
   shadowDashTrail: Array<{ pos: V2; a: number }>
+  walkPhase: number; moving: boolean
 }
 interface BossState {
   pos: V2; hp: number; maxHp: number; stunTimer: number; slowTimer: number
@@ -304,6 +305,7 @@ function mkState(wpn: WeaponDef, boss: BossDef, gear: GearId[]): GS {
       featherCharges: featherMode ? 3 : 1, featherRecharge: featherMode ? [0, 0, 0] : [0],
       webTrapPlaced: false, dodgeChargeMode: featherMode, facing: -Math.PI / 2,
       gearHitCount: 0, webProcCd: 0, shadowDashTrail: [],
+      walkPhase: 0, moving: false,
     },
     boss: {
       pos: v(WW / 2, 350), hp: boss.hp, maxHp: boss.hp,
@@ -782,6 +784,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   // Player movement
   const speedMult = (p.slowTimer > 0 ? 0.45 : 1) * (wpn.id === 'staff' ? 1.15 : 1)   // mages get a small kiting bonus
   const speed = 170 * speedMult
+  p.moving = false
   if (!p.dodgeTimer && !g.bullChargeDash.active && !g.whirlwindActive && p.targetPos) {
     const d2t = dist(p.pos, p.targetPos)
     if (d2t > 4) {
@@ -789,8 +792,10 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
       const ms = speed * dt
       p.pos.x = clamp(p.pos.x + dir.x * Math.min(ms, d2t), 20, WW - 20)
       p.pos.y = clamp(p.pos.y + dir.y * Math.min(ms, d2t), 20, WH - 20)
+      p.moving = true; p.walkPhase += dt * 14
     } else { p.targetPos = null }
   }
+  if (p.dodgeTimer > 0 || g.bullChargeDash.active) { p.moving = true; p.walkPhase += dt * 20 }
 
   // Knockback
   if (Math.hypot(p.knockbackVel.x, p.knockbackVel.y) > 1) {
@@ -1983,6 +1988,8 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
   }
 
   ctx.save(); ctx.translate(p.pos.x, p.pos.y)
+  // ground shadow under the character
+  ctx.save(); ctx.shadowBlur = 0; ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.beginPath(); ctx.ellipse(0, 13, 13, 4.5, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore()
   if (p.hitFlash>0) { ctx.shadowColor='#FF0000'; ctx.shadowBlur=24 } else { ctx.shadowColor=wpn.color; ctx.shadowBlur=14 }
 
   if (g.whirlwindActive) {
@@ -2000,21 +2007,73 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
   }
 
   const hw = p.hitFlash>0&&Math.sin(p.hitFlash*80)>0
-  const bodyGr = ctx.createRadialGradient(-3,-3,0,0,0,16)
-  if (wpn.element==='lightning') {
-    bodyGr.addColorStop(0,hw?'#FFF':'#A9DFBF'); bodyGr.addColorStop(0.5,hw?'#FFF':'#27AE60'); bodyGr.addColorStop(1,hw?'#FFF':'#1A6E3C')
-    ctx.fillStyle = bodyGr; ctx.beginPath(); ctx.arc(0,0,15,0,Math.PI*2); ctx.fill()
-    if (Math.sin(t*12)>0.65) { ctx.strokeStyle='#7DFFB0'; ctx.lineWidth=1.5; ctx.globalAlpha=0.75; ctx.beginPath(); ctx.moveTo(-6,-10); ctx.lineTo(0,-2); ctx.lineTo(4,-8); ctx.stroke(); ctx.globalAlpha=1 }
-  } else if (wpn.element==='arcane') {
-    bodyGr.addColorStop(0,hw?'#FFF':'#D7BDE2'); bodyGr.addColorStop(0.5,hw?'#FFF':'#9B59B6'); bodyGr.addColorStop(1,hw?'#FFF':'#4A235A')
-    ctx.fillStyle = bodyGr; ctx.beginPath(); ctx.arc(0,0,15,0,Math.PI*2); ctx.fill()
-    if (Math.sin(t*9)>0.6) { ctx.strokeStyle='#CE9EE8'; ctx.lineWidth=1.5; ctx.globalAlpha=0.7; ctx.beginPath(); ctx.arc(0,0,18,0,Math.PI*2); ctx.stroke(); ctx.globalAlpha=1 }
-  } else {
-    bodyGr.addColorStop(0,hw?'#FFF':'#F1948A'); bodyGr.addColorStop(0.5,hw?'#FFF':'#E74C3C'); bodyGr.addColorStop(1,hw?'#FFF':'#7B241C')
-    ctx.fillStyle = bodyGr; ctx.beginPath(); ctx.arc(0,0,16,0,Math.PI*2); ctx.fill()
-  }
 
   ctx.save(); ctx.rotate(facing)
+  // ── CHARACTER (top-down adventurer, facing +x) ──
+  {
+    const el = wpn.element
+    const robeMid = hw?'#FFF':(el==='lightning'?'#27AE60':el==='arcane'?'#9B59B6':'#E74C3C')
+    const robeDk  = hw?'#EEE':(el==='lightning'?'#1A6E3C':el==='arcane'?'#4A235A':'#7B241C')
+    const robeLt  = hw?'#FFF':(el==='lightning'?'#A9DFBF':el==='arcane'?'#D7BDE2':'#F1948A')
+    const armour = gear.includes('ember_armor')?'ember':gear.includes('web_amulet')?'web':gear.includes('feather_boots')?'feather':null
+    const cloakCol = hw?'#EEE':(armour==='ember'?'#7a1d12':armour==='web'?'#3b1560':armour==='feather'?'#c2ccdd':robeDk)
+    const wp = p.walkPhase
+    const stride = p.moving ? Math.sin(wp)*5 : 0
+    const bob = p.moving ? Math.abs(Math.sin(wp*0.5))*1.4 : Math.sin(t*2)*0.5
+    ctx.translate(0, -bob)
+    // cloak behind
+    const sway = Math.sin(wp)*3
+    ctx.fillStyle = cloakCol
+    ctx.beginPath(); ctx.moveTo(-3,-9); ctx.quadraticCurveTo(-16,-13+sway,-24,-12+sway); ctx.lineTo(-21,sway*0.4); ctx.lineTo(-24,12-sway); ctx.quadraticCurveTo(-16,13-sway,-3,9); ctx.closePath(); ctx.fill()
+    ctx.fillStyle='rgba(0,0,0,0.18)'; ctx.beginPath(); ctx.moveTo(-3,-7); ctx.lineTo(-18,sway*0.3); ctx.lineTo(-3,7); ctx.closePath(); ctx.fill()
+    if (armour==='web'){ ctx.strokeStyle='rgba(200,160,255,0.4)'; ctx.lineWidth=0.8; for(let i=1;i<=3;i++){ctx.beginPath(); ctx.moveTo(-3,-9*i/3); ctx.lineTo(-22,-10*i/3+sway); ctx.stroke()} ctx.beginPath(); ctx.moveTo(-10,-6); ctx.lineTo(-10,6); ctx.moveTo(-16,-7); ctx.lineTo(-16,7); ctx.stroke() }
+    // boots (striding)
+    for (const side of [-1,1]) { const lx=-2+(side===-1?stride:-stride); ctx.fillStyle=hw?'#DDD':'#33231a'; ctx.beginPath(); ctx.ellipse(lx, side*6.5, 4, 2.6, 0,0,Math.PI*2); ctx.fill() }
+    // torso / robe
+    const bg = ctx.createRadialGradient(-3,-3,0,0,0,16)
+    bg.addColorStop(0,robeLt); bg.addColorStop(0.55,robeMid); bg.addColorStop(1,robeDk)
+    ctx.fillStyle=bg; ctx.beginPath(); ctx.ellipse(0,0,13.5,14.5,0,0,Math.PI*2); ctx.fill()
+    ctx.strokeStyle='rgba(0,0,0,0.28)'; ctx.lineWidth=2.4; ctx.beginPath(); ctx.moveTo(-9,4.5); ctx.lineTo(9,4.5); ctx.stroke()
+    ctx.strokeStyle=hw?'#FFF':'#caa84a'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(-9,4.5); ctx.lineTo(9,4.5); ctx.stroke()
+    if (el==='lightning'&&Math.sin(t*12)>0.6){ ctx.strokeStyle='#7DFFB0'; ctx.lineWidth=1.4; ctx.globalAlpha=0.7; ctx.beginPath(); ctx.moveTo(-5,-9); ctx.lineTo(0,-3); ctx.lineTo(4,-8); ctx.stroke(); ctx.globalAlpha=1 }
+    else if (el==='arcane'&&Math.sin(t*9)>0.6){ ctx.strokeStyle='#CE9EE8'; ctx.lineWidth=1.3; ctx.globalAlpha=0.55; ctx.beginPath(); ctx.arc(0,0,17,0,Math.PI*2); ctx.stroke(); ctx.globalAlpha=1 }
+    // arms
+    ctx.strokeStyle=robeMid; ctx.lineWidth=4; ctx.lineCap='round'
+    ctx.beginPath(); ctx.moveTo(3,-8); ctx.lineTo(11,-5); ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(3,8); ctx.lineTo(9,6); ctx.stroke(); ctx.lineCap='butt'
+    // head
+    const skin = hw?'#FFF':'#E8B98C'
+    ctx.fillStyle=skin; ctx.beginPath(); ctx.arc(5,0,6.5,0,Math.PI*2); ctx.fill()
+    ctx.fillStyle=hw?'#DDD':'#3a2718'; ctx.beginPath(); ctx.arc(3.5,0,6.5,Math.PI*0.45,Math.PI*1.55); ctx.fill()
+    // ── armour overlays ──
+    if (armour==='ember'){
+      ctx.shadowColor='#FF6A1A'; ctx.shadowBlur=6; ctx.fillStyle=hw?'#FFF':'#c0392b'
+      for (const side of [-1,1]){ ctx.beginPath(); ctx.ellipse(2, side*9.5, 5.2, 4, side*0.35, 0, Math.PI*2); ctx.fill() }
+      ctx.shadowBlur=0
+      ctx.fillStyle=hw?'#EEE':'#a93226'; ctx.beginPath(); ctx.ellipse(-1,-1,7.5,8.5,0,0,Math.PI*2); ctx.fill()
+      ctx.strokeStyle='rgba(255,120,30,0.85)'; ctx.lineWidth=1.4; ctx.beginPath(); ctx.moveTo(-1,-8); ctx.lineTo(-1,6); ctx.stroke()
+      ctx.fillStyle=hw?'#FFF':'#7a1d12'; ctx.beginPath(); ctx.arc(4.5,0,7,Math.PI*0.5,Math.PI*1.5); ctx.fill()
+      ctx.fillStyle='#FF7A1A'; ctx.shadowColor='#FF6A1A'; ctx.shadowBlur=8; ctx.beginPath(); ctx.moveTo(3,-1); ctx.lineTo(1,-9); ctx.lineTo(5,-1); ctx.closePath(); ctx.fill(); ctx.shadowBlur=0
+    } else if (armour==='web'){
+      ctx.fillStyle=hw?'#FFF':'#5D2E86'
+      for (const side of [-1,1]){ ctx.beginPath(); ctx.moveTo(-2,side*6); ctx.lineTo(4,side*12); ctx.lineTo(7,side*7); ctx.lineTo(2,side*5); ctx.closePath(); ctx.fill() }
+      ctx.fillStyle=hw?'#EEE':'#4A235A'; ctx.beginPath(); ctx.ellipse(-1,-1,7,8,0,0,Math.PI*2); ctx.fill()
+      ctx.strokeStyle='rgba(200,160,255,0.6)'; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(-1,-1,7,0,Math.PI*2); ctx.moveTo(-8,-1); ctx.lineTo(6,-1); ctx.moveTo(-1,-8); ctx.lineTo(-1,6); ctx.stroke()
+      ctx.fillStyle=hw?'#FFF':'#4A235A'; ctx.beginPath(); ctx.arc(4.5,0,7,Math.PI*0.5,Math.PI*1.5); ctx.fill()
+      ctx.strokeStyle=hw?'#FFF':'#7D3C98'; ctx.lineWidth=2; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(6,-4); ctx.lineTo(10,-7); ctx.moveTo(6,4); ctx.lineTo(10,7); ctx.stroke(); ctx.lineCap='butt'
+    } else if (armour==='feather'){
+      ctx.fillStyle=hw?'#FFF':'#e8eef6'; ctx.shadowColor='#aaccff'; ctx.shadowBlur=5
+      for (const side of [-1,1]){ for(let k=0;k<3;k++){ ctx.beginPath(); ctx.ellipse(k*2, side*(9+k), 4-k*0.6, 2.4, side*0.4, 0, Math.PI*2); ctx.fill() } }
+      ctx.shadowBlur=0
+      ctx.fillStyle=hw?'#EEE':'#cfd8e6'; ctx.beginPath(); ctx.ellipse(-1,-1,7,8,0,0,Math.PI*2); ctx.fill()
+      ctx.strokeStyle='rgba(150,190,255,0.7)'; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(-1,-8); ctx.lineTo(-1,6); ctx.stroke()
+      ctx.strokeStyle=hw?'#FFF':'#cfd8e6'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(4.5,0,7,Math.PI*0.55,Math.PI*1.45); ctx.stroke()
+      ctx.fillStyle=hw?'#FFF':'#f2f6fb'; for (const side of [-1,1]){ ctx.beginPath(); ctx.moveTo(6,side*5); ctx.lineTo(12,side*4); ctx.lineTo(8,side*8); ctx.closePath(); ctx.fill() }
+    } else {
+      ctx.fillStyle=hw?'#FFF':'#caa84a'; for (const side of [-1,1]){ ctx.beginPath(); ctx.arc(0, side*8.5, 2.2, 0, Math.PI*2); ctx.fill() }
+    }
+  }
+
   if (wid === 'dagger') {
     // ── SPIDER FANG DAGGERS — animated dual-blade flurry ──
     // draw one curved fang dagger pivoting at (px,py), rotated by ang, blade length len
