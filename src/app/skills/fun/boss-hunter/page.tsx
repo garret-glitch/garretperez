@@ -572,11 +572,11 @@ function startBossAttack(g: GS, bossId: BossId, type: string) {
   const p = g.player, b = g.boss
   const angle = Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
   const telegraphs: Record<string, number> = {
-    venom_spit: 0.9, web_shot: 0.8, web_spray: 0.85, leg_sweep: 1.0, spider_leap: 1.1, toxic_cloud: 0.75, venom_burst: 1.2, summon: 1.05, web_wall: 1.1, spider_charge: 0.9, web_burst: 0.85, venom_geyser: 1.15,
-    fire_breath: 1.2, stomp: 0.85, tail_swipe: 0.8, ember_barrage: 0.7, flame_wave: 1.0, lava_puddle: 0.75, fire_line: 1.5,
-    fireball: 1.0, tail_slam: 0.95, magma_geyser: 1.15, fire_fan: 0.9, gale_ring: 0.85, thunder_cross: 1.3,
-    lightning_strike: 0.95, talon_dive: 0.9, wind_buffet: 0.8, thunderstorm: 0.75, static_field: 0.7, chain_lightning: 0.85, lightning_barrage: 0.5,
-    wind_blade: 0.85, dive_bomb: 0.9,
+    venom_spit: 0.95, web_shot: 0.95, web_spray: 0.95, leg_sweep: 1.0, spider_leap: 1.15, toxic_cloud: 0.95, venom_burst: 1.2, summon: 1.05, web_wall: 1.15, spider_charge: 1.0, web_burst: 1.0, venom_geyser: 1.2,
+    fire_breath: 1.2, stomp: 0.95, tail_swipe: 0.95, ember_barrage: 0.95, flame_wave: 1.05, lava_puddle: 0.95, fire_line: 1.5,
+    fireball: 1.05, tail_slam: 1.0, magma_geyser: 1.2, fire_fan: 1.0, gale_ring: 1.05, thunder_cross: 1.35,
+    lightning_strike: 1.05, talon_dive: 1.0, wind_buffet: 0.95, thunderstorm: 1.0, static_field: 0.95, chain_lightning: 1.0, lightning_barrage: 0.95,
+    wind_blade: 1.0, dive_bomb: 1.05,
   }
   const data: AttackData = { targetPos: { ...p.pos }, angle, dmg: 0 }
   if (type === 'venom_spit') { data.dmg = 15; data.count = 3; data.projSpeed = 260 }
@@ -1048,29 +1048,30 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
     g.bossFlightCenter.y = clamp(g.bossFlightCenter.y, 130, WH - 130)
     gs.timer -= dt
     if (gs.mode === 2) {
-      // SWOOP DIVE — a fast committed dash through the player's spot
-      const spd = g.bossEnraged ? 780 : 610
+      // SWOOP DIVE — a committed dash through the player's spot (slower, readable)
+      const spd = g.bossEnraged ? 560 : 470
       b.pos.x = clamp(b.pos.x + gs.dive.x * spd * dt, 80, WW - 80)
       b.pos.y = clamp(b.pos.y + gs.dive.y * spd * dt, 80, WH - 80)
-      if (dist(b.pos, p.pos) < bossDef.size + 16 && p.iframeTimer <= 0) { dealDmgToPlayer(g, g.bossEnraged ? 24 : 17, wpn, gear, gs.dive); spawnParticles(g, p.pos, 12, '#5fe6ff', 240) }
-      if (gs.timer <= 0) { gs.mode = 0; gs.timer = rnd(2.2, 3.8) / (g.bossDesperate ? 1.8 : g.bossEnraged ? 1.4 : 1.0); g.bossFlightAngle = Math.atan2(b.pos.y - g.bossFlightCenter.y, b.pos.x - g.bossFlightCenter.x) }
+      if (dist(b.pos, p.pos) < bossDef.size + 16 && p.iframeTimer <= 0) { dealDmgToPlayer(g, g.bossEnraged ? 22 : 16, wpn, gear, gs.dive); spawnParticles(g, p.pos, 12, '#5fe6ff', 240) }
+      if (gs.timer <= 0) { gs.mode = 0; gs.timer = rnd(3.0, 4.6) / (g.bossDesperate ? 1.5 : g.bossEnraged ? 1.25 : 1.0); g.bossFlightAngle = Math.atan2(b.pos.y - g.bossFlightCenter.y, b.pos.x - g.bossFlightCenter.x) }
     } else if (gs.mode === 1) {
-      // WIND-UP — rise and pull back while the dive line telegraphs (tracks the player, locks on launch)
+      // WIND-UP — long, clear telegraph: rise and pull back while the dive line tracks the player
       const away = norm(v(b.pos.x - p.pos.x, b.pos.y - p.pos.y))
-      b.pos.x = clamp(b.pos.x + away.x * 95 * dt, 80, WW - 80)
-      b.pos.y = clamp(b.pos.y + away.y * 95 * dt - 46 * dt, 80, WH - 80)
-      gs.dive = norm(v(p.pos.x - b.pos.x, p.pos.y - b.pos.y))
-      if (gs.timer <= 0) { gs.mode = 2; gs.timer = g.bossEnraged ? 0.62 : 0.72; Sfx.gust(); g.screenShake = Math.max(g.screenShake, 0.28) }
+      b.pos.x = clamp(b.pos.x + away.x * 70 * dt, 80, WW - 80)
+      b.pos.y = clamp(b.pos.y + away.y * 70 * dt - 36 * dt, 80, WH - 80)
+      // lock the dive direction for the final ~0.25s so a good player can read and sidestep it
+      if (gs.timer > 0.25) gs.dive = norm(v(p.pos.x - b.pos.x, p.pos.y - b.pos.y))
+      if (gs.timer <= 0) { gs.mode = 2; gs.timer = g.bossEnraged ? 0.7 : 0.8; Sfx.gust(); g.screenShake = Math.max(g.screenShake, 0.25) }
     } else {
-      // DYNAMIC ORBIT — breathing radius, varying speed, occasional direction flips + vertical bob
-      const dir = Math.sin(g.gtime * 0.45) >= 0 ? 1 : -1
-      const breathe = 1 + 0.32 * Math.sin(g.gtime * 0.85)
-      const spd = g.bossFlightSpeed * (g.bossEnraged ? 1.55 : 1.0) * (b.slowTimer > 0 ? 0.3 : 1.0) * (1 + 0.45 * Math.sin(g.gtime * 1.25))
+      // DYNAMIC ORBIT — gentle breathing radius, mild speed variation, occasional direction flips + vertical bob
+      const dir = Math.sin(g.gtime * 0.4) >= 0 ? 1 : -1
+      const breathe = 1 + 0.28 * Math.sin(g.gtime * 0.8)
+      const spd = g.bossFlightSpeed * (g.bossEnraged ? 1.25 : 0.92) * (b.slowTimer > 0 ? 0.3 : 1.0) * (1 + 0.28 * Math.sin(g.gtime * 1.1))
       g.bossFlightAngle += spd * dir * dt
       const r = g.bossFlightRadius * breathe, fc = g.bossFlightCenter
       b.pos.x = clamp(fc.x + Math.cos(g.bossFlightAngle) * r, 80, WW - 80)
-      b.pos.y = clamp(fc.y + Math.sin(g.bossFlightAngle) * r * 0.6 + Math.sin(g.gtime * 2.6) * 16, 80, WH - 80)
-      if (gs.timer <= 0) { gs.mode = 1; gs.timer = g.bossEnraged ? 0.5 : 0.62 }   // begin a swoop wind-up
+      b.pos.y = clamp(fc.y + Math.sin(g.bossFlightAngle) * r * 0.6 + Math.sin(g.gtime * 2.4) * 14, 80, WH - 80)
+      if (gs.timer <= 0) { gs.mode = 1; gs.timer = g.bossEnraged ? 0.78 : 0.95 }   // begin a long swoop wind-up
     }
   } else if (bossId === 1 && b.stunTimer <= 0) {
     // Drake: snake locomotion — head slithers toward player with sinusoidal lateral weave
