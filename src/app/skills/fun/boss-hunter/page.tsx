@@ -132,7 +132,7 @@ interface GS {
   projectiles: Projectile[]; bossAttack: BossAttack | null; nextAttackTimer: number
   damageNums: DamageNumber[]; particles: Particle[]; slowTraps: SlowTrap[]; zones: HazardZone[]
   attackFlash: AttackFlash | null; screenShake: number; bossDeathAnim: number; playerDeathAnim: number
-  meleeHit: { timer: number; maxTimer: number; dmg: number; reach: number; arc: number; angle: number; hit: boolean } | null
+  meleeHit: { timer: number; maxTimer: number; dmg: number; reach: number; arc: number; angle: number; hit: boolean; proc: boolean } | null
   lavaParticles: Particle[]; skyArrows: SkyArrow[]; envObjects: EnvObject[]
   nextProjId: number; nextDmgId: number; nextPartId: number; nextTrapId: number; nextZoneId: number
   gtime: number; bossEnraged: boolean; poisonTimer: number; playerDmgFlash: number; tooCloseFlash: number
@@ -816,8 +816,8 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
     } else if (tgtDist <= atkRange && tgtDist >= minRange) {
       p.atkTimer = atkCd
       const atkAngle = Math.atan2(tgtPos.y - p.pos.y, tgtPos.x - p.pos.x)
-      const flashType = wid === 'greatsword' ? 'greatslash' : (wid === 'dagger' || wid === 'sword') ? 'slash' : isRangedAtk ? 'shot' : 'slam'
-      const flashDur = wid === 'greatsword' ? 0.34 : wid === 'sword' ? 0.28 : 0.22
+      const flashType = wid === 'greatsword' ? 'greatslash' : (wid === 'dagger' || wid === 'sword' || wid === 'thunder_sword') ? 'slash' : isRangedAtk ? 'shot' : 'slam'
+      const flashDur = wid === 'greatsword' ? 0.34 : wid === 'sword' ? 0.28 : wid === 'thunder_sword' ? 0.24 : 0.22
       g.attackFlash = { angle: atkAngle, timer: flashDur, maxTimer: flashDur, type: flashType, color: flashColor }
       if (gear.includes('venom_bow') && g.poisonTimer <= 0) g.poisonTimer = 5.0
       if (isRangedAtk) {
@@ -829,7 +829,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
         if (wpn.id === 'staff') Sfx.cast(); else Sfx.shot()
       } else {
         // melee: damage is deferred — it only lands when the blade sweeps through the target (see meleeHit)
-        g.meleeHit = { timer: flashDur, maxTimer: flashDur, dmg: wpn.dmg, reach: meleeReach, arc: meleeArc, angle: atkAngle, hit: false }
+        g.meleeHit = { timer: flashDur, maxTimer: flashDur, dmg: wpn.dmg, reach: meleeReach, arc: meleeArc, angle: atkAngle, hit: false, proc: gear.includes('thunder_blade') && (p.gearHitCount % 3) === 2 }
         Sfx.swing()
       }
     }
@@ -2120,10 +2120,71 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
       drawBig(-0.18 + Math.sin(t * 2.0) * 0.05, 1, 16)   // idle: shouldered, slow heavy bob
     }
   } else if (wid === 'thunder_sword') {
-    const lp = 0.5+0.5*Math.sin(t*10)
-    ctx.shadowColor='#F1C40F'; ctx.shadowBlur=16+lp*10
-    ctx.strokeStyle='#3A2A10'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(14,0); ctx.lineTo(44,0); ctx.stroke()
-    ctx.fillStyle=hw?'#FFF':`rgba(241,196,15,${0.8+lp*0.2})`; ctx.beginPath(); ctx.moveTo(42,-5); ctx.lineTo(54,0); ctx.lineTo(42,5); ctx.closePath(); ctx.fill()
+    // ── THUNDER BLADE — crackling electric slash; charges + discharges a bolt on the 3rd hit ──
+    const lp = 0.5 + 0.5 * Math.sin(t * 10)
+    const drawTBlade = (rot: number, alpha: number, glow: number, charged: boolean) => {
+      ctx.save(); ctx.rotate(rot); ctx.globalAlpha = alpha
+      ctx.shadowColor = charged ? '#FFFFFF' : '#F1C40F'; ctx.shadowBlur = glow
+      const len = 50
+      const grad = ctx.createLinearGradient(8, 0, len, 0)
+      grad.addColorStop(0, hw ? '#FFF' : '#C8A81E'); grad.addColorStop(0.6, hw ? '#FFF' : (charged ? '#FFF7C0' : '#F1C40F')); grad.addColorStop(1, hw ? '#FFF' : '#FFF7C0')
+      ctx.fillStyle = grad
+      ctx.beginPath(); ctx.moveTo(8, -3); ctx.lineTo(len - 6, -2.2); ctx.lineTo(len, 0); ctx.lineTo(len - 6, 2.2); ctx.lineTo(8, 3); ctx.closePath(); ctx.fill()
+      // crossguard + grip
+      ctx.fillStyle = hw ? '#FFF' : '#5A4410'; ctx.fillRect(4, -7, 4, 14)
+      ctx.strokeStyle = '#2a2008'; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-2, 0); ctx.lineTo(4, 0); ctx.stroke(); ctx.lineCap = 'butt'
+      // crackling arcs hugging the blade
+      ctx.strokeStyle = charged ? 'rgba(255,255,255,0.9)' : `rgba(255,240,150,${0.5 + lp * 0.4})`
+      ctx.lineWidth = charged ? 2 : 1.3; ctx.shadowColor = charged ? '#FFFFFF' : '#FFEE66'; ctx.shadowBlur = charged ? 14 : 8
+      for (let s = 0; s < 2; s++) {
+        ctx.beginPath(); ctx.moveTo(10, 0)
+        for (let k = 1; k <= 4; k++) { const f = k / 4; ctx.lineTo(10 + (len - 12) * f, Math.sin(t * 30 + k * 2.1 + s * 3) * (3 + (charged ? 2 : 0))) }
+        ctx.stroke()
+      }
+      ctx.restore()
+    }
+    const slash = g.attackFlash && g.attackFlash.type === 'slash' && g.attackFlash.timer > 0 ? g.attackFlash : null
+    if (slash) {
+      const procNow = !!(g.meleeHit && g.meleeHit.proc)
+      const p = 1 - slash.timer / slash.maxTimer
+      const e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2
+      const startR = -1.1, endR = 1.15, rot = startR + (endR - startR) * e
+      const r0 = 14, r1 = 58
+      // electric crescent trail
+      ctx.save(); ctx.globalAlpha = (1 - Math.abs(e - 0.5) * 1.2) * 0.7
+      ctx.fillStyle = procNow ? 'rgba(255,255,255,0.55)' : 'rgba(255,235,120,0.5)'; ctx.shadowColor = procNow ? '#FFFFFF' : '#F1C40F'; ctx.shadowBlur = 18
+      ctx.beginPath(); ctx.arc(0, 0, r1, startR, rot); ctx.arc(0, 0, r0, rot, startR, true); ctx.closePath(); ctx.fill()
+      ctx.restore()
+      // jagged lightning along the leading edge
+      ctx.save(); ctx.globalAlpha = 1 - Math.abs(e - 0.5)
+      ctx.strokeStyle = procNow ? '#FFFFFF' : '#FFF080'; ctx.lineWidth = procNow ? 3 : 2; ctx.shadowColor = procNow ? '#FFFFFF' : '#FFEE66'; ctx.shadowBlur = procNow ? 20 : 12
+      ctx.beginPath()
+      for (let k = 0; k <= 5; k++) { const a = startR + (rot - startR) * (k / 5); const rr = r1 + (k % 2 === 0 ? 4 : -4) + Math.sin(t * 40 + k) * (procNow ? 5 : 3); const px = Math.cos(a) * rr, py = Math.sin(a) * rr; if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py) }
+      ctx.stroke(); ctx.restore()
+      // motion-blur ghost blades
+      for (let i = 3; i >= 1; i--) drawTBlade(startR + (endR - startR) * Math.max(0, e - i * 0.11), 0.10 * (4 - i), 5, false)
+      drawTBlade(rot, 1, procNow ? 22 : 14, procNow)
+      // proc swing: a big forked bolt discharges down the blade mid-swing
+      if (procNow && e > 0.38 && e < 0.82) {
+        const sv = 1 - Math.abs(e - 0.6) / 0.22
+        ctx.save(); ctx.globalAlpha = Math.max(0, sv); ctx.rotate(rot)
+        ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 3; ctx.shadowColor = '#AEE4FF'; ctx.shadowBlur = 24
+        ctx.beginPath(); ctx.moveTo(6, 0)
+        for (let k = 1; k <= 5; k++) ctx.lineTo(6 + 44 * (k / 5), Math.sin(t * 60 + k * 2) * 6)
+        ctx.stroke()
+        ctx.fillStyle = '#FFFFFF'; ctx.shadowBlur = 28; ctx.beginPath(); ctx.arc(52, 0, 4 + sv * 5, 0, Math.PI * 2); ctx.fill()
+        ctx.restore()
+      }
+      ctx.globalAlpha = 1
+    } else {
+      const willProc = (g.player.gearHitCount % 3) === 2
+      drawTBlade(0.45 + Math.sin(t * 3.5) * 0.05, 1, willProc ? 18 : 12, willProc)
+      if (willProc) {   // charged orb at the tip, ready to discharge
+        ctx.save(); ctx.rotate(0.45 + Math.sin(t * 3.5) * 0.05); ctx.globalAlpha = 0.55 + 0.45 * Math.sin(t * 12)
+        ctx.fillStyle = '#FFFFFF'; ctx.shadowColor = '#AEE4FF'; ctx.shadowBlur = 18
+        ctx.beginPath(); ctx.arc(52, 0, 3.5, 0, Math.PI * 2); ctx.fill(); ctx.restore()
+      }
+    }
   } else if (wid === 'fire_staff') {
     ctx.shadowColor='#FF4500'; ctx.shadowBlur=16
     ctx.strokeStyle=hw?'#FFF':'#7B2D00'; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(16,0); ctx.lineTo(50,0); ctx.stroke()
