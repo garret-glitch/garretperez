@@ -110,7 +110,7 @@ interface Projectile {
   id: number; pos: V2; vel: V2; dmg: number; radius: number
   fromBoss: boolean; life: number; color: string
   aoe?: number; poison?: boolean; isWeb?: boolean
-  isPowerShot?: boolean; isFireball?: boolean; isLightning?: boolean; isFeather?: boolean; isVenom?: boolean; isArrow?: boolean
+  isPowerShot?: boolean; isFireball?: boolean; isLightning?: boolean; isFeather?: boolean; isVenom?: boolean; isArrow?: boolean; isArcane?: boolean
   trail?: V2[]
 }
 interface BossAttack { type: string; telegraphTime: number; elapsed: number; active: boolean; data: AttackData }
@@ -192,13 +192,13 @@ const WEAPON_DEFS: WeaponDef[] = [
   },
   {
     id: 'staff', name: 'Starter Staff', icon: '🔮', color: '#9B59B6', element: 'arcane',
-    dmg: 38, range: 220, atkCd: 0.82,
-    desc: 'Arcane spellcaster. Launch homing bolts from mid-range. Blink, shield, and call meteors.',
+    dmg: 20, range: 540, atkCd: 0.82,
+    desc: 'Glass-cannon artillery. Longest range in the game but fragile — weak basics, devastating spells. Survive on positioning and range.',
     abilities: [
-      { key: 'Q', name: 'Arcane Bolt', desc: 'Fast projectile — 2.5× dmg toward cursor', cd: 5 },
+      { key: 'Q', name: 'Arcane Bolt', desc: 'Fast arcane missile — 115 dmg toward cursor', cd: 5 },
       { key: 'W', name: 'Mana Shield', desc: '1.5s full invulnerability bubble', cd: 14 },
       { key: 'E', name: 'Blink', desc: 'Instant teleport up to 350px toward cursor', cd: 7 },
-      { key: 'R', name: 'Meteor', desc: 'Giant meteor — 200 dmg in 100px AOE at cursor', cd: 22 },
+      { key: 'R', name: 'Meteor', desc: 'Giant meteor — 270 dmg in 110px AOE at cursor', cd: 22 },
     ],
   },
 ]
@@ -231,7 +231,7 @@ const GEAR_DEFS: Record<GearId, GearDef> = {
   venom_bow:     { id: 'venom_bow',     name: 'Venom Bow',           icon: '🏹', desc: 'Purple poison bow — arrows inflict 15 dmg/s for 5s' },
   web_amulet:    { id: 'web_amulet',    name: 'Web Armour',          icon: '🕸️', desc: 'Webbed plating — reduces incoming damage by 35%, plus 15% chance on hit to web-stun the boss 2s' },
   drake_sword:   { id: 'drake_sword',   name: 'Drake Greatsword',    icon: '⚔️', desc: '+35% damage. 15% chance to stun boss on hit' },
-  fire_staff:    { id: 'fire_staff',    name: 'Fire Staff',          icon: '🔥', desc: 'Q fires a Fireball — 100px AOE explosion, 80 dmg' },
+  fire_staff:    { id: 'fire_staff',    name: 'Fire Staff',          icon: '🔥', desc: 'Q fires a Fireball — 110px AOE explosion, 115 dmg' },
   ember_armor:   { id: 'ember_armor',   name: 'Ember Armour',        icon: '🛡️', desc: 'Reduces all incoming damage by 25%' },
   thunder_blade: { id: 'thunder_blade', name: 'Thunder Blade',       icon: '⚡', desc: 'Every 3rd hit unleashes a lightning strike (+80 bonus dmg)' },
   storm_bow:     { id: 'storm_bow',     name: 'Storm Bow',           icon: '🌩️', desc: 'Arrows are lightning bolts — AOE on impact (40px, 30 dmg)' },
@@ -282,15 +282,16 @@ function generateEnvObjects(bossId: BossId): EnvObject[] {
 }
 
 function mkState(wpn: WeaponDef, boss: BossDef, gear: GearId[]): GS {
-  void wpn
   void gear
   const featherMode = false   // armours no longer grant dash charges; all dodges share one cooldown
   const sx = WW / 2, sy = WH - 250
+  // weapon-path durability: melee tankiest, bow balanced, magic glass cannon
+  const baseHp = wpn.id === 'sword' ? 180 : wpn.id === 'staff' ? 110 : 150
   return {
     phase: 'playing',
     player: {
       pos: v(sx, sy), vel: v(0, 0), targetPos: null,
-      hp: 160, maxHp: 160, atkTimer: 0,
+      hp: baseHp, maxHp: baseHp, atkTimer: 0,
       iframeTimer: 0, dodgeTimer: 0, dodgeCd: 0, dodgeVel: v(0, 0), dodgeTrail: [],
       hitFlash: 0, abilityCds: [0, 0, 0, 0], slowTimer: 0, knockbackVel: v(0, 0),
       featherCharges: featherMode ? 3 : 1, featherRecharge: featherMode ? [0, 0, 0] : [0],
@@ -342,8 +343,9 @@ function dealDmgToPlayer(g: GS, dmg: number, wpn: WeaponDef, gear: GearId[], kno
   if (p.iframeTimer > 0) return
   let fd = dmg
   if (g.rageActive) fd = Math.round(fd * 1.2)
-  const isMelee = wpn.id === 'sword' || gear.some(g2 => ['spider_fang','drake_sword','thunder_blade'].includes(g2))
-  if (isMelee) fd = Math.round(fd * 0.80)
+  // weapon-path defense: melee tanky, bow neutral, magic glass cannon (takes extra)
+  if (wpn.id === 'sword') fd = Math.round(fd * 0.80)
+  else if (wpn.id === 'staff') fd = Math.round(fd * 1.20)
   if (gear.includes('web_amulet')) fd = Math.round(fd * 0.65)
   else if (gear.includes('ember_armor') || gear.includes('feather_boots')) fd = Math.round(fd * 0.75)
   p.hp = Math.max(0, p.hp - fd)
@@ -760,7 +762,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   }
 
   // Player movement
-  const speedMult = (p.slowTimer > 0 ? 0.45 : 1)
+  const speedMult = (p.slowTimer > 0 ? 0.45 : 1) * (wpn.id === 'staff' ? 1.15 : 1)   // mages get a small kiting bonus
   const speed = 170 * speedMult
   if (!p.dodgeTimer && !g.bullChargeDash.active && !g.whirlwindActive && p.targetPos) {
     const d2t = dist(p.pos, p.targetPos)
@@ -826,8 +828,9 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
         const isVenom = gear.includes('venom_bow')
         const projColor = wpn.id === 'staff' ? '#9B59B6' : isVenom ? '#9B59B6' : isStorm ? '#7DFFB0' : '#27AE60'
         const isArrow = wpn.id === 'bow' && !isStorm && !isVenom
-        const projSpeed = wpn.id === 'staff' ? 380 : 440
-        g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * projSpeed, dir.y * projSpeed), dmg: wpn.dmg, radius: 6, fromBoss: false, life: 4.0, color: projColor, aoe: isStorm ? 40 : undefined, isLightning: isStorm, isVenom, isArrow, trail: [] })
+        const isArcane = wpn.id === 'staff'
+        const projSpeed = wpn.id === 'staff' ? 420 : 440
+        g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * projSpeed, dir.y * projSpeed), dmg: wpn.dmg, radius: isArcane ? 8 : 6, fromBoss: false, life: 4.0, color: projColor, aoe: isStorm ? 40 : undefined, isLightning: isStorm, isVenom, isArrow, isArcane, trail: [] })
         if (wpn.id === 'staff') Sfx.cast(); else Sfx.shot()
       } else {
         // melee: damage is deferred — it only lands when the blade sweeps through the target (see meleeHit)
@@ -1170,7 +1173,7 @@ function activateAbility(g: GS, idx: number, wpn: WeaponDef, gear: GearId[], abi
 
   if (idx === 0 && gear.includes('fire_staff')) {
     const dir = norm(v(abilityTarget.x - p.pos.x, abilityTarget.y - p.pos.y))
-    g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * 360, dir.y * 360), dmg: 80, radius: 14, fromBoss: false, life: 4.0, color: '#FF4500', aoe: 100, isFireball: true, trail: [] })
+    g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * 360, dir.y * 360), dmg: 115, radius: 15, fromBoss: false, life: 4.0, color: '#FF4500', aoe: 110, isFireball: true, trail: [] })
     spawnParticles(g, p.pos, 14, '#FF4500', 170)
     return
   }
@@ -1217,7 +1220,7 @@ function activateAbility(g: GS, idx: number, wpn: WeaponDef, gear: GearId[], abi
   } else { // staff
     if (idx === 0) { // Arcane Bolt
       const dir = norm(v(abilityTarget.x - p.pos.x, abilityTarget.y - p.pos.y))
-      g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * 580, dir.y * 580), dmg: Math.round(wpn.dmg * 2.5), radius: 12, fromBoss: false, life: 4.0, color: '#9B59B6', trail: [] })
+      g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * 600, dir.y * 600), dmg: 115, radius: 13, fromBoss: false, life: 4.0, color: '#9B59B6', trail: [] })
       spawnParticles(g, p.pos, 14, '#9B59B6', 180)
       g.attackFlash = { angle: Math.atan2(dir.y, dir.x), timer: 0.35, maxTimer: 0.35, type: 'magic', color: '#9B59B6' }
     } else if (idx === 1) { // Mana Shield
@@ -1234,7 +1237,7 @@ function activateAbility(g: GS, idx: number, wpn: WeaponDef, gear: GearId[], abi
       spawnParticles(g, p.pos, 14, '#9B59B6', 180, 0.5)
       g.attackFlash = { angle: Math.atan2(dir.y, dir.x), timer: 0.25, maxTimer: 0.25, type: 'shadow', color: '#9B59B6' }
     } else if (idx === 3) { // Meteor
-      g.skyArrows.push({ id: ++g.nextProjId, targetPos: { ...abilityTarget }, warnTimer: 1.0, hit: false, dmg: 200 })
+      g.skyArrows.push({ id: ++g.nextProjId, targetPos: { ...abilityTarget }, warnTimer: 1.0, hit: false, dmg: 270 })
       spawnParticles(g, p.pos, 12, '#9B59B6', 130, 0.5)
     }
   }
@@ -2505,6 +2508,16 @@ function renderProjectiles(ctx: CanvasRenderingContext2D, g: GS, t: number) {
       ctx.fillStyle=`rgba(127,186,0,${0.6+0.4*Math.sin(proj.life*18)})`
       ctx.beginPath(); ctx.arc(11,4+Math.sin(proj.life*14)*1.5,2,0,Math.PI*2); ctx.fill()
       ctx.restore()
+    } else if (proj.isArcane) {
+      // glowing arcane missile — pulsing orb, white core, orbiting sparks
+      const pul = 0.7 + 0.3 * Math.sin(proj.life * 22)
+      ctx.shadowColor = '#9B59B6'; ctx.shadowBlur = 18
+      const ag = ctx.createRadialGradient(proj.pos.x, proj.pos.y, 0, proj.pos.x, proj.pos.y, proj.radius + 4)
+      ag.addColorStop(0, '#F4ECFF'); ag.addColorStop(0.45, '#C39BD3'); ag.addColorStop(1, 'rgba(123,46,160,0)')
+      ctx.fillStyle = ag; ctx.beginPath(); ctx.arc(proj.pos.x, proj.pos.y, (proj.radius + 4) * pul, 0, Math.PI * 2); ctx.fill()
+      ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(proj.pos.x, proj.pos.y, proj.radius * 0.42, 0, Math.PI * 2); ctx.fill()
+      ctx.fillStyle = 'rgba(220,170,255,0.9)'
+      for (let s = 0; s < 3; s++) { const a = proj.life * 7 + s * (Math.PI * 2 / 3); ctx.beginPath(); ctx.arc(proj.pos.x + Math.cos(a) * (proj.radius + 3), proj.pos.y + Math.sin(a) * (proj.radius + 3), 1.6, 0, Math.PI * 2); ctx.fill() }
     } else if (proj.isArrow) {
       const aa=Math.atan2(proj.vel.y,proj.vel.x)
       ctx.save(); ctx.translate(proj.pos.x,proj.pos.y); ctx.rotate(aa)
