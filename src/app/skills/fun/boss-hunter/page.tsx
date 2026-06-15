@@ -84,18 +84,29 @@ const Sfx = (() => {
     const g = c.createGain(); g.gain.setValueAtTime(vol, time); g.gain.exponentialRampToValueAtTime(0.001, time + 0.04)
     src.connect(f); f.connect(g); g.connect(dest); src.start(time); src.stop(time + 0.06)
   }
-  const A2=110, C3=130.81, D3=146.83, E3=164.81, F2=87.31, G2=98, A3=220, B3=246.94, C4=261.63, D4=293.66, E4=329.63, F4=349.23, G4=392, A4=440, C5=523.25, D5=587.33, E5=659.25, G5=783.99
+  const D2=73.42, E2=82.41, F2=87.31, G2=98, A2=110, Bb2=116.54, C3=130.81, D3=146.83, E3=164.81, G3=196, A3=220, Bb3=233.08, B3=246.94, C4=261.63, Cs4=277.18, D4=293.66, E4=329.63, F4=349.23, G4=392, A4=440, B4=493.88, C5=523.25, D5=587.33, E5=659.25, F5=698.46, Fs5=739.99, G5=783.99, A5=880
   type Voice = { steps: (number | null)[]; type: OscillatorType; vol: number; dur: number }
   type Trk = { stepDur: number; len: number; voices: Voice[]; kick: number[]; hat: number[] }
   const TRACKS: Record<string, Trk> = (() => {
     const T: Record<string, Trk> = {}
-    // BATTLE — driving Am-F-C-G, 8th notes @144bpm
-    { const secBass = [A2, F2, C3, G2], secArp = [[A4, C5, E5, C5], [F4, A4, C5, A4], [C5, E5, G5, E5], [G4, B3, D5, B3]]
+    // generic battle-band builder: section roots + per-section arp, 8 steps/section
+    const band = (bpm: number, roots: number[], arps: number[][], o?: { bt?: OscillatorType; lt?: OscillatorType; lv?: number; heavy?: boolean }): Trk => {
+      const len = roots.length * 8
       const bass: (number | null)[] = [], lead: (number | null)[] = [], pad: (number | null)[] = [], kick: number[] = [], hat: number[] = []
-      for (let s = 0; s < 32; s++) { const sec = Math.floor(s / 8), b = s % 8
-        bass.push(b % 2 === 0 ? secBass[sec] : (b === 5 ? secBass[sec] : null)); lead.push(secArp[sec][b % 4]); pad.push(b === 0 ? secBass[sec] * 2 : null)
-        kick.push((b === 0 || b === 4) ? 1 : 0); hat.push(b % 2 === 1 ? 1 : 0) }
-      T.battle = { stepDur: 60 / 144 / 2, len: 32, voices: [{ steps: bass, type: 'sawtooth', vol: 0.26, dur: 0.2 }, { steps: lead, type: 'square', vol: 0.12, dur: 0.17 }, { steps: pad, type: 'triangle', vol: 0.1, dur: 1.7 }], kick, hat } }
+      for (let s = 0; s < len; s++) { const sec = Math.floor(s / 8), b = s % 8, ar = arps[sec]
+        bass.push(b % 2 === 0 ? roots[sec] : (b === 5 ? roots[sec] : null)); lead.push(ar[b % ar.length]); pad.push(b === 0 ? roots[sec] * 2 : null)
+        kick.push(o?.heavy ? ((b % 2 === 0) ? 1 : 0) : ((b === 0 || b === 4) ? 1 : 0)); hat.push(b % 2 === 1 ? 1 : 0) }
+      return { stepDur: 60 / bpm / 2, len, voices: [{ steps: bass, type: o?.bt ?? 'sawtooth', vol: 0.26, dur: 0.2 }, { steps: lead, type: o?.lt ?? 'square', vol: o?.lv ?? 0.12, dur: 0.17 }, { steps: pad, type: 'triangle', vol: 0.1, dur: 1.7 }], kick, hat }
+    }
+    T.battle = band(144, [A2, F2, C3, G2], [[A4, C5, E5, C5], [F4, A4, C5, A4], [C5, E5, G5, E5], [G4, B3, D5, B3]])
+    // SPIDER — eerie crawling D-minor
+    T.battle_spider = band(126, [D2, Bb2, G2, A2], [[D4, F4, A4, F4], [Bb3, D4, F4, D4], [G3, Bb3, D4, Bb3], [A3, Cs4, E4, Cs4]], { lt: 'triangle', lv: 0.13 })
+    // DRAKE — heavy pounding A-minor
+    T.battle_drake = band(132, [A2, A2, F2, G2], [[A4, C5, E5, C5], [A4, E5, C5, E5], [F4, A4, C5, A4], [G4, B3, D5, B3]], { bt: 'sawtooth', heavy: true })
+    // GRIFFIN — fast electric E-minor
+    T.battle_griffin = band(158, [E3, C3, G2, D3], [[E5, G5, B4, G5], [C5, E5, G5, E5], [G4, B4, D5, B4], [D5, Fs5, A4, Fs5]], { lt: 'square', lv: 0.13 })
+    // FINAL PHASE — frantic, double-time
+    T.battle_final = band(170, [A2, A2, F2, E2], [[A4, C5, E5, A5], [A4, E5, C5, A5], [F4, A4, C5, F5], [E4, G4, B4, E5]], { heavy: true, lv: 0.14 })
     // MENU — slow ominous Am-F drone
     { const secBass = [A2, F2], secArp = [[A4, E5, C5, E5], [F4, C5, A4, C5]]
       const bass: (number | null)[] = [], lead: (number | null)[] = [], pad: (number | null)[] = []
@@ -3265,11 +3276,12 @@ export default function BossHunter() {
     return () => { window.removeEventListener('pointerdown', unlock); window.removeEventListener('keydown', unlock) }
   }, [])
 
-  // ── background music keyed to the current screen ──
+  // ── background music keyed to the current screen / boss ──
   useEffect(() => {
-    const track = screen === 'playing' ? 'battle' : screen === 'victory' ? 'victory' : screen === 'defeat' ? 'defeat' : 'menu'
+    const track = screen === 'playing' ? `battle_${(['spider','drake','griffin'] as const)[selBoss]}`
+      : screen === 'victory' ? 'victory' : screen === 'defeat' ? 'defeat' : 'menu'
     Sfx.playMusic(track)
-  }, [screen])
+  }, [screen, selBoss])
   useEffect(() => () => { Sfx.stopMusic() }, [])
 
   useEffect(() => {
@@ -3365,6 +3377,8 @@ export default function BossHunter() {
       pendingDodgeRef.current = false
 
       tick(g, dt, wpn, selBoss, gear, mouseWorldRef.current, new Set(), mouseWorldRef.current, pending)
+
+      if (g.bossDesperate && g.phase === 'playing') Sfx.playMusic('battle_final')   // frantic phase-3 theme
 
       if (g.phase === 'victory') {
         setVictoryBoss(selBoss)
