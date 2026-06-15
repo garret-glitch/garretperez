@@ -1249,7 +1249,9 @@ export default function WineStockerRush() {
                         color: '#c89b3c', background: 'rgba(200,155,60,0.13)',
                         border: '1px solid rgba(200,155,60,0.45)',
                         borderBottom: '3px solid rgba(200,155,60,0.55)',
-                        padding: '5px 7px', borderRadius: 5, lineHeight: 1, display: 'inline-block',
+                        borderRadius: 5, lineHeight: 1,
+                        width: 24, height: 24, boxSizing: 'border-box',
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                       }}>{k}</span>
                     ))}
                   </div>
