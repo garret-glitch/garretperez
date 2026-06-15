@@ -14,6 +14,73 @@ const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n
 const rnd = (a: number, b: number) => a + Math.random() * (b - a)
 const rndI = (a: number, b: number) => Math.floor(rnd(a, b + 0.99))
 
+/* ═══ SOUND — synthesized Web Audio SFX (no asset files) ═══ */
+const Sfx = (() => {
+  let ctx: AudioContext | null = null
+  let master: GainNode | null = null
+  let muted = false
+  const last: Record<string, number> = {}
+  const VOL = 0.32
+  function ensure(): AudioContext | null {
+    if (typeof window === 'undefined') return null
+    if (!ctx) {
+      const AC = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+      if (!AC) return null
+      ctx = new AC()
+      master = ctx.createGain(); master.gain.value = muted ? 0 : VOL; master.connect(ctx.destination)
+    }
+    return ctx
+  }
+  function resume() { const c = ensure(); if (c && c.state === 'suspended') void c.resume() }
+  function setMuted(m: boolean) { muted = m; if (master) master.gain.value = m ? 0 : VOL }
+  function isMuted() { return muted }
+  // returns the context if a sound may play (honours mute + per-key throttle)
+  function ok(key?: string, ms?: number): AudioContext | null {
+    const c = ensure(); if (!c || !master || muted) return null
+    if (key && ms) { const now = c.currentTime * 1000; if (last[key] && now - last[key] < ms) return null; last[key] = now }
+    return c
+  }
+  function blip(c: AudioContext, freq: number, dur: number, type: OscillatorType, vol: number, slideTo?: number, delay = 0) {
+    const t = c.currentTime + delay
+    const o = c.createOscillator(); o.type = type; o.frequency.setValueAtTime(freq, t)
+    if (slideTo) o.frequency.exponentialRampToValueAtTime(Math.max(1, slideTo), t + dur)
+    const g = c.createGain()
+    g.gain.setValueAtTime(0.0001, t)
+    g.gain.exponentialRampToValueAtTime(vol, t + Math.min(0.012, dur * 0.25))
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur)
+    o.connect(g); g.connect(master!); o.start(t); o.stop(t + dur + 0.03)
+  }
+  function noise(c: AudioContext, dur: number, vol: number, filt: BiquadFilterType, freq: number, q = 1, slideTo?: number, delay = 0) {
+    const t = c.currentTime + delay
+    const n = Math.max(1, Math.floor(c.sampleRate * dur))
+    const buf = c.createBuffer(1, n, c.sampleRate)
+    const d = buf.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1
+    const src = c.createBufferSource(); src.buffer = buf
+    const f = c.createBiquadFilter(); f.type = filt; f.frequency.setValueAtTime(freq, t); f.Q.value = q
+    if (slideTo) f.frequency.exponentialRampToValueAtTime(Math.max(20, slideTo), t + dur)
+    const g = c.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur)
+    src.connect(f); f.connect(g); g.connect(master!); src.start(t); src.stop(t + dur)
+  }
+  return {
+    resume, setMuted, isMuted,
+    swing() { const c = ok('swing', 60); if (!c) return; noise(c, 0.14, 0.5, 'bandpass', 1400, 0.8, 600); blip(c, 220, 0.1, 'triangle', 0.18, 120) },
+    shot() { const c = ok('shot', 45); if (!c) return; blip(c, 900, 0.12, 'triangle', 0.22, 260); noise(c, 0.05, 0.3, 'highpass', 2200) },
+    cast() { const c = ok('cast', 50); if (!c) return; blip(c, 420, 0.18, 'sine', 0.2, 760); blip(c, 630, 0.18, 'sine', 0.12, 1140) },
+    bossHit() { const c = ok('bhit', 35); if (!c) return; blip(c, 180, 0.09, 'square', 0.18, 90); noise(c, 0.05, 0.25, 'lowpass', 900) },
+    crit() { const c = ok('crit', 55); if (!c) return; blip(c, 520, 0.14, 'square', 0.24, 1000); blip(c, 880, 0.12, 'sawtooth', 0.16, 1500, 0.02); noise(c, 0.08, 0.3, 'highpass', 3000) },
+    hurt() { const c = ok('hurt', 70); if (!c) return; blip(c, 150, 0.22, 'sawtooth', 0.3, 70); noise(c, 0.12, 0.35, 'lowpass', 700, 1, 200) },
+    dodge() { const c = ok('dodge', 80); if (!c) return; noise(c, 0.22, 0.4, 'bandpass', 700, 1.2, 2400) },
+    warn() { const c = ok('warn', 90); if (!c) return; blip(c, 700, 0.1, 'square', 0.15); blip(c, 700, 0.1, 'square', 0.13, undefined, 0.12) },
+    warnBig() { const c = ok('warnB', 90); if (!c) return; blip(c, 340, 0.2, 'sawtooth', 0.22, 300); blip(c, 250, 0.26, 'sawtooth', 0.2, 210, 0.16); noise(c, 0.3, 0.12, 'lowpass', 500, 1, 220, 0.05) },
+    roar() { const c = ok('roar', 200); if (!c) return; blip(c, 140, 0.6, 'sawtooth', 0.3, 60); blip(c, 90, 0.7, 'square', 0.18, 48); noise(c, 0.6, 0.25, 'lowpass', 600, 0.7, 180) },
+    death() { const c = ok('death', 200); if (!c) return; blip(c, 240, 0.9, 'sawtooth', 0.32, 40); blip(c, 120, 1.0, 'square', 0.22, 30); noise(c, 0.9, 0.3, 'lowpass', 800, 1, 80) },
+    tooClose() { const c = ok('tc', 480); if (!c) return; blip(c, 320, 0.06, 'square', 0.1, 200) },
+    ability() { const c = ok('abil', 40); if (!c) return; blip(c, 520, 0.2, 'sine', 0.2, 980); blip(c, 780, 0.2, 'triangle', 0.12, 1400) },
+    victory() { const c = ok('vic', 300); if (!c) return;[523, 659, 784, 1047].forEach((f, i) => blip(c, f, 0.22, 'triangle', 0.22, undefined, i * 0.12)) },
+    loot() { const c = ok('loot', 120); if (!c) return; blip(c, 880, 0.1, 'triangle', 0.18, 1320); blip(c, 1320, 0.12, 'sine', 0.14, undefined, 0.08) },
+  }
+})()
+
 /* ═══ TYPES ═══ */
 type WeaponId = 'sword' | 'bow' | 'staff'
 type BossId = 0 | 1 | 2
@@ -60,7 +127,7 @@ interface GS {
   attackFlash: AttackFlash | null; screenShake: number; bossDeathAnim: number
   lavaParticles: Particle[]; skyArrows: SkyArrow[]; envObjects: EnvObject[]
   nextProjId: number; nextDmgId: number; nextPartId: number; nextTrapId: number; nextZoneId: number
-  gtime: number; bossEnraged: boolean; poisonTimer: number; playerDmgFlash: number
+  gtime: number; bossEnraged: boolean; poisonTimer: number; playerDmgFlash: number; tooCloseFlash: number
   chainHits: number; chainResetTimer: number
   rageActive: boolean; rageTimer: number
   bullChargeDash: { active: boolean; vel: V2; timer: number }
@@ -214,7 +281,7 @@ function mkState(wpn: WeaponDef, boss: BossDef, gear: GearId[]): GS {
     attackFlash: null, screenShake: 0, bossDeathAnim: 0,
     lavaParticles: [], skyArrows: [], envObjects: generateEnvObjects(boss.id),
     nextProjId: 0, nextDmgId: 0, nextPartId: 0, nextTrapId: 0, nextZoneId: 0,
-    gtime: 0, bossEnraged: false, poisonTimer: 0, playerDmgFlash: 0,
+    gtime: 0, bossEnraged: false, poisonTimer: 0, playerDmgFlash: 0, tooCloseFlash: 0,
     chainHits: 0, chainResetTimer: 0,
     rageActive: false, rageTimer: 0,
     bullChargeDash: { active: false, vel: v(0, 0), timer: 0 },
@@ -254,6 +321,7 @@ function dealDmgToPlayer(g: GS, dmg: number, wpn: WeaponDef, gear: GearId[], kno
   g.playerDmgFlash = 0.70
   if (knockDir && wpn.id !== 'sword') p.knockbackVel = v(knockDir.x * 160, knockDir.y * 160)
   spawnParticles(g, p.pos, 8, '#FF4444', 110)
+  Sfx.hurt()
   g.screenShake = Math.max(g.screenShake, 0.32)
   g.damageNums.push({ id: ++g.nextDmgId, pos: { x: p.pos.x + rnd(-20, 20), y: p.pos.y - 20 }, val: Math.round(fd), life: 1.2, isPlayer: true })
   if (p.hp <= 0) g.phase = 'defeat'
@@ -278,6 +346,7 @@ function dealDmgToBoss(g: GS, baseDmg: number, gear: GearId[]) {
       dmg += 80
       spawnParticles(g, b.pos, 14, '#F1C40F', 260)
       g.screenShake = Math.max(g.screenShake, 0.45)
+      Sfx.crit()
     }
   }
   if (gear.includes('web_amulet') && p.webProcCd <= 0 && Math.random() < 0.15) {
@@ -289,6 +358,7 @@ function dealDmgToBoss(g: GS, baseDmg: number, gear: GearId[]) {
   if (gear.includes('venom_bow') && g.poisonTimer <= 0) g.poisonTimer = 5.0
   b.hp = Math.max(0, b.hp - dmg)
   b.hitFlash = 0.12
+  Sfx.bossHit()
   g.damageNums.push({ id: ++g.nextDmgId, pos: { x: b.pos.x + rnd(-30, 30), y: b.pos.y - 50 }, val: Math.round(dmg), life: 1.0, isPlayer: false })
   spawnParticles(g, b.pos, 4, '#FFFFFF', 80)
 }
@@ -341,6 +411,11 @@ function startBossAttack(g: GS, bossId: BossId, type: string) {
   else if (type === 'fire_line') { data.dmg = 22; data.angle = b.angle + Math.PI / 2 }
   else if (type === 'lightning_barrage') { data.dmg = 30; data.count = 8; data.strikeIndex = 0; data.elapsed = 0 }
   g.bossAttack = { type, telegraphTime: telegraphs[type] ?? 1.0, elapsed: 0, active: false, data }
+  // ── telegraph: audio warning + charge-up burst (readability/fairness) ──
+  const BIG_ATTACKS = ['spider_leap', 'venom_burst', 'fire_line', 'flame_wave', 'fire_breath', 'lava_puddle', 'lightning_barrage', 'thunderstorm', 'meteor', 'talon_dive']
+  if (BIG_ATTACKS.includes(type)) Sfx.warnBig(); else Sfx.warn()
+  const chargeCol = bossId === 0 ? '#B370E0' : bossId === 1 ? '#FF7A1A' : '#5fe6ff'
+  spawnParticles(g, b.pos, BIG_ATTACKS.includes(type) ? 16 : 9, chargeCol, 70, (telegraphs[type] ?? 1.0) * 0.7)
 }
 
 function resolveBossAttack(g: GS, bossId: BossId, wpn: WeaponDef, gear: GearId[]) {
@@ -465,6 +540,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   b.spinePulse += dt * 2.2; b.lightningPhase += dt * 4.5
   g.screenShake = Math.max(0, g.screenShake - dt * 3); g.nextAttackTimer = Math.max(0, g.nextAttackTimer - dt)
   g.playerDmgFlash = Math.max(0, g.playerDmgFlash - dt * 2.8)
+  g.tooCloseFlash = Math.max(0, g.tooCloseFlash - dt * 2.0)
   if (g.rageTimer > 0) { g.rageTimer = Math.max(0, g.rageTimer - dt); if (g.rageTimer <= 0) g.rageActive = false }
   if (g.poisonTimer > 0) { g.poisonTimer = Math.max(0, g.poisonTimer - dt); b.hp = Math.max(0, b.hp - 15 * dt) }
   if (g.chainResetTimer > 0) { g.chainResetTimer = Math.max(0, g.chainResetTimer - dt); if (g.chainResetTimer <= 0) g.chainHits = 0 }
@@ -557,25 +633,40 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   if (p.targetPos) p.facing = Math.atan2(p.targetPos.y - p.pos.y, p.targetPos.x - p.pos.x)
   else p.facing = Math.atan2(b.pos.y - p.pos.y, b.pos.x - p.pos.x)
 
-  // Auto-attack
-  const dToBoss = dist(p.pos, b.pos), atkRange = wpn.range + bossDef.size
+  // Auto-attack — weapon rules: ranged needs spacing, melee reach varies by weapon
+  const dToBoss = dist(p.pos, b.pos)
+  const wid = getWeaponId(wpn, gear)
+  const isRangedAtk = wpn.id !== 'sword' && !gear.includes('spider_fang')
+  // melee reach per weapon: dagger short, sword balanced, greatsword long+wide, thunder mid
+  const meleeReach = wid === 'dagger' ? 70 : wid === 'greatsword' ? 132 : wid === 'thunder_sword' ? 108 : 100
+  const atkRange = (isRangedAtk ? wpn.range : meleeReach) + bossDef.size
+  // ranged weapons cannot fire at point-blank — must keep a gap beyond the boss body
+  const minRange = isRangedAtk ? bossDef.size + 72 : 0
   let atkCd = wpn.atkCd
   if (gear.includes('spider_fang')) atkCd *= 0.6
   const flashColor = gear.includes('fire_staff') ? '#FF4500' : gear.includes('venom_bow') ? '#8E44AD' : gear.includes('storm_bow') ? '#7DFFB0' : wpn.color
-  if (p.atkTimer <= 0 && dToBoss <= atkRange && !p.dodgeTimer && !g.bullChargeDash.active) {
-    p.atkTimer = atkCd
-    const atkAngle = Math.atan2(b.pos.y - p.pos.y, b.pos.x - p.pos.x)
-    const flashType = gear.includes('spider_fang') ? 'slash' : wpn.id !== 'sword' ? 'shot' : 'slam'
-    g.attackFlash = { angle: atkAngle, timer: 0.22, maxTimer: 0.22, type: flashType, color: flashColor }
-    if (gear.includes('venom_bow') && g.poisonTimer <= 0) g.poisonTimer = 5.0
-    if (wpn.id !== 'sword' && !gear.includes('spider_fang')) {
-      const dir = norm(v(b.pos.x - p.pos.x, b.pos.y - p.pos.y))
-      const isStorm = gear.includes('storm_bow')
-      const projColor = wpn.id === 'staff' ? '#9B59B6' : gear.includes('venom_bow') ? '#9B59B6' : isStorm ? '#7DFFB0' : '#27AE60'
-      const projSpeed = wpn.id === 'staff' ? 380 : 440
-      g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * projSpeed, dir.y * projSpeed), dmg: wpn.dmg, radius: 6, fromBoss: false, life: 4.0, color: projColor, aoe: isStorm ? 40 : undefined, isLightning: isStorm, trail: [] })
-    } else {
-      dealDmgToBoss(g, wpn.dmg, gear); spawnParticles(g, b.pos, 4, wpn.color, 80)
+  const inRange = dToBoss <= atkRange && dToBoss >= minRange
+  if (p.atkTimer <= 0 && !p.dodgeTimer && !g.bullChargeDash.active) {
+    if (isRangedAtk && dToBoss < minRange && dToBoss <= atkRange) {
+      // too close to fire — flash a warning and nudge a soft "miss" click
+      g.tooCloseFlash = 0.55; Sfx.tooClose(); p.atkTimer = 0.18
+    } else if (inRange) {
+      p.atkTimer = atkCd
+      const atkAngle = Math.atan2(b.pos.y - p.pos.y, b.pos.x - p.pos.x)
+      const flashType = gear.includes('spider_fang') ? 'slash' : wpn.id !== 'sword' ? 'shot' : 'slam'
+      g.attackFlash = { angle: atkAngle, timer: 0.22, maxTimer: 0.22, type: flashType, color: flashColor }
+      if (gear.includes('venom_bow') && g.poisonTimer <= 0) g.poisonTimer = 5.0
+      if (isRangedAtk) {
+        const dir = norm(v(b.pos.x - p.pos.x, b.pos.y - p.pos.y))
+        const isStorm = gear.includes('storm_bow')
+        const projColor = wpn.id === 'staff' ? '#9B59B6' : gear.includes('venom_bow') ? '#9B59B6' : isStorm ? '#7DFFB0' : '#27AE60'
+        const projSpeed = wpn.id === 'staff' ? 380 : 440
+        g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * projSpeed, dir.y * projSpeed), dmg: wpn.dmg, radius: 6, fromBoss: false, life: 4.0, color: projColor, aoe: isStorm ? 40 : undefined, isLightning: isStorm, trail: [] })
+        if (wpn.id === 'staff') Sfx.cast(); else Sfx.shot()
+      } else {
+        dealDmgToBoss(g, wpn.dmg, gear); spawnParticles(g, b.pos, 4, wpn.color, 80)
+        Sfx.swing()
+      }
     }
   }
 
@@ -746,12 +837,14 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   // Enrage
   if (!g.bossEnraged && b.hp / b.maxHp <= bossDef.enrageAt) {
     g.bossEnraged = true; g.screenShake = 0.9; spawnParticles(g, b.pos, 35, '#FF4444', 350)
+    Sfx.roar()
   }
 
   // Boss death
   if (b.hp <= 0 && g.phase === 'playing') {
     g.phase = 'dying'; g.bossDeathAnim = 3.0; g.bossAttack = null; g.screenShake = 1.5
     spawnParticles(g, b.pos, 90, '#F1C40F', 400); spawnParticles(g, b.pos, 45, bossDef.color, 320); spawnParticles(g, b.pos, 22, '#FFFFFF', 550)
+    Sfx.death()
   }
 
   // Decay
@@ -796,6 +889,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
 /* ═══ ABILITIES ═══ */
 function activateAbility(g: GS, idx: number, wpn: WeaponDef, gear: GearId[], abilityTarget: V2, bossId: BossId) {
   const p = g.player, b = g.boss
+  if (wpn.id === 'sword') Sfx.swing(); else if (wpn.id === 'bow') Sfx.shot(); else Sfx.ability()
 
   if (idx === 0 && gear.includes('fire_staff')) {
     const dir = norm(v(abilityTarget.x - p.pos.x, abilityTarget.y - p.pos.y))
@@ -1639,10 +1733,37 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
   ctx.restore()
 }
 
-function renderTelegraph(ctx: CanvasRenderingContext2D, g: GS, _bossId: BossId, t: number) {
+function renderTelegraph(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: number) {
   const atk = g.bossAttack; if (!atk || atk.active) return
   const progress = atk.elapsed/atk.telegraphTime, pulse = 0.4+0.6*progress, b = g.boss
+  const bossDef = BOSS_DEFS[bossId]
+  const BIG = ['spider_leap','venom_burst','fire_line','flame_wave','fire_breath','lava_puddle','lightning_barrage','thunderstorm','talon_dive'].includes(atk.type)
+  const dCol = bossId===0 ? '180,112,224' : bossId===1 ? '255,122,26' : '95,230,255'
   ctx.save()
+  // ── boss charge-up aura (every telegraph): pulsing ring that fills as the attack nears ──
+  {
+    const cr = bossDef.size + 14 + Math.sin(t*16)*3
+    ctx.save()
+    ctx.strokeStyle = `rgba(${dCol},${0.25+0.5*progress})`; ctx.lineWidth = 2.5 + progress*3
+    ctx.shadowColor = `rgba(${dCol},0.9)`; ctx.shadowBlur = (BIG?22:12)*pulse
+    ctx.beginPath(); ctx.arc(b.pos.x, b.pos.y, cr, -Math.PI/2, -Math.PI/2 + Math.PI*2*progress); ctx.stroke()
+    // gathering energy sparks spiralling into the boss
+    ctx.shadowBlur = 0
+    const sparks = BIG ? 5 : 3
+    for (let i=0;i<sparks;i++) {
+      const sa = t*6 + i*(Math.PI*2/sparks), sd = cr + 30 - progress*38
+      ctx.fillStyle = `rgba(${dCol},${0.5+0.4*Math.sin(t*9+i)})`
+      ctx.beginPath(); ctx.arc(b.pos.x+Math.cos(sa)*sd, b.pos.y+Math.sin(sa)*sd, BIG?3.2:2.2, 0, Math.PI*2); ctx.fill()
+    }
+    // floating warning mark above the boss for dangerous attacks
+    if (BIG) {
+      ctx.globalAlpha = 0.45+0.55*Math.abs(Math.sin(t*9))
+      ctx.fillStyle = `rgba(${dCol},1)`; ctx.shadowColor=`rgba(${dCol},1)`; ctx.shadowBlur=12
+      ctx.font = 'bold 30px "Press Start 2P", monospace'; ctx.textAlign='center'
+      ctx.fillText('!', b.pos.x, b.pos.y - bossDef.size - 22)
+    }
+    ctx.restore()
+  }
   if (atk.type==='venom_spit'||atk.type==='ember_barrage') {
     const count=atk.data.count??3, baseA=atk.data.angle??0
     for (let i=0;i<count;i++) { const a=baseA+(i-(count-1)/2)*0.28; ctx.strokeStyle=`rgba(255,80,80,${pulse})`; ctx.lineWidth=2; ctx.setLineDash([6,4]); ctx.beginPath(); ctx.moveTo(b.pos.x,b.pos.y); ctx.lineTo(b.pos.x+Math.cos(a)*500,b.pos.y+Math.sin(a)*500); ctx.stroke(); ctx.setLineDash([]) }
@@ -1650,15 +1771,29 @@ function renderTelegraph(ctx: CanvasRenderingContext2D, g: GS, _bossId: BossId, 
     const a=atk.data.angle??0; ctx.strokeStyle=`rgba(255,100,200,${pulse})`; ctx.lineWidth=2; ctx.setLineDash([6,4]); ctx.beginPath(); ctx.moveTo(b.pos.x,b.pos.y); ctx.lineTo(b.pos.x+Math.cos(a)*600,b.pos.y+Math.sin(a)*600); ctx.stroke(); ctx.setLineDash([])
   } else if (atk.type==='leg_sweep'||atk.type==='tail_swipe'||atk.type==='wind_buffet'||atk.type==='fire_breath') {
     const angle=atk.data.angle??0, half=(atk.data.coneAngle??Math.PI)/2, range=atk.data.coneRange??150
-    ctx.fillStyle=`rgba(255,60,60,${pulse*0.2})`; ctx.strokeStyle=`rgba(255,100,60,${pulse*0.7})`; ctx.lineWidth=1.5
+    // base cone outline + a sweep that fills toward the edge as it nears firing
+    ctx.fillStyle=`rgba(${dCol},${pulse*0.16})`; ctx.strokeStyle=`rgba(${dCol},${pulse*0.8})`; ctx.lineWidth=2
+    ctx.shadowColor=`rgba(${dCol},0.8)`; ctx.shadowBlur=10*pulse
     ctx.beginPath(); ctx.moveTo(b.pos.x,b.pos.y); ctx.arc(b.pos.x,b.pos.y,range,angle-half,angle+half); ctx.closePath(); ctx.fill(); ctx.stroke()
+    ctx.shadowBlur=0
+    ctx.fillStyle=`rgba(${dCol},${0.30+0.4*progress})`
+    ctx.beginPath(); ctx.moveTo(b.pos.x,b.pos.y); ctx.arc(b.pos.x,b.pos.y,range*progress,angle-half,angle+half); ctx.closePath(); ctx.fill()
+    // directional chevrons down the cone centre
+    ctx.strokeStyle=`rgba(${dCol},${pulse})`; ctx.lineWidth=3
+    for (let k=1;k<=3;k++){ const cd=range*(k/3.6); const cx=b.pos.x+Math.cos(angle)*cd, cy=b.pos.y+Math.sin(angle)*cd
+      ctx.beginPath(); ctx.moveTo(cx+Math.cos(angle+2.5)*12,cy+Math.sin(angle+2.5)*12); ctx.lineTo(cx,cy); ctx.lineTo(cx+Math.cos(angle-2.5)*12,cy+Math.sin(angle-2.5)*12); ctx.stroke() }
   } else if (atk.type==='spider_leap'||atk.type==='lightning_strike'||atk.type==='stomp') {
     const target=atk.data.targetPos!, r=atk.data.radius??(atk.type==='stomp'?155:120)
-    ctx.strokeStyle=`rgba(255,60,60,${pulse})`; ctx.lineWidth=2+progress*2
-    ctx.beginPath(); ctx.arc(target.x,target.y,r*(0.5+0.5*progress),0,Math.PI*2); ctx.stroke()
+    // filling ground indicator — the fill reaches the edge exactly when the attack lands
+    ctx.fillStyle=`rgba(${dCol},${0.12+0.10*pulse})`; ctx.beginPath(); ctx.arc(target.x,target.y,r,0,Math.PI*2); ctx.fill()
+    ctx.fillStyle=`rgba(${dCol},${0.32})`; ctx.beginPath(); ctx.arc(target.x,target.y,r*progress,0,Math.PI*2); ctx.fill()
+    ctx.strokeStyle=`rgba(${dCol},${0.5+0.5*pulse})`; ctx.lineWidth=2.5+progress*2.5; ctx.shadowColor=`rgba(${dCol},0.9)`; ctx.shadowBlur=12*pulse
+    ctx.beginPath(); ctx.arc(target.x,target.y,r,0,Math.PI*2); ctx.stroke(); ctx.shadowBlur=0
   } else if (atk.type==='venom_burst') {
-    ctx.strokeStyle=`rgba(142,68,173,${pulse})`; ctx.lineWidth=3+progress*3; ctx.beginPath(); ctx.arc(b.pos.x,b.pos.y,(atk.data.radius??180)*(0.4+0.6*progress),0,Math.PI*2); ctx.stroke()
-    ctx.fillStyle=`rgba(90,20,130,${pulse*0.16})`; ctx.beginPath(); ctx.arc(b.pos.x,b.pos.y,atk.data.radius??180,0,Math.PI*2); ctx.fill()
+    const r=atk.data.radius??180
+    ctx.fillStyle=`rgba(90,20,130,${0.10+pulse*0.14})`; ctx.beginPath(); ctx.arc(b.pos.x,b.pos.y,r,0,Math.PI*2); ctx.fill()
+    ctx.fillStyle=`rgba(142,68,173,0.28)`; ctx.beginPath(); ctx.arc(b.pos.x,b.pos.y,r*progress,0,Math.PI*2); ctx.fill()
+    ctx.strokeStyle=`rgba(142,68,173,${pulse})`; ctx.lineWidth=3+progress*3; ctx.beginPath(); ctx.arc(b.pos.x,b.pos.y,r,0,Math.PI*2); ctx.stroke()
   } else if (atk.type==='web_spray') {
     const count=atk.data.count??7, baseA=Math.atan2((atk.data.targetPos?.y??b.pos.y)-b.pos.y,(atk.data.targetPos?.x??b.pos.x)-b.pos.x)
     for (let i=0;i<count;i++) { const a=baseA+(i-(count-1)/2)*0.38; ctx.strokeStyle=`rgba(180,80,255,${pulse*0.75})`; ctx.lineWidth=1.8; ctx.setLineDash([5,5]); ctx.shadowColor='#8E44AD'; ctx.shadowBlur=8*pulse; ctx.beginPath(); ctx.moveTo(b.pos.x,b.pos.y); ctx.lineTo(b.pos.x+Math.cos(a)*520,b.pos.y+Math.sin(a)*520); ctx.stroke(); ctx.setLineDash([]) }
@@ -1896,6 +2031,16 @@ function render(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, bossId: Bo
     renderHazards(ctx,g); renderSlowTraps(ctx,g,t); renderTelegraph(ctx,g,bossId,t)
     renderSkyArrows(ctx,g,t); renderParticles(ctx,g); renderProjectiles(ctx,g,t)
     renderBoss(ctx,g,bossId,t); renderPlayer(ctx,g,wpn,gear,t); renderDamageNumbers(ctx,g)
+    if (g.tooCloseFlash > 0) {
+      const p = g.player, a = Math.min(1, g.tooCloseFlash * 1.6)
+      ctx.save(); ctx.globalAlpha = a
+      ctx.strokeStyle = '#FF5555'; ctx.lineWidth = 2; ctx.setLineDash([5,4])
+      ctx.beginPath(); ctx.arc(p.pos.x, p.pos.y, 24, 0, Math.PI*2); ctx.stroke(); ctx.setLineDash([])
+      ctx.fillStyle = '#FF7777'; ctx.shadowColor = '#FF0000'; ctx.shadowBlur = 8
+      ctx.font = 'bold 9px "Press Start 2P", monospace'; ctx.textAlign = 'center'
+      ctx.fillText('TOO CLOSE', p.pos.x, p.pos.y - 34)
+      ctx.restore()
+    }
   }
   ctx.restore()
   if (g.phase!=='dying') renderHUD(ctx,g,wpn,bossDef,gear,t)
@@ -1921,6 +2066,7 @@ export default function BossHunter() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const playWrapRef = useRef<HTMLDivElement>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [muted, setMuted] = useState(false)
   const gsRef = useRef<GS|null>(null)
   const rafRef = useRef<number>(0)
   const mouseWorldRef = useRef<V2>({x:CW/2,y:CH/2})
@@ -1934,6 +2080,7 @@ export default function BossHunter() {
     const wpn = getWpn(weaponId)
     const bossDef = BOSS_DEFS[bossId]
     gsRef.current = mkState(wpn, bossDef, gear)
+    Sfx.resume()
     setScreen('playing')
   }, [getWpn])
 
@@ -2018,6 +2165,7 @@ export default function BossHunter() {
         : norm(v(p.pos.x - b.pos.x, p.pos.y - b.pos.y))
       p.dodgeTimer = DODGE_DUR; p.iframeTimer = IFRAME_DUR
       p.dodgeVel = v(dir.x * 480, dir.y * 480)
+      Sfx.dodge()
       if (p.dodgeChargeMode) {
         p.featherCharges = Math.max(0, p.featherCharges - 1)
         const slot = p.featherRecharge.findIndex(t => t <= 0)
@@ -2029,6 +2177,7 @@ export default function BossHunter() {
 
     const handleKey = (e: KeyboardEvent, dn: boolean) => {
       if (!dn) return
+      Sfx.resume()
       if (e.repeat) return
       const g = gsRef.current; if (!g || g.phase !== 'playing') return
       if (e.code === 'Space') { e.preventDefault(); triggerDodge() }
@@ -2047,6 +2196,7 @@ export default function BossHunter() {
     }
 
     const handleClick = (e: MouseEvent) => {
+      Sfx.resume()
       const g = gsRef.current; if (!g || g.phase !== 'playing') return
       const rect = canvas.getBoundingClientRect()
       const sx = (e.clientX - rect.left) * (CW / rect.width)
@@ -2078,6 +2228,7 @@ export default function BossHunter() {
         const toUnlock = newGear.length > 0 ? newGear[Math.floor(Math.random() * newGear.length)] : null
         if (toUnlock) setUnlockedGear(prev => [...prev, toUnlock])
         setLastUnlockedGear(toUnlock)
+        Sfx.victory(); if (toUnlock) Sfx.loot()
         setScreen('victory')
         return
       }
@@ -2318,6 +2469,7 @@ export default function BossHunter() {
         <canvas ref={canvasRef} width={CW} height={CH} className="bh-canvas" />
       </div>
       <div style={{position:'absolute',top:8,right:8,display:'flex',gap:6,zIndex:1}}>
+        <button onClick={() => { const nm = !muted; setMuted(nm); Sfx.setMuted(nm); Sfx.resume() }} style={{background:'rgba(4,4,14,0.85)',border:'1px solid #2a2820',color:'#605848',padding:'4px 10px',borderRadius:4,fontSize:7,cursor:'pointer',fontFamily:'inherit'}}>{muted ? '🔇 SOUND OFF' : '🔊 SOUND ON'}</button>
         <button onClick={toggleFullscreen} style={{background:'rgba(4,4,14,0.85)',border:'1px solid #2a2820',color:'#605848',padding:'4px 10px',borderRadius:4,fontSize:7,cursor:'pointer',fontFamily:'inherit'}}>{isFullscreen ? '⊠ WINDOW' : '⛶ FULLSCREEN'}</button>
         <button onClick={() => { cancelAnimationFrame(rafRef.current); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); setScreen('menu') }} style={{background:'rgba(4,4,14,0.85)',border:'1px solid #2a2820',color:'#605848',padding:'4px 10px',borderRadius:4,fontSize:7,cursor:'pointer',fontFamily:'inherit'}}>✕ QUIT</button>
       </div>
