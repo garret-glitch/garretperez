@@ -1061,8 +1061,11 @@ export default function WineStockerRush() {
   const goFiredRef  = useRef(false)   // guard against repeated setState in RAF
   const xpRef       = useRef(false)
 
-  const wrapRef     = useRef<HTMLDivElement | null>(null)
+  const wrapRef     = useRef<HTMLDivElement | null>(null)   // outer / fullscreen target
+  const stageRef    = useRef<HTMLDivElement | null>(null)   // canvas + overlays box
   const [uiScale, setUiScale] = useState(1)
+  const [isFs, setIsFs] = useState(false)
+  const [stageSize, setStageSize] = useState<{ w: number; h: number } | null>(null)
 
   const [screen, setScreen]   = useState<'menu' | 'playing' | 'gameover'>('menu')
   const [xpMsg, setXpMsg]     = useState('')
@@ -1144,20 +1147,55 @@ export default function WineStockerRush() {
     touchRef.current.clear()
     setXpMsg('')
     setScreen('playing')
+    // Go fullscreen for the duration of the shift (must run in the click gesture).
+    const el = wrapRef.current as (HTMLDivElement & { webkitRequestFullscreen?: () => Promise<void> }) | null
+    if (el && !document.fullscreenElement) {
+      const req = el.requestFullscreen?.bind(el) ?? el.webkitRequestFullscreen?.bind(el)
+      try { Promise.resolve(req?.()).catch(() => {}) } catch {}
+    }
   }, [])
 
-  // Keep the HTML overlays scaled to match the canvas (which is drawn at
-  // CW×CH but displayed at the container width). Without this the overlay
-  // text stays at fixed px and looks tiny next to the scaled-up game.
+  // Keep the canvas + HTML overlays sized/scaled together. The game is drawn
+  // at CW×CH but displayed at the container width; in fullscreen we letterbox
+  // it to the largest CW:CH box that fits the screen. uiScale keeps the
+  // overlay text matched to the canvas at all times.
   useEffect(() => {
-    const el = wrapRef.current
-    if (!el) return
-    const update = () => setUiScale(el.clientWidth / CW)
-    update()
-    const ro = new ResizeObserver(update)
-    ro.observe(el)
-    return () => ro.disconnect()
+    const measure = () => {
+      const fs = !!(document.fullscreenElement || (document as any).webkitFullscreenElement)
+      setIsFs(fs)
+      if (fs && wrapRef.current) {
+        const W = wrapRef.current.clientWidth
+        const H = wrapRef.current.clientHeight
+        const s = Math.min(W / CW, H / CH)
+        setStageSize({ w: Math.round(CW * s), h: Math.round(CH * s) })
+        setUiScale(s)
+      } else {
+        setStageSize(null)
+        const el = stageRef.current
+        if (el) setUiScale(el.clientWidth / CW)
+      }
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    if (wrapRef.current) ro.observe(wrapRef.current)
+    document.addEventListener('fullscreenchange', measure)
+    document.addEventListener('webkitfullscreenchange', measure)
+    window.addEventListener('resize', measure)
+    return () => {
+      ro.disconnect()
+      document.removeEventListener('fullscreenchange', measure)
+      document.removeEventListener('webkitfullscreenchange', measure)
+      window.removeEventListener('resize', measure)
+    }
   }, [])
+
+  // Leave fullscreen when the shift ends so the leaderboard is visible again.
+  useEffect(() => {
+    const d = document as Document & { webkitExitFullscreen?: () => void; webkitFullscreenElement?: Element }
+    if (screen === 'gameover' && (d.fullscreenElement || d.webkitFullscreenElement)) {
+      try { Promise.resolve(d.exitFullscreen?.() ?? d.webkitExitFullscreen?.()).catch(() => {}) } catch {}
+    }
+  }, [screen])
 
   // RAF game loop
   useEffect(() => {
@@ -1213,7 +1251,22 @@ export default function WineStockerRush() {
 
   return (
     <div className="space-y-4">
-      <div ref={wrapRef} style={{ position: 'relative', width: '100%', maxWidth: 1280, margin: '0 auto' }}>
+      <div
+        ref={wrapRef}
+        style={isFs
+          ? { width: '100vw', height: '100vh', background: '#000',
+              display: 'flex', alignItems: 'center', justifyContent: 'center' }
+          : { width: '100%', maxWidth: 1280, margin: '0 auto' }}
+      >
+       <div
+         ref={stageRef}
+         style={{
+           position: 'relative',
+           ...(isFs && stageSize
+             ? { width: stageSize.w, height: stageSize.h }
+             : { width: '100%' }),
+         }}
+       >
         <canvas
           ref={canvasRef}
           width={CW}
@@ -1221,8 +1274,9 @@ export default function WineStockerRush() {
           onClick={handleCanvasClick}
           onTouchEnd={handleCanvasClick}
           style={{
-            display: 'block', width: '100%', height: 'auto',
-            border: '2px solid var(--border)', borderRadius: 8,
+            display: 'block', width: '100%', height: isFs ? '100%' : 'auto',
+            border: isFs ? 'none' : '2px solid var(--border)',
+            borderRadius: isFs ? 0 : 8,
             background: '#0d0d14',
             cursor: 'default',
           }}
@@ -1426,6 +1480,7 @@ export default function WineStockerRush() {
             </button>
           </>
         )}
+       </div>
       </div>
 
       {(screen === 'menu' || screen === 'gameover') && (
