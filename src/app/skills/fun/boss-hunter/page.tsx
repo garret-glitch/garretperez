@@ -62,8 +62,85 @@ const Sfx = (() => {
     const g = c.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur)
     src.connect(f); f.connect(g); g.connect(master!); src.start(t); src.stop(t + dur)
   }
+
+  /* ═══ MUSIC — procedural chiptune tracks, scheduled on the AudioContext clock ═══ */
+  let musicGain: GainNode | null = null
+  let musicTimer: ReturnType<typeof setInterval> | null = null
+  let curTrack = '', mstep = 0, nextTime = 0
+  function mnote(c: AudioContext, freq: number, time: number, dur: number, type: OscillatorType, vol: number, dest: AudioNode) {
+    const o = c.createOscillator(); o.type = type; o.frequency.setValueAtTime(freq, time)
+    const g = c.createGain(); g.gain.setValueAtTime(0.0001, time); g.gain.exponentialRampToValueAtTime(vol, time + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, time + dur)
+    o.connect(g); g.connect(dest); o.start(time); o.stop(time + dur + 0.04)
+  }
+  function mkick(c: AudioContext, time: number, dest: AudioNode, vol: number) {
+    const o = c.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(140, time); o.frequency.exponentialRampToValueAtTime(46, time + 0.11)
+    const g = c.createGain(); g.gain.setValueAtTime(vol, time); g.gain.exponentialRampToValueAtTime(0.001, time + 0.16)
+    o.connect(g); g.connect(dest); o.start(time); o.stop(time + 0.18)
+  }
+  function mhat(c: AudioContext, time: number, dest: AudioNode, vol: number) {
+    const n = Math.max(1, Math.floor(c.sampleRate * 0.04)); const buf = c.createBuffer(1, n, c.sampleRate)
+    const d = buf.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1
+    const src = c.createBufferSource(); src.buffer = buf; const f = c.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 7000
+    const g = c.createGain(); g.gain.setValueAtTime(vol, time); g.gain.exponentialRampToValueAtTime(0.001, time + 0.04)
+    src.connect(f); f.connect(g); g.connect(dest); src.start(time); src.stop(time + 0.06)
+  }
+  const A2=110, C3=130.81, D3=146.83, E3=164.81, F2=87.31, G2=98, A3=220, B3=246.94, C4=261.63, D4=293.66, E4=329.63, F4=349.23, G4=392, A4=440, C5=523.25, D5=587.33, E5=659.25, G5=783.99
+  type Voice = { steps: (number | null)[]; type: OscillatorType; vol: number; dur: number }
+  type Trk = { stepDur: number; len: number; voices: Voice[]; kick: number[]; hat: number[] }
+  const TRACKS: Record<string, Trk> = (() => {
+    const T: Record<string, Trk> = {}
+    // BATTLE — driving Am-F-C-G, 8th notes @144bpm
+    { const secBass = [A2, F2, C3, G2], secArp = [[A4, C5, E5, C5], [F4, A4, C5, A4], [C5, E5, G5, E5], [G4, B3, D5, B3]]
+      const bass: (number | null)[] = [], lead: (number | null)[] = [], pad: (number | null)[] = [], kick: number[] = [], hat: number[] = []
+      for (let s = 0; s < 32; s++) { const sec = Math.floor(s / 8), b = s % 8
+        bass.push(b % 2 === 0 ? secBass[sec] : (b === 5 ? secBass[sec] : null)); lead.push(secArp[sec][b % 4]); pad.push(b === 0 ? secBass[sec] * 2 : null)
+        kick.push((b === 0 || b === 4) ? 1 : 0); hat.push(b % 2 === 1 ? 1 : 0) }
+      T.battle = { stepDur: 60 / 144 / 2, len: 32, voices: [{ steps: bass, type: 'sawtooth', vol: 0.26, dur: 0.2 }, { steps: lead, type: 'square', vol: 0.12, dur: 0.17 }, { steps: pad, type: 'triangle', vol: 0.1, dur: 1.7 }], kick, hat } }
+    // MENU — slow ominous Am-F drone
+    { const secBass = [A2, F2], secArp = [[A4, E5, C5, E5], [F4, C5, A4, C5]]
+      const bass: (number | null)[] = [], lead: (number | null)[] = [], pad: (number | null)[] = []
+      for (let s = 0; s < 16; s++) { const sec = Math.floor(s / 8), b = s % 8
+        bass.push(b === 0 ? secBass[sec] : null); lead.push(b % 2 === 0 ? secArp[sec][(b / 2) % 4] : null); pad.push(b === 0 ? secBass[sec] * 1.5 : null) }
+      T.menu = { stepDur: 60 / 76 / 2, len: 16, voices: [{ steps: bass, type: 'triangle', vol: 0.2, dur: 3.2 }, { steps: lead, type: 'sine', vol: 0.1, dur: 0.95 }, { steps: pad, type: 'sawtooth', vol: 0.045, dur: 3.2 }], kick: new Array(16).fill(0), hat: new Array(16).fill(0) } }
+    // VICTORY — bright C-major fanfare loop
+    { const arp = [C4, E4, G4, C5, E5, G5, E5, C5], bassN = [C3, C3, G2, G2, A3, A3, F2, G2]
+      const bass: (number | null)[] = [], lead: (number | null)[] = [], kick: number[] = [], hat: number[] = []
+      for (let s = 0; s < 16; s++) { const b = s % 8; lead.push(arp[s % 8]); bass.push(b % 2 === 0 ? bassN[s % 8] : null); kick.push(b % 2 === 0 ? 1 : 0); hat.push(b % 2 === 1 ? 1 : 0) }
+      T.victory = { stepDur: 60 / 120 / 2, len: 16, voices: [{ steps: bass, type: 'sawtooth', vol: 0.2, dur: 0.22 }, { steps: lead, type: 'square', vol: 0.14, dur: 0.18 }], kick, hat } }
+    // DEFEAT — somber descending minor
+    { const mel = [A4, null, G4, null, F4, null, E4, null, D4, null, E4, null, C4, null, null, null], bass = [A2, null, null, null, F2, null, null, null, D3, null, null, null, E3, null, null, null]
+      T.defeat = { stepDur: 60 / 64 / 2, len: 16, voices: [{ steps: bass, type: 'triangle', vol: 0.18, dur: 2.4 }, { steps: mel, type: 'sine', vol: 0.1, dur: 1.0 }], kick: new Array(16).fill(0), hat: new Array(16).fill(0) } }
+    return T
+  })()
+  function playStep(tr: Trk, s: number, time: number) {
+    if (!musicGain || !ctx) return
+    for (const v of tr.voices) { const f = v.steps[s]; if (f) mnote(ctx, f, time, v.dur, v.type, v.vol, musicGain) }
+    if (tr.kick[s]) mkick(ctx, time, musicGain, 0.55); if (tr.hat[s]) mhat(ctx, time, musicGain, 0.16)
+  }
+  function schedule() {
+    const c = ctx; if (!c || !musicGain || !curTrack) return
+    if (c.state !== 'running') { nextTime = c.currentTime; return }
+    const tr = TRACKS[curTrack]; if (!tr) return
+    while (nextTime < c.currentTime + 0.12) { playStep(tr, mstep % tr.len, nextTime); nextTime += tr.stepDur; mstep++ }
+  }
+  function playMusic(name: string) {
+    const c = ensure(); if (!c || !master) return
+    if (curTrack === name) return
+    curTrack = name; mstep = 0; nextTime = c.currentTime
+    if (!musicGain) { musicGain = c.createGain(); musicGain.gain.value = 0; musicGain.connect(master) }
+    const now = c.currentTime
+    musicGain.gain.cancelScheduledValues(now); musicGain.gain.setValueAtTime(Math.max(0.0001, musicGain.gain.value), now); musicGain.gain.linearRampToValueAtTime(1.25, now + 0.8)
+    if (!musicTimer) musicTimer = setInterval(schedule, 25)
+  }
+  function stopMusic() {
+    curTrack = ''
+    if (musicTimer) { clearInterval(musicTimer); musicTimer = null }
+    if (musicGain && ctx) { const now = ctx.currentTime; musicGain.gain.cancelScheduledValues(now); musicGain.gain.setValueAtTime(Math.max(0.0001, musicGain.gain.value), now); musicGain.gain.linearRampToValueAtTime(0.0001, now + 0.5) }
+  }
+
   return {
-    resume, setMuted, isMuted,
+    resume, setMuted, isMuted, playMusic, stopMusic,
+    uiClick() { const c = ok('ui', 30); if (!c) return; blip(c, 660, 0.06, 'square', 0.12, 880) },
     swing() { const c = ok('swing', 60); if (!c) return; noise(c, 0.14, 0.5, 'bandpass', 1400, 0.8, 600); blip(c, 220, 0.1, 'triangle', 0.18, 120) },
     shot() { const c = ok('shot', 45); if (!c) return; blip(c, 900, 0.12, 'triangle', 0.22, 260); noise(c, 0.05, 0.3, 'highpass', 2200) },
     cast() { const c = ok('cast', 50); if (!c) return; blip(c, 420, 0.18, 'sine', 0.2, 760); blip(c, 630, 0.18, 'sine', 0.12, 1140) },
@@ -3181,6 +3258,20 @@ export default function BossHunter() {
     return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', fit) }
   }, [screen])
 
+  // ── unlock audio on first interaction (browser autoplay policy) ──
+  useEffect(() => {
+    const unlock = () => Sfx.resume()
+    window.addEventListener('pointerdown', unlock); window.addEventListener('keydown', unlock)
+    return () => { window.removeEventListener('pointerdown', unlock); window.removeEventListener('keydown', unlock) }
+  }, [])
+
+  // ── background music keyed to the current screen ──
+  useEffect(() => {
+    const track = screen === 'playing' ? 'battle' : screen === 'victory' ? 'victory' : screen === 'defeat' ? 'defeat' : 'menu'
+    Sfx.playMusic(track)
+  }, [screen])
+  useEffect(() => () => { Sfx.stopMusic() }, [])
+
   useEffect(() => {
     const onFsChange = () => {
       const doc = document as Document & { webkitFullscreenElement?: Element }
@@ -3328,7 +3419,7 @@ export default function BossHunter() {
       <div style={{flex:1}}/>
 
       <div style={{position:'relative',zIndex:2,textAlign:'center',paddingBottom:'clamp(20px,4vh,40px)'}}>
-        <button className="bh-begin" onClick={()=>setScreen('hunt_select')} style={{background:'linear-gradient(135deg,#C89B3C,#8B6914)',border:'2px solid #C89B3C44',color:'#0d0d14',padding:'16px 56px',borderRadius:6,fontSize:12,cursor:'pointer',fontFamily:'"Press Start 2P",monospace',letterSpacing:3}}>
+        <button className="bh-begin" onClick={()=>{Sfx.resume(); Sfx.uiClick(); setScreen('hunt_select')}} style={{background:'linear-gradient(135deg,#C89B3C,#8B6914)',border:'2px solid #C89B3C44',color:'#0d0d14',padding:'16px 56px',borderRadius:6,fontSize:12,cursor:'pointer',fontFamily:'"Press Start 2P",monospace',letterSpacing:3}}>
           ▶&nbsp;BEGIN HUNT
         </button>
         <div style={{display:'flex',gap:18,justifyContent:'center',flexWrap:'wrap',marginTop:22}}>
