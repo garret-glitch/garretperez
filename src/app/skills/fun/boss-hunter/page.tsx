@@ -1347,41 +1347,52 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
     drawWing(-1); drawWing(1)
     ctx.shadowBlur = 0
 
-    // ── lion tail (electric tuft) ──
+    // ── tail feathers (bird rectrices, fanned back) ──
     {
-      const tw = Math.sin(t * 2.2) * sz * 0.20
-      ctx.strokeStyle = cMid; ctx.lineWidth = sz * 0.12; ctx.lineCap = 'round'
-      ctx.beginPath(); ctx.moveTo(-sz * 0.7, 0); ctx.quadraticCurveTo(-sz * 1.35, tw, -sz * 1.72, tw * 0.4 - sz * 0.1); ctx.stroke()
-      ctx.fillStyle = cEdge; ctx.shadowColor = cGlow; ctx.shadowBlur = 16
-      ctx.beginPath(); ctx.arc(-sz * 1.72, tw * 0.4 - sz * 0.1, sz * 0.12 + charge * sz * 0.03, 0, Math.PI * 2); ctx.fill()
-      ctx.shadowBlur = 0; ctx.lineCap = 'butt'
+      const sway = Math.sin(t * 2.0) * 0.12
+      const baseX = -sz * 0.66, tN = 7
+      // back row — darker, longer (depth)
+      for (let i = 0; i < tN; i++) {
+        const fr = i / (tN - 1) - 0.5
+        feather(baseX, fr * sz * 0.08, Math.PI + fr * 1.0 + sway, sz * (1.12 - Math.abs(fr) * 0.40), sz * 0.17, cDark, cMid, false)
+      }
+      // front row — lighter, glowing center plumes
+      for (let i = 0; i < tN; i++) {
+        const fr = i / (tN - 1) - 0.5
+        feather(baseX + sz * 0.04, fr * sz * 0.06, Math.PI + fr * 0.9 + sway, sz * (0.95 - Math.abs(fr) * 0.34), sz * 0.13, cMid, cLight, Math.abs(fr) < 0.2)
+      }
+      // electric tip glow on the central plume
+      const ta = Math.PI + sway, tl = sz * 0.95
+      ctx.fillStyle = cEdge; ctx.shadowColor = cGlow; ctx.shadowBlur = 14
+      ctx.beginPath(); ctx.arc(baseX + sz * 0.04 + Math.cos(ta) * tl, Math.sin(ta) * tl, sz * 0.07 + charge * sz * 0.02, 0, Math.PI * 2); ctx.fill()
+      ctx.shadowBlur = 0
     }
 
     // ── hind lion haunches + legs ──
     for (const side of [-1, 1]) {
       ctx.fillStyle = cDark
-      ctx.beginPath(); ctx.ellipse(-sz * 0.42, side * sz * 0.42, sz * 0.34, sz * 0.27, side * 0.3, 0, Math.PI * 2); ctx.fill()
-      ctx.strokeStyle = cMid; ctx.lineWidth = sz * 0.16; ctx.lineCap = 'round'
-      ctx.beginPath(); ctx.moveTo(-sz * 0.5, side * sz * 0.5); ctx.lineTo(-sz * 0.34, side * sz * 0.74); ctx.stroke()
+      ctx.beginPath(); ctx.ellipse(-sz * 0.40, side * sz * 0.32, sz * 0.30, sz * 0.21, side * 0.3, 0, Math.PI * 2); ctx.fill()
+      ctx.strokeStyle = cMid; ctx.lineWidth = sz * 0.15; ctx.lineCap = 'round'
+      ctx.beginPath(); ctx.moveTo(-sz * 0.46, side * sz * 0.42); ctx.lineTo(-sz * 0.32, side * sz * 0.66); ctx.stroke()
       ctx.lineCap = 'butt'; ctx.strokeStyle = cGold; ctx.lineWidth = 2
-      for (let c = -1; c <= 1; c++) { ctx.beginPath(); ctx.moveTo(-sz * 0.34, side * sz * 0.74); ctx.lineTo(-sz * 0.30 + c * sz * 0.06, side * sz * 0.87); ctx.stroke() }
+      for (let c = -1; c <= 1; c++) { ctx.beginPath(); ctx.moveTo(-sz * 0.32, side * sz * 0.66); ctx.lineTo(-sz * 0.28 + c * sz * 0.06, side * sz * 0.79); ctx.stroke() }
     }
 
-    // ── body (eagle breast → lion rear) ──
-    const bodyG = ctx.createLinearGradient(sz * 0.5, -sz * 0.4, -sz * 0.6, sz * 0.4)
+    // ── body (eagle breast → lion rear) — slim torso ──
+    const bodyG = ctx.createLinearGradient(sz * 0.5, -sz * 0.34, -sz * 0.6, sz * 0.34)
     bodyG.addColorStop(0, cLight); bodyG.addColorStop(0.55, cMid); bodyG.addColorStop(1, cDark)
-    ctx.fillStyle = bodyG; ctx.beginPath(); ctx.ellipse(-sz * 0.02, 0, sz * 0.82, sz * 0.66, 0, 0, Math.PI * 2); ctx.fill()
+    ctx.fillStyle = bodyG; ctx.beginPath(); ctx.ellipse(-sz * 0.02, 0, sz * 0.84, sz * 0.46, 0, 0, Math.PI * 2); ctx.fill()
     if (!hitW) {
       // breast feather scallops
       ctx.strokeStyle = enr ? 'rgba(185,238,255,0.4)' : 'rgba(195,210,240,0.32)'; ctx.lineWidth = 1.6
       for (let r = 0; r < 4; r++) for (let cI = -2; cI <= 2; cI++) {
-        const bxp = sz * (0.18 + r * 0.16), byp = cI * sz * 0.16 + (r % 2) * sz * 0.07
-        if (Math.hypot(bxp, byp) > sz * 0.72) continue
-        ctx.beginPath(); ctx.arc(bxp, byp, sz * 0.10, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke()
+        const bxp = sz * (0.18 + r * 0.16), byp = cI * sz * 0.12 + (r % 2) * sz * 0.06
+        if (Math.hypot(bxp, byp) > sz * 0.66) continue
+        ctx.beginPath(); ctx.arc(bxp, byp, sz * 0.09, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke()
       }
       // lion fur lines (rear)
       ctx.strokeStyle = 'rgba(18,22,38,0.35)'; ctx.lineWidth = 1.4
-      for (let i = 0; i < 5; i++) { const fy = -sz * 0.34 + i * sz * 0.17; ctx.beginPath(); ctx.moveTo(-sz * 0.18, fy); ctx.lineTo(-sz * 0.62, fy + Math.sign(fy || 1) * sz * 0.06); ctx.stroke() }
+      for (let i = 0; i < 5; i++) { const fy = -sz * 0.24 + i * sz * 0.12; ctx.beginPath(); ctx.moveTo(-sz * 0.18, fy); ctx.lineTo(-sz * 0.62, fy + Math.sign(fy || 1) * sz * 0.05); ctx.stroke() }
     }
     // storm-charge core glow on chest
     {
