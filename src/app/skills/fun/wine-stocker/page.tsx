@@ -1263,17 +1263,18 @@ export default function WineStockerRush() {
                   <div style={{ display: 'flex', gap: 3 }}>
                     {['↑','↓','←','→'].map(k => (
                       <span key={k} style={{
-                        fontFamily: '"Press Start 2P", monospace', fontSize: 10,
-                        color: '#c89b3c', background: 'rgba(200,155,60,0.13)',
+                        fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
+                        fontSize: 16, fontWeight: 800,
+                        color: '#e8c772', background: 'rgba(200,155,60,0.13)',
                         border: '1px solid rgba(200,155,60,0.45)',
                         borderBottom: '3px solid rgba(200,155,60,0.55)',
                         borderRadius: 5, lineHeight: 1,
-                        width: 24, height: 24, boxSizing: 'border-box',
+                        width: 26, height: 26, boxSizing: 'border-box',
                         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                       }}>{k}</span>
                     ))}
                   </div>
-                  <span className="body-text" style={{ color: 'var(--text-1)', fontSize: 11, fontWeight: 700 }}>Move</span>
+                  <span className="body-text" style={{ color: '#ffffff', fontSize: 13, fontWeight: 700 }}>Move</span>
                 </div>
 
                 {/* Spacebar row */}
@@ -1286,7 +1287,7 @@ export default function WineStockerRush() {
                     padding: '5px 22px', borderRadius: 5, lineHeight: 1,
                     letterSpacing: '0.15em', display: 'inline-block',
                   }}>SPACE</span>
-                  <span className="body-text" style={{ color: 'var(--text-1)', fontSize: 11, fontWeight: 700 }}>Run</span>
+                  <span className="body-text" style={{ color: '#ffffff', fontSize: 13, fontWeight: 700 }}>Run</span>
                 </div>
 
                 {/* Stockroom */}
@@ -1298,7 +1299,7 @@ export default function WineStockerRush() {
                     borderBottom: '3px solid rgba(100,180,255,0.4)',
                     padding: '5px 8px', borderRadius: 5, lineHeight: 1, whiteSpace: 'nowrap',
                   }}>← LEFT</span>
-                  <span className="body-text" style={{ color: 'var(--text-2)', fontSize: 10 }}>Enter stockroom for cases</span>
+                  <span className="body-text" style={{ color: '#d8d4cc', fontSize: 11 }}>Enter stockroom for cases</span>
                 </div>
               </div>
 
