@@ -414,8 +414,8 @@ function dealDmgToMinion(g: GS, m: Minion, dmg: number) {
 /* ═══ BOSS AI ═══ */
 function selectBossAttack(bossId: BossId, enraged: boolean, d2p: number): string {
   if (bossId === 0) {
-    const pool = d2p < 150 ? ['leg_sweep', 'venom_spit', 'web_spray', 'toxic_cloud', 'summon'] : ['venom_spit', 'toxic_cloud', 'web_spray', 'web_shot', 'leg_sweep', 'summon']
-    if (enraged) pool.push('spider_leap', 'venom_burst', 'web_spray', 'summon')
+    const pool = d2p < 150 ? ['leg_sweep', 'venom_spit', 'web_spray', 'toxic_cloud', 'summon', 'web_wall'] : ['venom_spit', 'toxic_cloud', 'web_spray', 'web_shot', 'leg_sweep', 'summon', 'web_wall', 'spider_charge']
+    if (enraged) pool.push('spider_leap', 'venom_burst', 'web_spray', 'summon', 'spider_charge')
     return pool[rndI(0, pool.length - 1)]
   }
   if (bossId === 1) {
@@ -432,7 +432,7 @@ function startBossAttack(g: GS, bossId: BossId, type: string) {
   const p = g.player, b = g.boss
   const angle = Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
   const telegraphs: Record<string, number> = {
-    venom_spit: 0.9, web_shot: 0.8, web_spray: 0.85, leg_sweep: 1.0, spider_leap: 1.1, toxic_cloud: 0.75, venom_burst: 1.2, summon: 1.05,
+    venom_spit: 0.9, web_shot: 0.8, web_spray: 0.85, leg_sweep: 1.0, spider_leap: 1.1, toxic_cloud: 0.75, venom_burst: 1.2, summon: 1.05, web_wall: 1.1, spider_charge: 0.9,
     fire_breath: 1.2, stomp: 0.85, tail_swipe: 0.8, ember_barrage: 0.7, flame_wave: 1.0, lava_puddle: 0.75, fire_line: 1.5,
     fireball: 1.0, tail_slam: 0.95,
     lightning_strike: 0.95, talon_dive: 0.9, wind_buffet: 0.8, thunderstorm: 0.75, static_field: 0.7, chain_lightning: 0.85, lightning_barrage: 0.5,
@@ -465,9 +465,11 @@ function startBossAttack(g: GS, bossId: BossId, type: string) {
   else if (type === 'tail_slam') { data.dmg = 34; data.radius = 200; data.targetPos = { ...b.pos } }
   else if (type === 'wind_blade') { data.dmg = 16; data.count = g.bossEnraged ? 6 : 5; data.projSpeed = 330; data.angle = angle }
   else if (type === 'dive_bomb') { data.dmg = 36; data.radius = 130 }
+  else if (type === 'web_wall') { data.dmg = 0; data.angle = b.angle + Math.PI / 2 }
+  else if (type === 'spider_charge') { data.dmg = 30; data.angle = angle }
   g.bossAttack = { type, telegraphTime: telegraphs[type] ?? 1.0, elapsed: 0, active: false, data }
   // ── telegraph: audio warning + charge-up burst (readability/fairness) ──
-  const BIG_ATTACKS = ['spider_leap', 'venom_burst', 'fire_line', 'flame_wave', 'fire_breath', 'lava_puddle', 'lightning_barrage', 'thunderstorm', 'meteor', 'talon_dive', 'fireball', 'tail_slam', 'dive_bomb']
+  const BIG_ATTACKS = ['spider_leap', 'venom_burst', 'fire_line', 'flame_wave', 'fire_breath', 'lava_puddle', 'lightning_barrage', 'thunderstorm', 'meteor', 'talon_dive', 'fireball', 'tail_slam', 'dive_bomb', 'spider_charge']
   if (BIG_ATTACKS.includes(type)) Sfx.warnBig(); else Sfx.warn()
   const chargeCol = bossId === 0 ? '#B370E0' : bossId === 1 ? '#FF7A1A' : '#5fe6ff'
   spawnParticles(g, b.pos, BIG_ATTACKS.includes(type) ? 16 : 9, chargeCol, 70, (telegraphs[type] ?? 1.0) * 0.7)
@@ -516,6 +518,30 @@ function resolveBossAttack(g: GS, bossId: BossId, wpn: WeaponDef, gear: GearId[]
     const target = d.targetPos!, r = d.radius ?? 130
     if (dist(p.pos, target) <= r) dealDmgToPlayer(g, d.dmg ?? 36, wpn, gear, norm(v(p.pos.x - target.x, p.pos.y - target.y)))
     spawnParticles(g, target, 26, '#5fe6ff', 280); g.screenShake = Math.max(g.screenShake, 0.55)
+  } else if (type === 'web_wall') {
+    // Spider: weaves a wall of sticky web across the arena — slows and chips on contact
+    const lineAngle = d.angle ?? 0, lineLen = 760, lineCount = 16
+    for (let i = 0; i < lineCount; i++) {
+      const t2 = (i / (lineCount - 1)) * 2 - 1
+      const zx = clamp(b.pos.x + Math.cos(lineAngle) * lineLen * t2, 80, WW - 80)
+      const zy = clamp(b.pos.y + Math.sin(lineAngle) * lineLen * t2, 80, WH - 80)
+      spawnZone(g, v(zx, zy), 'web', 50, 8, 4.5)
+      if (i % 3 === 0) spawnParticles(g, v(zx, zy), 4, '#8E44AD', 90, 0.6)
+    }
+  } else if (type === 'spider_charge') {
+    // Spider: a fast lunge along a lane — sidestep out of the path
+    const a = d.angle ?? 0, dirL = v(Math.cos(a), Math.sin(a)), lunge = 300, sz = BOSS_DEFS[bossId].size
+    const rel = v(p.pos.x - b.pos.x, p.pos.y - b.pos.y)
+    const along = rel.x * dirL.x + rel.y * dirL.y
+    const perpSigned = -rel.x * dirL.y + rel.y * dirL.x
+    if (along > -30 && along < lunge + sz && Math.abs(perpSigned) < sz + 26) {
+      const sgn = perpSigned >= 0 ? 1 : -1
+      const pushDir = norm(v(-dirL.y * sgn, dirL.x * sgn))
+      dealDmgToPlayer(g, d.dmg ?? 30, wpn, gear, pushDir)
+      if (wpn.id !== 'sword') p.knockbackVel = v(pushDir.x * 280, pushDir.y * 280)
+    }
+    b.pos.x = clamp(b.pos.x + dirL.x * lunge, 90, WW - 90); b.pos.y = clamp(b.pos.y + dirL.y * lunge, 90, WH - 90)
+    spawnParticles(g, b.pos, 18, '#8E44AD', 240); g.screenShake = Math.max(g.screenShake, 0.5)
   } else if (type === 'leg_sweep' || type === 'tail_swipe' || type === 'wind_buffet') {
     const angle = d.angle ?? 0, halfCone = (d.coneAngle ?? Math.PI) / 2, range = d.coneRange ?? 150
     if (dist(p.pos, b.pos) <= range) {
@@ -1917,7 +1943,7 @@ function renderTelegraph(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t
   const atk = g.bossAttack; if (!atk || atk.active) return
   const progress = atk.elapsed/atk.telegraphTime, pulse = 0.4+0.6*progress, b = g.boss
   const bossDef = BOSS_DEFS[bossId]
-  const BIG = ['spider_leap','venom_burst','fire_line','flame_wave','fire_breath','lava_puddle','lightning_barrage','thunderstorm','talon_dive','fireball','tail_slam','dive_bomb'].includes(atk.type)
+  const BIG = ['spider_leap','venom_burst','fire_line','flame_wave','fire_breath','lava_puddle','lightning_barrage','thunderstorm','talon_dive','fireball','tail_slam','dive_bomb','spider_charge'].includes(atk.type)
   const dCol = bossId===0 ? '180,112,224' : bossId===1 ? '255,122,26' : '95,230,255'
   ctx.save()
   // ── boss charge-up aura (every telegraph): pulsing ring that fills as the attack nears ──
@@ -1991,6 +2017,22 @@ function renderTelegraph(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t
     ctx.strokeStyle=`rgba(0,220,255,${pulse*0.9})`; ctx.lineWidth=2+progress*2; ctx.shadowColor='#00EEFF'; ctx.shadowBlur=16*pulse
     ctx.setLineDash([8,4]); ctx.beginPath(); ctx.arc(b.pos.x,b.pos.y,80*(0.5+0.5*progress),0,Math.PI*2); ctx.stroke(); ctx.setLineDash([])
     ctx.fillStyle=`rgba(0,200,255,${pulse*0.12})`; ctx.beginPath(); ctx.arc(b.pos.x,b.pos.y,80,0,Math.PI*2); ctx.fill()
+  } else if (atk.type==='web_wall') {
+    const lineA=atk.data.angle??0, len=760
+    ctx.save(); ctx.shadowColor='#8E44AD'; ctx.shadowBlur=16*pulse
+    ctx.strokeStyle=`rgba(${dCol},${pulse*0.85})`; ctx.lineWidth=8+progress*10; ctx.setLineDash([14,8])
+    ctx.beginPath(); ctx.moveTo(b.pos.x-Math.cos(lineA)*len,b.pos.y-Math.sin(lineA)*len); ctx.lineTo(b.pos.x+Math.cos(lineA)*len,b.pos.y+Math.sin(lineA)*len); ctx.stroke(); ctx.setLineDash([])
+    ctx.restore()
+  } else if (atk.type==='spider_charge') {
+    const a=atk.data.angle??0, len=360, halfW=70
+    const ex=b.pos.x+Math.cos(a)*len, ey=b.pos.y+Math.sin(a)*len
+    const px2=-Math.sin(a)*halfW, py2=Math.cos(a)*halfW
+    ctx.save(); ctx.shadowColor=`rgba(${dCol},0.8)`; ctx.shadowBlur=12*pulse
+    ctx.fillStyle=`rgba(${dCol},${0.12+pulse*0.18})`
+    ctx.beginPath(); ctx.moveTo(b.pos.x+px2,b.pos.y+py2); ctx.lineTo(ex+px2,ey+py2); ctx.lineTo(ex-px2,ey-py2); ctx.lineTo(b.pos.x-px2,b.pos.y-py2); ctx.closePath(); ctx.fill()
+    ctx.strokeStyle=`rgba(${dCol},${pulse})`; ctx.lineWidth=3
+    for (let k=1;k<=3;k++){ const cd=len*(k/3.6); const cx=b.pos.x+Math.cos(a)*cd, cy=b.pos.y+Math.sin(a)*cd; ctx.beginPath(); ctx.moveTo(cx+Math.cos(a+2.5)*14,cy+Math.sin(a+2.5)*14); ctx.lineTo(cx,cy); ctx.lineTo(cx+Math.cos(a-2.5)*14,cy+Math.sin(a-2.5)*14); ctx.stroke() }
+    ctx.restore()
   }
   void t
   ctx.restore()
