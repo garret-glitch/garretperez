@@ -75,6 +75,9 @@ const Sfx = (() => {
     roar() { const c = ok('roar', 200); if (!c) return; blip(c, 140, 0.6, 'sawtooth', 0.3, 60); blip(c, 90, 0.7, 'square', 0.18, 48); noise(c, 0.6, 0.25, 'lowpass', 600, 0.7, 180) },
     death() { const c = ok('death', 200); if (!c) return; blip(c, 240, 0.9, 'sawtooth', 0.32, 40); blip(c, 120, 1.0, 'square', 0.22, 30); noise(c, 0.9, 0.3, 'lowpass', 800, 1, 80) },
     tooClose() { const c = ok('tc', 480); if (!c) return; blip(c, 320, 0.06, 'square', 0.1, 200) },
+    summon() { const c = ok('summon', 120); if (!c) return; blip(c, 300, 0.3, 'sawtooth', 0.18, 520); blip(c, 200, 0.34, 'square', 0.14, 360, 0.04); noise(c, 0.25, 0.16, 'bandpass', 1200, 1.4, 600) },
+    minionDeath() { const c = ok('mdeath', 40); if (!c) return; blip(c, 380, 0.12, 'square', 0.16, 120); noise(c, 0.08, 0.2, 'highpass', 1800) },
+    phaseShift() { const c = ok('phase', 200); if (!c) return; blip(c, 160, 0.7, 'sawtooth', 0.32, 70); blip(c, 320, 0.5, 'square', 0.18, 540, 0.05); noise(c, 0.6, 0.28, 'lowpass', 900, 0.8, 200) },
     ability() { const c = ok('abil', 40); if (!c) return; blip(c, 520, 0.2, 'sine', 0.2, 980); blip(c, 780, 0.2, 'triangle', 0.12, 1400) },
     victory() { const c = ok('vic', 300); if (!c) return;[523, 659, 784, 1047].forEach((f, i) => blip(c, f, 0.22, 'triangle', 0.22, undefined, i * 0.12)) },
     loot() { const c = ok('loot', 120); if (!c) return; blip(c, 880, 0.1, 'triangle', 0.18, 1320); blip(c, 1320, 0.12, 'sine', 0.14, undefined, 0.08) },
@@ -119,6 +122,7 @@ interface HazardZone { id: number; pos: V2; radius: number; type: 'poison' | 'fi
 interface AttackFlash { angle: number; timer: number; maxTimer: number; type: 'slash' | 'slam' | 'shot' | 'magic' | 'shadow' | 'power_shot'; color: string }
 interface SkyArrow { id: number; targetPos: V2; warnTimer: number; hit: boolean; dmg: number }
 interface EnvObject { type: 'rock' | 'bone' | 'skull' | 'web' | 'ruin' | 'crystal' | 'nest' | 'claw'; pos: V2; size: number; angle: number; variant: number }
+interface Minion { id: number; pos: V2; vel: V2; hp: number; maxHp: number; hitFlash: number; atkCd: number; legPhase: number; spawnAnim: number }
 interface GS {
   phase: 'playing' | 'dying' | 'victory' | 'defeat'
   player: PlayerState; boss: BossState
@@ -139,6 +143,8 @@ interface GS {
   bossFleeTimer: number
   tailWhipCd: number
   snakeTrail: Array<{x: number; y: number}>
+  minions: Minion[]; nextMinionId: number
+  bossDesperate: boolean; phaseBanner: { text: string; sub: string; timer: number } | null
 }
 interface PlayerState {
   pos: V2; vel: V2; targetPos: V2 | null
@@ -295,6 +301,8 @@ function mkState(wpn: WeaponDef, boss: BossDef, gear: GearId[]): GS {
     bossFleeTimer: 0,
     tailWhipCd: 0,
     snakeTrail: [],
+    minions: [], nextMinionId: 0,
+    bossDesperate: false, phaseBanner: null,
   }
 }
 
@@ -363,11 +371,33 @@ function dealDmgToBoss(g: GS, baseDmg: number, gear: GearId[]) {
   spawnParticles(g, b.pos, 4, '#FFFFFF', 80)
 }
 
+const MINION_CAP = 7
+function spawnSpiderlings(g: GS, count: number) {
+  const b = g.boss
+  for (let i = 0; i < count; i++) {
+    if (g.minions.length >= MINION_CAP) break
+    const a = rnd(0, Math.PI * 2), d = rnd(30, 70)
+    g.minions.push({
+      id: ++g.nextMinionId,
+      pos: v(clamp(b.pos.x + Math.cos(a) * d, 40, WW - 40), clamp(b.pos.y + Math.sin(a) * d, 40, WH - 40)),
+      vel: v(0, 0), hp: 55, maxHp: 55, hitFlash: 0, atkCd: rnd(0.3, 0.9), legPhase: rnd(0, 6.28), spawnAnim: 0.45,
+    })
+    spawnParticles(g, g.minions[g.minions.length - 1].pos, 8, '#8E44AD', 130, 0.5)
+  }
+  Sfx.summon()
+}
+function dealDmgToMinion(g: GS, m: Minion, dmg: number) {
+  m.hp = Math.max(0, m.hp - dmg); m.hitFlash = 0.12
+  Sfx.bossHit()
+  g.damageNums.push({ id: ++g.nextDmgId, pos: { x: m.pos.x + rnd(-10, 10), y: m.pos.y - 16 }, val: Math.round(dmg), life: 0.8, isPlayer: false })
+  if (m.hp <= 0) { spawnParticles(g, m.pos, 14, '#8E44AD', 180, 0.6); Sfx.minionDeath() }
+}
+
 /* ═══ BOSS AI ═══ */
 function selectBossAttack(bossId: BossId, enraged: boolean, d2p: number): string {
   if (bossId === 0) {
-    const pool = d2p < 150 ? ['leg_sweep', 'venom_spit', 'web_spray', 'toxic_cloud'] : ['venom_spit', 'toxic_cloud', 'web_spray', 'web_shot', 'leg_sweep']
-    if (enraged) pool.push('spider_leap', 'venom_burst', 'web_spray')
+    const pool = d2p < 150 ? ['leg_sweep', 'venom_spit', 'web_spray', 'toxic_cloud', 'summon'] : ['venom_spit', 'toxic_cloud', 'web_spray', 'web_shot', 'leg_sweep', 'summon']
+    if (enraged) pool.push('spider_leap', 'venom_burst', 'web_spray', 'summon')
     return pool[rndI(0, pool.length - 1)]
   }
   if (bossId === 1) {
@@ -384,7 +414,7 @@ function startBossAttack(g: GS, bossId: BossId, type: string) {
   const p = g.player, b = g.boss
   const angle = Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
   const telegraphs: Record<string, number> = {
-    venom_spit: 0.9, web_shot: 0.8, web_spray: 0.85, leg_sweep: 1.0, spider_leap: 1.1, toxic_cloud: 0.75, venom_burst: 1.2,
+    venom_spit: 0.9, web_shot: 0.8, web_spray: 0.85, leg_sweep: 1.0, spider_leap: 1.1, toxic_cloud: 0.75, venom_burst: 1.2, summon: 1.05,
     fire_breath: 1.2, stomp: 0.85, tail_swipe: 0.8, ember_barrage: 0.7, flame_wave: 1.0, lava_puddle: 0.75, fire_line: 1.5,
     lightning_strike: 0.95, talon_dive: 0.9, wind_buffet: 0.8, thunderstorm: 0.75, static_field: 0.7, chain_lightning: 0.85, lightning_barrage: 0.5,
   }
@@ -395,6 +425,7 @@ function startBossAttack(g: GS, bossId: BossId, type: string) {
   else if (type === 'spider_leap') { data.dmg = 36; data.radius = 130 }
   else if (type === 'toxic_cloud') { data.dmg = 0; data.count = 3 }
   else if (type === 'venom_burst') { data.dmg = 38; data.radius = 180 }
+  else if (type === 'summon') { data.count = g.bossDesperate ? 4 : 3 }
   else if (type === 'fire_breath') { data.dmg = 18; data.coneAngle = 44 * Math.PI / 180; data.coneRange = 260; data.angle = angle; data.duration = 2.2; data.elapsed = 0 }
   else if (type === 'stomp') { data.dmg = 28; data.radius = 0; data.duration = 1.2 }
   else if (type === 'tail_swipe') { data.dmg = 28; data.coneAngle = 270 * Math.PI / 180; data.coneRange = 170; data.angle = angle + Math.PI }
@@ -450,6 +481,9 @@ function resolveBossAttack(g: GS, bossId: BossId, wpn: WeaponDef, gear: GearId[]
       spawnZone(g, v(tx, ty), 'poison', 65, 12, 6.0)
       spawnParticles(g, v(tx, ty), 12, '#8E44AD', 90, 0.9)
     }
+  } else if (type === 'summon') {
+    spawnSpiderlings(g, d.count ?? 3)
+    g.screenShake = Math.max(g.screenShake, 0.3)
   } else if (type === 'venom_burst') {
     const r = d.radius ?? 180
     if (dist(p.pos, b.pos) <= r) { dealDmgToPlayer(g, d.dmg ?? 38, wpn, gear, toPlayer); p.slowTimer = 2.5 }
@@ -538,7 +572,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   b.hitFlash = Math.max(0, b.hitFlash - dt)
   b.legPhase += dt * (b.stunTimer > 0 ? 0.5 : g.bossEnraged ? 3.8 : 2.4)
   b.spinePulse += dt * 2.2; b.lightningPhase += dt * 4.5
-  g.screenShake = Math.max(0, g.screenShake - dt * 3); g.nextAttackTimer = Math.max(0, g.nextAttackTimer - dt)
+  g.screenShake = Math.max(0, g.screenShake - dt * 3); g.nextAttackTimer = Math.max(0, g.nextAttackTimer - dt * (g.bossDesperate ? 1.55 : 1))
   g.playerDmgFlash = Math.max(0, g.playerDmgFlash - dt * 2.8)
   g.tooCloseFlash = Math.max(0, g.tooCloseFlash - dt * 2.0)
   if (g.rageTimer > 0) { g.rageTimer = Math.max(0, g.rageTimer - dt); if (g.rageTimer <= 0) g.rageActive = false }
@@ -557,6 +591,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
     arrow.warnTimer -= dt
     if (arrow.warnTimer <= 0) {
       if (dist(b.pos, arrow.targetPos) < bossDef.size + 60) dealDmgToBoss(g, arrow.dmg, gear)
+      g.minions.forEach(m => { if (m.hp > 0 && dist(m.pos, arrow.targetPos) < 80) dealDmgToMinion(g, m, arrow.dmg) })
       spawnParticles(g, arrow.targetPos, 20, '#F1C40F', 260, 0.75); g.screenShake = Math.max(g.screenShake, 0.4)
       arrow.hit = true; return false
     }
@@ -599,7 +634,8 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   if (g.whirlwindActive) {
     g.whirlwindTimer -= dt; p.iframeTimer = Math.max(p.iframeTimer, 0.1)
     if (g.whirlwindTimer <= 0) { g.whirlwindActive = false }
-    else if (dist(p.pos, b.pos) < 110) { b.hp = Math.max(0, b.hp - 65 * dt); spawnParticles(g, b.pos, 2, '#E74C3C', 100) }
+    else { if (dist(p.pos, b.pos) < 110) { b.hp = Math.max(0, b.hp - 65 * dt); spawnParticles(g, b.pos, 2, '#E74C3C', 100) }
+      g.minions.forEach(m => { if (m.hp > 0 && dist(p.pos, m.pos) < 110) { m.hp = Math.max(0, m.hp - 90 * dt); if (m.hp <= 0) { spawnParticles(g, m.pos, 12, '#8E44AD', 170); Sfx.minionDeath() } } }) }
   }
 
   // Player movement
@@ -639,33 +675,39 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   const isRangedAtk = wpn.id !== 'sword' && !gear.includes('spider_fang')
   // melee reach per weapon: dagger short, sword balanced, greatsword long+wide, thunder mid
   const meleeReach = wid === 'dagger' ? 70 : wid === 'greatsword' ? 132 : wid === 'thunder_sword' ? 108 : 100
-  const atkRange = (isRangedAtk ? wpn.range : meleeReach) + bossDef.size
-  // ranged weapons cannot fire at point-blank — must keep a gap beyond the boss body
-  const minRange = isRangedAtk ? bossDef.size + 72 : 0
+  const weaponReach = isRangedAtk ? wpn.range : meleeReach
+  // target the nearest threat: boss by default, or a closer spiderling if one is swarming
+  let tgtMinion: Minion | null = null, tgtDist = dToBoss
+  for (const m of g.minions) { if (m.hp <= 0) continue; const dm = dist(p.pos, m.pos); if (dm < tgtDist) { tgtDist = dm; tgtMinion = m } }
+  const tgtPos = tgtMinion ? tgtMinion.pos : b.pos
+  const tgtSize = tgtMinion ? 16 : bossDef.size
+  const atkRange = weaponReach + tgtSize
+  // ranged weapons cannot fire at point-blank — must keep a gap beyond the boss body (not vs small minions)
+  const minRange = (isRangedAtk && !tgtMinion) ? bossDef.size + 72 : 0
   let atkCd = wpn.atkCd
   if (gear.includes('spider_fang')) atkCd *= 0.6
   const flashColor = gear.includes('fire_staff') ? '#FF4500' : gear.includes('venom_bow') ? '#8E44AD' : gear.includes('storm_bow') ? '#7DFFB0' : wpn.color
-  const inRange = dToBoss <= atkRange && dToBoss >= minRange
   if (p.atkTimer <= 0 && !p.dodgeTimer && !g.bullChargeDash.active) {
-    if (isRangedAtk && dToBoss < minRange && dToBoss <= atkRange) {
+    if (isRangedAtk && !tgtMinion && dToBoss < minRange && dToBoss <= atkRange) {
       // too close to fire — flash a warning and nudge a soft "miss" click
       g.tooCloseFlash = 0.55; Sfx.tooClose(); p.atkTimer = 0.18
-    } else if (inRange) {
+    } else if (tgtDist <= atkRange && tgtDist >= minRange) {
       p.atkTimer = atkCd
-      const atkAngle = Math.atan2(b.pos.y - p.pos.y, b.pos.x - p.pos.x)
+      const atkAngle = Math.atan2(tgtPos.y - p.pos.y, tgtPos.x - p.pos.x)
       const flashType = gear.includes('spider_fang') ? 'slash' : wpn.id !== 'sword' ? 'shot' : 'slam'
       g.attackFlash = { angle: atkAngle, timer: 0.22, maxTimer: 0.22, type: flashType, color: flashColor }
       if (gear.includes('venom_bow') && g.poisonTimer <= 0) g.poisonTimer = 5.0
       if (isRangedAtk) {
-        const dir = norm(v(b.pos.x - p.pos.x, b.pos.y - p.pos.y))
+        const dir = v(Math.cos(atkAngle), Math.sin(atkAngle))
         const isStorm = gear.includes('storm_bow')
         const projColor = wpn.id === 'staff' ? '#9B59B6' : gear.includes('venom_bow') ? '#9B59B6' : isStorm ? '#7DFFB0' : '#27AE60'
         const projSpeed = wpn.id === 'staff' ? 380 : 440
         g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * projSpeed, dir.y * projSpeed), dmg: wpn.dmg, radius: 6, fromBoss: false, life: 4.0, color: projColor, aoe: isStorm ? 40 : undefined, isLightning: isStorm, trail: [] })
         if (wpn.id === 'staff') Sfx.cast(); else Sfx.shot()
+      } else if (tgtMinion) {
+        dealDmgToMinion(g, tgtMinion, wpn.dmg); spawnParticles(g, tgtMinion.pos, 4, wpn.color, 80); Sfx.swing()
       } else {
-        dealDmgToBoss(g, wpn.dmg, gear); spawnParticles(g, b.pos, 4, wpn.color, 80)
-        Sfx.swing()
+        dealDmgToBoss(g, wpn.dmg, gear); spawnParticles(g, b.pos, 4, wpn.color, 80); Sfx.swing()
       }
     }
   }
@@ -741,6 +783,29 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   }
   if (bossId !== 1) b.angle = Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
   if (g.attackFlash) { g.attackFlash.timer = Math.max(0, g.attackFlash.timer - dt); if (g.attackFlash.timer <= 0) g.attackFlash = null }
+  if (g.phaseBanner) { g.phaseBanner.timer -= dt; if (g.phaseBanner.timer <= 0) g.phaseBanner = null }
+
+  // ── Spiderling minions: swarm the player, separate from each other, contact-damage ──
+  if (g.minions.length) {
+    const mspeed = (g.bossDesperate ? 152 : g.bossEnraged ? 132 : 110)
+    g.minions = g.minions.filter(m => {
+      if (m.hp <= 0) return false
+      if (m.spawnAnim > 0) m.spawnAnim = Math.max(0, m.spawnAnim - dt)
+      m.hitFlash = Math.max(0, m.hitFlash - dt); m.atkCd = Math.max(0, m.atkCd - dt); m.legPhase += dt * 9
+      const toP = norm(v(p.pos.x - m.pos.x, p.pos.y - m.pos.y))
+      let sx = 0, sy = 0
+      for (const o of g.minions) { if (o === m) continue; const dd = dist(m.pos, o.pos); if (dd < 28 && dd > 0.01) { sx += (m.pos.x - o.pos.x) / dd; sy += (m.pos.y - o.pos.y) / dd } }
+      const mvx = toP.x + sx * 0.5, mvy = toP.y + sy * 0.5, ml = Math.hypot(mvx, mvy) || 1
+      if (m.spawnAnim <= 0) {
+        m.pos.x = clamp(m.pos.x + (mvx / ml) * mspeed * dt, 20, WW - 20)
+        m.pos.y = clamp(m.pos.y + (mvy / ml) * mspeed * dt, 20, WH - 20)
+      }
+      if (dist(m.pos, p.pos) < 26 && m.atkCd <= 0 && p.iframeTimer <= 0) {
+        dealDmgToPlayer(g, g.bossEnraged ? 12 : 9, wpn, gear, toP); m.atkCd = 1.1; spawnParticles(g, m.pos, 5, '#8E44AD', 120)
+      }
+      return true
+    })
+  }
 
   // Hazard zones
   g.zones = g.zones.filter(zone => {
@@ -774,6 +839,14 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
       if (g.bossAttack?.type === 'web_shot' || proj.isWeb) p.slowTimer = Math.max(p.slowTimer, 3.0)
       dealDmgToPlayer(g, proj.dmg, wpn, gear, norm(v(p.pos.x - proj.pos.x, p.pos.y - proj.pos.y)))
       spawnParticles(g, proj.pos, 9, proj.color, 130); return false
+    }
+    if (!proj.fromBoss && g.minions.length) {
+      const mHit = g.minions.find(m => m.hp > 0 && dist(proj.pos, m.pos) < proj.radius + 16)
+      if (mHit) {
+        dealDmgToMinion(g, mHit, proj.dmg)
+        if ((proj.aoe && proj.isLightning) || (proj.isFireball && proj.aoe)) g.minions.forEach(m2 => { if (m2 !== mHit && m2.hp > 0 && dist(m2.pos, proj.pos) < (proj.aoe ?? 0)) dealDmgToMinion(g, m2, 30) })
+        spawnParticles(g, proj.pos, 6, proj.color, 110); return false
+      }
     }
     if (!proj.fromBoss && dist(proj.pos, b.pos) < proj.radius + bossDef.size) {
       dealDmgToBoss(g, proj.dmg, gear)
@@ -834,15 +907,33 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
     startBossAttack(g, bossId, selectBossAttack(bossId, g.bossEnraged, dist(p.pos, b.pos)))
   }
 
-  // Enrage
-  if (!g.bossEnraged && b.hp / b.maxHp <= bossDef.enrageAt) {
-    g.bossEnraged = true; g.screenShake = 0.9; spawnParticles(g, b.pos, 35, '#FF4444', 350)
+  const hpFrac = b.hp / b.maxHp
+  // ── PHASE 2 — Enrage ──
+  if (!g.bossEnraged && hpFrac <= bossDef.enrageAt) {
+    g.bossEnraged = true; g.screenShake = 0.95; spawnParticles(g, b.pos, 40, '#FF4444', 360)
     Sfx.roar()
+    const p2Sub = bossId === 0 ? 'Venom floods the lair' : bossId === 1 ? 'The molten core ignites' : 'The storm answers her call'
+    g.phaseBanner = { text: 'PHASE 2 — ENRAGED', sub: p2Sub, timer: 2.6 }
+  }
+  // ── PHASE 3 — Desperate (final stand at low HP) ──
+  if (!g.bossDesperate && hpFrac <= bossDef.enrageAt * 0.45) {
+    g.bossDesperate = true; g.bossEnraged = true
+    g.bossAttack = null            // cancel any wind-up
+    g.nextAttackTimer = 0.6        // attack again quickly
+    g.screenShake = 1.4
+    spawnParticles(g, b.pos, 60, '#FFFFFF', 480); spawnParticles(g, b.pos, 40, bossDef.color, 420)
+    Sfx.phaseShift()
+    // shockwave nova — punishes anyone hugging the boss at the transition
+    const novaR = bossDef.size + 150
+    if (dist(p.pos, b.pos) < novaR && p.iframeTimer <= 0) dealDmgToPlayer(g, 26, wpn, gear, norm(v(p.pos.x - b.pos.x, p.pos.y - b.pos.y)))
+    const p3Sub = bossId === 0 ? 'She calls her brood!' : bossId === 1 ? 'Everything burns!' : 'Skies turn to thunder!'
+    g.phaseBanner = { text: 'PHASE 3 — DESPERATE', sub: p3Sub, timer: 3.0 }
+    if (bossId === 0) spawnSpiderlings(g, 4)   // spider floods the arena on entering phase 3
   }
 
   // Boss death
   if (b.hp <= 0 && g.phase === 'playing') {
-    g.phase = 'dying'; g.bossDeathAnim = 3.0; g.bossAttack = null; g.screenShake = 1.5
+    g.phase = 'dying'; g.bossDeathAnim = 3.0; g.bossAttack = null; g.screenShake = 1.5; g.minions = []
     spawnParticles(g, b.pos, 90, '#F1C40F', 400); spawnParticles(g, b.pos, 45, bossDef.color, 320); spawnParticles(g, b.pos, 22, '#FFFFFF', 550)
     Sfx.death()
   }
@@ -926,6 +1017,7 @@ function activateAbility(g: GS, idx: number, wpn: WeaponDef, gear: GearId[], abi
   } else if (wpn.id === 'sword') {
     if (idx === 0) { // Ground Slam
       if (dist(p.pos, b.pos) < 140) { dealDmgToBoss(g, 130, gear); g.screenShake = Math.max(g.screenShake, 0.55) }
+      g.minions.forEach(m => { if (m.hp > 0 && dist(p.pos, m.pos) < 140) dealDmgToMinion(g, m, 130) })
       spawnParticles(g, p.pos, 24, '#E74C3C', 220)
     } else if (idx === 1) { // Rage
       g.rageActive = true; g.rageTimer = 8.0; spawnParticles(g, p.pos, 18, '#FF6B35', 170)
@@ -2017,6 +2109,33 @@ function renderHUD(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, bossDef
   ctx.fillStyle='#E74C3C'; ctx.beginPath(); ctx.arc(mmX+bx2,mmY+by2,4,0,Math.PI*2); ctx.fill()
 }
 
+function renderMinions(ctx: CanvasRenderingContext2D, g: GS, t: number) {
+  void t
+  g.minions.forEach(m => {
+    const hw = m.hitFlash > 0 && Math.sin(m.hitFlash * 80) > 0
+    const sc = m.spawnAnim > 0 ? clamp(1 - m.spawnAnim / 0.45, 0.1, 1) : 1
+    ctx.save(); ctx.translate(m.pos.x, m.pos.y); ctx.scale(sc, sc)
+    ctx.shadowColor = '#8E44AD'; ctx.shadowBlur = 8
+    // 8 scuttling legs
+    ctx.strokeStyle = hw ? '#FFF' : '#5B2C7A'; ctx.lineWidth = 2; ctx.lineCap = 'round'
+    for (let i = 0; i < 8; i++) {
+      const side = i < 4 ? -1 : 1, li = i % 4
+      const baseA = (side === -1 ? Math.PI : 0) + (li - 1.5) * 0.5
+      const wave = Math.sin(m.legPhase + i * 0.7) * 0.35
+      const kx = Math.cos(baseA + wave) * 9, ky = Math.sin(baseA + wave) * 9
+      const tx = Math.cos(baseA + wave * 1.6) * 15, ty = Math.sin(baseA + wave * 1.6) * 15
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(kx, ky, tx, ty); ctx.stroke()
+    }
+    ctx.lineCap = 'butt'
+    ctx.fillStyle = hw ? '#FFF' : '#3D1560'; ctx.beginPath(); ctx.ellipse(2, 0, 9, 7, 0, 0, Math.PI * 2); ctx.fill()
+    ctx.fillStyle = hw ? '#FFF' : '#5D1E8A'; ctx.beginPath(); ctx.arc(-6, 0, 5, 0, Math.PI * 2); ctx.fill()
+    ctx.fillStyle = '#FF3355'; ctx.shadowColor = '#FF0000'; ctx.shadowBlur = 6
+    ctx.beginPath(); ctx.arc(-8, -2, 1.6, 0, Math.PI * 2); ctx.arc(-8, 2, 1.6, 0, Math.PI * 2); ctx.fill()
+    if (m.hp < m.maxHp) { ctx.shadowBlur = 0; ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(-10, -16, 20, 3); ctx.fillStyle = '#C0392B'; ctx.fillRect(-10, -16, 20 * (m.hp / m.maxHp), 3) }
+    ctx.restore()
+  })
+}
+
 function render(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, bossId: BossId, gear: GearId[], t: number) {
   ctx.save()
   if (g.screenShake>0.05) ctx.translate(rnd(-g.screenShake*8,g.screenShake*8),rnd(-g.screenShake*8,g.screenShake*8))
@@ -2030,7 +2149,7 @@ function render(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, bossId: Bo
   } else {
     renderHazards(ctx,g); renderSlowTraps(ctx,g,t); renderTelegraph(ctx,g,bossId,t)
     renderSkyArrows(ctx,g,t); renderParticles(ctx,g); renderProjectiles(ctx,g,t)
-    renderBoss(ctx,g,bossId,t); renderPlayer(ctx,g,wpn,gear,t); renderDamageNumbers(ctx,g)
+    renderBoss(ctx,g,bossId,t); renderMinions(ctx,g,t); renderPlayer(ctx,g,wpn,gear,t); renderDamageNumbers(ctx,g)
     if (g.tooCloseFlash > 0) {
       const p = g.player, a = Math.min(1, g.tooCloseFlash * 1.6)
       ctx.save(); ctx.globalAlpha = a
@@ -2050,6 +2169,19 @@ function render(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, bossId: Bo
     vgn.addColorStop(0, 'rgba(220,0,0,0)')
     vgn.addColorStop(1, `rgba(220,0,0,${a})`)
     ctx.fillStyle = vgn; ctx.fillRect(0, 0, CW, CH)
+  }
+  if (g.phaseBanner) {
+    const pb = g.phaseBanner, a = Math.min(1, pb.timer / 0.5)
+    const isP3 = pb.text.includes('3')
+    ctx.save(); ctx.globalAlpha = a; ctx.textAlign = 'center'
+    ctx.fillStyle = isP3 ? 'rgba(40,4,10,0.6)' : 'rgba(34,12,4,0.55)'
+    ctx.fillRect(0, CH * 0.28, CW, 66)
+    ctx.fillStyle = isP3 ? '#FF5566' : '#FF9A3C'; ctx.shadowColor = isP3 ? '#FF0033' : '#FF6600'; ctx.shadowBlur = 16
+    ctx.font = 'bold 20px "Press Start 2P", monospace'
+    ctx.fillText(pb.text, CW / 2, CH * 0.28 + 30)
+    ctx.shadowBlur = 0; ctx.fillStyle = '#E8E6E0'; ctx.font = '9px "Press Start 2P", monospace'
+    ctx.fillText(pb.sub, CW / 2, CH * 0.28 + 52)
+    ctx.restore(); ctx.textAlign = 'left'
   }
   ctx.restore()
 }
