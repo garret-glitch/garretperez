@@ -110,7 +110,7 @@ interface Projectile {
   id: number; pos: V2; vel: V2; dmg: number; radius: number
   fromBoss: boolean; life: number; color: string
   aoe?: number; poison?: boolean; isWeb?: boolean
-  isPowerShot?: boolean; isFireball?: boolean; isLightning?: boolean; isFeather?: boolean; isVenom?: boolean
+  isPowerShot?: boolean; isFireball?: boolean; isLightning?: boolean; isFeather?: boolean; isVenom?: boolean; isArrow?: boolean
   trail?: V2[]
 }
 interface BossAttack { type: string; telegraphTime: number; elapsed: number; active: boolean; data: AttackData }
@@ -825,8 +825,9 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
         const isStorm = gear.includes('storm_bow')
         const isVenom = gear.includes('venom_bow')
         const projColor = wpn.id === 'staff' ? '#9B59B6' : isVenom ? '#9B59B6' : isStorm ? '#7DFFB0' : '#27AE60'
+        const isArrow = wpn.id === 'bow' && !isStorm && !isVenom
         const projSpeed = wpn.id === 'staff' ? 380 : 440
-        g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * projSpeed, dir.y * projSpeed), dmg: wpn.dmg, radius: 6, fromBoss: false, life: 4.0, color: projColor, aoe: isStorm ? 40 : undefined, isLightning: isStorm, isVenom, trail: [] })
+        g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * projSpeed, dir.y * projSpeed), dmg: wpn.dmg, radius: 6, fromBoss: false, life: 4.0, color: projColor, aoe: isStorm ? 40 : undefined, isLightning: isStorm, isVenom, isArrow, trail: [] })
         if (wpn.id === 'staff') Sfx.cast(); else Sfx.shot()
       } else {
         // melee: damage is deferred — it only lands when the blade sweeps through the target (see meleeHit)
@@ -1918,7 +1919,7 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
       const rr = 24+prog*70; ctx.strokeStyle=af.color; ctx.lineWidth=5-prog*3; ctx.shadowColor=af.color; ctx.shadowBlur=16
       ctx.beginPath(); ctx.arc(28,0,rr*0.5,0,Math.PI*2); ctx.stroke()
       ctx.globalAlpha=alpha*0.35; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(28,0,rr,0,Math.PI*2); ctx.stroke()
-    } else if (af.type === 'shot' && wid !== 'storm_bow' && wid !== 'venom_bow') {
+    } else if (af.type === 'shot' && wid !== 'storm_bow' && wid !== 'venom_bow' && wid !== 'bow') {
       const len = 32+prog*45; ctx.strokeStyle=af.color; ctx.lineWidth=3; ctx.shadowColor=af.color; ctx.shadowBlur=10
       ctx.beginPath(); ctx.moveTo(18,0); ctx.lineTo(18+len,0); ctx.stroke()
     }
@@ -2286,10 +2287,35 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
       ctx.restore()
     }
   } else if (wid === 'bow') {
-    ctx.strokeStyle=hw?'#FFF':'#2ECC71'; ctx.shadowColor='#2ECC71'; ctx.shadowBlur=8; ctx.lineWidth=2.5
-    ctx.beginPath(); ctx.arc(20,0,14,-Math.PI*0.6,Math.PI*0.6); ctx.stroke()
-    ctx.strokeStyle='rgba(200,255,220,0.5)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(20+14*Math.cos(-Math.PI*0.6),14*Math.sin(-Math.PI*0.6)); ctx.lineTo(20+14*Math.cos(Math.PI*0.6),14*Math.sin(Math.PI*0.6)); ctx.stroke()
-    ctx.strokeStyle='#A9DFBF'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(16,0); ctx.lineTo(30,0); ctx.stroke()
+    // ── STARTER BOW — simple wooden recurve that nocks, draws and looses an arrow ──
+    const hum = 0.5 + 0.5 * Math.sin(t * 5)
+    const bx = 15, limb = 18
+    const draw = clamp(1 - p.atkTimer / 0.44, 0, 1)
+    const release = clamp((p.atkTimer - 0.30) / 0.14, 0, 1)
+    const drawD = 3 + draw * 15, charge = draw, nockX = bx - drawD
+    // wooden limbs
+    ctx.shadowColor = '#27AE60'; ctx.shadowBlur = 8; ctx.strokeStyle = hw ? '#FFF' : '#8B5A2B'; ctx.lineWidth = 3.2; ctx.lineCap = 'round'
+    ctx.beginPath(); ctx.moveTo(9, 0); ctx.quadraticCurveTo(bx + 5, -limb * 0.55, bx, -limb); ctx.moveTo(9, 0); ctx.quadraticCurveTo(bx + 5, limb * 0.55, bx, limb); ctx.stroke()
+    // green limb-tip wraps
+    ctx.strokeStyle = hw ? '#FFF' : '#2ECC71'; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(bx, -limb); ctx.lineTo(bx - 3, -limb + 4); ctx.moveTo(bx, limb); ctx.lineTo(bx - 3, limb - 4); ctx.stroke()
+    // grip
+    ctx.strokeStyle = hw ? '#FFF' : '#5a3a1a'; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(8, -4); ctx.lineTo(8, 4); ctx.stroke(); ctx.lineCap = 'butt'
+    // string
+    ctx.strokeStyle = `rgba(210,255,225,${0.7 + hum * 0.3})`; ctx.lineWidth = 1.4; ctx.shadowColor = '#A9DFBF'; ctx.shadowBlur = 5
+    ctx.beginPath(); ctx.moveTo(bx, -limb); ctx.lineTo(nockX, 0); ctx.lineTo(bx, limb); ctx.stroke()
+    // nocked wooden arrow, drawn back
+    if (charge > 0.25 && release < 0.4) {
+      ctx.save(); ctx.globalAlpha = Math.min(1, charge * 1.3)
+      ctx.strokeStyle = '#caa472'; ctx.lineWidth = 2; ctx.shadowColor = '#27AE60'; ctx.shadowBlur = 6
+      ctx.beginPath(); ctx.moveTo(nockX, 0); ctx.lineTo(nockX + 26, 0); ctx.stroke()
+      ctx.fillStyle = '#E8F8F0'; ctx.shadowColor = '#A9DFBF'; ctx.shadowBlur = 8
+      ctx.beginPath(); ctx.moveTo(nockX + 30, 0); ctx.lineTo(nockX + 24, -3.5); ctx.lineTo(nockX + 24, 3.5); ctx.closePath(); ctx.fill(); ctx.restore()
+    }
+    // release: string twang + arrow streak
+    if (release > 0) {
+      ctx.save(); ctx.globalAlpha = release; ctx.strokeStyle = '#D5FFE6'; ctx.lineWidth = 2; ctx.shadowColor = '#2ECC71'; ctx.shadowBlur = 12
+      ctx.beginPath(); ctx.moveTo(bx, 0); ctx.lineTo(bx + 26 + (1 - release) * 40, 0); ctx.stroke(); ctx.restore()
+    }
   } else {
     ctx.strokeStyle='#5A5040'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(14,0); ctx.lineTo(38,0); ctx.stroke()
     ctx.fillStyle=hw?'#FFF':'#8A8070'; ctx.beginPath(); ctx.moveTo(36,-4); ctx.lineTo(44,0); ctx.lineTo(36,4); ctx.closePath(); ctx.fill()
@@ -2478,6 +2504,19 @@ function renderProjectiles(ctx: CanvasRenderingContext2D, g: GS, t: number) {
       // dripping venom glob
       ctx.fillStyle=`rgba(127,186,0,${0.6+0.4*Math.sin(proj.life*18)})`
       ctx.beginPath(); ctx.arc(11,4+Math.sin(proj.life*14)*1.5,2,0,Math.PI*2); ctx.fill()
+      ctx.restore()
+    } else if (proj.isArrow) {
+      const aa=Math.atan2(proj.vel.y,proj.vel.x)
+      ctx.save(); ctx.translate(proj.pos.x,proj.pos.y); ctx.rotate(aa)
+      ctx.shadowColor='#27AE60'; ctx.shadowBlur=8
+      // wooden shaft
+      ctx.strokeStyle='#caa472'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(-13,0); ctx.lineTo(9,0); ctx.stroke()
+      // green fletching
+      ctx.strokeStyle='#2ECC71'; ctx.lineWidth=1.5
+      ctx.beginPath(); ctx.moveTo(-13,0); ctx.lineTo(-17,-3); ctx.moveTo(-13,0); ctx.lineTo(-17,3); ctx.moveTo(-10,0); ctx.lineTo(-14,-2.5); ctx.moveTo(-10,0); ctx.lineTo(-14,2.5); ctx.stroke()
+      // steel arrowhead
+      ctx.fillStyle='#E8F8F0'; ctx.shadowColor='#A9DFBF'; ctx.shadowBlur=8
+      ctx.beginPath(); ctx.moveTo(15,0); ctx.lineTo(7,-3.5); ctx.lineTo(9,0); ctx.lineTo(7,3.5); ctx.closePath(); ctx.fill()
       ctx.restore()
     } else if (proj.isFeather) {
       const a4=Math.atan2(proj.vel.y,proj.vel.x)
