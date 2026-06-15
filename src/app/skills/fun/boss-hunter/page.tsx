@@ -1798,7 +1798,7 @@ export default function BossHunter() {
   }, [])
 
   useEffect(() => {
-    if (screen !== 'playing') return
+    if (screen !== 'playing' && screen !== 'hunt_select') return
     const prevOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     fitCanvas()
@@ -2014,7 +2014,7 @@ export default function BossHunter() {
     const arenaNames = ['Spider Lair','Lava Cavern','Storm Peak']
 
     const navBtn = (onClick: ()=>void, label: string) => (
-      <button onClick={onClick} style={{background:'#1a1a28',border:'1px solid #2a2820',color:'#A09880',width:36,height:36,borderRadius:'50%',fontSize:16,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,lineHeight:1}}>
+      <button onClick={onClick} style={{background:'#1a1a28',border:'1px solid #2a2820',color:'#A09880',width:30,height:30,borderRadius:'50%',fontSize:15,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,lineHeight:1}}>
         {label}
       </button>
     )
@@ -2028,20 +2028,22 @@ export default function BossHunter() {
     )
 
     return (
-      <div style={{background:'#080814',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'"Press Start 2P",monospace',padding:'24px 0'}}>
+      <div style={{position:'fixed',inset:0,zIndex:9999,background:'#080814',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'"Press Start 2P",monospace',padding:'24px',overflowY:'auto'}}>
         <style>{`
           @keyframes bh-card-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
           .bh-card-anim{animation:bh-card-in 0.18s ease}
         `}</style>
-        <div style={{maxWidth:500,width:'100%',padding:'0 20px',textAlign:'center'}}>
+        <div style={{maxWidth:1100,width:'100%',padding:'0 12px',textAlign:'center'}}>
 
           <div style={{fontSize:13,color:'#C89B3C',marginBottom:4}}>PREPARE YOUR HUNT</div>
-          <div style={{fontSize:7,color:'#605848',marginBottom:24}}>Choose your quarry, arm yourself, and descend</div>
+          <div style={{fontSize:7,color:'#605848',marginBottom:20}}>Choose your quarry, arm yourself, and descend</div>
+
+          <div style={{display:'flex',gap:14,alignItems:'stretch',justifyContent:'center',flexWrap:'wrap'}}>
 
           {/* ── TARGET ── */}
-          <div style={{marginBottom:14}}>
+          <div style={{flex:'1 1 0',minWidth:240}}>
             <div style={{fontSize:7,color:'#605848',letterSpacing:2,marginBottom:8,textAlign:'left'}}>◆ TARGET</div>
-            <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <div style={{display:'flex',alignItems:'center',gap:6}}>
               {navBtn(prevBoss,'‹')}
               <div key={selBoss} className="bh-card-anim" style={{flex:1,background:'#0d0d14',border:`1px solid ${selB.color}44`,borderRadius:12,overflow:'hidden'}}>
                 <div style={{background:`radial-gradient(ellipse at 50% 80%, ${selB.color}30 0%, transparent 70%)`,padding:'20px 16px 12px',textAlign:'center'}}>
@@ -2062,9 +2064,9 @@ export default function BossHunter() {
           </div>
 
           {/* ── WEAPON ── */}
-          <div style={{marginBottom:14}}>
+          <div style={{flex:'1 1 0',minWidth:240}}>
             <div style={{fontSize:7,color:'#605848',letterSpacing:2,marginBottom:8,textAlign:'left'}}>◆ WEAPON</div>
-            <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <div style={{display:'flex',alignItems:'center',gap:6}}>
               {navBtn(prevWeapon,'‹')}
               <div key={selWeapon} className="bh-card-anim" style={{flex:1,background:'#0d0d14',border:`1px solid ${selW.color}44`,borderRadius:12,overflow:'hidden'}}>
                 <div style={{background:`radial-gradient(ellipse at 50% 80%, ${selW.color}28 0%, transparent 70%)`,padding:'20px 16px 12px',textAlign:'center'}}>
@@ -2086,9 +2088,9 @@ export default function BossHunter() {
           </div>
 
           {/* ── GEAR ── */}
-          <div style={{marginBottom:24}}>
+          <div style={{flex:'1 1 0',minWidth:240}}>
             <div style={{fontSize:7,color:'#605848',letterSpacing:2,marginBottom:8,textAlign:'left'}}>◆ GEAR</div>
-            <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <div style={{display:'flex',alignItems:'center',gap:6}}>
               {navBtn(prevGear,'‹')}
               <div key={currentGear??'none'} className="bh-card-anim" style={{flex:1,background:'#0d0d14',border:`1px solid ${currentGear?'#C89B3C44':'#1e1c18'}`,borderRadius:12,overflow:'hidden'}}>
                 {currentGear ? (() => {
@@ -2120,7 +2122,9 @@ export default function BossHunter() {
             </div>
           </div>
 
-          <div style={{borderTop:'1px solid #1e1c18',marginBottom:20}}/>
+          </div>
+
+          <div style={{borderTop:'1px solid #1e1c18',margin:'20px 0'}}/>
 
           <div style={{display:'flex',gap:12,justifyContent:'center'}}>
             <button onClick={()=>setScreen('menu')} style={{background:'#1a1a28',border:'1px solid #2a2820',color:'#A09880',padding:'10px 24px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>BACK</button>
