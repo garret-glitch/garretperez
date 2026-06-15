@@ -1787,12 +1787,33 @@ export default function BossHunter() {
     }
   }, [])
 
+  const fitCanvas = useCallback(() => {
+    const c = canvasRef.current, w = playWrapRef.current
+    if (!c || !w) return
+    const vw = w.clientWidth || window.innerWidth
+    const vh = w.clientHeight || window.innerHeight
+    const s = Math.min(vw / CW, vh / CH)
+    c.style.width = Math.floor(CW * s) + 'px'
+    c.style.height = Math.floor(CH * s) + 'px'
+  }, [])
+
   useEffect(() => {
     if (screen !== 'playing') return
     const prevOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = prevOverflow }
-  }, [screen])
+    fitCanvas()
+    const raf = requestAnimationFrame(fitCanvas)
+    window.addEventListener('resize', fitCanvas)
+    document.addEventListener('fullscreenchange', fitCanvas)
+    document.addEventListener('webkitfullscreenchange', fitCanvas)
+    return () => {
+      document.body.style.overflow = prevOverflow
+      cancelAnimationFrame(raf)
+      window.removeEventListener('resize', fitCanvas)
+      document.removeEventListener('fullscreenchange', fitCanvas)
+      document.removeEventListener('webkitfullscreenchange', fitCanvas)
+    }
+  }, [screen, fitCanvas])
 
   useEffect(() => {
     const onFsChange = () => {
