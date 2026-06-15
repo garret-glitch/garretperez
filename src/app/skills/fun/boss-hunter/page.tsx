@@ -342,6 +342,12 @@ function spawnZone(g: GS, pos: V2, type: HazardZone['type'], radius: number, dps
   g.zones.push({ id: ++g.nextZoneId, pos: { ...pos }, radius, type, dps, life, maxLife: life })
 }
 
+function explodeFireball(g: GS, pos: V2) {
+  spawnZone(g, { ...pos }, 'fire', 66, 13, 2.2)
+  spawnParticles(g, pos, 18, '#FF5500', 230); spawnParticles(g, pos, 8, '#FFCC33', 150)
+  g.screenShake = Math.max(g.screenShake, 0.35)
+}
+
 function dealDmgToBoss(g: GS, baseDmg: number, gear: GearId[]) {
   const b = g.boss, p = g.player
   let dmg = baseDmg
@@ -413,12 +419,12 @@ function selectBossAttack(bossId: BossId, enraged: boolean, d2p: number): string
     return pool[rndI(0, pool.length - 1)]
   }
   if (bossId === 1) {
-    const pool = d2p < 150 ? ['stomp', 'tail_swipe', 'fire_breath', 'fire_line'] : ['fire_breath', 'flame_wave', 'fire_line', 'stomp', 'tail_swipe', 'lava_puddle']
-    if (enraged) pool.push('ember_barrage', 'fire_line', 'lava_puddle')
+    const pool = d2p < 150 ? ['stomp', 'tail_swipe', 'tail_slam', 'fire_breath', 'fire_line'] : ['fire_breath', 'flame_wave', 'fire_line', 'stomp', 'fireball', 'tail_slam', 'lava_puddle']
+    if (enraged) pool.push('ember_barrage', 'fireball', 'lava_puddle')
     return pool[rndI(0, pool.length - 1)]
   }
-  const pool = d2p < 160 ? ['talon_dive', 'wind_buffet', 'lightning_strike', 'lightning_barrage'] : ['lightning_strike', 'chain_lightning', 'lightning_barrage', 'talon_dive', 'wind_buffet', 'static_field']
-  if (enraged) pool.push('thunderstorm', 'lightning_barrage', 'chain_lightning')
+  const pool = d2p < 160 ? ['talon_dive', 'wind_buffet', 'dive_bomb', 'lightning_strike', 'lightning_barrage'] : ['lightning_strike', 'chain_lightning', 'wind_blade', 'lightning_barrage', 'dive_bomb', 'wind_buffet', 'static_field']
+  if (enraged) pool.push('thunderstorm', 'wind_blade', 'chain_lightning')
   return pool[rndI(0, pool.length - 1)]
 }
 
@@ -428,7 +434,9 @@ function startBossAttack(g: GS, bossId: BossId, type: string) {
   const telegraphs: Record<string, number> = {
     venom_spit: 0.9, web_shot: 0.8, web_spray: 0.85, leg_sweep: 1.0, spider_leap: 1.1, toxic_cloud: 0.75, venom_burst: 1.2, summon: 1.05,
     fire_breath: 1.2, stomp: 0.85, tail_swipe: 0.8, ember_barrage: 0.7, flame_wave: 1.0, lava_puddle: 0.75, fire_line: 1.5,
+    fireball: 1.0, tail_slam: 0.95,
     lightning_strike: 0.95, talon_dive: 0.9, wind_buffet: 0.8, thunderstorm: 0.75, static_field: 0.7, chain_lightning: 0.85, lightning_barrage: 0.5,
+    wind_blade: 0.85, dive_bomb: 0.9,
   }
   const data: AttackData = { targetPos: { ...p.pos }, angle, dmg: 0 }
   if (type === 'venom_spit') { data.dmg = 15; data.count = 3; data.projSpeed = 260 }
@@ -453,9 +461,13 @@ function startBossAttack(g: GS, bossId: BossId, type: string) {
   else if (type === 'web_spray') { data.dmg = 12; data.count = 7; data.projSpeed = 195; data.angle = angle }
   else if (type === 'fire_line') { data.dmg = 22; data.angle = b.angle + Math.PI / 2 }
   else if (type === 'lightning_barrage') { data.dmg = 30; data.count = 8; data.strikeIndex = 0; data.elapsed = 0 }
+  else if (type === 'fireball') { data.dmg = 22; data.count = g.bossEnraged ? 3 : 2; data.projSpeed = 235; data.angle = angle }
+  else if (type === 'tail_slam') { data.dmg = 34; data.radius = 200; data.targetPos = { ...b.pos } }
+  else if (type === 'wind_blade') { data.dmg = 16; data.count = g.bossEnraged ? 6 : 5; data.projSpeed = 330; data.angle = angle }
+  else if (type === 'dive_bomb') { data.dmg = 36; data.radius = 130 }
   g.bossAttack = { type, telegraphTime: telegraphs[type] ?? 1.0, elapsed: 0, active: false, data }
   // ── telegraph: audio warning + charge-up burst (readability/fairness) ──
-  const BIG_ATTACKS = ['spider_leap', 'venom_burst', 'fire_line', 'flame_wave', 'fire_breath', 'lava_puddle', 'lightning_barrage', 'thunderstorm', 'meteor', 'talon_dive']
+  const BIG_ATTACKS = ['spider_leap', 'venom_burst', 'fire_line', 'flame_wave', 'fire_breath', 'lava_puddle', 'lightning_barrage', 'thunderstorm', 'meteor', 'talon_dive', 'fireball', 'tail_slam', 'dive_bomb']
   if (BIG_ATTACKS.includes(type)) Sfx.warnBig(); else Sfx.warn()
   const chargeCol = bossId === 0 ? '#B370E0' : bossId === 1 ? '#FF7A1A' : '#5fe6ff'
   spawnParticles(g, b.pos, BIG_ATTACKS.includes(type) ? 16 : 9, chargeCol, 70, (telegraphs[type] ?? 1.0) * 0.7)
@@ -477,6 +489,33 @@ function resolveBossAttack(g: GS, bossId: BossId, wpn: WeaponDef, gear: GearId[]
     }
   } else if (type === 'web_shot') {
     g.projectiles.push({ id: ++g.nextProjId, pos: { ...b.pos }, vel: v(toPlayer.x * (d.projSpeed ?? 160), toPlayer.y * (d.projSpeed ?? 160)), dmg: d.dmg ?? 16, radius: 11, fromBoss: true, life: 6.0, color: '#8E44AD' })
+  } else if (type === 'fireball') {
+    // Drake: slow aimed fireballs that explode into a lingering fire pool on impact
+    const count = d.count ?? 2, baseA = d.angle ?? Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
+    for (let i = 0; i < count; i++) {
+      const a = baseA + (i - (count - 1) / 2) * 0.16
+      g.projectiles.push({ id: ++g.nextProjId, pos: { ...b.pos }, vel: v(Math.cos(a) * (d.projSpeed ?? 235), Math.sin(a) * (d.projSpeed ?? 235)), dmg: d.dmg ?? 22, radius: 14, fromBoss: true, life: 3.2, color: '#FF6600', isFireball: true, aoe: 70, trail: [] })
+    }
+    spawnParticles(g, b.pos, 12, '#FF7700', 150)
+  } else if (type === 'wind_blade') {
+    // Griffin: a fan of fast crescent wind blades — sidestep the gaps
+    const count = d.count ?? 5, baseA = d.angle ?? Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
+    for (let i = 0; i < count; i++) {
+      const a = baseA + (i - (count - 1) / 2) * 0.20
+      g.projectiles.push({ id: ++g.nextProjId, pos: { ...b.pos }, vel: v(Math.cos(a) * (d.projSpeed ?? 330), Math.sin(a) * (d.projSpeed ?? 330)), dmg: d.dmg ?? 16, radius: 9, fromBoss: true, life: 4.0, color: '#bfe4ff', isFeather: true, trail: [] })
+    }
+    Sfx.gust()
+  } else if (type === 'tail_slam') {
+    // Drake: heavy radial slam around her body — knockback + scattered embers
+    const r = d.radius ?? 200
+    if (dist(p.pos, b.pos) <= r) { dealDmgToPlayer(g, d.dmg ?? 34, wpn, gear, toPlayer); p.knockbackVel = v(toPlayer.x * 300, toPlayer.y * 300) }
+    for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; spawnZone(g, v(clamp(b.pos.x + Math.cos(a) * r * 0.7, 80, WW - 80), clamp(b.pos.y + Math.sin(a) * r * 0.7, 80, WH - 80)), 'fire', 50, 12, 2.5) }
+    spawnParticles(g, b.pos, 30, '#FF6600', 320); g.screenShake = Math.max(g.screenShake, 0.8)
+  } else if (type === 'dive_bomb') {
+    // Griffin: a targeted crashing strike — walk out of the marked zone
+    const target = d.targetPos!, r = d.radius ?? 130
+    if (dist(p.pos, target) <= r) dealDmgToPlayer(g, d.dmg ?? 36, wpn, gear, norm(v(p.pos.x - target.x, p.pos.y - target.y)))
+    spawnParticles(g, target, 26, '#5fe6ff', 280); g.screenShake = Math.max(g.screenShake, 0.55)
   } else if (type === 'leg_sweep' || type === 'tail_swipe' || type === 'wind_buffet') {
     const angle = d.angle ?? 0, halfCone = (d.coneAngle ?? Math.PI) / 2, range = d.coneRange ?? 150
     if (dist(p.pos, b.pos) <= range) {
@@ -843,13 +882,15 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
 
   // Projectiles
   g.projectiles = g.projectiles.filter(proj => {
-    proj.life -= dt; if (proj.life <= 0) return false
+    proj.life -= dt
+    if (proj.life <= 0) { if (proj.fromBoss && proj.isFireball) explodeFireball(g, proj.pos); return false }
     if (proj.trail) { proj.trail.push({ ...proj.pos }); if (proj.trail.length > 8) proj.trail.shift() }
     proj.pos.x += proj.vel.x * dt; proj.pos.y += proj.vel.y * dt
-    if (proj.pos.x < 0 || proj.pos.x > WW || proj.pos.y < 0 || proj.pos.y > WH) return false
+    if (proj.pos.x < 0 || proj.pos.x > WW || proj.pos.y < 0 || proj.pos.y > WH) { if (proj.fromBoss && proj.isFireball) explodeFireball(g, proj.pos); return false }
     if (proj.fromBoss && p.iframeTimer <= 0 && dist(proj.pos, p.pos) < proj.radius + 14) {
       if (g.bossAttack?.type === 'web_shot' || proj.isWeb) p.slowTimer = Math.max(p.slowTimer, 3.0)
       dealDmgToPlayer(g, proj.dmg, wpn, gear, norm(v(p.pos.x - proj.pos.x, p.pos.y - proj.pos.y)))
+      if (proj.isFireball) explodeFireball(g, proj.pos)
       spawnParticles(g, proj.pos, 9, proj.color, 130); return false
     }
     if (!proj.fromBoss && g.minions.length) {
@@ -1876,7 +1917,7 @@ function renderTelegraph(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t
   const atk = g.bossAttack; if (!atk || atk.active) return
   const progress = atk.elapsed/atk.telegraphTime, pulse = 0.4+0.6*progress, b = g.boss
   const bossDef = BOSS_DEFS[bossId]
-  const BIG = ['spider_leap','venom_burst','fire_line','flame_wave','fire_breath','lava_puddle','lightning_barrage','thunderstorm','talon_dive'].includes(atk.type)
+  const BIG = ['spider_leap','venom_burst','fire_line','flame_wave','fire_breath','lava_puddle','lightning_barrage','thunderstorm','talon_dive','fireball','tail_slam','dive_bomb'].includes(atk.type)
   const dCol = bossId===0 ? '180,112,224' : bossId===1 ? '255,122,26' : '95,230,255'
   ctx.save()
   // ── boss charge-up aura (every telegraph): pulsing ring that fills as the attack nears ──
@@ -1903,9 +1944,10 @@ function renderTelegraph(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t
     }
     ctx.restore()
   }
-  if (atk.type==='venom_spit'||atk.type==='ember_barrage') {
+  if (atk.type==='venom_spit'||atk.type==='ember_barrage'||atk.type==='fireball'||atk.type==='wind_blade') {
     const count=atk.data.count??3, baseA=atk.data.angle??0
-    for (let i=0;i<count;i++) { const a=baseA+(i-(count-1)/2)*0.28; ctx.strokeStyle=`rgba(255,80,80,${pulse})`; ctx.lineWidth=2; ctx.setLineDash([6,4]); ctx.beginPath(); ctx.moveTo(b.pos.x,b.pos.y); ctx.lineTo(b.pos.x+Math.cos(a)*500,b.pos.y+Math.sin(a)*500); ctx.stroke(); ctx.setLineDash([]) }
+    const spread=atk.type==='fireball'?0.16:atk.type==='wind_blade'?0.20:0.28
+    for (let i=0;i<count;i++) { const a=baseA+(i-(count-1)/2)*spread; ctx.strokeStyle=`rgba(${dCol},${pulse})`; ctx.lineWidth=atk.type==='fireball'?3:2; ctx.setLineDash([6,4]); ctx.shadowColor=`rgba(${dCol},0.7)`; ctx.shadowBlur=8*pulse; ctx.beginPath(); ctx.moveTo(b.pos.x,b.pos.y); ctx.lineTo(b.pos.x+Math.cos(a)*520,b.pos.y+Math.sin(a)*520); ctx.stroke(); ctx.setLineDash([]); ctx.shadowBlur=0 }
   } else if (atk.type==='web_shot'||atk.type==='talon_dive') {
     const a=atk.data.angle??0; ctx.strokeStyle=`rgba(255,100,200,${pulse})`; ctx.lineWidth=2; ctx.setLineDash([6,4]); ctx.beginPath(); ctx.moveTo(b.pos.x,b.pos.y); ctx.lineTo(b.pos.x+Math.cos(a)*600,b.pos.y+Math.sin(a)*600); ctx.stroke(); ctx.setLineDash([])
   } else if (atk.type==='leg_sweep'||atk.type==='tail_swipe'||atk.type==='wind_buffet'||atk.type==='fire_breath') {
@@ -1921,7 +1963,7 @@ function renderTelegraph(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t
     ctx.strokeStyle=`rgba(${dCol},${pulse})`; ctx.lineWidth=3
     for (let k=1;k<=3;k++){ const cd=range*(k/3.6); const cx=b.pos.x+Math.cos(angle)*cd, cy=b.pos.y+Math.sin(angle)*cd
       ctx.beginPath(); ctx.moveTo(cx+Math.cos(angle+2.5)*12,cy+Math.sin(angle+2.5)*12); ctx.lineTo(cx,cy); ctx.lineTo(cx+Math.cos(angle-2.5)*12,cy+Math.sin(angle-2.5)*12); ctx.stroke() }
-  } else if (atk.type==='spider_leap'||atk.type==='lightning_strike'||atk.type==='stomp') {
+  } else if (atk.type==='spider_leap'||atk.type==='lightning_strike'||atk.type==='stomp'||atk.type==='tail_slam'||atk.type==='dive_bomb') {
     const target=atk.data.targetPos!, r=atk.data.radius??(atk.type==='stomp'?155:120)
     // filling ground indicator — the fill reaches the edge exactly when the attack lands
     ctx.fillStyle=`rgba(${dCol},${0.12+0.10*pulse})`; ctx.beginPath(); ctx.arc(target.x,target.y,r,0,Math.PI*2); ctx.fill()
