@@ -708,17 +708,18 @@ function render(ctx: CanvasRenderingContext2D, g: GS, t: number) {
       const wine = sh?.label ?? '?'
       const wineClr = sh?.clr ?? '#88CCFF'
 
-      // Banner at the bottom
+      // Banner at the bottom-right (shifted right so it clears the controls)
+      const bnCx = CW - 276
       ctx.fillStyle = 'rgba(8,8,20,0.92)'
-      rrect(ctx, CW/2 - 260, CH - 74, 520, 64, 10); ctx.fill()
+      rrect(ctx, bnCx - 260, CH - 74, 520, 64, 10); ctx.fill()
       ctx.strokeStyle = wineClr; ctx.lineWidth = 2; ctx.stroke()
 
       ctx.font = '16px "Press Start 2P", monospace'
       ctx.fillStyle = wineClr; ctx.textAlign = 'center'
-      ctx.fillText(`"Where is the ${wine}?"`, CW/2, CH - 48)
+      ctx.fillText(`"Where is the ${wine}?"`, bnCx, CH - 48)
       ctx.font = '14px "Press Start 2P", monospace'
       ctx.fillStyle = '#C89B3C'
-      ctx.fillText('CLICK THE CORRECT SHELF', CW/2, CH - 25)
+      ctx.fillText('CLICK THE CORRECT SHELF', bnCx, CH - 25)
 
       // Wrong flash feedback
       if (g.wrongFlash > 0) {
