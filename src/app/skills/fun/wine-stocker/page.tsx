@@ -807,7 +807,7 @@ function renderHUD(ctx: CanvasRenderingContext2D, g: GS, t: number) {
   const ap    = alert ? 0.7 + 0.3 * Math.sin(t * 7) : 1
 
   // ── Left panel: Score + Cases + Stamina ─────────────────────
-  ctx.fillStyle = 'rgba(5,5,15,0.93)'
+  ctx.fillStyle = '#06060f'   // opaque so the stockroom label can't bleed through
   rrect(ctx, 6, 6, 204, 90, 8); ctx.fill()
   ctx.strokeStyle = 'rgba(200,155,60,0.40)'; ctx.lineWidth = 1.5; ctx.stroke()
   // Gold accent bar on left edge
@@ -826,23 +826,23 @@ function renderHUD(ctx: CanvasRenderingContext2D, g: GS, t: number) {
   }
 
   // Sub row
-  ctx.font = '11px "Press Start 2P", monospace'
+  ctx.font = '10px "Press Start 2P", monospace'
   ctx.fillStyle = '#3A6AA0'; ctx.fillText(`LVL ${g.level}`, 14, 54)
-  ctx.fillStyle = '#443C2A'; ctx.fillText(`${Math.floor(g.time)}s`, 76, 54)
+  ctx.fillStyle = '#443C2A'; ctx.fillText(`${Math.floor(g.time)}s`, 72, 54)
   ctx.fillStyle = g.player.cases > 0 ? '#A07828' : '#3A3020'
-  ctx.fillText(`CASES ${g.player.cases}/${g.player.maxCases}`, 120, 54)
+  ctx.fillText(`CASES ${g.player.cases}/${g.player.maxCases}`, 112, 54)
 
   // Stamina bar
   const sp   = g.player.stamina / STAM_MAX
   const sclr = sp > 0.5 ? '#4CAF50' : sp > 0.2 ? '#FFC107' : '#F44336'
   ctx.font = '10px "Press Start 2P", monospace'; ctx.fillStyle = '#382E20'; ctx.textAlign = 'left'
-  ctx.fillText('STAMINA', 14, 70)
-  ctx.fillStyle = '#090912'; ctx.fillRect(66, 61, 136, 11)
-  ctx.fillStyle = sclr;       ctx.fillRect(66, 61, 136 * sp, 11)
+  ctx.fillText('STAM', 14, 70)
+  ctx.fillStyle = '#090912'; ctx.fillRect(60, 61, 142, 11)
+  ctx.fillStyle = sclr;       ctx.fillRect(60, 61, 142 * sp, 11)
   // Tick separators
   ctx.strokeStyle = 'rgba(5,5,15,0.75)'; ctx.lineWidth = 1.5
   for (let i = 1; i < 5; i++) {
-    const tx = 66 + i * 27.2
+    const tx = 60 + i * 28.4
     ctx.beginPath(); ctx.moveTo(tx, 61); ctx.lineTo(tx, 72); ctx.stroke()
   }
   if (g.player.staminaDepleted) {
@@ -853,7 +853,7 @@ function renderHUD(ctx: CanvasRenderingContext2D, g: GS, t: number) {
 
   // ── Center panel: Store Health ──────────────────────────────
   const CPX = 216, CPW = 370
-  ctx.fillStyle = 'rgba(5,5,15,0.93)'
+  ctx.fillStyle = '#06060f'
   rrect(ctx, CPX, 6, CPW, 54, 8); ctx.fill()
   ctx.strokeStyle = hclr + '50'; ctx.lineWidth = 1.5; ctx.stroke()
 
@@ -878,7 +878,7 @@ function renderHUD(ctx: CanvasRenderingContext2D, g: GS, t: number) {
   // ── Right panel: Strikes + Inspection ──────────────────────
   const RPX = CPX + CPW + 8
   const RPW = CW - RPX - 6
-  ctx.fillStyle = alert ? `rgba(18,3,3,${ap * 0.97})` : 'rgba(5,5,15,0.93)'
+  ctx.fillStyle = alert ? '#180303' : '#06060f'   // opaque so the office label can't bleed through
   rrect(ctx, RPX, 6, RPW, 90, 8); ctx.fill()
   ctx.strokeStyle = alert ? `rgba(255,60,60,${ap})` : 'rgba(200,155,60,0.40)'
   ctx.lineWidth = 1.5; ctx.stroke()
@@ -1466,17 +1466,20 @@ export default function WineStockerRush() {
             </div>
             <button
               style={{
-                position: 'absolute', bottom: 12, right: 12, width: 64, height: 64,
-                background: 'rgba(200,155,60,0.28)', border: '1px solid rgba(200,155,60,0.48)',
-                borderRadius: 32, color: '#C89B3C', fontFamily: '"Press Start 2P", monospace',
-                fontSize: 6, cursor: 'pointer', opacity: 0.7,
+                position: 'absolute', bottom: 12, right: 12, width: 84, height: 84,
+                background: 'rgba(200,155,60,0.45)', border: '2px solid rgba(200,155,60,0.85)',
+                borderRadius: 42, color: '#fff',
+                fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
+                cursor: 'pointer', opacity: 0.92,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1,
                 WebkitUserSelect: 'none', userSelect: 'none', touchAction: 'none',
               }}
               onPointerDown={e => { e.preventDefault(); touchKey('ShiftLeft', true) }}
               onPointerUp={() => touchKey('ShiftLeft', false)}
               onPointerLeave={() => touchKey('ShiftLeft', false)}
             >
-              SPRINT
+              <span style={{ fontSize: 22, lineHeight: 1 }}>⚡</span>
+              <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: 0.5 }}>SPRINT</span>
             </button>
           </>
         )}
