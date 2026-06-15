@@ -29,9 +29,9 @@ const SHELF_DEFS = [
   { id: 0, x: 207, y: 148, w: 94, h: 38, label: 'Cabernet',   clr: '#9B2335' },
   { id: 1, x: 354, y: 148, w: 94, h: 38, label: 'Merlot',     clr: '#C0392B' },
   { id: 2, x: 501, y: 148, w: 94, h: 38, label: 'Pinot',      clr: '#6B2737' },
-  { id: 3, x: 207, y: 316, w: 94, h: 38, label: 'Chardonnay', clr: '#C8A020' },
-  { id: 4, x: 354, y: 316, w: 94, h: 38, label: 'Sauvignon',  clr: '#7DB874' },
-  { id: 5, x: 501, y: 316, w: 94, h: 38, label: 'Rosé',       clr: '#E8A0BF' },
+  { id: 3, x: 207, y: 344, w: 94, h: 38, label: 'Chardonnay', clr: '#C8A020' },
+  { id: 4, x: 354, y: 344, w: 94, h: 38, label: 'Sauvignon',  clr: '#7DB874' },
+  { id: 5, x: 501, y: 344, w: 94, h: 38, label: 'Rosé',       clr: '#E8A0BF' },
 ]
 
 /* ═══════════════════════ TYPES ═══════════════════════ */
