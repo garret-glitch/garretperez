@@ -300,10 +300,172 @@ const PET_X: Item[] = [
   c('pet_dragon_pink', 'pet', 'Pink Dragon', 'legendary', ['fairy', 'empress'], 75, { style: 'dragon', color: '#f0a0c0' }, { gem: true, lvl: 18 }),
 ]
 
+/* ════════════ BIG CONTENT PASS — even more of everything ════════════ */
+/* ── more hair ── */
+const HAIR_Z: Item[] = [
+  c('hair_wave_pink', 'hair', 'Rose Waves', 'common', ['princess'], 0, { style: 'wave', color: '#e87aa8', hi: '#ffa8cc' }),
+  c('hair_pony_purple', 'hair', 'Purple Pony', 'uncommon', ['night'], 160, { style: 'pony', color: '#7a5ad0', hi: '#a890f0' }),
+  c('hair_bob_blk', 'hair', 'Raven Bob', 'uncommon', ['night'], 150, { style: 'bob', color: '#2c2733', hi: '#4a4458' }),
+  c('hair_curl_pink', 'hair', 'Pink Curls', 'uncommon', ['rainbow', 'princess'], 170, { style: 'curl', color: '#f29ac6', hi: '#ffc0de' }),
+  c('hair_wave_teal', 'hair', 'Ocean Waves', 'uncommon', ['mermaid', 'ocean'], 170, { style: 'wave', color: '#2fb0b0', hi: '#6fe0e0' }),
+  c('hair_braid_silver', 'hair', 'Silver Braid', 'rare', ['winter'], 300, { style: 'braid', color: '#dfe6f0', hi: '#ffffff' }),
+  c('hair_space_blue', 'hair', 'Galaxy Buns', 'rare', ['night', 'ocean'], 320, { style: 'space', color: '#5a6ad0', hi: '#8fa0f0' }),
+  c('hair_afro_purple', 'hair', 'Violet Afro', 'rare', ['night', 'rainbow'], 320, { style: 'afro', color: '#9b6fd6', hi: '#bf9af0' }),
+  c('hair_longcurl_white', 'hair', 'Frost Ringlets', 'epic', ['winter'], 30, { style: 'longcurl', color: '#eef2f8', hi: '#ffffff' }, { gem: true, lvl: 14 }),
+  c('hair_hearts_gold', 'hair', 'Golden Heart Buns', 'epic', ['empress', 'queen'], 32, { style: 'hearts', color: '#caa24a', hi: '#ecc868' }, { gem: true, lvl: 16 }),
+]
+/* ── more dresses ── */
+const DRESS_Y: Item[] = [
+  c('dr_mint2', 'dress', 'Spring Mint', 'common', ['garden'], 0, { shape: 'puffy', bodice: '#86d6b0', skirt: '#bde6d0', trim: '#ffffff' }),
+  c('dr_rose', 'dress', 'Rose Princess', 'uncommon', ['princess'], 200, { shape: 'ball', bodice: '#e8557a', skirt: '#ffb0c8', trim: '#fff0f6', sparkle: true }),
+  c('dr_berry', 'dress', 'Berry Gown', 'uncommon', ['night'], 200, { shape: 'aline', bodice: '#7a2a5a', skirt: '#a8487a', trim: '#ffd0e0' }),
+  c('dr_coral', 'dress', 'Coral Gown', 'uncommon', ['mermaid', 'ocean'], 210, { shape: 'mermaid', bodice: '#ff8a6a', skirt: '#ffb89a', trim: '#ffffff', sparkle: true }),
+  c('dr_gold', 'dress', 'Golden Gala', 'rare', ['queen', 'empress'], 460, { shape: 'ball', bodice: '#e0b84a', skirt: '#f6d878', trim: '#fff6df', sparkle: true }),
+  c('dr_ice2', 'dress', 'Icicle Gown', 'rare', ['winter'], 440, { shape: 'mermaid', bodice: '#9fc4e8', skirt: '#cfe6ff', trim: '#ffffff', sparkle: true }),
+  c('dr_sunset', 'dress', 'Sunset Gown', 'rare', ['sunny', 'dragon'], 440, { shape: 'royal', bodice: '#e85a3a', skirt: '#ffa05a', trim: '#ffe0a8', sparkle: true }),
+  c('dr_aurora', 'dress', 'Aurora Gown', 'epic', ['night', 'empress'], 44, { shape: 'ball', bodice: '#2a6a8a', skirt: '#4fb0c0', trim: '#b9f0e0', sparkle: true, celest: true }, { gem: true, lvl: 18 }),
+  c('dr_prism', 'dress', 'Prism Gown', 'legendary', ['rainbow', 'empress'], 90, { shape: 'royal', bodice: '#ff8fb0', skirt: '#ffd36a', trim: '#8fe0ff', rainbow: true, sparkle: true }, { gem: true, lvl: 26 }),
+]
+/* ── more tops ── */
+const TOPS_X: Item[] = [
+  c('t_hoodie_pink', 'top', 'Pink Hoodie', 'common', [], 0, { style: 'hoodie', color: '#ff9ec4', trim: '#fff0f6' }),
+  c('t_tank_mint', 'top', 'Mint Tank', 'common', ['garden'], 0, { style: 'tee', color: '#86d6b0', trim: '#ffffff' }),
+  c('t_blouse_lav', 'top', 'Lavender Blouse', 'uncommon', ['fairy', 'night'], 130, { style: 'tee', color: '#b89ad6', trim: '#ffffff' }),
+  c('t_crop_pink', 'top', 'Pink Crop', 'uncommon', ['rainbow'], 140, { style: 'crop', color: '#ff7ab0', trim: '#fff0f6' }),
+  c('t_heart_red', 'top', 'Ruby Heart Tee', 'rare', ['dragon'], 240, { style: 'heart', color: '#c0354a', trim: '#ffd0d8' }),
+  c('t_galaxy_tee', 'top', 'Galaxy Tee', 'epic', ['night', 'empress'], 28, { style: 'tee', color: '#2a2f6e', trim: '#8f7fe0' }, { gem: true, lvl: 14 }),
+]
+/* ── more pants & skirts ── */
+const BOTTOMS_X: Item[] = [
+  c('b_skirt_pink', 'bottom', 'Pink Skirt', 'common', ['princess'], 0, { style: 'skirt', color: '#ffb0d6', trim: '#ffffff' }),
+  c('b_leggings_pink', 'bottom', 'Pink Leggings', 'common', [], 0, { style: 'leggings', color: '#ff9ec4' }),
+  c('b_pants_mint', 'bottom', 'Mint Pants', 'common', ['garden'], 0, { style: 'pants', color: '#86d6b0', trim: '#5fae8a' }),
+  c('b_skirt_mint', 'bottom', 'Mint Skirt', 'uncommon', ['garden'], 130, { style: 'skirt', color: '#86d6b0', trim: '#ffffff' }),
+  c('b_tutu_white', 'bottom', 'White Tutu', 'uncommon', ['winter', 'princess'], 140, { style: 'tutu', color: '#eef2f8', trim: '#cfe2f8' }),
+  c('b_tutu_rainbow', 'bottom', 'Rainbow Tutu', 'rare', ['rainbow'], 250, { style: 'tutu', color: '#ff9ec4', trim: '#a8e0ff' }),
+  c('b_skirt_star', 'bottom', 'Starry Skirt', 'rare', ['night'], 240, { style: 'skirt', color: '#3a2f6e', trim: '#b9a6ff' }),
+  c('b_skirt_galaxy', 'bottom', 'Galaxy Skirt', 'epic', ['night', 'empress'], 30, { style: 'tutu', color: '#3a2f6e', trim: '#8f7fe0' }, { gem: true, lvl: 14 }),
+]
+/* ── more shoes ── */
+const SHOE_Y: Item[] = [
+  c('sh_flat_mint', 'shoes', 'Mint Flats', 'common', ['garden'], 0, { style: 'flat', color: '#86d6b0' }),
+  c('sh_boot_brown', 'shoes', 'Brown Boots', 'common', ['garden'], 0, { style: 'boot', color: '#9a6a3a' }),
+  c('sh_sneaker_blue', 'shoes', 'Blue Sneakers', 'common', ['sunny'], 120, { style: 'sneaker', color: '#7fb0e8' }),
+  c('sh_glass_blue', 'shoes', 'Aqua Glass Slippers', 'rare', ['mermaid', 'winter'], 250, { style: 'glass', color: '#bfe6ff' }),
+  c('sh_heel_purple', 'shoes', 'Violet Heels', 'rare', ['night'], 260, { style: 'heel', color: '#9b6fd6' }),
+  c('sh_heel_empress', 'shoes', 'Empress Heels', 'epic', ['empress'], 30, { style: 'heel', color: '#f0d878' }, { gem: true, lvl: 18 }),
+]
+/* ── more crowns ── */
+const CROWN_Y: Item[] = [
+  c('cr_pink_tiara', 'crown', 'Pink Tiara', 'common', ['princess'], 0, { style: 'tiara', metal: '#ff9ec4', gem: '#ffffff' }),
+  c('cr_daisy', 'crown', 'Daisy Crown', 'uncommon', ['garden', 'fairy'], 160, { style: 'flower', metal: '#ffffff', gem: '#ffd36a' }),
+  c('cr_emerald', 'crown', 'Emerald Crown', 'rare', ['garden', 'queen'], 300, { style: 'gold', metal: '#2fb060', gem: '#fff6c4' }),
+  c('cr_sapphire', 'crown', 'Sapphire Crown', 'rare', ['ocean', 'winter'], 300, { style: 'gold', metal: '#3a6ae0', gem: '#bfe6ff' }),
+  c('cr_phoenix', 'crown', 'Phoenix Crown', 'epic', ['dragon'], 36, { style: 'dragon', metal: '#ff6a2a', gem: '#ffd84a' }, { gem: true, lvl: 14 }),
+  c('cr_moon_gold', 'crown', 'Golden Moon', 'epic', ['night', 'empress'], 34, { style: 'moon', metal: '#f0d878', gem: '#fff6d0' }, { gem: true, lvl: 16 }),
+]
+/* ── more jewelry ── */
+const NECK_Y: Item[] = [
+  c('nk_bow', 'necklace', 'Ribbon Bow', 'common', ['princess'], 0, { style: 'bow', color: '#ff9ec4' }),
+  c('nk_pearl_pink', 'necklace', 'Pink Pearls', 'common', ['princess'], 0, { style: 'pearl', color: '#ffd9ec' }),
+  c('nk_flower', 'necklace', 'Flower Charm', 'uncommon', ['garden', 'fairy'], 130, { style: 'flower', color: '#ff7ab0' }),
+  c('nk_teardrop', 'necklace', 'Aqua Teardrop', 'uncommon', ['ocean', 'mermaid'], 130, { style: 'gem', color: '#3ec7c7' }),
+  c('nk_butterfly', 'necklace', 'Butterfly Charm', 'rare', ['fairy', 'garden'], 240, { style: 'butterfly', color: '#c08fff' }),
+  c('nk_amethyst', 'necklace', 'Amethyst Drop', 'rare', ['night'], 240, { style: 'gem', color: '#9b6fd6' }),
+  c('nk_emerald_choker', 'necklace', 'Emerald Choker', 'rare', ['queen', 'garden'], 240, { style: 'choker', color: '#2fb060' }),
+  c('nk_crown', 'necklace', 'Crown Pendant', 'epic', ['queen', 'empress'], 28, { style: 'star', color: '#f0c84a' }, { gem: true, lvl: 16 }),
+]
+/* ── more wings ── */
+const WINGS_X: Item[] = [
+  c('wg_pixie', 'wings', 'Pixie Wings', 'uncommon', ['fairy', 'garden'], 220, { style: 'fairy', color: '#c8f0a8' }),
+  c('wg_heart', 'wings', 'Heart Wings', 'rare', ['princess', 'rainbow'], 360, { style: 'heart', color: '#ff8fc0' }),
+  c('wg_monarch', 'wings', 'Monarch Wings', 'rare', ['fairy', 'sunny'], 360, { style: 'butterfly', color: '#f0903a' }),
+  c('wg_angel', 'wings', 'Angel Wings', 'rare', ['winter', 'empress'], 380, { style: 'feather', color: '#ffffff' }),
+  c('wg_crystal', 'wings', 'Crystal Wings', 'epic', ['winter', 'empress'], 34, { style: 'crystal', color: '#bfe6ff' }, { gem: true, lvl: 14 }),
+  c('wg_dragon', 'wings', 'Dragon Wings', 'epic', ['dragon'], 40, { style: 'dragon', color: '#7a1f16' }, { gem: true, lvl: 14 }),
+  c('wg_phoenix', 'wings', 'Phoenix Wings', 'legendary', ['dragon', 'empress'], 80, { style: 'dragon', color: '#e85a2a' }, { gem: true, lvl: 20 }),
+  c('wg_starfall', 'wings', 'Starfall Wings', 'legendary', ['empress', 'night'], 88, { style: 'crystal', color: '#b9a6ff' }, { gem: true, lvl: 24 }),
+]
+/* ── more capes ── */
+const CAPES_X: Item[] = [
+  c('cp_pink', 'cape', 'Rose Cape', 'uncommon', ['princess'], 250, { style: 'royal', color: '#e8557a', trim: '#fff0c4' }),
+  c('cp_green', 'cape', 'Forest Cape', 'uncommon', ['garden'], 250, { style: 'royal', color: '#2f8a4a', trim: '#ffe0a8' }),
+  c('cp_ocean', 'cape', 'Ocean Cape', 'rare', ['mermaid', 'ocean'], 300, { style: 'royal', color: '#2a7a9a', trim: '#bfeef0' }),
+  c('cp_winter', 'cape', 'Snow Cape', 'rare', ['winter'], 300, { style: 'fur', color: '#bcd8f0', trim: '#ffffff' }),
+  c('cp_gold', 'cape', 'Golden Cape', 'epic', ['queen', 'empress'], 38, { style: 'royal', color: '#e0b84a', trim: '#fff6df' }, { gem: true, lvl: 14 }),
+  c('cp_phoenix', 'cape', 'Phoenix Cape', 'epic', ['dragon'], 40, { style: 'royal', color: '#c0301a', trim: '#ff9a3a' }, { gem: true, lvl: 16 }),
+  c('cp_galaxy', 'cape', 'Galaxy Cape', 'legendary', ['night', 'empress'], 90, { style: 'royal', color: '#2a2052', trim: '#8f7fe0', stars: true }, { gem: true, lvl: 26 }),
+]
+/* ── more pets ── */
+const PET_Y: Item[] = [
+  c('pet_chick', 'pet', 'Chick', 'common', ['sunny'], 0, { style: 'chick', color: '#ffd45a' }),
+  c('pet_frog', 'pet', 'Frog Prince', 'uncommon', ['garden'], 180, { style: 'frog', color: '#6fae5a' }),
+  c('pet_lamb', 'pet', 'Lamb', 'uncommon', ['winter', 'garden'], 190, { style: 'lamb' }),
+  c('pet_deer', 'pet', 'Deer', 'rare', ['garden', 'winter'], 300, { style: 'deer', color: '#c8884a' }),
+  c('pet_koala', 'pet', 'Koala', 'rare', ['sunny'], 300, { style: 'koala' }),
+  c('pet_fox_white', 'pet', 'Arctic Fox', 'rare', ['winter'], 300, { style: 'fox', color: '#e8eef4' }),
+  c('pet_unicorn_blue', 'pet', 'Blue Unicorn', 'epic', ['ocean', 'night'], 42, { style: 'unicorn', color: '#dfe8ff', mane: '#7fb0e8' }, { gem: true, lvl: 12 }),
+]
+/* ── more magic ── */
+const EFFECTS_X: Item[] = [
+  c('fx_butterflies', 'effect', 'Butterflies', 'uncommon', ['fairy', 'garden'], 150, { style: 'butterflies' }),
+  c('fx_music', 'effect', 'Music Notes', 'uncommon', ['rainbow', 'sunny'], 140, { style: 'music' }),
+  c('fx_leaves', 'effect', 'Falling Leaves', 'uncommon', ['garden'], 150, { style: 'leaves' }),
+  c('fx_fireflies', 'effect', 'Fireflies', 'rare', ['night', 'garden'], 220, { style: 'fireflies' }),
+  c('fx_rainbow', 'effect', 'Rainbows', 'rare', ['rainbow'], 220, { style: 'rainbow' }),
+  c('fx_fire', 'effect', 'Ember Glow', 'epic', ['dragon'], 30, { style: 'fire' }, { gem: true, lvl: 12 }),
+  c('fx_diamonds', 'effect', 'Diamond Dust', 'epic', ['empress', 'queen'], 32, { style: 'diamonds' }, { gem: true, lvl: 16 }),
+]
+/* ── more scenes ── */
+const BG_X: Item[] = [
+  c('bg_meadow', 'bg', 'Sunny Meadow', 'uncommon', ['sunny', 'garden'], 120, { style: 'garden' }),
+  c('bg_throne', 'bg', 'Throne Room', 'rare', ['queen'], 220, { style: 'castle' }),
+  c('bg_deepsea', 'bg', 'Deep Sea', 'rare', ['mermaid', 'ocean'], 220, { style: 'ocean' }),
+]
+/* ── one more pass: color variants across every category ── */
+const FINAL: Item[] = [
+  // dresses
+  c('dr_lemon', 'dress', 'Lemon Sundress', 'common', ['sunny'], 0, { shape: 'aline', bodice: '#f6e05a', skirt: '#fff0a0', trim: '#ffffff' }),
+  c('dr_lilac', 'dress', 'Lilac Ball', 'uncommon', ['fairy', 'princess'], 200, { shape: 'ball', bodice: '#b89ad6', skirt: '#d8c0f0', trim: '#ffffff', sparkle: true }),
+  c('dr_teal', 'dress', 'Teal Mermaid', 'rare', ['mermaid', 'ocean'], 440, { shape: 'mermaid', bodice: '#1f8a8a', skirt: '#3ec7c7', trim: '#dff8ff', sparkle: true }),
+  c('dr_crimson', 'dress', 'Crimson Royal', 'rare', ['queen', 'dragon'], 460, { shape: 'royal', bodice: '#a01828', skirt: '#d0303a', trim: '#f0c860', sparkle: true }),
+  c('dr_moonbeam', 'dress', 'Moonbeam Gown', 'legendary', ['empress', 'night'], 92, { shape: 'mermaid', bodice: '#3a3a6a', skirt: '#6a6ad0', trim: '#dfe6ff', sparkle: true, celest: true }, { gem: true, lvl: 24 }),
+  // hair
+  c('hair_pony_white', 'hair', 'Pearl Pony', 'uncommon', ['winter'], 160, { style: 'pony', color: '#eef2f8', hi: '#ffffff' }),
+  c('hair_twin_purple', 'hair', 'Violet Twintails', 'uncommon', ['night'], 160, { style: 'twin', color: '#9b6fd6', hi: '#bf9af0' }),
+  c('hair_bun_pink', 'hair', 'Rose Bun', 'common', ['princess'], 0, { style: 'bun', color: '#e87aa8', hi: '#ffa8cc' }),
+  c('hair_straight_teal', 'hair', 'Teal Straight', 'rare', ['mermaid'], 300, { style: 'straight', color: '#2fb0b0', hi: '#6fe0e0' }),
+  // tops & bottoms
+  c('t_tee_purple', 'top', 'Purple Tee', 'common', ['night'], 0, { style: 'tee', color: '#9b6fd6', trim: '#ffffff' }),
+  c('b_skirt_purple', 'bottom', 'Purple Skirt', 'common', ['night'], 0, { style: 'skirt', color: '#9b6fd6', trim: '#ffffff' }),
+  c('b_tutu_teal', 'bottom', 'Teal Tutu', 'uncommon', ['mermaid', 'ocean'], 140, { style: 'tutu', color: '#3ec7c7', trim: '#dff8ff' }),
+  c('b_pants_blk', 'bottom', 'Black Pants', 'common', ['night'], 0, { style: 'pants', color: '#3a3540', trim: '#5a5460' }),
+  // jewelry
+  c('nk_heart_gold', 'necklace', 'Gold Heart', 'rare', ['princess', 'queen'], 240, { style: 'heart', color: '#f0c84a' }),
+  c('nk_star_blue', 'necklace', 'Blue Star', 'uncommon', ['ocean', 'night'], 130, { style: 'star', color: '#5aa0e0' }),
+  // crowns
+  c('cr_heart_pink', 'crown', 'Pink Heart Crown', 'uncommon', ['princess', 'rainbow'], 170, { style: 'heart', metal: '#ff9ec4', gem: '#ffffff' }),
+  c('cr_star_frost', 'crown', 'Frost Star Crown', 'rare', ['winter'], 300, { style: 'star', metal: '#bfe6ff', gem: '#ffffff' }),
+  // shoes
+  c('sh_flat_yellow', 'shoes', 'Sunny Flats', 'common', ['sunny'], 0, { style: 'flat', color: '#ffd45a' }),
+  c('sh_boot_white', 'shoes', 'Snow Boots', 'uncommon', ['winter'], 150, { style: 'boot', color: '#eef2f8' }),
+  // wings & capes
+  c('wg_fairy_pink', 'wings', 'Rose Fairy Wings', 'uncommon', ['princess', 'fairy'], 220, { style: 'fairy', color: '#ffd0e6' }),
+  c('cp_purple', 'cape', 'Twilight Cape', 'uncommon', ['night'], 250, { style: 'royal', color: '#5a3aa0', trim: '#cabff0' }),
+  // pets
+  c('pet_cat_blk', 'pet', 'Black Cat', 'common', ['night'], 0, { style: 'cat', color: '#3a3540' }),
+  c('pet_bunny_pink', 'pet', 'Pink Bunny', 'uncommon', ['princess', 'rainbow'], 180, { style: 'bunny', color: '#ffd0e0' }),
+  c('pet_owl_white', 'pet', 'Snowy Owl', 'rare', ['winter'], 300, { style: 'owl', color: '#eef2f8' }),
+  c('pet_swan_black', 'pet', 'Black Swan', 'rare', ['night', 'queen'], 300, { style: 'swan', color: '#3a3540' }),
+]
+
 const ALL: Item[] = [
-  ...SKINS, ...EYES, ...HAIR, ...HAIR_X, ...HAIR_Y, ...DRESSES, ...DRESS_X,
-  ...TOPS, ...BOTTOMS, ...SHOES, ...SHOE_X, ...CROWNS, ...CROWN_X,
-  ...NECKS, ...NECK_X, ...WINGS, ...CAPES, ...PETS, ...PET_X, ...BGS, ...EFFECTS,
+  ...SKINS, ...EYES, ...HAIR, ...HAIR_X, ...HAIR_Y, ...HAIR_Z,
+  ...DRESSES, ...DRESS_X, ...DRESS_Y, ...TOPS, ...TOPS_X, ...BOTTOMS, ...BOTTOMS_X,
+  ...SHOES, ...SHOE_X, ...SHOE_Y, ...CROWNS, ...CROWN_X, ...CROWN_Y,
+  ...NECKS, ...NECK_X, ...NECK_Y, ...WINGS, ...WINGS_X, ...CAPES, ...CAPES_X,
+  ...PETS, ...PET_X, ...PET_Y, ...BGS, ...BG_X, ...EFFECTS, ...EFFECTS_X,
+  ...FINAL,
 ]
 const BY_ID: Record<string, Item> = Object.fromEntries(ALL.map(i => [i.id, i]))
 const STARTERS = ALL.filter(i => i.price === 0).map(i => i.id)
@@ -816,6 +978,19 @@ function renderNeck(p: any) {
     <path d="M134 172 Q150 182 166 172" stroke="#d8c89a" strokeWidth="1.5" fill="none" />
     <path d={starD(150, 186, 5)} fill={col} />
   </g>
+  if (p.style === 'bow') return <g fill={col}>
+    <path d="M150 176 l-11 -5 l0 11 z" /><path d="M150 176 l11 -5 l0 11 z" /><circle cx="150" cy="176" r="3" />
+  </g>
+  if (p.style === 'flower') return <g>
+    <path d="M134 172 Q150 182 166 172" stroke="#d8c89a" strokeWidth="1.5" fill="none" />
+    {[0, 1, 2, 3, 4].map(i => <circle key={i} cx={150 + Math.cos(i / 5 * 6.283) * 4} cy={185 + Math.sin(i / 5 * 6.283) * 4} r="3" fill={col} />)}
+    <circle cx="150" cy="185" r="2" fill="#fff6c4" />
+  </g>
+  if (p.style === 'butterfly') return <g>
+    <path d="M134 172 Q150 182 166 172" stroke="#d8c89a" strokeWidth="1.5" fill="none" />
+    <path d="M150 185 q-7 -6 -8 2 q0 5 8 4 z" fill={col} /><path d="M150 185 q7 -6 8 2 q0 5 -8 4 z" fill={col} />
+    <circle cx="150" cy="186" r="1.4" fill="#2a2230" />
+  </g>
   // gem
   return <g>
     <path d="M134 174 Q150 184 166 174" stroke="#d8c89a" strokeWidth="1.5" fill="none" />
@@ -826,31 +1001,50 @@ function renderNeck(p: any) {
 function renderWings(p: any) {
   if (!p || p.style === 'none') return null
   const col = p.rainbow ? 'url(#rainbowG)' : p.color
-  if (p.style === 'fairy') return <g opacity="0.78">
-    <path d="M120 230 Q40 180 70 280 Q100 280 120 250 Z" fill={col} stroke="#fff" strokeWidth="1.5" />
-    <path d="M180 230 Q260 180 230 280 Q200 280 180 250 Z" fill={col} stroke="#fff" strokeWidth="1.5" />
+  // all wings root at the upper back (~y198), just below the shoulders
+  if (p.style === 'fairy') return <g opacity="0.8">
+    <path d="M138 198 Q60 150 58 200 Q70 240 138 222 Z" fill={col} stroke="#fff" strokeWidth="1.5" />
+    <path d="M138 210 Q70 232 80 292 Q112 280 138 240 Z" fill={col} stroke="#fff" strokeWidth="1.5" />
+    <path d="M162 198 Q240 150 242 200 Q230 240 162 222 Z" fill={col} stroke="#fff" strokeWidth="1.5" />
+    <path d="M162 210 Q230 232 220 292 Q188 280 162 240 Z" fill={col} stroke="#fff" strokeWidth="1.5" />
   </g>
   if (p.style === 'butterfly') return <g opacity="0.82">
-    <path d="M122 235 Q36 170 56 250 Q60 300 122 270 Z" fill={col} stroke="#fff" strokeWidth="1.5" />
-    <path d="M178 235 Q264 170 244 250 Q240 300 178 270 Z" fill={col} stroke="#fff" strokeWidth="1.5" />
-    <circle cx="74" cy="225" r="7" fill="#fff" opacity="0.6" /><circle cx="226" cy="225" r="7" fill="#fff" opacity="0.6" />
+    <path d="M140 200 Q40 150 50 215 Q54 278 140 248 Z" fill={col} stroke="#fff" strokeWidth="1.5" />
+    <path d="M160 200 Q260 150 250 215 Q246 278 160 248 Z" fill={col} stroke="#fff" strokeWidth="1.5" />
+    <circle cx="78" cy="200" r="8" fill="#fff" opacity="0.6" /><circle cx="222" cy="200" r="8" fill="#fff" opacity="0.6" />
+    <circle cx="74" cy="236" r="6" fill="#fff" opacity="0.5" /><circle cx="226" cy="236" r="6" fill="#fff" opacity="0.5" />
   </g>
-  // feather
+  if (p.style === 'dragon') return <g opacity="0.92">
+    <path d="M140 198 Q72 168 50 208 Q66 208 60 230 Q80 226 78 248 Q98 242 100 262 Q120 252 140 240 Z" fill={col} stroke="#5a1f16" strokeWidth="1.5" />
+    <path d="M160 198 Q228 168 250 208 Q234 208 240 230 Q220 226 222 248 Q202 242 200 262 Q180 252 160 240 Z" fill={col} stroke="#5a1f16" strokeWidth="1.5" />
+  </g>
+  if (p.style === 'crystal') return <g opacity="0.72">
+    <path d="M140 200 L68 162 L60 214 L98 252 Z" fill={col} stroke="#fff" strokeWidth="1.5" />
+    <path d="M160 200 L232 162 L240 214 L202 252 Z" fill={col} stroke="#fff" strokeWidth="1.5" />
+  </g>
+  if (p.style === 'heart') return <g opacity="0.85">
+    <path d={heartD(80, 202, 26)} fill={col} stroke="#fff" strokeWidth="1.5" />
+    <path d={heartD(220, 202, 26)} fill={col} stroke="#fff" strokeWidth="1.5" />
+  </g>
+  // feather (angel)
   return <g opacity="0.9">
-    <path d="M124 230 Q46 200 66 300 Q96 280 124 256 Z" fill={col} stroke="#dfe8f0" strokeWidth="1" />
-    <path d="M176 230 Q254 200 234 300 Q204 280 176 256 Z" fill={col} stroke="#dfe8f0" strokeWidth="1" />
+    <path d="M140 198 Q56 174 66 268 Q98 250 140 224 Z" fill={col} stroke="#dfe8f0" strokeWidth="1" />
+    <path d="M160 198 Q244 174 234 268 Q202 250 160 224 Z" fill={col} stroke="#dfe8f0" strokeWidth="1" />
   </g>
 }
 
 function renderCape(p: any) {
   if (!p || p.style === 'none') return null
-  const { color, trim, stars } = p
+  const { color, trim, stars, style } = p
   return <g>
     <path d="M120 175 Q60 300 78 400 L150 400 L222 400 Q240 300 180 175 Q150 188 120 175 Z" fill={color} />
     <path d="M120 175 Q60 300 78 400" stroke={trim} strokeWidth="4" fill="none" />
     <path d="M180 175 Q240 300 222 400" stroke={trim} strokeWidth="4" fill="none" />
     {stars && [...Array(8)].map((_, i) => (
       <circle key={i} cx={95 + (i * 23) % 110} cy={250 + (i * 41) % 130} r="2" fill="#fff" opacity="0.9" />
+    ))}
+    {style === 'fur' && [...Array(7)].map((_, i) => (
+      <circle key={i} cx={118 + i * 11} cy={178} r="7" fill="#ffffff" />
     ))}
   </g>
 }
@@ -951,6 +1145,47 @@ function renderPet(p: any) {
         <circle cx="0" cy="9" r="1.6" fill="#f0a0b0" />
         <ellipse cx="-7" cy="9" rx="3" ry="2" fill="#ffc0d0" /><ellipse cx="7" cy="9" rx="3" ry="2" fill="#ffc0d0" />
       </g>}
+      {p.style === 'deer' && <g>
+        <ellipse cx="0" cy="22" rx="16" ry="13" fill={col} />
+        <circle cx="0" cy="4" r="11" fill={col} />
+        <path d="M-7 -8 l-3 -12 M-7 -8 l3 -7" stroke="#8a5a32" strokeWidth="2" fill="none" strokeLinecap="round" />
+        <path d="M7 -8 l3 -12 M7 -8 l-3 -7" stroke="#8a5a32" strokeWidth="2" fill="none" strokeLinecap="round" />
+        <ellipse cx="-10" cy="-1" rx="4" ry="6" fill={col} /><ellipse cx="10" cy="-1" rx="4" ry="6" fill={col} />
+        <circle cx="-4" cy="2" r="1.8" fill="#2a2230" /><circle cx="4" cy="2" r="1.8" fill="#2a2230" />
+        <circle cx="0" cy="7" r="2" fill="#2a2230" />
+        <circle cx="-8" cy="24" r="2" fill="#fff" /><circle cx="6" cy="27" r="2" fill="#fff" />
+      </g>}
+      {p.style === 'frog' && <g>
+        <ellipse cx="0" cy="20" rx="17" ry="14" fill={col} />
+        <circle cx="-8" cy="2" r="6" fill={col} /><circle cx="8" cy="2" r="6" fill={col} />
+        <circle cx="-8" cy="2" r="3" fill="#fff" /><circle cx="8" cy="2" r="3" fill="#fff" />
+        <circle cx="-8" cy="2" r="1.4" fill="#2a2230" /><circle cx="8" cy="2" r="1.4" fill="#2a2230" />
+        <path d="M-7 18 q7 6 14 0" stroke="#2a6a3a" strokeWidth="2" fill="none" strokeLinecap="round" />
+      </g>}
+      {p.style === 'chick' && <g>
+        <ellipse cx="0" cy="20" rx="14" ry="14" fill={col} />
+        <circle cx="0" cy="6" r="11" fill={col} />
+        <circle cx="-4" cy="4" r="1.8" fill="#2a2230" /><circle cx="4" cy="4" r="1.8" fill="#2a2230" />
+        <path d="M0 8 l-3 3 l6 0 z" fill="#f0a020" />
+        <path d="M0 -6 l-2 -5 l4 0 z" fill="#f0a020" />
+        <ellipse cx="-13" cy="20" rx="4" ry="6" fill={col} /><ellipse cx="13" cy="20" rx="4" ry="6" fill={col} />
+      </g>}
+      {p.style === 'koala' && <g>
+        <ellipse cx="0" cy="22" rx="15" ry="13" fill="#9aa6b2" />
+        <circle cx="0" cy="4" r="12" fill="#9aa6b2" />
+        <circle cx="-12" cy="0" r="7" fill="#b8c2cc" /><circle cx="12" cy="0" r="7" fill="#b8c2cc" />
+        <circle cx="-4" cy="2" r="1.8" fill="#2a2230" /><circle cx="4" cy="2" r="1.8" fill="#2a2230" />
+        <ellipse cx="0" cy="8" rx="4" ry="5" fill="#2a2230" />
+      </g>}
+      {p.style === 'lamb' && <g>
+        <ellipse cx="0" cy="22" rx="17" ry="14" fill="#fff" />
+        <circle cx="-12" cy="16" r="6" fill="#fff" /><circle cx="12" cy="16" r="6" fill="#fff" />
+        <circle cx="-10" cy="28" r="5" fill="#fff" /><circle cx="10" cy="28" r="5" fill="#fff" />
+        <circle cx="0" cy="4" r="10" fill="#3a3038" />
+        <circle cx="0" cy="-3" r="6" fill="#fff" />
+        <circle cx="-4" cy="4" r="1.6" fill="#fff" /><circle cx="4" cy="4" r="1.6" fill="#fff" />
+        <ellipse cx="-10" cy="3" rx="3" ry="4" fill="#3a3038" /><ellipse cx="10" cy="3" rx="3" ry="4" fill="#3a3038" />
+      </g>}
     </g>
   )
 }
@@ -970,6 +1205,13 @@ function renderEffects(p: any) {
     if (st === 'bubbles') return <circle key={key} cx={x} cy={y} r={3 + (i % 4)} fill="#bfeef0" opacity="0.6" className="de-float" style={{ animationDelay: `${d}s` }} />
     if (st === 'stars') return <text key={key} x={x} y={y} fontSize="13" className="de-twinkle" style={{ animationDelay: `${d}s` }}>⭐</text>
     if (st === 'aura') return <text key={key} x={x} y={y} fontSize="14" className="de-twinkle" style={{ animationDelay: `${d}s` }}>✨</text>
+    if (st === 'butterflies') return <text key={key} x={x} y={y} fontSize="14" className="de-float" style={{ animationDelay: `${d}s` }}>🦋</text>
+    if (st === 'music') return <text key={key} x={x} y={y} fontSize="14" className="de-float" style={{ animationDelay: `${d}s` }}>🎵</text>
+    if (st === 'rainbow') return <text key={key} x={x} y={y} fontSize="15" className="de-float" style={{ animationDelay: `${d}s` }}>🌈</text>
+    if (st === 'fire') return <text key={key} x={x} y={y} fontSize="14" className="de-twinkle" style={{ animationDelay: `${d}s` }}>🔥</text>
+    if (st === 'leaves') return <text key={key} x={x} y={y} fontSize="13" className="de-fall" style={{ animationDelay: `${d}s` }}>🍃</text>
+    if (st === 'diamonds') return <text key={key} x={x} y={y} fontSize="13" className="de-twinkle" style={{ animationDelay: `${d}s` }}>💎</text>
+    if (st === 'fireflies') return <circle key={key} cx={x} cy={y} r={2.5} fill="#fff0a0" className="de-twinkle" style={{ animationDelay: `${d}s` }} />
     return <g key={key} transform={`translate(${x},${y})`} className="de-twinkle" style={{ animationDelay: `${d}s` }}>
       <path d="M0 -5 L1.4 -1.4 L5 0 L1.4 1.4 L0 5 L-1.4 1.4 L-5 0 L-1.4 -1.4 Z" fill="#fff" />
     </g>
