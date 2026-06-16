@@ -490,6 +490,99 @@ const CHALLENGES: Challenge[] = [
   { id: 'empress_cer', name: 'Empress Ceremony', emoji: '✨', theme: 'empress', bg: 'bg_celest', desc: 'The grandest event in the kingdom!', hint: 'Legendary empress gowns & celestial magic', coins: 400, gems: 3, xp: 70, minLvl: 18 },
 ]
 
+/* ════════════════════════ CASTLE DECORATING ════════════════════════ */
+type DecorSlot = 'wallpaper' | 'floor' | 'furniture' | 'rug' | 'window' | 'wallart' | 'plant' | 'light'
+interface Decor { id: string; slot: DecorSlot; name: string; rarity: Rarity; price: number; gem?: boolean; lvl?: number; p: any }
+const d = (id: string, slot: DecorSlot, name: string, rarity: Rarity, price: number, p: any, opts: { gem?: boolean; lvl?: number } = {}): Decor => ({ id, slot, name, rarity, price, p, ...opts })
+
+const DECOR: Decor[] = [
+  // wallpaper
+  d('wp_pink', 'wallpaper', 'Pink Walls', 'common', 0, { color: '#f3d0e6' }),
+  d('wp_lavender', 'wallpaper', 'Lavender Walls', 'common', 0, { color: '#e0d0f0' }),
+  d('wp_mint', 'wallpaper', 'Mint Walls', 'common', 60, { color: '#cfeede' }),
+  d('wp_blue', 'wallpaper', 'Sky Walls', 'common', 60, { color: '#cfe2f8' }),
+  d('wp_dots', 'wallpaper', 'Polka Dots', 'uncommon', 120, { color: '#ffd6ec', pattern: 'dots' }),
+  d('wp_stripes', 'wallpaper', 'Candy Stripes', 'uncommon', 120, { color: '#ffc0d6', pattern: 'stripes' }),
+  d('wp_hearts', 'wallpaper', 'Heart Walls', 'rare', 200, { color: '#ffb0d6', pattern: 'hearts' }),
+  d('wp_gold', 'wallpaper', 'Royal Gold', 'rare', 240, { color: '#e8d8a0' }),
+  d('wp_stars', 'wallpaper', 'Starry Walls', 'epic', 20, { color: '#3a3a6a', pattern: 'stars' }, { gem: true, lvl: 10 }),
+  // floor
+  d('fl_wood', 'floor', 'Wood Floor', 'common', 0, { color: '#caa06a', pattern: 'wood' }),
+  d('fl_pink', 'floor', 'Pink Tiles', 'common', 0, { color: '#f0b8d0', pattern: 'tile' }),
+  d('fl_marble', 'floor', 'Marble Floor', 'uncommon', 120, { color: '#e8e8f0', pattern: 'tile' }),
+  d('fl_grass', 'floor', 'Garden Grass', 'uncommon', 120, { color: '#8fce7a' }),
+  d('fl_checker', 'floor', 'Checker Floor', 'rare', 200, { color: '#d0a0c0', pattern: 'checker' }),
+  d('fl_gold', 'floor', 'Golden Floor', 'rare', 240, { color: '#e8c860', pattern: 'tile' }),
+  d('fl_galaxy', 'floor', 'Galaxy Floor', 'epic', 20, { color: '#2a2452', pattern: 'checker' }, { gem: true, lvl: 10 }),
+  // furniture
+  d('fr_none', 'furniture', 'Empty', 'common', 0, { style: 'none' }),
+  d('fr_bed_pink', 'furniture', 'Pink Bed', 'common', 0, { style: 'bed', color: '#f29ac6', color2: '#e0709a' }),
+  d('fr_bed_blue', 'furniture', 'Blue Bed', 'common', 80, { style: 'bed', color: '#8fb0e8', color2: '#6f90c8' }),
+  d('fr_canopy', 'furniture', 'Canopy Bed', 'rare', 260, { style: 'canopy', color: '#e87aa8', color2: '#fff0c4' }),
+  d('fr_sofa', 'furniture', 'Cozy Sofa', 'uncommon', 160, { style: 'sofa', color: '#c08fd0', color2: '#a06ab0' }),
+  d('fr_table', 'furniture', 'Tea Table', 'uncommon', 160, { style: 'table', color: '#caa06a', color2: '#8a6a4a' }),
+  d('fr_vanity', 'furniture', 'Vanity Mirror', 'rare', 280, { style: 'vanity', color: '#f0b8d0', color2: '#e8c45c' }),
+  d('fr_petbed', 'furniture', 'Pet Bed', 'uncommon', 150, { style: 'petbed', color: '#ffd0a8', color2: '#ffb088' }),
+  d('fr_throne_gold', 'furniture', 'Golden Throne', 'rare', 300, { style: 'throne', color: '#e0b84a', color2: '#fff6c4' }),
+  d('fr_throne_red', 'furniture', 'Royal Throne', 'rare', 300, { style: 'throne', color: '#a0283a', color2: '#f0c860' }),
+  d('fr_cauldron', 'furniture', 'Magic Cauldron', 'epic', 24, { style: 'cauldron', color: '#5a4a6a', color2: '#7a6a8a' }, { gem: true, lvl: 12 }),
+  // rug
+  d('rug_none', 'rug', 'No Rug', 'common', 0, { style: 'none' }),
+  d('rug_pink', 'rug', 'Pink Rug', 'common', 0, { style: 'round', color: '#ff9ec4' }),
+  d('rug_star', 'rug', 'Star Rug', 'uncommon', 120, { style: 'star', color: '#8f7fe0' }),
+  d('rug_heart', 'rug', 'Heart Rug', 'uncommon', 120, { style: 'heart', color: '#ff7ab0' }),
+  d('rug_royal', 'rug', 'Royal Rug', 'rare', 220, { style: 'royal', color: '#a0283a', trim: '#f0c860' }),
+  // window
+  d('win_none', 'window', 'No Window', 'common', 0, { style: 'none' }),
+  d('win_day', 'window', 'Sunny Window', 'common', 0, { style: 'day' }),
+  d('win_arch', 'window', 'Arch Window', 'uncommon', 120, { style: 'arch' }),
+  d('win_night', 'window', 'Starry Window', 'rare', 200, { style: 'night' }),
+  // wall art
+  d('art_none', 'wallart', 'No Art', 'common', 0, { style: 'none' }),
+  d('art_portrait', 'wallart', 'Portrait', 'common', 0, { style: 'portrait', color: '#caa24a' }),
+  d('art_landscape', 'wallart', 'Landscape', 'uncommon', 120, { style: 'landscape', color: '#caa24a' }),
+  d('art_mirror', 'wallart', 'Wall Mirror', 'uncommon', 140, { style: 'mirror', color: '#e8c45c' }),
+  d('art_clock', 'wallart', 'Royal Clock', 'rare', 200, { style: 'clock', color: '#c89b3c' }),
+  // plant
+  d('plant_none', 'plant', 'No Plant', 'common', 0, { style: 'none' }),
+  d('plant_rose', 'plant', 'Rose Bush', 'common', 0, { style: 'rose' }),
+  d('plant_tulips', 'plant', 'Tulips', 'uncommon', 100, { style: 'tulips' }),
+  d('plant_fern', 'plant', 'Fern', 'uncommon', 100, { style: 'fern' }),
+  d('plant_tree', 'plant', 'Little Tree', 'rare', 200, { style: 'tree' }),
+  // light
+  d('light_none', 'light', 'No Light', 'common', 0, { style: 'none' }),
+  d('light_gold', 'light', 'Gold Chandelier', 'common', 0, { style: 'gold', color: '#f0c84a' }),
+  d('light_pink', 'light', 'Rose Chandelier', 'uncommon', 120, { style: 'gold', color: '#ff9ec4' }),
+  d('light_crystal', 'light', 'Crystal Chandelier', 'rare', 240, { style: 'gold', color: '#bfe6ff' }),
+]
+const DECOR_BY_ID: Record<string, Decor> = Object.fromEntries(DECOR.map(x => [x.id, x]))
+const DECOR_STARTERS = DECOR.filter(x => x.price === 0).map(x => x.id)
+const DECOR_SLOTS: { slot: DecorSlot; label: string; icon: string }[] = [
+  { slot: 'wallpaper', label: 'Walls', icon: '🧱' },
+  { slot: 'floor', label: 'Floor', icon: '🟫' },
+  { slot: 'furniture', label: 'Furniture', icon: '🛏️' },
+  { slot: 'rug', label: 'Rugs', icon: '🟪' },
+  { slot: 'window', label: 'Windows', icon: '🪟' },
+  { slot: 'wallart', label: 'Wall Art', icon: '🖼️' },
+  { slot: 'plant', label: 'Plants', icon: '🪴' },
+  { slot: 'light', label: 'Lights', icon: '💡' },
+]
+const ROOMS: { id: string; name: string; icon: string; lvl: number }[] = [
+  { id: 'bedroom', name: 'Bedroom', icon: '🛏️', lvl: 1 },
+  { id: 'tearoom', name: 'Tea Room', icon: '🫖', lvl: 3 },
+  { id: 'throne', name: 'Throne Room', icon: '👑', lvl: 5 },
+  { id: 'garden', name: 'Garden', icon: '🌸', lvl: 5 },
+  { id: 'petroom', name: 'Pet Room', icon: '🐾', lvl: 8 },
+  { id: 'ballroom', name: 'Ballroom', icon: '💃', lvl: 10 },
+  { id: 'magic', name: 'Magic Room', icon: '✨', lvl: 12 },
+]
+type Room = Record<DecorSlot, string>
+function defaultRoom(): Room {
+  return { wallpaper: 'wp_pink', floor: 'fl_wood', furniture: 'fr_bed_pink', rug: 'rug_pink', window: 'win_day', wallart: 'art_portrait', plant: 'plant_rose', light: 'light_gold' }
+}
+interface Castle { owned: string[]; rooms: Record<string, Room> }
+function freshCastle(): Castle { return { owned: [...DECOR_STARTERS], rooms: { bedroom: defaultRoom() } } }
+
 /* ════════════════════════ JUDGES (cute, positive) ════════════════════════ */
 const JUDGES = ['Queen Rose 🌹', 'Fairy Luna 🌙', 'Mermaid Pearl 🐚', 'Princess Ember 🔥', 'Duchess Violet 💜']
 const PRAISE: Record<number, string[]> = {
@@ -520,6 +613,7 @@ interface Save {
   dailyDay: number
   lastClaim: string
   best: Record<string, number> // challenge id -> best stars
+  castle: Castle
 }
 const DEFAULT_EQUIP: Equip = {
   skin: 'skin_light', eyes: 'eye_blue', hair: 'hair_wave_brn', dress: 'dr_start',
@@ -530,7 +624,7 @@ const DEFAULT_EQUIP: Equip = {
 function freshSave(): Save {
   return {
     name: 'Princess', coins: 250, gems: 3, xp: 0, owned: [...STARTERS],
-    equip: { ...DEFAULT_EQUIP }, dailyDay: 0, lastClaim: '', best: {},
+    equip: { ...DEFAULT_EQUIP }, dailyDay: 0, lastClaim: '', best: {}, castle: freshCastle(),
   }
 }
 const SAVE_KEY = 'dress-empress-save-v1'
@@ -546,6 +640,9 @@ function loadSave(): Save {
       equip: { ...f.equip, ...(s.equip || {}) },
       owned: Array.from(new Set([...STARTERS, ...(s.owned || [])])),
       best: s.best || {},
+      castle: s.castle && s.castle.owned
+        ? { owned: Array.from(new Set([...DECOR_STARTERS, ...s.castle.owned])), rooms: s.castle.rooms || { bedroom: defaultRoom() } }
+        : freshCastle(),
     }
   } catch { return freshSave() }
 }
@@ -1219,6 +1316,160 @@ function renderEffects(p: any) {
   return <g pointerEvents="none">{items}{st === 'aura' && <ellipse cx="150" cy="260" rx="120" ry="150" fill="#fff" opacity="0.06" className="de-pulse" />}</g>
 }
 
+/* ════════════════════════ CASTLE ROOM RENDER ════════════════════════ */
+function renderWallpaper(p: any) {
+  const col = p?.color || '#f0d6e8'
+  return <g>
+    <rect x="0" y="0" width="400" height="210" fill={col} />
+    {p?.pattern === 'stripes' && [...Array(10)].map((_, i) => <rect key={i} x={i * 40} y="0" width="20" height="210" fill="#fff" opacity="0.15" />)}
+    {p?.pattern === 'dots' && [...Array(24)].map((_, i) => <circle key={i} cx={(i * 43) % 392 + 14} cy={(i * 37) % 190 + 16} r="4" fill="#fff" opacity="0.22" />)}
+    {p?.pattern === 'hearts' && [...Array(12)].map((_, i) => <text key={i} x={(i * 71) % 380 + 8} y={(i * 53) % 180 + 34} fontSize="16" opacity="0.2">💗</text>)}
+    {p?.pattern === 'stars' && [...Array(18)].map((_, i) => <text key={i} x={(i * 53) % 384 + 6} y={(i * 47) % 184 + 22} fontSize="12" opacity="0.3">⭐</text>)}
+  </g>
+}
+function renderFloor(p: any) {
+  const col = p?.color || '#caa06a'
+  return <g>
+    <rect x="0" y="210" width="400" height="90" fill={col} />
+    <rect x="0" y="207" width="400" height="4" fill="#000" opacity="0.12" />
+    {p?.pattern === 'wood' && [...Array(9)].map((_, i) => <line key={i} x1={i * 45} y1="211" x2={i * 45} y2="300" stroke="#000" strokeOpacity="0.08" strokeWidth="2" />)}
+    {p?.pattern === 'tile' && [...Array(9)].map((_, i) => <line key={i} x1={i * 45} y1="211" x2={i * 45} y2="300" stroke="#fff" strokeOpacity="0.3" strokeWidth="2" />)}
+    {p?.pattern === 'checker' && [...Array(18)].map((_, i) => <rect key={i} x={(i % 9) * 45} y={211 + Math.floor(i / 9) * 45} width="45" height="45" fill={(i + Math.floor(i / 9)) % 2 ? '#fff' : '#000'} opacity="0.08" />)}
+  </g>
+}
+function renderLight(p: any) {
+  if (!p || p.style === 'none') return null
+  const col = p.color || '#f0c84a'
+  return <g>
+    <line x1="200" y1="0" x2="200" y2="30" stroke="#3a2f2a" strokeWidth="3" />
+    <ellipse cx="200" cy="40" rx="36" ry="9" fill={col} />
+    <circle cx="172" cy="44" r="6" fill={col} /><circle cx="200" cy="48" r="6" fill={col} /><circle cx="228" cy="44" r="6" fill={col} />
+    {[172, 200, 228].map((x, i) => <circle key={i} cx={x} cy={i === 1 ? 54 : 50} r="3" fill="#fff6c4" />)}
+  </g>
+}
+function renderWindow(p: any) {
+  if (!p || p.style === 'none') return null
+  const sky = p.style === 'night' ? '#2a2452' : '#bfe6ff'
+  const arch = p.style === 'arch'
+  return <g>
+    <rect x="36" y="48" width="86" height="104" rx={arch ? 40 : 6} fill="#9a7a5a" />
+    <rect x="42" y="54" width="74" height="92" rx={arch ? 34 : 4} fill={sky} />
+    {p.style === 'night'
+      ? <>{<circle cx="98" cy="74" r="9" fill="#fff6d0" />}{[...Array(6)].map((_, i) => <circle key={i} cx={50 + i * 12} cy={66 + (i % 3) * 13} r="1.5" fill="#fff" />)}</>
+      : <circle cx="58" cy="74" r="11" fill="#ffe07a" />}
+    <line x1="79" y1="54" x2="79" y2="146" stroke="#9a7a5a" strokeWidth="3" /><line x1="42" y1="100" x2="116" y2="100" stroke="#9a7a5a" strokeWidth="3" />
+  </g>
+}
+function renderWallart(p: any) {
+  if (!p || p.style === 'none') return null
+  if (p.style === 'mirror') return <g><ellipse cx="320" cy="96" rx="32" ry="44" fill="#cfe2f0" stroke={p.color} strokeWidth="5" /><path d="M302 74 q18 -10 36 0" stroke="#fff" strokeWidth="3" fill="none" opacity="0.6" /></g>
+  if (p.style === 'clock') return <g><circle cx="320" cy="92" r="30" fill="#fff" stroke={p.color} strokeWidth="4" /><line x1="320" y1="92" x2="320" y2="73" stroke="#3a2f2a" strokeWidth="2.5" /><line x1="320" y1="92" x2="335" y2="92" stroke="#3a2f2a" strokeWidth="2.5" /><circle cx="320" cy="92" r="2.5" fill="#3a2f2a" /></g>
+  const inner = p.style === 'landscape' ? '#bfe6c8' : '#f0d0e0'
+  return <g>
+    <rect x="288" y="58" width="66" height="72" rx="4" fill={p.color} />
+    <rect x="294" y="64" width="54" height="60" fill={inner} />
+    {p.style === 'landscape'
+      ? <><circle cx="312" cy="82" r="8" fill="#ffe07a" /><path d="M294 112 l16 -16 l14 12 l24 -18 v22 h-54 z" fill="#7fae5a" /></>
+      : <circle cx="321" cy="92" r="15" fill="#ff9ec4" />}
+  </g>
+}
+function renderRug(p: any) {
+  if (!p || p.style === 'none') return null
+  const col = p.color || '#e87aa8'
+  if (p.style === 'star') return <g opacity="0.92"><ellipse cx="210" cy="256" rx="82" ry="24" fill={col} /><path d={starD(210, 256, 17)} fill="#fff" opacity="0.7" /></g>
+  if (p.style === 'heart') return <g opacity="0.92"><ellipse cx="210" cy="256" rx="82" ry="24" fill={col} /><path d={heartD(210, 254, 15)} fill="#fff" opacity="0.7" /></g>
+  if (p.style === 'royal') return <g opacity="0.95"><ellipse cx="210" cy="256" rx="92" ry="26" fill={col} /><ellipse cx="210" cy="256" rx="92" ry="26" fill="none" stroke={p.trim || '#f0c860'} strokeWidth="3" /><ellipse cx="210" cy="256" rx="42" ry="11" fill={p.trim || '#f0c860'} opacity="0.5" /></g>
+  return <g opacity="0.92"><ellipse cx="210" cy="256" rx="82" ry="24" fill={col} /><ellipse cx="210" cy="256" rx="50" ry="14" fill="#fff" opacity="0.3" /></g>
+}
+function renderFurniture(p: any) {
+  if (!p || p.style === 'none') return null
+  const col = p.color || '#f29ac6', col2 = p.color2 || '#e0709a'
+  const style = p.style
+  if (style === 'bed' || style === 'canopy') return <g>
+    {style === 'canopy' && <><rect x="138" y="118" width="8" height="98" fill={col2} /><rect x="268" y="118" width="8" height="98" fill={col2} /><rect x="138" y="118" width="138" height="14" rx="4" fill={col2} /><path d="M138 132 Q207 158 276 132 L276 150 Q207 172 138 150 Z" fill={col} opacity="0.5" /></>}
+    <rect x="138" y="158" width="26" height="58" rx="5" fill={col2} />
+    <rect x="140" y="190" width="135" height="26" rx="5" fill={col} />
+    <rect x="146" y="176" width="128" height="18" rx="7" fill="#fff" />
+    <rect x="150" y="168" width="32" height="18" rx="5" fill="#ffe6f2" />
+  </g>
+  if (style === 'throne') return <g>
+    <rect x="172" y="118" width="68" height="98" rx="8" fill={col} />
+    <rect x="178" y="148" width="56" height="54" fill={col2} opacity="0.4" />
+    <rect x="158" y="190" width="96" height="26" rx="6" fill={col} />
+    <rect x="158" y="190" width="9" height="28" fill={col2} /><rect x="245" y="190" width="9" height="28" fill={col2} />
+    <circle cx="206" cy="126" r="8" fill={col2} />
+  </g>
+  if (style === 'sofa') return <g>
+    <rect x="140" y="180" width="140" height="36" rx="10" fill={col} />
+    <rect x="140" y="158" width="140" height="28" rx="10" fill={col} />
+    <rect x="134" y="168" width="18" height="48" rx="8" fill={col2} /><rect x="268" y="168" width="18" height="48" rx="8" fill={col2} />
+    <circle cx="182" cy="186" r="9" fill="#fff" opacity="0.4" /><circle cx="238" cy="186" r="9" fill="#fff" opacity="0.4" />
+  </g>
+  if (style === 'table') return <g>
+    <ellipse cx="210" cy="184" rx="62" ry="16" fill={col} />
+    <rect x="204" y="184" width="12" height="32" fill={col2} /><ellipse cx="210" cy="214" rx="28" ry="6" fill={col2} />
+    <rect x="184" y="174" width="11" height="11" rx="2" fill="#fff" /><rect x="226" y="174" width="11" height="11" rx="2" fill="#ffd6ec" />
+    <circle cx="210" cy="176" r="7" fill="#ff9ec4" />
+  </g>
+  if (style === 'vanity') return <g>
+    <rect x="170" y="186" width="80" height="30" rx="4" fill={col} />
+    <ellipse cx="210" cy="150" rx="30" ry="38" fill="#cfe2f0" stroke={col2} strokeWidth="5" />
+    <rect x="178" y="200" width="64" height="16" fill={col2} opacity="0.4" />
+  </g>
+  if (style === 'petbed') return <g>
+    <ellipse cx="210" cy="208" rx="48" ry="14" fill={col} />
+    <ellipse cx="210" cy="202" rx="34" ry="9" fill={col2} />
+    <path d="M196 198 a6 6 0 0 1 12 0 a6 6 0 0 1 8 2 q-2 8 -15 8 q-11 0 -11 -7 z" fill="#fff" opacity="0.55" />
+  </g>
+  // cauldron (magic)
+  return <g>
+    <ellipse cx="210" cy="214" rx="34" ry="8" fill="#2a2230" />
+    <path d="M178 188 q32 30 64 0 q-4 28 -32 28 q-28 0 -32 -28 z" fill={col} />
+    <ellipse cx="210" cy="188" rx="34" ry="9" fill={col2} />
+    <ellipse cx="210" cy="186" rx="26" ry="6" fill="#8fe0a0" opacity="0.85" />
+    {[...Array(3)].map((_, i) => <circle key={i} cx={200 + i * 10} cy={176 - i * 5} r="3" fill="#8fe0a0" opacity="0.6" />)}
+  </g>
+}
+function renderPlant(p: any) {
+  if (!p || p.style === 'none') return null
+  return <g transform="translate(360 214)">
+    <path d="M-11 0 L11 0 L8 -22 L-8 -22 Z" fill="#caa06a" /><rect x="-11" y="-25" width="22" height="6" rx="2" fill="#b08858" />
+    {p.style === 'tree' && <><rect x="-3" y="-52" width="6" height="30" fill="#8a5a32" /><circle cx="0" cy="-56" r="19" fill="#6fae5a" /><circle cx="-10" cy="-48" r="11" fill="#7fbe6a" /><circle cx="10" cy="-48" r="11" fill="#7fbe6a" /></>}
+    {p.style === 'fern' && [...Array(5)].map((_, i) => <path key={i} d={`M0 -22 Q${-22 + i * 11} -52 ${-18 + i * 9} -56`} stroke="#5fae6a" strokeWidth="3" fill="none" />)}
+    {p.style === 'rose' && <><path d="M0 -22 L0 -46" stroke="#5fae6a" strokeWidth="3" /><circle cx="0" cy="-50" r="9" fill="#e8557a" /><circle cx="-12" cy="-42" r="7" fill="#ff9ec4" /><circle cx="12" cy="-42" r="7" fill="#ff9ec4" /></>}
+    {p.style === 'tulips' && [0, 1, 2].map(i => <g key={i}><path d={`M${-12 + i * 12} -22 L${-12 + i * 12} -44`} stroke="#5fae6a" strokeWidth="2.5" /><ellipse cx={-12 + i * 12} cy={-48} rx="5" ry="8" fill={['#ff9ec4', '#ffd36a', '#ff7ab0'][i]} /></g>)}
+  </g>
+}
+function RoomScene({ room, size = 460 }: { room: Room; size?: number }) {
+  const g = (s: DecorSlot) => DECOR_BY_ID[room[s]]?.p
+  return (
+    <svg viewBox="0 0 400 300" width={size} style={{ maxWidth: '100%', height: 'auto', borderRadius: 14, display: 'block' }}>
+      {renderWallpaper(g('wallpaper'))}
+      {renderFloor(g('floor'))}
+      {renderWindow(g('window'))}
+      {renderWallart(g('wallart'))}
+      {renderLight(g('light'))}
+      {renderRug(g('rug'))}
+      {renderFurniture(g('furniture'))}
+      {renderPlant(g('plant'))}
+    </svg>
+  )
+}
+function DecorThumb({ item }: { item: Decor }) {
+  return (
+    <svg viewBox="0 0 400 300" width="62" height="46" style={{ borderRadius: 6, display: 'block' }}>
+      {renderWallpaper(item.slot === 'wallpaper' ? item.p : { color: '#efe6f0' })}
+      {renderFloor(item.slot === 'floor' ? item.p : { color: '#e0d2c4' })}
+      {item.slot === 'window' && renderWindow(item.p)}
+      {item.slot === 'wallart' && renderWallart(item.p)}
+      {item.slot === 'light' && renderLight(item.p)}
+      {item.slot === 'rug' && renderRug(item.p)}
+      {item.slot === 'furniture' && renderFurniture(item.p)}
+      {item.slot === 'plant' && renderPlant(item.p)}
+    </svg>
+  )
+}
+
 /* ════════════════════════ UI BITS ════════════════════════ */
 function Coin() { return <span style={{ color: '#f0c84a' }}>🪙</span> }
 function Gem() { return <span>💎</span> }
@@ -1238,7 +1489,7 @@ const btnGold: React.CSSProperties = {
 }
 
 /* ════════════════════════ MAIN COMPONENT ════════════════════════ */
-type Screen = 'loading' | 'home' | 'dressing' | 'result' | 'challenges' | 'shop' | 'daily' | 'minigame'
+type Screen = 'loading' | 'home' | 'dressing' | 'result' | 'challenges' | 'shop' | 'daily' | 'minigame' | 'castle'
 
 export default function DressEmpress() {
   const [save, setSave] = useState<Save | null>(null)
@@ -1283,6 +1534,36 @@ export default function DressEmpress() {
         gems: it.gem ? s.gems - cost : s.gems,
         owned: [...s.owned, it.id],
         equip: { ...s.equip, [it.cat]: it.id },
+      }
+    })
+  }, [showToast])
+
+  // place an already-owned decor item into a room slot
+  const placeDecor = useCallback((roomId: string, slot: DecorSlot, decorId: string) => {
+    setSave(s => s ? {
+      ...s,
+      castle: {
+        ...s.castle,
+        rooms: { ...s.castle.rooms, [roomId]: { ...defaultRoom(), ...(s.castle.rooms[roomId] || {}), [slot]: decorId } },
+      },
+    } : s)
+  }, [])
+
+  // buy a decor item, place it, and earn decorating XP
+  const buyDecor = useCallback((dec: Decor, roomId: string, slot: DecorSlot) => {
+    setSave(s => {
+      if (!s) return s
+      if (s.castle.owned.includes(dec.id)) return s
+      if (dec.gem) { if (s.gems < dec.price) { showToast('Not enough gems 💎'); return s } }
+      else if (s.coins < dec.price) { showToast('Not enough coins 🪙'); return s }
+      showToast(`Unlocked ${dec.name}! +8 XP ✨`)
+      const room = { ...defaultRoom(), ...(s.castle.rooms[roomId] || {}), [slot]: dec.id }
+      return {
+        ...s,
+        coins: dec.gem ? s.coins : s.coins - dec.price,
+        gems: dec.gem ? s.gems - dec.price : s.gems,
+        xp: s.xp + 8,
+        castle: { owned: [...s.castle.owned, dec.id], rooms: { ...s.castle.rooms, [roomId]: room } },
       }
     })
   }, [showToast])
@@ -1392,6 +1673,7 @@ export default function DressEmpress() {
             onShop={() => setScreen('shop')}
             onDaily={() => setScreen('daily')}
             onMini={() => setScreen('minigame')}
+            onCastle={() => setScreen('castle')}
             refreshKey={refreshKey}
             name={save.name}
             onRename={(nm: string) => setSave(s => s ? { ...s, name: nm } : s)}
@@ -1444,6 +1726,15 @@ export default function DressEmpress() {
             showToast={showToast}
           />
         )}
+
+        {screen === 'castle' && (
+          <CastleScreen
+            save={save} level={level}
+            onBuy={buyDecor} onPlace={placeDecor}
+            onBack={() => setScreen('home')}
+            showToast={showToast}
+          />
+        )}
       </div>
 
       {/* leaderboard */}
@@ -1460,7 +1751,7 @@ const pill: React.CSSProperties = {
 }
 
 /* ───────── HOME ───────── */
-function HomeScreen({ equip, level, canClaim, onPlay, onCloset, onShop, onDaily, onMini, name, onRename }: any) {
+function HomeScreen({ equip, level, canClaim, onPlay, onCloset, onShop, onDaily, onMini, onCastle, name, onRename }: any) {
   const [editing, setEditing] = useState(false)
   const [tmp, setTmp] = useState(name)
   return (
@@ -1485,6 +1776,7 @@ function HomeScreen({ equip, level, canClaim, onPlay, onCloset, onShop, onDaily,
         </div>
         <button style={{ ...btnGold, fontSize: 16, padding: '16px 22px' }} onClick={onPlay}>✨ Play Fashion Challenge</button>
         <button style={btn} onClick={onCloset}>👗 My Closet</button>
+        <button style={btn} onClick={onCastle}>🏰 My Castle</button>
         <button style={btn} onClick={onShop}>🛍️ Shop</button>
         <button style={btn} onClick={onMini}>💎 Gem Catch Mini-Game</button>
         <button style={{ ...btn, position: 'relative' }} onClick={onDaily}>
@@ -1739,6 +2031,91 @@ function DailyScreen({ save, canClaim, onClaim, onBack }: any) {
       {canClaim
         ? <button style={{ ...btnGold, fontSize: 16 }} onClick={onClaim}>Claim Day {nextDay}! 🎉</button>
         : <p style={{ color: '#a06a90', fontSize: 13 }}>Come back tomorrow for your next reward! 💖</p>}
+    </div>
+  )
+}
+
+/* ───────── CASTLE DECORATING ───────── */
+function CastleScreen({ save, level, onBuy, onPlace, onBack, showToast }: any) {
+  const [roomId, setRoomId] = useState('bedroom')
+  const [slot, setSlot] = useState<DecorSlot>('furniture')
+  const room: Room = { ...defaultRoom(), ...(save.castle.rooms[roomId] || {}) }
+  const items = DECOR.filter((x: Decor) => x.slot === slot)
+  const roomMeta = ROOMS.find(r => r.id === roomId)!
+  return (
+    <div className="de-card">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <button style={pill as any} onClick={onBack}>← Home</button>
+        <h2 style={{ fontSize: 15, color: '#b23a7a', margin: 0 }}>🏰 {roomMeta.icon} {roomMeta.name}</h2>
+        <span style={{ width: 50 }} />
+      </div>
+
+      {/* room tabs */}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 10 }}>
+        {ROOMS.map(r => {
+          const locked = level < r.lvl
+          return (
+            <button key={r.id} disabled={locked} onClick={() => setRoomId(r.id)}
+              style={{
+                ...pill, padding: '6px 10px', fontSize: 11, cursor: locked ? 'not-allowed' : 'pointer', opacity: locked ? 0.5 : 1,
+                background: roomId === r.id ? 'linear-gradient(135deg,#ffd6ec,#ffb0d6)' : '#fff',
+                border: roomId === r.id ? '2px solid #ff8fc0' : '2px solid #ffe0ef',
+              }}>
+              {r.icon} {r.name}{locked ? ` 🔒${r.lvl}` : ''}
+            </button>
+          )
+        })}
+      </div>
+
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
+        {/* room preview */}
+        <div style={{ flexShrink: 0 }}>
+          <RoomScene room={room} size={460} />
+          <p style={{ textAlign: 'center', fontSize: 10, color: '#a06a90', marginTop: 6 }}>Decorate to earn XP! Tap an item to place it. ✨</p>
+        </div>
+
+        {/* decor drawer */}
+        <div style={{ flex: 1, minWidth: 280, maxWidth: 480 }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+            {DECOR_SLOTS.map(si => (
+              <button key={si.slot} onClick={() => setSlot(si.slot)}
+                style={{
+                  ...pill, padding: '6px 10px', fontSize: 11, cursor: 'pointer',
+                  background: slot === si.slot ? 'linear-gradient(135deg,#ffd6ec,#ffb0d6)' : '#fff',
+                  border: slot === si.slot ? '2px solid #ff8fc0' : '2px solid #ffe0ef',
+                }}>
+                {si.icon} {si.label}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(92px,1fr))', gap: 8, maxHeight: 320, overflowY: 'auto', paddingRight: 4 }}>
+            {items.map((it: Decor) => {
+              const owned = save.castle.owned.includes(it.id)
+              const placed = room[slot] === it.id
+              const tooHigh = (it.lvl || 0) > level && !owned
+              return (
+                <button key={it.id}
+                  onClick={() => owned ? onPlace(roomId, slot, it.id) : (tooHigh ? showToast(`Unlocks at Lv ${it.lvl}`) : onBuy(it, roomId, slot))}
+                  style={{
+                    border: placed ? '3px solid #ff8fc0' : `2px solid ${RARITY[it.rarity].color}55`,
+                    borderRadius: 12, padding: 6, cursor: 'pointer', background: placed ? '#fff0f7' : '#fff',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, position: 'relative', opacity: tooHigh ? 0.6 : 1,
+                  }}>
+                  <DecorThumb item={it} />
+                  <div style={{ fontSize: 8.5, fontWeight: 700, color: '#7a4a6a', textAlign: 'center', lineHeight: 1.1 }}>{it.name}</div>
+                  {!owned && (
+                    <div style={{ fontSize: 9, fontWeight: 800, color: tooHigh ? '#b07a9a' : '#a06a30' }}>
+                      {tooHigh ? `🔒 Lv${it.lvl}` : <>{it.gem ? '💎' : '🪙'}{it.price}</>}
+                    </div>
+                  )}
+                  {placed && <div style={{ position: 'absolute', top: -6, right: -6, fontSize: 14 }}>✅</div>}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
