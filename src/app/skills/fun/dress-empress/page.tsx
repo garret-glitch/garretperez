@@ -2163,79 +2163,126 @@ function CastleScreen({ save, level, onBuy, onPlace, onBack, showToast }: any) {
   )
 }
 
-/* ───────── PET GROOMING MINI-GAME ───────── */
-const GROOM_STAGES = [
-  { key: 'brush', label: 'Brush off the dirt!', spot: '#9a6a3a', emoji: '🟤' },
-  { key: 'wash', label: 'Scrub away the bubbles!', spot: '#ffffff', emoji: '🫧' },
-  { key: 'dry', label: 'Dab the water drops dry!', spot: '#7fc8e8', emoji: '💧' },
+/* ───────── PET GROOMING MINI-GAME (bubble bath) ───────── */
+const GROOM_BOWS = [
+  { c: '#ff7ab0', k: '#e0507a' }, { c: '#ffd36a', k: '#e0a830' }, { c: '#7fb0e8', k: '#5a8ac8' },
+  { c: '#c08fff', k: '#9a66e0' }, { c: '#86d6b0', k: '#4faf8a' },
 ]
-function makeGroomSpots() {
-  return Array.from({ length: 5 }, () => ({ id: Math.random(), x: 24 + Math.random() * 50, y: 26 + Math.random() * 46 }))
-}
+function makeBubble() { return { id: Math.random() + Math.random(), x: 18 + Math.random() * 62, y: 22 + Math.random() * 54, r: 22 + Math.random() * 16 } }
 function PetGroomScreen({ petId, onBack, onReward, showToast }: any) {
-  const [phase, setPhase] = useState<'play' | 'done'>('play')
-  const [stage, setStage] = useState(0)
-  const [spots, setSpots] = useState(makeGroomSpots)
+  const [phase, setPhase] = useState<'play' | 'bow' | 'done'>('play')
+  const [progress, setProgress] = useState(0)             // 0..100 sparkle meter
+  const [bubbles, setBubbles] = useState(() => Array.from({ length: 4 }, makeBubble))
+  const [hearts, setHearts] = useState<{ id: number; x: number; y: number }[]>([])
+  const [bow, setBow] = useState<{ c: string; k: string } | null>(null)
+  const [wiggle, setWiggle] = useState(0)
   const rewarded = useRef(false)
   const got = useRef({ coins: 0, gems: 0 })
   const petP = (BY_ID[petId]?.p && BY_ID[petId].p.style !== 'none') ? BY_ID[petId].p : BY_ID['pet_bunny'].p
-  const st = GROOM_STAGES[stage]
 
-  useEffect(() => {
-    if (phase !== 'play' || spots.length > 0) return
-    if (stage < GROOM_STAGES.length - 1) {
-      setStage(s => s + 1); setSpots(makeGroomSpots())
-    } else if (!rewarded.current) {
+  const popBubble = (b: { id: number; x: number; y: number }) => {
+    setWiggle(w => w + 1)
+    const hid = Math.random()
+    setHearts(h => [...h, { id: hid, x: b.x, y: b.y }])
+    window.setTimeout(() => setHearts(h => h.filter(x => x.id !== hid)), 850)
+    setProgress(p => {
+      const np = Math.min(100, p + 9)
+      if (np >= 100) { setBubbles([]); setPhase('bow') }
+      else setBubbles(prev => [...prev.filter(x => x.id !== b.id), makeBubble()])
+      return np
+    })
+  }
+
+  const pickBow = (bw: { c: string; k: string }) => {
+    setBow(bw)
+    if (!rewarded.current) {
       rewarded.current = true
-      const coins = 80, gems = Math.random() < 0.3 ? 1 : 0
+      const coins = 80, gems = Math.random() < 0.35 ? 1 : 0
       got.current = { coins, gems }
       onReward(coins, gems, 0)
-      showToast(`Sparkly clean! +${coins} coins${gems ? ' & 1 💎' : ''} 🫧`)
-      setPhase('done')
+      showToast(`So cute! +${coins} coins${gems ? ' & 1 💎' : ''} 🎀`)
     }
-  }, [spots, phase, stage, onReward, showToast])
+    setPhase('done')
+  }
 
-  const replay = () => { rewarded.current = false; setStage(0); setSpots(makeGroomSpots()); setPhase('play') }
+  const replay = () => { rewarded.current = false; setProgress(0); setBubbles(Array.from({ length: 4 }, makeBubble)); setHearts([]); setBow(null); setPhase('play') }
+
+  // a bow drawn on the pet's head (side placement so it never hides the face)
+  const bowSvg = (bw: { c: string; k: string }) => (
+    <g transform="translate(245 309) scale(0.82)">
+      <path d="M0 0 L-15 -8 L-15 8 Z" fill={bw.c} /><path d="M0 0 L15 -8 L15 8 Z" fill={bw.c} />
+      <path d="M-15 -8 L-15 8" stroke={bw.k} strokeWidth="2" /><path d="M15 -8 L15 8" stroke={bw.k} strokeWidth="2" />
+      <circle r="4.5" fill={bw.k} />
+    </g>
+  )
 
   return (
     <div className="de-card" style={{ textAlign: 'center' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
         <button style={pill as any} onClick={onBack}>← Home</button>
-        <h2 style={{ fontSize: 15, color: '#b23a7a', margin: 0 }}>🧼 Pet Grooming</h2>
+        <h2 style={{ fontSize: 15, color: '#b23a7a', margin: 0 }}>🛁 Bubble Bath</h2>
         <span style={{ width: 50 }} />
       </div>
 
       {phase === 'play' && (
         <>
-          <p style={{ fontSize: 14, color: '#7a4a6a', fontWeight: 700, margin: '0 0 4px' }}>{st.emoji} {st.label}</p>
-          <p style={{ fontSize: 10, color: '#a06a90', marginTop: 0 }}>Step {stage + 1} of 3 · {spots.length} left</p>
-          <div style={{ position: 'relative', width: 220, height: 250, margin: '0 auto', background: 'linear-gradient(160deg,#fff6fb,#e6f2ff)', borderRadius: 18, border: '3px solid #ffd6ec' }}>
-            <svg viewBox="190 266 84 108" width="220" height="250" style={{ display: 'block' }}>{renderPet(petP)}</svg>
-            {spots.map(sp => (
-              <button key={sp.id} className="de-pop"
-                onClick={() => setSpots(prev => prev.filter(x => x.id !== sp.id))}
+          <p style={{ fontSize: 14, color: '#7a4a6a', fontWeight: 700, margin: '0 0 6px' }}>🫧 Pop the bubbles to wash your pet!</p>
+          {/* sparkle meter */}
+          <div style={{ maxWidth: 240, margin: '0 auto 8px', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 13 }}>✨</span>
+            <div style={{ flex: 1, height: 12, background: '#ffe0ef', borderRadius: 8, overflow: 'hidden', border: '2px solid #ffd6ec' }}>
+              <div style={{ width: `${progress}%`, height: '100%', background: 'linear-gradient(90deg,#7fd6ff,#ff9ec4)', transition: 'width .2s' }} />
+            </div>
+            <span style={{ fontSize: 13 }}>💖</span>
+          </div>
+          <div style={{ position: 'relative', width: 240, height: 250, margin: '0 auto', background: 'radial-gradient(circle at 50% 40%,#eafaff,#cfeeff)', borderRadius: 18, border: '3px solid #bfe6ff', overflow: 'hidden' }}>
+            {/* water line */}
+            <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '34%', background: 'linear-gradient(180deg,rgba(127,200,232,0.35),rgba(127,200,232,0.6))' }} />
+            <svg key={wiggle} viewBox="190 266 84 108" width="240" height="250" style={{ display: 'block', position: 'relative' }} className="de-pop">{renderPet(petP)}</svg>
+            {bubbles.map(b => (
+              <button key={b.id} className="de-pop" onClick={() => popBubble(b)}
                 style={{
-                  position: 'absolute', left: `${sp.x}%`, top: `${sp.y}%`, width: 30, height: 30, borderRadius: 999,
-                  border: st.key === 'wash' ? '2px solid #bcd8f0' : 'none', cursor: 'pointer', padding: 0,
-                  background: st.spot, opacity: st.key === 'wash' ? 0.7 : 0.9, boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+                  position: 'absolute', left: `${b.x}%`, top: `${b.y}%`, width: b.r, height: b.r, borderRadius: 999, transform: 'translate(-50%,-50%)',
+                  border: '2px solid rgba(255,255,255,0.9)', cursor: 'pointer', padding: 0,
+                  background: 'radial-gradient(circle at 35% 30%,rgba(255,255,255,0.95),rgba(190,230,255,0.5))', boxShadow: '0 2px 6px rgba(120,180,220,0.4)',
                 }} />
             ))}
+            {hearts.map(h => (
+              <span key={h.id} className="de-rise" style={{ position: 'absolute', left: `${h.x}%`, top: `${h.y}%`, fontSize: 18, pointerEvents: 'none', transform: 'translate(-50%,-50%)' }}>💖</span>
+            ))}
           </div>
-          <p style={{ fontSize: 10, color: '#c08fb0', marginTop: 8 }}>Tap each spot to clean your pet! 💕</p>
+          <p style={{ fontSize: 10, color: '#c08fb0', marginTop: 8 }}>Keep popping until the meter is full! 💕</p>
         </>
+      )}
+
+      {phase === 'bow' && (
+        <div style={{ padding: 8 }}>
+          <p style={{ fontSize: 14, color: '#7a4a6a', fontWeight: 700, margin: '0 0 6px' }}>🎀 Now pick a bow for your pet!</p>
+          <div className="de-bounce" style={{ width: 200, height: 200, margin: '0 auto' }}>
+            <svg viewBox="190 266 84 108" width="200" height="200">{renderPet(petP)}</svg>
+          </div>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 10 }}>
+            {GROOM_BOWS.map((bw, i) => (
+              <button key={i} onClick={() => pickBow(bw)}
+                style={{ width: 46, height: 46, borderRadius: 999, border: '3px solid #fff', cursor: 'pointer', background: '#fff7fb', boxShadow: '0 3px 8px rgba(180,80,140,0.2)', display: 'grid', placeItems: 'center' }}>
+                <svg viewBox="-20 -12 40 24" width="34" height="20"><g><path d="M0 0 L-15 -8 L-15 8 Z" fill={bw.c} /><path d="M0 0 L15 -8 L15 8 Z" fill={bw.c} /><circle r="4.5" fill={bw.k} /></g></svg>
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       {phase === 'done' && (
         <div style={{ padding: 16 }}>
           <div className="de-bounce" style={{ position: 'relative', width: 200, height: 220, margin: '0 auto' }}>
-            <svg viewBox="190 266 84 108" width="200" height="220">{renderPet(petP)}</svg>
+            <svg viewBox="190 266 84 108" width="200" height="220">{renderPet(petP)}{bow && bowSvg(bow)}</svg>
             <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', fontSize: 22 }}>
               <span className="de-twinkle" style={{ position: 'absolute', left: '12%', top: '16%' }}>✨</span>
               <span className="de-twinkle" style={{ position: 'absolute', right: '14%', top: '24%', animationDelay: '.4s' }}>✨</span>
               <span className="de-twinkle" style={{ position: 'absolute', left: '40%', top: '6%', animationDelay: '.8s' }}>💖</span>
             </div>
           </div>
-          <h3 style={{ color: '#b23a7a', fontSize: 18 }}>All clean and happy! 🛁</h3>
+          <h3 style={{ color: '#b23a7a', fontSize: 18 }}>Squeaky clean &amp; adorable! 🛁</h3>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 8 }}>
             <div style={pill}>🪙 +{got.current.coins}</div>
             {got.current.gems > 0 && <div style={pill}>💎 +{got.current.gems}</div>}
@@ -2481,6 +2528,8 @@ const DE_CSS = `
 @keyframes de-pulse{ 0%,100%{ opacity:.5 } 50%{ opacity:1 } }
 .de-pop{ animation: de-pop .35s cubic-bezier(.2,1.4,.5,1); }
 @keyframes de-pop{ 0%{ transform: scale(.4); opacity:0 } 100%{ transform: scale(1); opacity:1 } }
+.de-rise{ animation: de-rise .85s ease-out forwards; }
+@keyframes de-rise{ 0%{ transform: translate(-50%,-50%) scale(.6); opacity:1 } 100%{ transform: translate(-50%,-180%) scale(1.2); opacity:0 } }
 .de-confetti{ position:absolute; top:-12px; width:9px; height:14px; border-radius:2px; animation: de-conf linear forwards; }
 @keyframes de-conf{ 0%{ transform: translateY(0) rotate(0) } 100%{ transform: translateY(520px) rotate(540deg) } }
 @media (max-width: 640px){ .de-card{ padding: 12px; border-radius: 18px; } }
