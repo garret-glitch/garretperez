@@ -10,6 +10,70 @@ import GameLeaderboard from '@/components/GameLeaderboard'
    A self-contained client game. Progress saves to localStorage.
    ═══════════════════════════════════════════════════════════════════ */
 
+/* ════════════ SOUND — synthesized via Web Audio, no files ════════════ */
+const Sfx = (() => {
+  let ctx: AudioContext | null = null
+  let master: GainNode | null = null
+  let musicBus: GainNode | null = null
+  let enabled = true
+  let beat = 0
+  let timer: ReturnType<typeof setInterval> | null = null
+
+  function ensure(): AudioContext | null {
+    if (typeof window === 'undefined') return null
+    if (!ctx) {
+      try {
+        const AC = window.AudioContext || (window as any).webkitAudioContext
+        ctx = new AC()
+        master = ctx.createGain(); master.gain.value = 0.22; master.connect(ctx.destination)
+        musicBus = ctx.createGain(); musicBus.gain.value = 0.085; musicBus.connect(ctx.destination)
+      } catch { return null }
+    }
+    if (ctx && ctx.state === 'suspended') ctx.resume()
+    return ctx
+  }
+  function tone(freq: number, dur: number, type: OscillatorType, when = 0, vol = 1, dest?: GainNode | null) {
+    if (!ctx || !master) return
+    const o = ctx.createOscillator(), g = ctx.createGain()
+    o.type = type; o.frequency.value = freq
+    const t = ctx.currentTime + when
+    g.gain.setValueAtTime(0.0001, t)
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.012)
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur)
+    o.connect(g); g.connect(dest || master)
+    o.start(t); o.stop(t + dur + 0.03)
+  }
+  function notes(seq: [number, number][], type: OscillatorType, vol: number) {
+    if (!enabled || !ensure()) return
+    seq.forEach(([f, s]) => tone(f, 0.15, type, s * 0.08, vol))
+  }
+  const MEL = [523, 659, 784, 659, 587, 784, 880, 784, 659, 784, 1047, 784, 587, 659, 784, 659]
+  function startMusic() {
+    if (!enabled || !ensure() || timer) return
+    timer = setInterval(() => {
+      if (!enabled || !ctx || !musicBus) return
+      const f = MEL[beat % MEL.length]
+      tone(f, 0.5, 'triangle', 0, 0.5, musicBus)
+      if (beat % 4 === 0) tone(f / 2, 0.7, 'sine', 0, 0.6, musicBus)
+      beat++
+    }, 480)
+  }
+  function stopMusic() { if (timer) { clearInterval(timer); timer = null } }
+
+  return {
+    isEnabled: () => enabled,
+    setEnabled(v: boolean) { enabled = v; if (!v) stopMusic(); else ensure() },
+    unlock() { ensure() },
+    startMusic, stopMusic,
+    click() { notes([[640, 0]], 'square', 0.16) },
+    pop() { if (!enabled || !ensure()) return; tone(880, 0.1, 'sine', 0, 0.4); tone(1320, 0.08, 'sine', 0.02, 0.22) },
+    coin() { notes([[988, 0], [1319, 1]], 'square', 0.28) },
+    chime() { notes([[784, 0], [1047, 1], [1319, 2]], 'triangle', 0.38) },
+    win() { notes([[523, 0], [659, 1], [784, 2], [1047, 3], [1319, 5]], 'triangle', 0.5) },
+    wrong() { if (!enabled || !ensure()) return; tone(196, 0.18, 'sawtooth', 0, 0.22); tone(150, 0.2, 'sawtooth', 0.05, 0.18) },
+  }
+})()
+
 /* ───────────────── themes (used by challenges + item tags) ─────────── */
 type Theme =
   | 'princess' | 'fairy' | 'mermaid' | 'queen' | 'empress'
@@ -1521,11 +1585,31 @@ export default function DressEmpress() {
   const [result, setResult] = useState<{ stars: number; pts: number; ch: Challenge; coins: number; gems: number; xp: number; judge: string; praise: string; leveledTo: number | null } | null>(null)
   const [toast, setToast] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
+  const [soundOn, setSoundOn] = useState(true)
 
   // load
   useEffect(() => { setSave(loadSave()); setScreen('home') }, [])
   // persist
   useEffect(() => { if (save) localStorage.setItem(SAVE_KEY, JSON.stringify(save)) }, [save])
+
+  // sound: restore preference, then unlock audio + start gentle music on first tap
+  useEffect(() => {
+    const pref = localStorage.getItem('de-sound')
+    const on = pref !== '0'
+    setSoundOn(on); Sfx.setEnabled(on)
+    const onFirst = () => { Sfx.unlock(); if (Sfx.isEnabled()) Sfx.startMusic() }
+    window.addEventListener('pointerdown', onFirst, { once: true })
+    return () => { window.removeEventListener('pointerdown', onFirst); Sfx.stopMusic() }
+  }, [])
+  const toggleSound = useCallback(() => {
+    setSoundOn(v => {
+      const nv = !v
+      Sfx.setEnabled(nv)
+      if (nv) { Sfx.unlock(); Sfx.startMusic(); Sfx.click() } else { Sfx.stopMusic() }
+      localStorage.setItem('de-sound', nv ? '1' : '0')
+      return nv
+    })
+  }, [])
 
   const showToast = useCallback((m: string) => {
     setToast(m); window.setTimeout(() => setToast(''), 2200)
@@ -1539,6 +1623,7 @@ export default function DressEmpress() {
   const canClaim = save ? save.lastClaim !== today : false
 
   const equipItem = useCallback((it: Item) => {
+    Sfx.pop()
     setSave(s => s ? { ...s, equip: { ...s.equip, [it.cat]: it.id } } : s)
   }, [])
 
@@ -1547,9 +1632,9 @@ export default function DressEmpress() {
       if (!s) return s
       if (s.owned.includes(it.id)) return s
       const cost = it.price
-      if (it.gem) { if (s.gems < cost) { showToast('Not enough gems 💎'); return s } }
-      else if (s.coins < cost) { showToast('Not enough coins 🪙'); return s }
-      showToast(`Unlocked ${it.name}! 🎉`)
+      if (it.gem) { if (s.gems < cost) { Sfx.wrong(); showToast('Not enough gems 💎'); return s } }
+      else if (s.coins < cost) { Sfx.wrong(); showToast('Not enough coins 🪙'); return s }
+      Sfx.coin(); showToast(`Unlocked ${it.name}! 🎉`)
       return {
         ...s,
         coins: it.gem ? s.coins : s.coins - cost,
@@ -1576,9 +1661,9 @@ export default function DressEmpress() {
     setSave(s => {
       if (!s) return s
       if (s.castle.owned.includes(dec.id)) return s
-      if (dec.gem) { if (s.gems < dec.price) { showToast('Not enough gems 💎'); return s } }
-      else if (s.coins < dec.price) { showToast('Not enough coins 🪙'); return s }
-      showToast(`Unlocked ${dec.name}! +8 XP ✨`)
+      if (dec.gem) { if (s.gems < dec.price) { Sfx.wrong(); showToast('Not enough gems 💎'); return s } }
+      else if (s.coins < dec.price) { Sfx.wrong(); showToast('Not enough coins 🪙'); return s }
+      Sfx.coin(); showToast(`Unlocked ${dec.name}! +8 XP ✨`)
       const room = { ...defaultRoom(roomId), ...(s.castle.rooms[roomId] || {}), [slot]: dec.id }
       return {
         ...s,
@@ -1609,7 +1694,7 @@ export default function DressEmpress() {
         7: { gems: s.gems + 5, coins: s.coins + 200, msg: '+5 gems & 200 coins! 🎉' },
       }
       const r = rewards[day]
-      showToast(`Day ${day}: ${r.msg}`)
+      Sfx.coin(); showToast(`Day ${day}: ${r.msg}`)
       return { ...s, ...r, dailyDay: day, lastClaim: today } as Save
     })
   }, [today, showToast])
@@ -1637,6 +1722,7 @@ export default function DressEmpress() {
       stars, pts, ch: activeCh, coins: gainCoins, gems: gainGems, xp: gainXp,
       judge, praise, leveledTo: newLevel > prevLevel ? newLevel : null,
     })
+    if (stars >= 4) Sfx.win(); else if (stars >= 3) Sfx.chime(); else Sfx.coin()
     setScreen('result')
 
     // site XP (logged-in only) once per session on a 3+ star win; leaderboard = empress level
@@ -1683,7 +1769,8 @@ export default function DressEmpress() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <Link href="/skills/fun" style={{ ...pill, textDecoration: 'none', color: '#a04a7a' }}>← Games</Link>
         <h1 style={{ fontSize: 16, color: '#b23a7a', textShadow: '0 2px 0 #fff', margin: 0 }}>👑 Empress Dress Up</h1>
-        <div style={{ ...pill, color: '#a04a7a' }}>{save.name}</div>
+        <button onClick={toggleSound} title={soundOn ? 'Sound on' : 'Sound off'}
+          style={{ ...pill, color: '#a04a7a', cursor: 'pointer', minWidth: 40 }}>{soundOn ? '🔊' : '🔇'}</button>
       </div>
 
       {StatBar}
@@ -1785,46 +1872,71 @@ const pill: React.CSSProperties = {
 }
 
 /* ───────── HOME ───────── */
+function MenuTile({ icon, label, sub, grad, shadow, onClick, badge, span }: any) {
+  return (
+    <button onClick={() => { Sfx.click(); onClick() }}
+      style={{
+        gridColumn: span ? '1 / -1' : 'auto', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: '#5a2a4a',
+        borderRadius: 18, padding: span ? '16px 12px' : '14px 8px', background: grad,
+        boxShadow: `0 4px 0 ${shadow}, 0 6px 14px rgba(160,80,130,0.18)`,
+        display: 'flex', flexDirection: span ? 'row' : 'column', alignItems: 'center', justifyContent: 'center', gap: span ? 10 : 4, position: 'relative',
+      }}>
+      <span style={{ fontSize: span ? 26 : 24 }}>{icon}</span>
+      <span style={{ display: 'flex', flexDirection: 'column', alignItems: span ? 'flex-start' : 'center' }}>
+        <span style={{ fontSize: span ? 16 : 11.5, fontWeight: 800 }}>{label}</span>
+        {sub && <span style={{ fontSize: span ? 10 : 8, opacity: 0.65, fontWeight: 700 }}>{sub}</span>}
+      </span>
+      {badge && <span className="de-badge">!</span>}
+    </button>
+  )
+}
 function HomeScreen({ equip, level, canClaim, onPlay, onCloset, onShop, onDaily, onMini, onGroom, onRush, onCastle, room, name, onRename }: any) {
   const [editing, setEditing] = useState(false)
   const [tmp, setTmp] = useState(name)
   return (
-    <div className="de-card" style={{ display: 'flex', gap: 18, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
-      {/* her empress standing inside her decorated castle bedroom */}
-      <div style={{ position: 'relative', width: 'min(100%, 380px)', cursor: 'pointer' }} onClick={onCastle} title="Decorate your castle">
-        <RoomScene room={room} size={380} />
+    <div className="de-card" style={{ maxWidth: 460, margin: '0 auto' }}>
+      {/* hero: her empress standing inside her decorated castle bedroom */}
+      <div style={{ position: 'relative', width: '100%', cursor: 'pointer', borderRadius: 16, overflow: 'hidden' }} onClick={() => { Sfx.click(); onCastle() }} title="Decorate your castle">
+        <RoomScene room={room} size={460} />
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', pointerEvents: 'none' }}>
           <div className="de-bounce" style={{ marginBottom: '3%' }}>
-            <Avatar equip={equip} size={176} noBg />
+            <Avatar equip={equip} size={188} noBg />
           </div>
         </div>
-        <div style={{ position: 'absolute', top: 8, left: 8, ...pill, fontSize: 10 }}>👑 Empress Lv {level}</div>
+        <div style={{ position: 'absolute', top: 8, left: 8, ...pill, fontSize: 10 }}>👑 Lv {level}</div>
         <div style={{ position: 'absolute', bottom: 8, right: 8, ...pill, fontSize: 9 }}>🏰 Tap to decorate</div>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 220 }}>
-        <div style={{ textAlign: 'center' }}>
-          {editing ? (
-            <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
-              <input value={tmp} maxLength={14} onChange={e => setTmp(e.target.value)}
-                style={{ borderRadius: 999, border: '2px solid #ffb0d6', padding: '8px 12px', fontSize: 13, width: 130 }} />
-              <button style={{ ...btnGold, padding: '8px 12px' }} onClick={() => { onRename(tmp.trim() || 'Princess'); setEditing(false) }}>Save</button>
-            </div>
-          ) : (
-            <h2 style={{ fontSize: 18, color: '#b23a7a', margin: 0 }}>
-              {name} <button onClick={() => { setTmp(name); setEditing(true) }} style={{ ...pill, fontSize: 10, padding: '4px 8px', cursor: 'pointer' }}>✏️</button>
-            </h2>
-          )}
-        </div>
-        <button style={{ ...btnGold, fontSize: 16, padding: '16px 22px' }} onClick={onPlay}>✨ Play Fashion Challenge</button>
-        <button style={btn} onClick={onCloset}>👗 My Closet</button>
-        <button style={btn} onClick={onCastle}>🏰 My Castle</button>
-        <button style={btn} onClick={onShop}>🛍️ Shop</button>
-        <button style={btn} onClick={onMini}>💎 Gem Catch</button>
-        <button style={btn} onClick={onGroom}>🧼 Pet Grooming</button>
-        <button style={btn} onClick={onRush}>⏱️ Closet Rush</button>
-        <button style={{ ...btn, position: 'relative' }} onClick={onDaily}>
-          🎁 Daily Reward {canClaim && <span className="de-badge">!</span>}
-        </button>
+
+      {/* name */}
+      <div style={{ textAlign: 'center', margin: '10px 0' }}>
+        {editing ? (
+          <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+            <input value={tmp} maxLength={14} onChange={e => setTmp(e.target.value)}
+              style={{ borderRadius: 999, border: '2px solid #ffb0d6', padding: '8px 12px', fontSize: 13, width: 130 }} />
+            <button style={{ ...btnGold, padding: '8px 12px' }} onClick={() => { Sfx.click(); onRename(tmp.trim() || 'Princess'); setEditing(false) }}>Save</button>
+          </div>
+        ) : (
+          <h2 style={{ fontSize: 20, color: '#b23a7a', margin: 0, textShadow: '0 2px 0 #fff' }}>
+            👑 {name} <button onClick={() => { setTmp(name); setEditing(true) }} style={{ ...pill, fontSize: 10, padding: '4px 8px', cursor: 'pointer' }}>✏️</button>
+          </h2>
+        )}
+      </div>
+
+      {/* primary action */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <MenuTile span icon="✨" label="Play Fashion Show" sub="Dress up & win stars!" grad="linear-gradient(135deg,#ffe89a,#f6c84a)" shadow="#d6a830" onClick={onPlay} />
+        <MenuTile icon="👗" label="Closet" grad="linear-gradient(135deg,#ffd6ec,#ffb0d6)" shadow="#e68fbf" onClick={onCloset} />
+        <MenuTile icon="🏰" label="Castle" grad="linear-gradient(135deg,#e0d0f8,#c4a8f0)" shadow="#a888d8" onClick={onCastle} />
+        <MenuTile icon="🛍️" label="Shop" grad="linear-gradient(135deg,#bdeede,#8fd6b8)" shadow="#6fbf9a" onClick={onShop} />
+        <MenuTile icon="🎁" label="Daily Gift" grad="linear-gradient(135deg,#ffe0a8,#ffcf6a)" shadow="#e0a840" onClick={onDaily} badge={canClaim} />
+      </div>
+
+      {/* mini-games */}
+      <p style={{ fontSize: 11, color: '#a06a90', textAlign: 'center', margin: '14px 0 8px', fontWeight: 800 }}>🎮 Mini-Games</p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+        <MenuTile icon="💎" label="Gem Catch" grad="linear-gradient(135deg,#cfe6ff,#9fc4f0)" shadow="#7fa8e0" onClick={onMini} />
+        <MenuTile icon="🛁" label="Bubble Bath" grad="linear-gradient(135deg,#d6f5ff,#a8e6f0)" shadow="#7fc8d8" onClick={onGroom} />
+        <MenuTile icon="⏱️" label="Closet Rush" grad="linear-gradient(135deg,#ffd9b0,#ffb87a)" shadow="#e89a55" onClick={onRush} />
       </div>
     </div>
   )
@@ -2216,6 +2328,7 @@ function PetGroomScreen({ petId, onBack, onReward, showToast }: any) {
   const petP = (BY_ID[petId]?.p && BY_ID[petId].p.style !== 'none') ? BY_ID[petId].p : BY_ID['pet_bunny'].p
 
   const popBubble = (b: { id: number; x: number; y: number }) => {
+    Sfx.pop()
     setWiggle(w => w + 1)
     const hid = Math.random()
     setHearts(h => [...h, { id: hid, x: b.x, y: b.y }])
@@ -2229,13 +2342,14 @@ function PetGroomScreen({ petId, onBack, onReward, showToast }: any) {
   }
 
   const pickBow = (bw: { c: string; k: string }) => {
+    Sfx.chime()
     setBow(bw)
     if (!rewarded.current) {
       rewarded.current = true
       const coins = 80, gems = Math.random() < 0.35 ? 1 : 0
       got.current = { coins, gems }
       onReward(coins, gems, 0)
-      showToast(`So cute! +${coins} coins${gems ? ' & 1 💎' : ''} 🎀`)
+      Sfx.coin(); showToast(`So cute! +${coins} coins${gems ? ' & 1 💎' : ''} 🎀`)
     }
     setPhase('done')
   }
@@ -2368,6 +2482,7 @@ function ClosetRushScreen({ onBack, onReward, showToast }: any) {
     const xp = fc * 5
     got.current = { coins, xp, found: fc, total: tg.length, all }
     onReward(coins, 0, xp)
+    if (all) Sfx.win(); else Sfx.coin()
     setPhase('done')
   }, [onReward])
 
@@ -2381,11 +2496,11 @@ function ClosetRushScreen({ onBack, onReward, showToast }: any) {
     if (foundRef.current.includes(it.id)) return
     if (targets.some(t => t.id === it.id)) {
       const nf = [...foundRef.current, it.id]; foundRef.current = nf; setFound(nf)
-      if (nf.length === targets.length) endGame(targets)
+      if (nf.length === targets.length) endGame(targets); else Sfx.chime()
     } else {
       setTime(t => Math.max(0, t - 2)); setWrongId(it.id)
       window.setTimeout(() => setWrongId(w => (w === it.id ? null : w)), 450)
-      showToast('Not on the list! −2s ⏱️')
+      Sfx.wrong(); showToast('Not on the list! −2s ⏱️')
     }
   }
 
@@ -2511,12 +2626,13 @@ function GemGame({ onBack, onReward, showToast }: any) {
     const bonusGems = Math.floor(score / 15)
     got.current = { coins, gems: bonusGems }
     onReward(coins, bonusGems)
-    showToast(`+${coins} coins${bonusGems ? ` & ${bonusGems} 💎` : ''}!`)
+    Sfx.win(); showToast(`+${coins} coins${bonusGems ? ` & ${bonusGems} 💎` : ''}!`)
   }, [phase]) // eslint-disable-line
 
   const GEMS = ['💎', '💖', '⭐', '🌸', '🔮']
 
   const tap = (id: number) => {
+    Sfx.pop()
     setGems(g => g.filter(x => x.id !== id))
     setScore(s => s + 1)
   }
