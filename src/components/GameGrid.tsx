@@ -42,9 +42,68 @@ function applyOrder(defs: GameDef[], order: string[]): GameDef[] {
   return result
 }
 
+// Downscale an uploaded image to a small base64 data URL (keeps DB rows tiny, preserves transparency).
+function fileToDataUrl(file: File, max = 440): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const img = new window.Image()
+      img.onload = () => {
+        const scale = Math.min(1, max / Math.max(img.width, img.height))
+        const w = Math.max(1, Math.round(img.width * scale))
+        const h = Math.max(1, Math.round(img.height * scale))
+        const canvas = document.createElement('canvas')
+        canvas.width = w; canvas.height = h
+        const ctx = canvas.getContext('2d')
+        if (!ctx) { reject(new Error('no canvas')); return }
+        ctx.drawImage(img, 0, 0, w, h)
+        try { resolve(canvas.toDataURL('image/webp', 0.85)) }
+        catch { resolve(canvas.toDataURL('image/png')) }
+      }
+      img.onerror = () => reject(new Error('bad image'))
+      img.src = reader.result as string
+    }
+    reader.onerror = () => reject(new Error('read failed'))
+    reader.readAsDataURL(file)
+  })
+}
+
+// Admin-only button cluster: upload a card image (and remove it).
+function AdminImageBtn({ href, hasImage, busy, onUpload, onRemove, pos }: {
+  href: string; hasImage: boolean; busy: boolean
+  onUpload: (href: string, file: File) => void
+  onRemove: (href: string) => void
+  pos: React.CSSProperties
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  return (
+    <div style={{ position: 'absolute', zIndex: 25, display: 'flex', gap: 4, ...pos }}>
+      <button
+        onMouseDown={e => e.stopPropagation()}
+        onClick={e => { e.preventDefault(); e.stopPropagation(); inputRef.current?.click() }}
+        title="Upload card image"
+        style={{ background: 'rgba(0,0,0,0.82)', border: '1px solid rgba(200,155,60,0.5)', borderRadius: 5, cursor: busy ? 'wait' : 'pointer', fontSize: 12, padding: '3px 5px', lineHeight: 1, color: '#c89b3c', opacity: busy ? 0.5 : 1 }}
+      >🖼</button>
+      {hasImage && (
+        <button
+          onMouseDown={e => e.stopPropagation()}
+          onClick={e => { e.preventDefault(); e.stopPropagation(); onRemove(href) }}
+          title="Remove image"
+          style={{ background: 'rgba(0,0,0,0.82)', border: '1px solid rgba(255,85,85,0.5)', borderRadius: 5, cursor: 'pointer', fontSize: 12, padding: '3px 5px', lineHeight: 1, color: '#FF6666' }}
+        >✕</button>
+      )}
+      <input
+        ref={inputRef} type="file" accept="image/*" style={{ display: 'none' }}
+        onChange={e => { const f = e.target.files?.[0]; if (f) onUpload(href, f); e.currentTarget.value = '' }}
+      />
+    </div>
+  )
+}
+
 function FeaturedGameCard({
   game, isHidden, isBusy, isAdmin, onToggle,
   likeCount, isLiked, isLoggedIn, onLike, likeBusy,
+  image, imgBusy, onUploadImage, onRemoveImage,
 }: {
   game: GameDef
   isHidden: boolean
@@ -56,10 +115,15 @@ function FeaturedGameCard({
   isLoggedIn: boolean
   onLike: (href: string) => void
   likeBusy: boolean
+  image?: string
+  imgBusy: boolean
+  onUploadImage: (href: string, file: File) => void
+  onRemoveImage: (href: string) => void
 }) {
   const isWine = game.href.includes('wine-stocker')
   const isLumina = game.href === '/game'
   const g = game.glow
+  const customImg = image
 
   const chips = isWine
     ? [{ icon: '🍷', label: '6 wines' }, { icon: '⚡', label: '5 power-ups' }, { icon: '🏆', label: 'Leaderboard' }]
@@ -79,7 +143,14 @@ function FeaturedGameCard({
       {/* ── Visual panel ─────────────────────────────── */}
       <div style={{ height: 158, background: game.bg, position: 'relative', overflow: 'hidden' }}>
 
-        {isWine && (
+        {customImg && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={customImg} alt={game.title} style={{ maxWidth: '82%', maxHeight: 142, objectFit: 'contain', filter: `drop-shadow(0 4px 18px ${g}99) drop-shadow(0 0 28px ${g}55)` }} />
+          </div>
+        )}
+
+        {!customImg && isWine && (
           <>
             <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 90% 90% at 50% 50%, rgba(176,48,96,0.22) 0%, rgba(60,4,14,0.15) 60%, transparent 100%)', pointerEvents: 'none' }} />
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent, rgba(200,155,60,0.45) 40%, rgba(200,155,60,0.45) 60%, transparent)', pointerEvents: 'none' }} />
@@ -94,7 +165,7 @@ function FeaturedGameCard({
           </>
         )}
 
-        {isLumina && (
+        {!customImg && isLumina && (
           <>
             <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 80% 70% at 60% 40%, rgba(144,96,255,0.28) 0%, rgba(80,30,180,0.1) 55%, transparent 85%)' }} />
             <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 18% 20%, rgba(144,96,255,0.32) 0%, transparent 22%), radial-gradient(circle at 66% 52%, rgba(144,96,255,0.38) 0%, transparent 25%), radial-gradient(circle at 52% 12%, rgba(144,96,255,0.22) 0%, transparent 16%)' }} />
@@ -120,7 +191,7 @@ function FeaturedGameCard({
           </>
         )}
 
-        {!isWine && !isLumina && (
+        {!customImg && !isWine && !isLumina && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
             <span style={{ fontSize: 64, filter: `drop-shadow(0 0 24px ${g})` }}>{game.icon}</span>
           </div>
@@ -205,6 +276,11 @@ function FeaturedGameCard({
   return (
     <div style={{ position: 'relative', opacity: isHidden ? 0.38 : 1, filter: isHidden ? 'grayscale(0.55)' : 'none', display: 'flex', flexDirection: 'column' }}>
 
+      {/* Admin image upload */}
+      {isAdmin && (
+        <AdminImageBtn href={game.href} hasImage={!!customImg} busy={imgBusy} onUpload={onUploadImage} onRemove={onRemoveImage} pos={{ top: 10, left: 10 }} />
+      )}
+
       {/* Admin visibility toggle */}
       {isAdmin && (
         <button
@@ -281,6 +357,7 @@ function FeaturedGameCard({
 function SortableGameCard({
   game, isHidden, isBusy, isAdmin, editMode, onToggle,
   likeCount, isLiked, isLoggedIn, onLike, likeBusy,
+  image, imgBusy, onUploadImage, onRemoveImage,
 }: {
   game: GameDef
   isHidden: boolean
@@ -293,6 +370,10 @@ function SortableGameCard({
   isLoggedIn: boolean
   onLike: (href: string) => void
   likeBusy: boolean
+  image?: string
+  imgBusy: boolean
+  onUploadImage: (href: string, file: File) => void
+  onRemoveImage: (href: string) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: game.href,
@@ -311,9 +392,14 @@ function SortableGameCard({
 
   const inner = (
     <>
-      <span style={{ fontSize: 30, lineHeight: 1, filter: `drop-shadow(0 0 6px ${game.glow}99)` }}>
-        {game.icon}
-      </span>
+      {image ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={image} alt={game.title} style={{ width: 42, height: 42, objectFit: 'contain', borderRadius: 8, filter: `drop-shadow(0 0 6px ${game.glow}99)` }} />
+      ) : (
+        <span style={{ fontSize: 30, lineHeight: 1, filter: `drop-shadow(0 0 6px ${game.glow}99)` }}>
+          {game.icon}
+        </span>
+      )}
       <div className="text-center">
         <div className="text-[9px] font-bold mb-0.5" style={{ color: '#e8e4d8' }}>{game.title}</div>
         <div className="text-[6px] mb-1 body-text" style={{ color: 'rgba(160,152,128,0.7)' }}>{game.desc}</div>
@@ -367,6 +453,11 @@ function SortableGameCard({
         >
           {isHidden ? '🚫' : '👁'}
         </button>
+      )}
+
+      {/* Admin image upload */}
+      {isAdmin && !editMode && (
+        <AdminImageBtn href={game.href} hasImage={!!image} busy={imgBusy} onUpload={onUploadImage} onRemove={onRemoveImage} pos={{ top: 7, left: 7 }} />
       )}
 
       {/* Card body */}
@@ -431,6 +522,7 @@ export default function GameGrid({
   games,
   initialHidden,
   initialOrder,
+  initialImages,
   isAdmin,
   isLoggedIn,
   initialLikeCounts,
@@ -439,6 +531,7 @@ export default function GameGrid({
   games: GameDef[]
   initialHidden: string[]
   initialOrder: string[]
+  initialImages: Record<string, string>
   isAdmin: boolean
   isLoggedIn: boolean
   initialLikeCounts: Record<string, number>
@@ -447,6 +540,8 @@ export default function GameGrid({
   const [orderedGames, setOrderedGames] = useState<GameDef[]>(() => applyOrder(games, initialOrder))
   const savedRef = useRef<GameDef[]>(applyOrder(games, initialOrder))
   const [hidden, setHidden] = useState<Set<string>>(new Set(initialHidden))
+  const [images, setImages] = useState<Record<string, string>>(initialImages || {})
+  const [imgBusy, setImgBusy] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [editMode, setEditMode] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -476,6 +571,41 @@ export default function GameGrid({
       setHidden(prev => { const s = new Set(prev); if (willHide) s.delete(href); else s.add(href); return s })
     }
     setBusy(null)
+  }
+
+  async function uploadImage(href: string, file: File) {
+    if (imgBusy) return
+    setImgBusy(href)
+    const prev = images[href]
+    try {
+      const dataUrl = await fileToDataUrl(file)
+      setImages(m => ({ ...m, [href]: dataUrl }))
+      const res = await fetch('/api/admin/game-image', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ href, image: dataUrl }),
+      })
+      if (!res.ok) throw new Error()
+    } catch {
+      setImages(m => { const n = { ...m }; if (prev != null) n[href] = prev; else delete n[href]; return n })
+    }
+    setImgBusy(null)
+  }
+
+  async function removeImage(href: string) {
+    if (imgBusy) return
+    setImgBusy(href)
+    const prev = images[href]
+    setImages(m => { const n = { ...m }; delete n[href]; return n })
+    try {
+      const res = await fetch('/api/admin/game-image', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ href, image: null }),
+      })
+      if (!res.ok) throw new Error()
+    } catch {
+      if (prev != null) setImages(m => ({ ...m, [href]: prev }))
+    }
+    setImgBusy(null)
   }
 
   function handleDragStart({ active }: DragStartEvent) {
@@ -556,6 +686,10 @@ export default function GameGrid({
             isLoggedIn={isLoggedIn}
             onLike={handleLike}
             likeBusy={likeBusy === g.href}
+            image={images[g.href]}
+            imgBusy={imgBusy === g.href}
+            onUploadImage={uploadImage}
+            onRemoveImage={removeImage}
           />
         ))}
       </div>
@@ -618,6 +752,10 @@ export default function GameGrid({
                 isLoggedIn={isLoggedIn}
                 onLike={handleLike}
                 likeBusy={likeBusy === g.href}
+                image={images[g.href]}
+                imgBusy={imgBusy === g.href}
+                onUploadImage={uploadImage}
+                onRemoveImage={removeImage}
               />
             ))}
           </div>
@@ -636,9 +774,14 @@ export default function GameGrid({
                 transform: 'rotate(2deg) scale(1.04)',
               }}
             >
-              <span style={{ fontSize: 30, lineHeight: 1, filter: `drop-shadow(0 0 8px ${activeGame.glow})` }}>
-                {activeGame.icon}
-              </span>
+              {images[activeGame.href] ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={images[activeGame.href]} alt={activeGame.title} style={{ width: 42, height: 42, objectFit: 'contain', borderRadius: 8, filter: `drop-shadow(0 0 8px ${activeGame.glow})` }} />
+              ) : (
+                <span style={{ fontSize: 30, lineHeight: 1, filter: `drop-shadow(0 0 8px ${activeGame.glow})` }}>
+                  {activeGame.icon}
+                </span>
+              )}
               <div className="text-center">
                 <div className="text-[9px] font-bold mb-0.5" style={{ color: '#e8e4d8' }}>{activeGame.title}</div>
                 <div className="text-[6px] body-text" style={{ color: 'rgba(160,152,128,0.7)' }}>{activeGame.desc}</div>

@@ -34,15 +34,17 @@ export default async function FunPage() {
   let communityMemberCount = 0
   let hiddenGames: string[] = []
   let gameOrder: string[] = []
+  let gameImages: Record<string, string> = {}
   const likeCounts: Record<string, number> = {}
   let userLikedHrefs: string[] = []
 
   try {
     const userId = session?.user?.id
-    const [communityData, hiddenSetting, orderSetting, allLikes, userLikeRows] = await Promise.all([
+    const [communityData, hiddenSetting, orderSetting, imagesSetting, allLikes, userLikeRows] = await Promise.all([
       getCommunityXpForSkill('FUN' as SkillType),
       (prisma as any).siteSetting.findUnique({ where: { key: 'hidden_games' } }),
       (prisma as any).siteSetting.findUnique({ where: { key: 'game_order' } }),
+      (prisma as any).siteSetting.findUnique({ where: { key: 'game_images' } }),
       (prisma as any).gameLike.groupBy({ by: ['gameHref'], _count: { gameHref: true } }),
       userId
         ? (prisma as any).gameLike.findMany({ where: { userId }, select: { gameHref: true } })
@@ -52,6 +54,7 @@ export default async function FunPage() {
     communityMemberCount = communityData.memberCount
     if (hiddenSetting) hiddenGames = JSON.parse(hiddenSetting.value) as string[]
     if (orderSetting) gameOrder = JSON.parse(orderSetting.value) as string[]
+    if (imagesSetting) gameImages = JSON.parse(imagesSetting.value) as Record<string, string>
     for (const row of allLikes as { gameHref: string; _count: { gameHref: number } }[]) {
       likeCounts[row.gameHref] = row._count.gameHref
     }
@@ -73,6 +76,7 @@ export default async function FunPage() {
         games={GAMES}
         initialHidden={hiddenGames}
         initialOrder={gameOrder}
+        initialImages={gameImages}
         isAdmin={isAdmin}
         isLoggedIn={!!session?.user}
         initialLikeCounts={likeCounts}
