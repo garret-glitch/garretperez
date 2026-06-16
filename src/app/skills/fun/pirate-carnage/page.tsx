@@ -195,7 +195,7 @@ interface Build { id: string; name: string; icon: string; color: string; accent:
 interface GS {
   player: Player; enemies: Enemy[]; bullets: Bullet[]; powerups: PowerUp[]
   particles: Particle[]; beams: Beam[]; tentacles: Tentacle[]; texts: FloatText[]
-  rocks: Rock[]; foam: Foam[]; boss: Boss | null
+  rocks: Rock[]; foam: Foam[]; bosses: Boss[]
   cam: { x: number; y: number }; shake: number; time: number
   kills: number; score: number; wave: number; spawnCd: number; bossSpawned: boolean
   build: Build; state: string; lightCd: number; lightning: { x: number; y: number; t: number; state: string } | null
@@ -250,7 +250,7 @@ function mkState(build: Build): GS {
       iframe: 0.6, dmgBuff: 0, rapid: 0, shield: 0, nitro: 0, recoil: 0,
     },
     enemies: [], bullets: [], powerups: [], particles: [], beams: [], tentacles: [], texts: [],
-    rocks, foam, boss: null, cam: { x: 0, y: 0 }, shake: 0, time: 0,
+    rocks, foam, bosses: [], cam: { x: 0, y: 0 }, shake: 0, time: 0,
     kills: 0, score: 0, wave: 1, spawnCd: 1.0, bossSpawned: false,
     build, state: 'playing', lightCd: 6, lightning: null,
     banner: { txt: 'SET SAIL', sub: 'DESTROY EVERYTHING', life: 2.2 }, flash: 0, hitStop: 0,
@@ -277,7 +277,7 @@ function explode(g: GS, x: number, y: number, radius: number, dmg: number, frien
   if (big) Sfx.bigExp(); else Sfx.explosion()
   // damage enemies
   for (const e of g.enemies) { if (dist(x, y, e.x, e.y) < radius + e.radius) damageEnemy(g, e, dmg, x, y) }
-  if (g.boss && dmg > 0) { const m = bossHitTest(g, x, y, radius); if (m != null) damageBoss(g, dmg * m, x, y) }
+  if (dmg > 0) { const h = bossHitTest(g, x, y, radius); if (h) damageBoss(g, h.b, dmg * h.mult, x, y) }
   if (!friendly) {
     const p = g.player
     const d = dist(x, y, p.x, p.y)
@@ -315,10 +315,9 @@ function bossVulnerable(b: Boss): boolean {
   if (b.kind === 'dutchman' && (b.mode === 'arrive' || b.mode === 'phaseOut' || b.mode === 'phaseIn')) return false
   return true
 }
-// returns a damage multiplier if (x,y,r) overlaps the boss, else null.
+// per-boss geometry test → damage multiplier or null (ignores vulnerability)
 // Leviathan: head is a 1.6x weak point, body segments take 0.5x.
-function bossHitTest(g: GS, x: number, y: number, r: number): number | null {
-  const b = g.boss; if (!b || !bossVulnerable(b)) return null
+function bossPointMult(b: Boss, x: number, y: number, r: number): number | null {
   if (b.kind === 'kraken') return dist(x, y, b.x, b.y) < 78 + r ? 1 : null
   if (b.kind === 'dutchman') return dist(x, y, b.x, b.y) < 66 + r ? 1 : null
   // leviathan
@@ -332,12 +331,21 @@ function bossHitTest(g: GS, x: number, y: number, r: number): number | null {
   }
   return null
 }
-function damageBoss(g: GS, dmg: number, fromX: number, fromY: number) {
-  const b = g.boss; if (!b || b.dying > 0) return
+// finds the first vulnerable boss overlapping (x,y,r)
+function bossHitTest(g: GS, x: number, y: number, r: number): { b: Boss; mult: number } | null {
+  for (const b of g.bosses) {
+    if (!bossVulnerable(b)) continue
+    const m = bossPointMult(b, x, y, r)
+    if (m != null) return { b, mult: m }
+  }
+  return null
+}
+function damageBoss(g: GS, b: Boss, dmg: number, fromX: number, fromY: number) {
+  if (b.dying > 0) return
   b.hp -= dmg; b.hitFlash = 0.1
   burst(g, fromX, fromY, '#a8ffb0', 4, 120, 'spark', 3)
   g.player.ult = Math.min(g.player.ultMax, g.player.ult + dmg * 0.05)
-  if (b.hp <= 0) startBossDeath(g)
+  if (b.hp <= 0) startBossDeath(g, b)
 }
 function hurtPlayer(g: GS, dmg: number) {
   const p = g.player
@@ -363,7 +371,7 @@ function spawnBullet(g: GS, x: number, y: number, ang: number, spd: number, dmg:
 function nearestTarget(g: GS, x: number, y: number, range: number): { x: number; y: number } | null {
   let best: { x: number; y: number } | null = null, bd = range
   for (const e of g.enemies) { if (e.hp <= 0) continue; const d = dist(x, y, e.x, e.y); if (d < bd) { bd = d; best = e } }
-  if (g.boss && bossVulnerable(g.boss)) { const d = dist(x, y, g.boss.x, g.boss.y); if (d < bd) { bd = d; best = g.boss } }
+  for (const bo of g.bosses) { if (!bossVulnerable(bo)) continue; const d = dist(x, y, bo.x, bo.y); if (d < bd) { bd = d; best = bo } }
   return best
 }
 function firePrimary(g: GS) {
@@ -423,38 +431,27 @@ function spawnEnemy(g: GS, type: string) {
     hitFlash: 0, burn: 0, burnDps: 0, spawnT: 0.5, orbitDir: Math.random() < 0.5 ? 1 : -1,
   })
 }
+// all three legendary beasts surface at once for the ultimate carnage
 function spawnBoss(g: GS) {
   g.bossSpawned = true
-  g.boss = { kind: 'kraken', x: WW / 2, y: WH / 2 - 200, vx: 0, vy: 0, hp: 2200, maxHp: 2200, atkCd: 2.5, hitFlash: 0, aimAng: 0, dying: 0 }
-  g.banner = { txt: 'THE KRAKEN RISES', sub: 'SINK THE BEAST', life: 3 }
-  g.shake = 24; Sfx.roar(); Sfx.playMusic('boss')
-  // clear weak adds so the fight reads clean
-  g.enemies = g.enemies.filter(e => e.type === 'warship')
-}
-function spawnLeviathan(g: GS) {
-  const ex = g.player.x < WW / 2 ? WW - 60 : 60 // surface from the far side
-  g.boss = {
-    kind: 'leviathan', x: ex, y: WH / 2, vx: 0, vy: 0, hp: 2400, maxHp: 2400,
-    atkCd: 1.2, hitFlash: 0, aimAng: 0, dying: 0,
-    mode: 'rise', modeT: 1.6, swimAng: angTo(ex, WH / 2, g.player.x, g.player.y),
-    trail: [], tx: 0, ty: 0,
-  }
-  g.banner = { txt: 'THE LEVIATHAN SURFACES', sub: 'THE TRUE BEAST OF THE DEEP', life: 3 }
-  g.shake = 26; Sfx.roar()
-  g.enemies = [] // clear the deck for the serpent
-}
-function spawnDutchman(g: GS) {
-  g.boss = {
-    kind: 'dutchman', x: WW / 2, y: WH * 0.15, vx: 0, vy: 0, hp: 2800, maxHp: 2800,
-    atkCd: 1.0, hitFlash: 0, aimAng: 0, dying: 0,
-    mode: 'arrive', modeT: 1.6, swimAng: Math.PI / 2, tx: 0, ty: 0,
-  }
-  g.banner = { txt: 'THE FLYING DUTCHMAN', sub: 'THE LEGENDARY GHOST SHIP', life: 3 }
-  g.shake = 26; Sfx.roar()
+  g.bosses = [
+    { kind: 'kraken', x: WW / 2, y: WH / 2, vx: 0, vy: 0, hp: 1500, maxHp: 1500, atkCd: 2.5, hitFlash: 0, aimAng: 0, dying: 0 },
+    {
+      kind: 'leviathan', x: WW * 0.82, y: WH * 0.7, vx: 0, vy: 0, hp: 1700, maxHp: 1700,
+      atkCd: 1.2, hitFlash: 0, aimAng: 0, dying: 0,
+      mode: 'rise', modeT: 1.6, swimAng: angTo(WW * 0.82, WH * 0.7, g.player.x, g.player.y), trail: [], tx: 0, ty: 0,
+    },
+    {
+      kind: 'dutchman', x: WW * 0.18, y: WH * 0.18, vx: 0, vy: 0, hp: 1900, maxHp: 1900,
+      atkCd: 1.0, hitFlash: 0, aimAng: 0, dying: 0,
+      mode: 'arrive', modeT: 1.6, swimAng: Math.PI / 2, tx: 0, ty: 0,
+    },
+  ]
+  g.banner = { txt: 'THE DEEP UNLEASHED', sub: 'KRAKEN · LEVIATHAN · DUTCHMAN', life: 3.4 }
+  g.shake = 30; Sfx.roar(); Sfx.playMusic('boss')
   g.enemies = []
 }
-function startBossDeath(g: GS) {
-  const b = g.boss; if (!b) return
+function startBossDeath(g: GS, b: Boss) {
   b.dying = 2.4; b.hp = 0
   const slainTxt = b.kind === 'dutchman' ? 'FLYING DUTCHMAN SUNK' : b.kind === 'leviathan' ? 'LEVIATHAN SLAIN' : 'KRAKEN SLAIN'
   g.banner = { txt: slainTxt, sub: '', life: 2.5 }
@@ -531,7 +528,7 @@ function tick(g: GS, dt: number, keys: Set<string>, edge: { sec: boolean; ult: b
         const a = angTo(p.x, p.y, e.x, e.y); e.vx += Math.cos(a) * 320; e.vy += Math.sin(a) * 320
       }
     }
-    if (g.boss) { const m = bossHitTest(g, p.x, p.y, 22); if (m != null) damageBoss(g, (b.id === 'tank' ? 50 : 30) * dt * 6 * m, p.x, p.y) }
+    { const h = bossHitTest(g, p.x, p.y, 22); if (h) damageBoss(g, h.b, (b.id === 'tank' ? 50 : 30) * dt * 6 * h.mult, p.x, p.y) }
   }
 
   /* — primary auto-fire — */
@@ -627,14 +624,14 @@ function tick(g: GS, dt: number, keys: Set<string>, edge: { sec: boolean; ult: b
         spawnEnemy(g, type)
       }
     }
-  } else if (g.boss && g.boss.dying <= 0 && g.boss.kind === 'kraken') {
-    // the Kraken keeps a few adds coming; the Leviathan duel is one-on-one
+  } else if (g.bosses.some(bo => bo.dying <= 0 && bo.kind === 'kraken')) {
+    // the Kraken keeps a trickle of adds coming during the melee
     g.spawnCd -= dt
-    if (g.spawnCd <= 0 && aliveCount < 6) { g.spawnCd = 3.2; spawnEnemy(g, pick(['sloop', 'cult', 'suicide'])) }
+    if (g.spawnCd <= 0 && aliveCount < 7) { g.spawnCd = 3.0; spawnEnemy(g, pick(['sloop', 'cult', 'suicide'])) }
   }
 
   /* — boss logic — */
-  if (g.boss) tickBoss(g, dt)
+  if (g.bosses.length) tickBoss(g, dt)
 
   /* — bullets — */
   for (const bu of g.bullets) {
@@ -659,11 +656,11 @@ function tick(g: GS, dt: number, keys: Set<string>, edge: { sec: boolean; ult: b
         }
       }
       // vs boss
-      if (bu.life > 0 && g.boss) {
-        const m = bossHitTest(g, bu.x, bu.y, bu.radius)
-        if (m != null) {
-          if (bu.type === 'torpedo') { explode(g, bu.x, bu.y, 95, 70 + g.build.dmg, true); damageBoss(g, 70 * m, bu.x, bu.y); bu.life = 0 }
-          else { const crit = Math.random() < 0.12; damageBoss(g, bu.dmg * (crit ? 1.8 : 1) * m, bu.x, bu.y); if (bu.pierce > 0) bu.pierce--; else bu.life = 0 }
+      if (bu.life > 0) {
+        const h = bossHitTest(g, bu.x, bu.y, bu.radius)
+        if (h) {
+          if (bu.type === 'torpedo') { explode(g, bu.x, bu.y, 95, 70 + g.build.dmg, true); damageBoss(g, h.b, 70 * h.mult, bu.x, bu.y); bu.life = 0 }
+          else { const crit = Math.random() < 0.12; damageBoss(g, h.b, bu.dmg * (crit ? 1.8 : 1) * h.mult, bu.x, bu.y); if (bu.pierce > 0) bu.pierce--; else bu.life = 0 }
         }
       }
     } else {
@@ -693,7 +690,7 @@ function tick(g: GS, dt: number, keys: Set<string>, edge: { sec: boolean; ult: b
       const lx = g.lightning.x, ly = g.lightning.y
       if (dist(lx, ly, p.x, p.y) < 70) hurtPlayer(g, 26)
       for (const e of g.enemies) if (e.hp > 0 && dist(lx, ly, e.x, e.y) < 70) damageEnemy(g, e, 60, e.x, e.y)
-      if (g.boss) { const m = bossHitTest(g, lx, ly, 70); if (m != null) damageBoss(g, 40 * m, g.boss.x, g.boss.y) }
+      { const h = bossHitTest(g, lx, ly, 70); if (h) damageBoss(g, h.b, 40 * h.mult, h.b.x, h.b.y) }
     } else if (g.lightning.state === 'strike' && g.lightning.t <= 0) g.lightning = null
   } else if (g.lightCd <= 0) {
     g.lightCd = rnd(5, 9)
@@ -735,38 +732,30 @@ function applyPower(g: GS, kind: string) {
 
 /* ═══ BOSS dispatcher ═══ */
 function tickBoss(g: GS, dt: number) {
-  const b = g.boss!
-  b.hitFlash = Math.max(0, b.hitFlash - dt)
-  if (b.dying > 0) { handleBossDying(g, dt); return }
-  if (b.kind === 'leviathan') tickLeviathan(g, dt)
-  else if (b.kind === 'dutchman') tickDutchman(g, dt)
-  else tickKraken(g, dt)
+  for (const b of [...g.bosses]) {
+    b.hitFlash = Math.max(0, b.hitFlash - dt)
+    if (b.dying > 0) { handleBossDying(g, b, dt); continue }
+    if (b.kind === 'leviathan') tickLeviathan(g, b, dt)
+    else if (b.kind === 'dutchman') tickDutchman(g, b, dt)
+    else tickKraken(g, b, dt)
+  }
 }
-function handleBossDying(g: GS, dt: number) {
-  const b = g.boss!
+function handleBossDying(g: GS, b: Boss, dt: number) {
   b.dying -= dt
   if (Math.random() < 0.5) explode(g, b.x + rnd(-70, 70), b.y + rnd(-70, 70), 40, 0, true)
   if (b.dying <= 0) {
     explode(g, b.x, b.y, 200, 0, true, true); g.shake = 34
-    if (b.kind === 'kraken') {
-      g.score += 1500; ftext(g, b.x, b.y, '+1500', '#c89b3c', 22)
-      g.boss = null; g.tentacles = []
-      spawnLeviathan(g) // the gauntlet continues — the serpent rises
-    } else if (b.kind === 'leviathan') {
-      g.score += 2500; ftext(g, b.x, b.y, '+2500', '#c89b3c', 22)
-      g.boss = null
-      spawnDutchman(g) // the legendary ghost ship sails in for the finale
-    } else {
-      g.score += 3500; ftext(g, b.x, b.y, '+3500', '#c89b3c', 22)
-      g.boss = null
-      g.state = 'victory'; Sfx.stopMusic(); Sfx.win()
-    }
+    const reward = b.kind === 'dutchman' ? 3500 : b.kind === 'leviathan' ? 2500 : 1500
+    g.score += reward; ftext(g, b.x, b.y, '+' + reward, '#c89b3c', 22)
+    if (b.kind === 'kraken') g.tentacles = []
+    g.bosses = g.bosses.filter(o => o !== b)
+    if (g.bosses.length === 0) { g.state = 'victory'; Sfx.stopMusic(); Sfx.win() }
   }
 }
 
 /* ═══ BOSS 1 — Kraken ═══ */
-function tickKraken(g: GS, dt: number) {
-  const b = g.boss!; const p = g.player
+function tickKraken(g: GS, b: Boss, dt: number) {
+  const p = g.player
   // drift slowly, stay roughly center-ish
   const target = { x: WW / 2 + Math.sin(g.time * 0.3) * 260, y: WH / 2 + Math.cos(g.time * 0.4) * 180 }
   b.x += (target.x - b.x) * Math.min(1, dt * 0.6); b.y += (target.y - b.y) * Math.min(1, dt * 0.6)
@@ -801,6 +790,10 @@ function tickKraken(g: GS, dt: number) {
     } else if (r < 0.78) { // ink spray ring
       const n = phase < 0.5 ? 24 : 16
       for (let i = 0; i < n; i++) { const a = (i / n) * TAU + g.time; spawnBullet(g, b.x, b.y, a, 240, 14, 'ink', false, { radius: 8, life: 3 }) }
+      Sfx.roar(); g.shake = 10
+    } else if (g.bosses.length > 1) { // skip summons during the all-boss melee — extra ink instead
+      const n = phase < 0.5 ? 24 : 16
+      for (let i = 0; i < n; i++) { const a = (i / n) * TAU - g.time; spawnBullet(g, b.x, b.y, a, 240, 14, 'ink', false, { radius: 8, life: 3 }) }
       Sfx.roar(); g.shake = 10
     } else { // summon adds
       for (let i = 0; i < (phase < 0.5 ? 3 : 2); i++) spawnEnemy(g, pick(['sloop', 'cult']))
@@ -837,8 +830,8 @@ function startVenomRing(g: GS, b: Boss, phase: number) {
 }
 function startSlam(g: GS, b: Boss) { b.mode = 'slamWarn'; b.modeT = 0.85; Sfx.warn() }
 
-function tickLeviathan(g: GS, dt: number) {
-  const b = g.boss!; const p = g.player
+function tickLeviathan(g: GS, b: Boss, dt: number) {
+  const p = g.player
   b.modeT = (b.modeT ?? 0) - dt
   // maintain serpent trail (newest first)
   b.trail!.unshift({ x: b.x, y: b.y })
@@ -925,12 +918,13 @@ function startPhase(g: GS, b: Boss) {
   Sfx.dodge(); burst(g, b.x, b.y, '#6effc0', 22, 220, 'spark', 5)
 }
 function startArmada(g: GS, b: Boss, phase: number) {
+  if (g.bosses.length > 1) { startPhase(g, b); return } // no armada during the all-boss melee
   for (let i = 0; i < (phase < 0.5 ? 4 : 3); i++) spawnEnemy(g, pick(['sloop', 'cult', 'suicide']))
   Sfx.warn(); g.banner = { txt: 'GHOST ARMADA', sub: '', life: 1.4 }
   b.mode = 'sail'; b.modeT = rnd(2, 2.8); b.atkCd = 0.7; pickSailTarget(g, b)
 }
-function tickDutchman(g: GS, dt: number) {
-  const b = g.boss!; const p = g.player
+function tickDutchman(g: GS, b: Boss, dt: number) {
+  const p = g.player
   b.modeT = (b.modeT ?? 0) - dt
   const phase = b.hp / b.maxHp
   b.aimAng = angTo(b.x, b.y, p.x, p.y)
@@ -1178,11 +1172,11 @@ function render(ctx: CanvasRenderingContext2D, g: GS) {
   }
 
   /* — boss — */
-  if (g.boss) {
-    if (g.boss.kind === 'leviathan') drawLeviathan(ctx, g, w2s)
-    else if (g.boss.kind === 'dutchman') drawDutchman(ctx, g, w2s)
-    else drawKraken(ctx, g, w2s)
-  }
+  g.bosses.forEach((bo, i) => {
+    if (bo.kind === 'leviathan') drawLeviathan(ctx, bo, g, w2s, i)
+    else if (bo.kind === 'dutchman') drawDutchman(ctx, bo, g, w2s, i)
+    else drawKraken(ctx, bo, g, w2s, i)
+  })
 
   /* — tentacle strike visuals (above water) — */
   for (const t of g.tentacles) {
@@ -1279,8 +1273,8 @@ function drawTentacle(ctx: CanvasRenderingContext2D, x: number, y: number, t: Te
   ctx.restore()
 }
 
-function drawKraken(ctx: CanvasRenderingContext2D, g: GS, w2s: (x: number, y: number) => { x: number; y: number }) {
-  const b = g.boss!; const s = w2s(b.x, b.y); const t = g.time
+function drawKraken(ctx: CanvasRenderingContext2D, b: Boss, g: GS, w2s: (x: number, y: number) => { x: number; y: number }, idx: number) {
+  const s = w2s(b.x, b.y); const t = g.time
   // body shadow / mass
   ctx.save()
   ctx.shadowColor = '#1a3a28'; ctx.shadowBlur = 30
@@ -1309,22 +1303,22 @@ function drawKraken(ctx: CanvasRenderingContext2D, g: GS, w2s: (x: number, y: nu
     ctx.fillStyle = '#1a0c00'; const pa = angTo(b.x, b.y, g.player.x, g.player.y); ctx.beginPath(); ctx.ellipse(s.x + 6 + Math.cos(pa) * 7, s.y - 4 + Math.sin(pa) * 7, 5, 11, pa, 0, TAU); ctx.fill()
   }
   ctx.restore()
-  drawBossBar(ctx, b, '🦑 THE KRAKEN', '#7b2f9a', '#c0392b')
+  drawBossBar(ctx, b, '🦑 THE KRAKEN', '#7b2f9a', '#c0392b', idx)
 }
 
-function drawBossBar(ctx: CanvasRenderingContext2D, b: Boss, label: string, c0: string, c1: string) {
-  const bw = 560, bx = VW / 2 - bw / 2, by = 18
-  ctx.fillStyle = 'rgba(0,0,0,0.55)'; roundRect(ctx, bx - 4, by - 4, bw + 8, 26, 6); ctx.fill()
-  ctx.fillStyle = '#2a1414'; roundRect(ctx, bx, by, bw, 18, 4); ctx.fill()
+function drawBossBar(ctx: CanvasRenderingContext2D, b: Boss, label: string, c0: string, c1: string, idx: number) {
+  const bw = 360, bx = VW / 2 - bw / 2, by = 18 + idx * 24
+  ctx.fillStyle = 'rgba(0,0,0,0.55)'; roundRect(ctx, bx - 4, by - 4, bw + 8, 24, 6); ctx.fill()
+  ctx.fillStyle = '#2a1414'; roundRect(ctx, bx, by, bw, 16, 4); ctx.fill()
   const hpk = clamp(b.hp / b.maxHp, 0, 1)
   const hg = ctx.createLinearGradient(bx, 0, bx + bw, 0); hg.addColorStop(0, c0); hg.addColorStop(1, c1)
-  ctx.fillStyle = hg; roundRect(ctx, bx, by, bw * hpk, 18, 4); ctx.fill()
-  ctx.fillStyle = '#fff'; ctx.font = '8px "Press Start 2P", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-  ctx.fillText(label, VW / 2, by + 9)
+  ctx.fillStyle = hg; roundRect(ctx, bx, by, bw * hpk, 16, 4); ctx.fill()
+  ctx.fillStyle = '#fff'; ctx.font = '7px "Press Start 2P", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+  ctx.fillText(label, VW / 2, by + 8)
 }
 
-function drawLeviathan(ctx: CanvasRenderingContext2D, g: GS, w2s: (x: number, y: number) => { x: number; y: number }) {
-  const b = g.boss!; const t = g.time
+function drawLeviathan(ctx: CanvasRenderingContext2D, b: Boss, g: GS, w2s: (x: number, y: number) => { x: number; y: number }, idx: number) {
+  const t = g.time
   const submerged = b.mode === 'submerge' || b.mode === 'rise'
   const trail = b.trail || []
 
@@ -1393,11 +1387,11 @@ function drawLeviathan(ctx: CanvasRenderingContext2D, g: GS, w2s: (x: number, y:
   }
   ctx.restore()
 
-  drawBossBar(ctx, b, '🐉 THE LEVIATHAN', '#1f7d62', '#2fae5a')
+  drawBossBar(ctx, b, '🐉 THE LEVIATHAN', '#1f7d62', '#2fae5a', idx)
 }
 
-function drawDutchman(ctx: CanvasRenderingContext2D, g: GS, w2s: (x: number, y: number) => { x: number; y: number }) {
-  const b = g.boss!; const s = w2s(b.x, b.y); const t = g.time
+function drawDutchman(ctx: CanvasRenderingContext2D, b: Boss, g: GS, w2s: (x: number, y: number) => { x: number; y: number }, idx: number) {
+  const s = w2s(b.x, b.y); const t = g.time
   // spectral fade per state
   let alpha = 0.9
   if (b.mode === 'arrive') alpha = 0.9 * (1 - clamp((b.modeT ?? 0) / 1.6, 0, 1))
@@ -1462,7 +1456,7 @@ function drawDutchman(ctx: CanvasRenderingContext2D, g: GS, w2s: (x: number, y: 
   ctx.fillRect(-4, 3, 4, 1.4)
   ctx.restore()
 
-  drawBossBar(ctx, b, '☠ THE FLYING DUTCHMAN', '#2f8a6e', '#1a5a8a')
+  drawBossBar(ctx, b, '☠ THE FLYING DUTCHMAN', '#2f8a6e', '#1a5a8a', idx)
 }
 
 function drawHUD(ctx: CanvasRenderingContext2D, g: GS) {
@@ -1495,14 +1489,14 @@ function drawHUD(ctx: CanvasRenderingContext2D, g: GS) {
   buffIcon(p.dmgBuff > 0, '⚔', '#ff5d5d'); buffIcon(p.shield > 0, '🛡', '#5db8ff'); buffIcon(p.rapid > 0, '⚡', '#ffe14d'); buffIcon(p.nitro > 0, '🔥', '#ffb13d')
 
   // minimap (top-right) — shift down under the boss bar when the Kraken is up
-  const mmw = 150, mmh = 100, mmx = VW - mmw - 14, mmy = g.boss ? 50 : 14
+  const mmw = 150, mmh = 100, mmx = VW - mmw - 14, mmy = g.bosses.length ? 26 + g.bosses.length * 24 : 14
   ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.strokeStyle = '#2a3340'; ctx.lineWidth = 1
   roundRect(ctx, mmx, mmy, mmw, mmh, 4); ctx.fill(); ctx.stroke()
   const sx = mmw / WW, sy = mmh / WH
   for (const ro of g.rocks) { ctx.fillStyle = '#3a4450'; ctx.beginPath(); ctx.arc(mmx + ro.x * sx, mmy + ro.y * sy, Math.max(2, ro.r * sx), 0, TAU); ctx.fill() }
   for (const e of g.enemies) { if (e.hp <= 0) continue; ctx.fillStyle = e.type === 'suicide' ? '#ff5d3d' : '#ff8a6a'; ctx.fillRect(mmx + e.x * sx - 1, mmy + e.y * sy - 1, 3, 3) }
   for (const pu of g.powerups) { ctx.fillStyle = '#5be08a'; ctx.fillRect(mmx + pu.x * sx - 1, mmy + pu.y * sy - 1, 2, 2) }
-  if (g.boss) { ctx.fillStyle = '#c0392b'; ctx.beginPath(); ctx.arc(mmx + g.boss.x * sx, mmy + g.boss.y * sy, 4, 0, TAU); ctx.fill() }
+  for (const bo of g.bosses) { ctx.fillStyle = '#c0392b'; ctx.beginPath(); ctx.arc(mmx + bo.x * sx, mmy + bo.y * sy, 4, 0, TAU); ctx.fill() }
   ctx.fillStyle = b.color; ctx.beginPath(); ctx.arc(mmx + p.x * sx, mmy + p.y * sy, 3, 0, TAU); ctx.fill()
 
   // banner
@@ -1720,7 +1714,7 @@ export default function PirateCarnage() {
       </div>
 
       <p style={{ color: '#605848', fontSize: 12, fontFamily: 'Inter,sans-serif', textAlign: 'center', maxWidth: 640, lineHeight: 1.6 }}>
-        Twisted Metal on the high seas. Pick a ship, boost through the chaos, grab power-ups, and survive the three-boss gauntlet — the Kraken, the Leviathan, then the Flying Dutchman. Win to earn <span style={{ color: '#c89b3c' }}>+25 Fun XP</span>.
+        Twisted Metal on the high seas. Pick a ship, boost through the chaos, grab power-ups, and survive all three legendary beasts at once — the Kraken, the Leviathan, AND the Flying Dutchman together. Win to earn <span style={{ color: '#c89b3c' }}>+25 Fun XP</span>.
       </p>
     </div>
   )
