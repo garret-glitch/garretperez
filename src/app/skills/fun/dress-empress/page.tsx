@@ -349,10 +349,19 @@ function Avatar({ equip, size = 300 }: { equip: Equip; size?: number }) {
 
       {renderDress(dress)}
 
-      {/* arms */}
-      <g fill={skin.base}>
-        <rect x="96" y="232" width="13" height="70" rx="6.5" transform="rotate(8 102 260)" />
-        <rect x="191" y="232" width="13" height="70" rx="6.5" transform="rotate(-8 198 260)" />
+      {/* arms — shoulders → hands resting at the sides */}
+      <g>
+        <path d="M126 184 Q108 238 116 298" stroke={skin.base} strokeWidth="13" fill="none" strokeLinecap="round" />
+        <path d="M174 184 Q192 238 184 298" stroke={skin.base} strokeWidth="13" fill="none" strokeLinecap="round" />
+        <circle cx="116" cy="300" r="8" fill={skin.base} />
+        <circle cx="184" cy="300" r="8" fill={skin.base} />
+        {dress && <>
+          {/* puff sleeves at the shoulders */}
+          <circle cx="127" cy="186" r="14" fill={dress.bodice} />
+          <circle cx="173" cy="186" r="14" fill={dress.bodice} />
+          <path d="M122 180 q5 -7 11 0" stroke={dress.trim} strokeWidth="2" fill="none" opacity="0.7" />
+          <path d="M167 180 q5 -7 11 0" stroke={dress.trim} strokeWidth="2" fill="none" opacity="0.7" />
+        </>}
       </g>
 
       {/* neck */}
@@ -512,13 +521,16 @@ function renderHairFront(p: any) {
   const { style, color, hi } = p
   return (
     <g>
-      {/* crown of hair / bangs */}
-      <path d="M110 112 Q150 64 190 112 Q188 92 150 80 Q112 92 110 112 Z" fill={color} />
-      <path d="M114 108 Q132 84 150 96 Q138 86 122 96 Z" fill={hi} opacity="0.6" />
-      {/* side fringe */}
-      <path d="M110 110 Q104 140 112 158 Q120 130 120 110 Z" fill={color} />
-      <path d="M190 110 Q196 140 188 158 Q180 130 180 110 Z" fill={color} />
-      {style === 'bun' && <circle cx="150" cy="72" r="13" fill={hi} opacity="0.5" />}
+      {/* full hair cap over the scalp — covers the whole crown so no skin shows */}
+      <path d="M104 122 Q96 70 150 62 Q204 70 196 122 Q150 96 104 122 Z" fill={color} />
+      {/* soft rounded bangs across the forehead */}
+      <path d="M108 120 Q128 102 150 110 Q172 102 192 120 Q172 92 150 96 Q128 92 108 120 Z" fill={color} />
+      {/* highlight sweep */}
+      <path d="M118 90 Q142 72 162 86 Q142 80 124 96 Z" fill={hi} opacity="0.55" />
+      {/* side fringe framing the face */}
+      <path d="M106 114 Q100 146 110 164 Q120 134 120 110 Z" fill={color} />
+      <path d="M194 114 Q200 146 190 164 Q180 134 180 110 Z" fill={color} />
+      {style === 'bun' && <circle cx="150" cy="70" r="13" fill={hi} opacity="0.5" />}
     </g>
   )
 }
