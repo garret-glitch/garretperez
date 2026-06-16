@@ -26,7 +26,7 @@ const Sfx = (() => {
         const AC = window.AudioContext || (window as any).webkitAudioContext
         ctx = new AC()
         master = ctx.createGain(); master.gain.value = 0.22; master.connect(ctx.destination)
-        musicBus = ctx.createGain(); musicBus.gain.value = 0.085; musicBus.connect(ctx.destination)
+        musicBus = ctx.createGain(); musicBus.gain.value = 0.072; musicBus.connect(ctx.destination)
       } catch { return null }
     }
     if (ctx && ctx.state === 'suspended') ctx.resume()
@@ -53,10 +53,10 @@ const Sfx = (() => {
   let stepTime = 0
   function buildFx() {
     if (!ctx || !musicBus || delay) return
-    delay = ctx.createDelay(0.7); delay.delayTime.value = 0.345
-    const fb = ctx.createGain(); fb.gain.value = 0.26
+    delay = ctx.createDelay(1.0); delay.delayTime.value = 0.45
+    const fb = ctx.createGain(); fb.gain.value = 0.32
     delay.connect(fb); fb.connect(delay)
-    delayMix = ctx.createGain(); delayMix.gain.value = 0.42; delayMix.connect(musicBus)
+    delayMix = ctx.createGain(); delayMix.gain.value = 0.4; delayMix.connect(musicBus)
     delay.connect(delayMix)
   }
   // a warm two-oscillator voice with a soft attack/decay envelope
@@ -78,19 +78,19 @@ const Sfx = (() => {
     { bass: 110.00, pad: [220.00, 261.63, 329.63], arp: [220.00, 261.63, 329.63, 440.00] },
     { bass: 87.31, pad: [174.61, 220.00, 261.63], arp: [174.61, 220.00, 261.63, 349.23] },
   ]
-  const STEP = 0.357, BAR = 8 // eighth-note step, 8 eighths per bar (~84 bpm)
+  const STEP = 0.6, BAR = 8 // slow, spacious step (~50 bpm) — calm & soothing
   function schedule() {
     if (!enabled || !ctx) return
     if (stepTime < ctx.currentTime) stepTime = ctx.currentTime + 0.05 // recover from tab throttling — no note pile-up
-    while (stepTime < ctx.currentTime + 0.3) {
+    while (stepTime < ctx.currentTime + 0.4) {
       const bar = Math.floor(beat / BAR) % PROG.length, inBar = beat % BAR, ch = PROG[bar]
       if (inBar === 0) {
-        ch.pad.forEach(f => voice(f, stepTime, STEP * BAR * 0.95, 'sine', 0.085, 0.45))
-        voice(ch.bass, stepTime, STEP * 2.2, 'sine', 0.16, 0.02)
+        ch.pad.forEach(f => voice(f, stepTime, STEP * BAR * 0.98, 'sine', 0.08, 0.9)) // long, slowly-swelling pad
+        voice(ch.bass, stepTime, STEP * 3, 'sine', 0.10, 0.06)                        // soft bass once per bar
       }
-      if (inBar === 4) voice(ch.bass, stepTime, STEP * 2.2, 'sine', 0.12, 0.02)
-      voice(ch.arp[inBar % ch.arp.length], stepTime, STEP * 1.5, 'triangle', 0.15, 0.006, true) // harp
-      if (inBar === 2 || inBar === 6) voice(ch.arp[(inBar + 1) % ch.arp.length] * 2, stepTime, STEP * 1.2, 'sine', 0.05, 0.006, true) // twinkle
+      // gentle harp note every other step (spacious), with a soft swell instead of a pluck
+      if (inBar % 2 === 0) voice(ch.arp[(inBar / 2) % ch.arp.length], stepTime, STEP * 2.4, 'triangle', 0.11, 0.06, true)
+      if (inBar === 5) voice(ch.arp[2] * 2, stepTime, STEP * 2, 'sine', 0.04, 0.05, true) // a single soft twinkle per bar
       stepTime += STEP; beat++
     }
   }
@@ -1808,9 +1808,9 @@ export default function DressEmpress() {
       <style>{DE_CSS}</style>
 
       {/* top nav */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <Link href="/skills/fun" style={{ ...pill, textDecoration: 'none', color: '#a04a7a' }}>← Games</Link>
-        <h1 style={{ fontSize: 16, color: '#b23a7a', textShadow: '0 2px 0 #fff', margin: 0 }}>👑 Empress Dress Up</h1>
+        <h1 style={{ fontSize: 15, color: '#b23a7a', textShadow: '0 2px 0 #fff', margin: 0 }}>👑 Empress Dress Up</h1>
         <button onClick={toggleSound} title={soundOn ? 'Sound on' : 'Sound off'}
           style={{ ...pill, color: '#a04a7a', cursor: 'pointer', minWidth: 40 }}>{soundOn ? '🔊' : '🔇'}</button>
       </div>
@@ -1820,7 +1820,7 @@ export default function DressEmpress() {
       {/* toast */}
       {toast && <div className="de-toast">{toast}</div>}
 
-      <div style={{ marginTop: 14 }}>
+      <div style={{ marginTop: 10 }}>
         {screen === 'home' && (
           <HomeScreen
             equip={equip} level={level} canClaim={canClaim}
@@ -1900,10 +1900,12 @@ export default function DressEmpress() {
         )}
       </div>
 
-      {/* leaderboard */}
-      <div style={{ marginTop: 18, maxWidth: 360, marginLeft: 'auto', marginRight: 'auto' }}>
-        <GameLeaderboard game="dress-empress" scoreLabel="Lv" refreshKey={refreshKey} />
-      </div>
+      {/* leaderboard — only on the home screen so other screens stay compact */}
+      {screen === 'home' && (
+        <div style={{ marginTop: 10, maxWidth: 360, marginLeft: 'auto', marginRight: 'auto' }}>
+          <GameLeaderboard game="dress-empress" scoreLabel="Lv" refreshKey={refreshKey} />
+        </div>
+      )}
     </div>
   )
 }
@@ -1919,13 +1921,13 @@ function MenuTile({ icon, label, sub, grad, shadow, onClick, badge, span }: any)
     <button onClick={() => { Sfx.click(); onClick() }}
       style={{
         gridColumn: span ? '1 / -1' : 'auto', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: '#5a2a4a',
-        borderRadius: 18, padding: span ? '16px 12px' : '14px 8px', background: grad,
-        boxShadow: `0 4px 0 ${shadow}, 0 6px 14px rgba(160,80,130,0.18)`,
-        display: 'flex', flexDirection: span ? 'row' : 'column', alignItems: 'center', justifyContent: 'center', gap: span ? 10 : 4, position: 'relative',
+        borderRadius: 16, padding: span ? '11px 12px' : '9px 6px', background: grad,
+        boxShadow: `0 4px 0 ${shadow}, 0 5px 12px rgba(160,80,130,0.16)`,
+        display: 'flex', flexDirection: span ? 'row' : 'column', alignItems: 'center', justifyContent: 'center', gap: span ? 10 : 3, position: 'relative',
       }}>
-      <span style={{ fontSize: span ? 26 : 24 }}>{icon}</span>
+      <span style={{ fontSize: span ? 24 : 22 }}>{icon}</span>
       <span style={{ display: 'flex', flexDirection: 'column', alignItems: span ? 'flex-start' : 'center' }}>
-        <span style={{ fontSize: span ? 16 : 11.5, fontWeight: 800 }}>{label}</span>
+        <span style={{ fontSize: span ? 15 : 11, fontWeight: 800 }}>{label}</span>
         {sub && <span style={{ fontSize: span ? 10 : 8, opacity: 0.65, fontWeight: 700 }}>{sub}</span>}
       </span>
       {badge && <span className="de-badge">!</span>}
@@ -1936,49 +1938,50 @@ function HomeScreen({ equip, level, canClaim, onPlay, onCloset, onShop, onDaily,
   const [editing, setEditing] = useState(false)
   const [tmp, setTmp] = useState(name)
   return (
-    <div className="de-card" style={{ maxWidth: 460, margin: '0 auto' }}>
-      {/* hero: her empress standing inside her decorated castle bedroom */}
-      <div style={{ position: 'relative', width: '100%', cursor: 'pointer', borderRadius: 16, overflow: 'hidden' }} onClick={() => { Sfx.click(); onCastle() }} title="Decorate your castle">
-        <RoomScene room={room} size={460} />
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', pointerEvents: 'none' }}>
-          <div className="de-bounce" style={{ marginBottom: '3%' }}>
-            <Avatar equip={equip} size={188} noBg />
+    <div className="de-card">
+      <div className="de-home">
+        {/* hero: her empress standing inside her decorated castle bedroom */}
+        <div className="de-home-hero" onClick={() => { Sfx.click(); onCastle() }} title="Decorate your castle">
+          <RoomScene room={room} size={300} />
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', pointerEvents: 'none' }}>
+            <div className="de-bounce" style={{ marginBottom: '3%' }}>
+              <Avatar equip={equip} size={124} noBg />
+            </div>
+          </div>
+          <div style={{ position: 'absolute', top: 7, left: 7, ...pill, fontSize: 9, padding: '5px 9px' }}>👑 Lv {level}</div>
+          <div style={{ position: 'absolute', bottom: 7, right: 7, ...pill, fontSize: 8, padding: '5px 8px' }}>🏰 Tap to decorate</div>
+        </div>
+
+        {/* menu */}
+        <div className="de-home-menu">
+          <div style={{ textAlign: 'center', marginBottom: 1 }}>
+            {editing ? (
+              <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+                <input value={tmp} maxLength={14} onChange={e => setTmp(e.target.value)}
+                  style={{ borderRadius: 999, border: '2px solid #ffb0d6', padding: '7px 12px', fontSize: 13, width: 120 }} />
+                <button style={{ ...btnGold, padding: '7px 12px' }} onClick={() => { Sfx.click(); onRename(tmp.trim() || 'Princess'); setEditing(false) }}>Save</button>
+              </div>
+            ) : (
+              <h2 style={{ fontSize: 18, color: '#b23a7a', margin: 0, textShadow: '0 2px 0 #fff' }}>
+                👑 {name} <button onClick={() => { setTmp(name); setEditing(true) }} style={{ ...pill, fontSize: 10, padding: '3px 7px', cursor: 'pointer' }}>✏️</button>
+              </h2>
+            )}
+          </div>
+
+          <MenuTile span icon="✨" label="Play Fashion Show" sub="Dress up & win stars!" grad="linear-gradient(135deg,#ffe89a,#f6c84a)" shadow="#d6a830" onClick={onPlay} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
+            <MenuTile icon="👗" label="Closet" grad="linear-gradient(135deg,#ffd6ec,#ffb0d6)" shadow="#e68fbf" onClick={onCloset} />
+            <MenuTile icon="🏰" label="Castle" grad="linear-gradient(135deg,#e0d0f8,#c4a8f0)" shadow="#a888d8" onClick={onCastle} />
+            <MenuTile icon="🛍️" label="Shop" grad="linear-gradient(135deg,#bdeede,#8fd6b8)" shadow="#6fbf9a" onClick={onShop} />
+            <MenuTile icon="🎁" label="Daily Gift" grad="linear-gradient(135deg,#ffe0a8,#ffcf6a)" shadow="#e0a840" onClick={onDaily} badge={canClaim} />
+          </div>
+          <p style={{ fontSize: 10, color: '#a06a90', textAlign: 'center', margin: '3px 0 1px', fontWeight: 800 }}>🎮 Mini-Games</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 7 }}>
+            <MenuTile icon="💎" label="Gem Catch" grad="linear-gradient(135deg,#cfe6ff,#9fc4f0)" shadow="#7fa8e0" onClick={onMini} />
+            <MenuTile icon="🛁" label="Bubble Bath" grad="linear-gradient(135deg,#d6f5ff,#a8e6f0)" shadow="#7fc8d8" onClick={onGroom} />
+            <MenuTile icon="⏱️" label="Closet Rush" grad="linear-gradient(135deg,#ffd9b0,#ffb87a)" shadow="#e89a55" onClick={onRush} />
           </div>
         </div>
-        <div style={{ position: 'absolute', top: 8, left: 8, ...pill, fontSize: 10 }}>👑 Lv {level}</div>
-        <div style={{ position: 'absolute', bottom: 8, right: 8, ...pill, fontSize: 9 }}>🏰 Tap to decorate</div>
-      </div>
-
-      {/* name */}
-      <div style={{ textAlign: 'center', margin: '10px 0' }}>
-        {editing ? (
-          <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
-            <input value={tmp} maxLength={14} onChange={e => setTmp(e.target.value)}
-              style={{ borderRadius: 999, border: '2px solid #ffb0d6', padding: '8px 12px', fontSize: 13, width: 130 }} />
-            <button style={{ ...btnGold, padding: '8px 12px' }} onClick={() => { Sfx.click(); onRename(tmp.trim() || 'Princess'); setEditing(false) }}>Save</button>
-          </div>
-        ) : (
-          <h2 style={{ fontSize: 20, color: '#b23a7a', margin: 0, textShadow: '0 2px 0 #fff' }}>
-            👑 {name} <button onClick={() => { setTmp(name); setEditing(true) }} style={{ ...pill, fontSize: 10, padding: '4px 8px', cursor: 'pointer' }}>✏️</button>
-          </h2>
-        )}
-      </div>
-
-      {/* primary action */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <MenuTile span icon="✨" label="Play Fashion Show" sub="Dress up & win stars!" grad="linear-gradient(135deg,#ffe89a,#f6c84a)" shadow="#d6a830" onClick={onPlay} />
-        <MenuTile icon="👗" label="Closet" grad="linear-gradient(135deg,#ffd6ec,#ffb0d6)" shadow="#e68fbf" onClick={onCloset} />
-        <MenuTile icon="🏰" label="Castle" grad="linear-gradient(135deg,#e0d0f8,#c4a8f0)" shadow="#a888d8" onClick={onCastle} />
-        <MenuTile icon="🛍️" label="Shop" grad="linear-gradient(135deg,#bdeede,#8fd6b8)" shadow="#6fbf9a" onClick={onShop} />
-        <MenuTile icon="🎁" label="Daily Gift" grad="linear-gradient(135deg,#ffe0a8,#ffcf6a)" shadow="#e0a840" onClick={onDaily} badge={canClaim} />
-      </div>
-
-      {/* mini-games */}
-      <p style={{ fontSize: 11, color: '#a06a90', textAlign: 'center', margin: '14px 0 8px', fontWeight: 800 }}>🎮 Mini-Games</p>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-        <MenuTile icon="💎" label="Gem Catch" grad="linear-gradient(135deg,#cfe6ff,#9fc4f0)" shadow="#7fa8e0" onClick={onMini} />
-        <MenuTile icon="🛁" label="Bubble Bath" grad="linear-gradient(135deg,#d6f5ff,#a8e6f0)" shadow="#7fc8d8" onClick={onGroom} />
-        <MenuTile icon="⏱️" label="Closet Rush" grad="linear-gradient(135deg,#ffd9b0,#ffb87a)" shadow="#e89a55" onClick={onRush} />
       </div>
     </div>
   )
@@ -2740,6 +2743,14 @@ const DE_CSS = `
 .de-root{ font-family: 'Inter', system-ui, sans-serif; padding: 6px; }
 .de-root *{ box-sizing: border-box; }
 .de-card{ background: linear-gradient(160deg,#fff7fb,#ffeef6); border: 3px solid #ffd6ec; border-radius: 22px; padding: 16px; box-shadow: 0 10px 30px rgba(200,100,160,0.18); }
+.de-home{ display:flex; gap:14px; align-items:center; }
+.de-home-hero{ flex:0 0 300px; position:relative; cursor:pointer; border-radius:16px; overflow:hidden; }
+.de-home-menu{ flex:1 1 280px; min-width:0; display:flex; flex-direction:column; gap:7px; }
+@media (max-width: 640px){
+  .de-home{ flex-direction:column; }
+  .de-home-hero{ flex:none; width:100%; max-width:340px; margin:0 auto; }
+  .de-home-menu{ flex:none; width:100%; }
+}
 .de-chip{ background: linear-gradient(135deg,#fff,#ffeaf5); border: 2px solid #ffd6ec; border-radius: 16px; padding: 10px; }
 .de-toast{ position: fixed; left: 50%; transform: translateX(-50%); bottom: 28px; background: #fff; color: #b23a7a; font-weight: 800; padding: 12px 22px; border-radius: 999px; border: 3px solid #ffb0d6; box-shadow: 0 8px 24px rgba(200,100,160,0.3); z-index: 50; font-size: 14px; animation: de-pop .3s ease; }
 .de-badge{ position: absolute; top: -6px; right: -4px; background: #ff4d8d; color: #fff; border-radius: 999px; width: 20px; height: 20px; display: grid; place-items: center; font-size: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
