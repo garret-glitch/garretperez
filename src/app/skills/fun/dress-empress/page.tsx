@@ -233,6 +233,24 @@ const HAIR_X: Item[] = [
   c('hair_space_pink', 'hair', 'Space Buns', 'rare', ['rainbow'], 320, { style: 'space', color: '#f29ac6', hi: '#ffc0de' }),
   c('hair_straight_silver', 'hair', 'Silver Straight', 'epic', ['winter', 'empress'], 30, { style: 'straight', color: '#dfe6f0', hi: '#ffffff' }, { gem: true, lvl: 14 }),
 ]
+/* ── even more hair (new shapes: afro, pixie, side pony, ringlets, heart buns) ── */
+const HAIR_Y: Item[] = [
+  c('hair_afro_brn', 'hair', 'Curly Afro', 'uncommon', ['sunny'], 170, { style: 'afro', color: '#3a2418', hi: '#5a3a22' }),
+  c('hair_pixie_blonde', 'hair', 'Blonde Pixie', 'uncommon', ['sunny'], 150, { style: 'pixie', color: '#e9c069', hi: '#f6dd96' }),
+  c('hair_sidepony_brn', 'hair', 'Side Ponytail', 'uncommon', ['sunny'], 160, { style: 'sidepony', color: '#7a4a2a', hi: '#9c6438' }),
+  c('hair_twin_blue', 'hair', 'Blue Twintails', 'uncommon', ['ocean', 'winter'], 160, { style: 'twin', color: '#6fb0e0', hi: '#a8d8f8' }),
+  c('hair_straight_pink', 'hair', 'Rose Straight', 'uncommon', ['princess'], 160, { style: 'straight', color: '#e87aa8', hi: '#ffa8cc' }),
+  c('hair_longcurl_blk', 'hair', 'Long Ringlets', 'uncommon', ['night'], 170, { style: 'longcurl', color: '#2c2733', hi: '#4a4458' }),
+  c('hair_pixie_silver', 'hair', 'Silver Pixie', 'rare', ['winter', 'empress'], 300, { style: 'pixie', color: '#dfe6f0', hi: '#ffffff' }),
+  c('hair_sidepony_teal', 'hair', 'Teal Side Pony', 'rare', ['mermaid', 'ocean'], 300, { style: 'sidepony', color: '#2fb0b0', hi: '#6fe0e0' }),
+  c('hair_longcurl_gold', 'hair', 'Golden Ringlets', 'rare', ['princess', 'queen'], 320, { style: 'longcurl', color: '#caa24a', hi: '#ecc868' }),
+  c('hair_bun_gold', 'hair', 'Golden Bun', 'rare', ['queen'], 300, { style: 'bun', color: '#caa24a', hi: '#ecc868' }),
+  c('hair_hearts_pink', 'hair', 'Heart Buns', 'rare', ['princess', 'rainbow'], 320, { style: 'hearts', color: '#f29ac6', hi: '#ffc0de' }),
+  c('hair_afro_pink', 'hair', 'Cotton Candy Afro', 'rare', ['rainbow'], 320, { style: 'afro', color: '#ff9ec4', hi: '#ffc0de' }),
+  c('hair_hearts_red', 'hair', 'Ruby Heart Buns', 'epic', ['dragon'], 30, { style: 'hearts', color: '#c0354a', hi: '#e0586a' }, { gem: true, lvl: 12 }),
+  c('hair_wave_white', 'hair', 'Pearl Waves', 'epic', ['winter', 'empress'], 30, { style: 'wave', color: '#eef2f8', hi: '#ffffff' }, { gem: true, lvl: 14 }),
+  c('hair_afro_cloud', 'hair', 'Cloud Afro', 'legendary', ['empress'], 70, { style: 'afro', color: '#eef2f8', hi: '#ffffff' }, { gem: true, lvl: 22 }),
+]
 /* ── extra dresses ── */
 const DRESS_X: Item[] = [
   c('dr_sun', 'dress', 'Sunny Sundress', 'common', ['sunny', 'garden'], 0, { shape: 'aline', bodice: '#ffd45a', skirt: '#ffe79a', trim: '#ffffff' }),
@@ -283,7 +301,7 @@ const PET_X: Item[] = [
 ]
 
 const ALL: Item[] = [
-  ...SKINS, ...EYES, ...HAIR, ...HAIR_X, ...DRESSES, ...DRESS_X,
+  ...SKINS, ...EYES, ...HAIR, ...HAIR_X, ...HAIR_Y, ...DRESSES, ...DRESS_X,
   ...TOPS, ...BOTTOMS, ...SHOES, ...SHOE_X, ...CROWNS, ...CROWN_X,
   ...NECKS, ...NECK_X, ...WINGS, ...CAPES, ...PETS, ...PET_X, ...BGS, ...EFFECTS,
 ]
@@ -691,6 +709,24 @@ function renderHairBack(p: any) {
   if (style === 'straight') return <path d="M104 108 L99 300 Q112 304 120 300 L120 150 L180 150 L180 300 Q188 304 201 300 L196 108 Z" fill={color} />
   if (style === 'space') return <g fill={color}>
     <circle cx="118" cy="76" r="14" /><circle cx="182" cy="76" r="14" />
+    <path d="M108 110 Q100 150 116 168 Q120 140 122 120 L178 120 Q180 140 184 168 Q200 150 192 110 Z" />
+  </g>
+  if (style === 'afro') return <g fill={color}>
+    <circle cx="150" cy="104" r="56" /><circle cx="104" cy="120" r="20" /><circle cx="196" cy="120" r="20" />
+    <circle cx="118" cy="68" r="20" /><circle cx="182" cy="68" r="20" /><circle cx="150" cy="58" r="20" />
+  </g>
+  if (style === 'pixie') return <path d="M108 108 Q104 140 118 148 Q120 130 122 116 L178 116 Q180 130 182 148 Q196 140 192 108 Z" fill={color} />
+  if (style === 'sidepony') return <g fill={color}>
+    <path d="M104 110 Q92 168 108 208 Q120 168 122 140 L178 140 Q182 158 186 174 Q210 150 200 110 Z" />
+    <path d="M186 152 Q226 184 220 244 Q234 296 204 326 Q216 258 190 192 Z" />
+  </g>
+  if (style === 'longcurl') return <g fill={color}>
+    <path d="M104 110 Q80 210 104 288 Q120 220 122 150 L178 150 Q180 220 196 288 Q220 210 196 110 Z" />
+    <circle cx="102" cy="296" r="12" /><circle cx="198" cy="296" r="12" />
+    <circle cx="113" cy="308" r="9" /><circle cx="187" cy="308" r="9" />
+  </g>
+  if (style === 'hearts') return <g fill={color}>
+    <path d={heartD(120, 78, 15)} /><path d={heartD(180, 78, 15)} />
     <path d="M108 110 Q100 150 116 168 Q120 140 122 120 L178 120 Q180 140 184 168 Q200 150 192 110 Z" />
   </g>
   // wave (default): big flowing hair behind shoulders
