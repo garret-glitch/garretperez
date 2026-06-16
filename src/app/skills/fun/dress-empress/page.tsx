@@ -1511,7 +1511,7 @@ const btnGold: React.CSSProperties = {
 }
 
 /* ════════════════════════ MAIN COMPONENT ════════════════════════ */
-type Screen = 'loading' | 'home' | 'dressing' | 'result' | 'challenges' | 'shop' | 'daily' | 'minigame' | 'castle'
+type Screen = 'loading' | 'home' | 'dressing' | 'result' | 'challenges' | 'shop' | 'daily' | 'minigame' | 'castle' | 'grooming' | 'closetrush'
 
 export default function DressEmpress() {
   const [save, setSave] = useState<Save | null>(null)
@@ -1589,6 +1589,11 @@ export default function DressEmpress() {
       }
     })
   }, [showToast])
+
+  // shared mini-game reward
+  const giveReward = useCallback((coins: number, gems = 0, xp = 0) => {
+    setSave(s => s ? { ...s, coins: s.coins + coins, gems: s.gems + gems, xp: s.xp + xp } : s)
+  }, [])
 
   const claimDaily = useCallback(() => {
     setSave(s => {
@@ -1695,6 +1700,8 @@ export default function DressEmpress() {
             onShop={() => setScreen('shop')}
             onDaily={() => setScreen('daily')}
             onMini={() => setScreen('minigame')}
+            onGroom={() => setScreen('grooming')}
+            onRush={() => setScreen('closetrush')}
             onCastle={() => setScreen('castle')}
             room={save.castle.rooms.bedroom || defaultRoom('bedroom')}
             refreshKey={refreshKey}
@@ -1743,11 +1750,15 @@ export default function DressEmpress() {
         )}
 
         {screen === 'minigame' && (
-          <GemGame
-            onBack={() => setScreen('home')}
-            onReward={(coins: number, gems: number) => setSave(s => s ? { ...s, coins: s.coins + coins, gems: s.gems + gems } : s)}
-            showToast={showToast}
-          />
+          <GemGame onBack={() => setScreen('home')} onReward={giveReward} showToast={showToast} />
+        )}
+
+        {screen === 'grooming' && (
+          <PetGroomScreen petId={save.equip.pet} onBack={() => setScreen('home')} onReward={giveReward} showToast={showToast} />
+        )}
+
+        {screen === 'closetrush' && (
+          <ClosetRushScreen onBack={() => setScreen('home')} onReward={giveReward} showToast={showToast} />
         )}
 
         {screen === 'castle' && (
@@ -1774,7 +1785,7 @@ const pill: React.CSSProperties = {
 }
 
 /* ───────── HOME ───────── */
-function HomeScreen({ equip, level, canClaim, onPlay, onCloset, onShop, onDaily, onMini, onCastle, room, name, onRename }: any) {
+function HomeScreen({ equip, level, canClaim, onPlay, onCloset, onShop, onDaily, onMini, onGroom, onRush, onCastle, room, name, onRename }: any) {
   const [editing, setEditing] = useState(false)
   const [tmp, setTmp] = useState(name)
   return (
@@ -1808,7 +1819,9 @@ function HomeScreen({ equip, level, canClaim, onPlay, onCloset, onShop, onDaily,
         <button style={btn} onClick={onCloset}>👗 My Closet</button>
         <button style={btn} onClick={onCastle}>🏰 My Castle</button>
         <button style={btn} onClick={onShop}>🛍️ Shop</button>
-        <button style={btn} onClick={onMini}>💎 Gem Catch Mini-Game</button>
+        <button style={btn} onClick={onMini}>💎 Gem Catch</button>
+        <button style={btn} onClick={onGroom}>🧼 Pet Grooming</button>
+        <button style={btn} onClick={onRush}>⏱️ Closet Rush</button>
         <button style={{ ...btn, position: 'relative' }} onClick={onDaily}>
           🎁 Daily Reward {canClaim && <span className="de-badge">!</span>}
         </button>
@@ -2146,6 +2159,211 @@ function CastleScreen({ save, level, onBuy, onPlace, onBack, showToast }: any) {
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+/* ───────── PET GROOMING MINI-GAME ───────── */
+const GROOM_STAGES = [
+  { key: 'brush', label: 'Brush off the dirt!', spot: '#9a6a3a', emoji: '🟤' },
+  { key: 'wash', label: 'Scrub away the bubbles!', spot: '#ffffff', emoji: '🫧' },
+  { key: 'dry', label: 'Dab the water drops dry!', spot: '#7fc8e8', emoji: '💧' },
+]
+function makeGroomSpots() {
+  return Array.from({ length: 5 }, () => ({ id: Math.random(), x: 24 + Math.random() * 50, y: 26 + Math.random() * 46 }))
+}
+function PetGroomScreen({ petId, onBack, onReward, showToast }: any) {
+  const [phase, setPhase] = useState<'play' | 'done'>('play')
+  const [stage, setStage] = useState(0)
+  const [spots, setSpots] = useState(makeGroomSpots)
+  const rewarded = useRef(false)
+  const got = useRef({ coins: 0, gems: 0 })
+  const petP = (BY_ID[petId]?.p && BY_ID[petId].p.style !== 'none') ? BY_ID[petId].p : BY_ID['pet_bunny'].p
+  const st = GROOM_STAGES[stage]
+
+  useEffect(() => {
+    if (phase !== 'play' || spots.length > 0) return
+    if (stage < GROOM_STAGES.length - 1) {
+      setStage(s => s + 1); setSpots(makeGroomSpots())
+    } else if (!rewarded.current) {
+      rewarded.current = true
+      const coins = 80, gems = Math.random() < 0.3 ? 1 : 0
+      got.current = { coins, gems }
+      onReward(coins, gems, 0)
+      showToast(`Sparkly clean! +${coins} coins${gems ? ' & 1 💎' : ''} 🫧`)
+      setPhase('done')
+    }
+  }, [spots, phase, stage, onReward, showToast])
+
+  const replay = () => { rewarded.current = false; setStage(0); setSpots(makeGroomSpots()); setPhase('play') }
+
+  return (
+    <div className="de-card" style={{ textAlign: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+        <button style={pill as any} onClick={onBack}>← Home</button>
+        <h2 style={{ fontSize: 15, color: '#b23a7a', margin: 0 }}>🧼 Pet Grooming</h2>
+        <span style={{ width: 50 }} />
+      </div>
+
+      {phase === 'play' && (
+        <>
+          <p style={{ fontSize: 14, color: '#7a4a6a', fontWeight: 700, margin: '0 0 4px' }}>{st.emoji} {st.label}</p>
+          <p style={{ fontSize: 10, color: '#a06a90', marginTop: 0 }}>Step {stage + 1} of 3 · {spots.length} left</p>
+          <div style={{ position: 'relative', width: 220, height: 250, margin: '0 auto', background: 'linear-gradient(160deg,#fff6fb,#e6f2ff)', borderRadius: 18, border: '3px solid #ffd6ec' }}>
+            <svg viewBox="190 266 84 108" width="220" height="250" style={{ display: 'block' }}>{renderPet(petP)}</svg>
+            {spots.map(sp => (
+              <button key={sp.id} className="de-pop"
+                onClick={() => setSpots(prev => prev.filter(x => x.id !== sp.id))}
+                style={{
+                  position: 'absolute', left: `${sp.x}%`, top: `${sp.y}%`, width: 30, height: 30, borderRadius: 999,
+                  border: st.key === 'wash' ? '2px solid #bcd8f0' : 'none', cursor: 'pointer', padding: 0,
+                  background: st.spot, opacity: st.key === 'wash' ? 0.7 : 0.9, boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+                }} />
+            ))}
+          </div>
+          <p style={{ fontSize: 10, color: '#c08fb0', marginTop: 8 }}>Tap each spot to clean your pet! 💕</p>
+        </>
+      )}
+
+      {phase === 'done' && (
+        <div style={{ padding: 16 }}>
+          <div className="de-bounce" style={{ position: 'relative', width: 200, height: 220, margin: '0 auto' }}>
+            <svg viewBox="190 266 84 108" width="200" height="220">{renderPet(petP)}</svg>
+            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', fontSize: 22 }}>
+              <span className="de-twinkle" style={{ position: 'absolute', left: '12%', top: '16%' }}>✨</span>
+              <span className="de-twinkle" style={{ position: 'absolute', right: '14%', top: '24%', animationDelay: '.4s' }}>✨</span>
+              <span className="de-twinkle" style={{ position: 'absolute', left: '40%', top: '6%', animationDelay: '.8s' }}>💖</span>
+            </div>
+          </div>
+          <h3 style={{ color: '#b23a7a', fontSize: 18 }}>All clean and happy! 🛁</h3>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 8 }}>
+            <div style={pill}>🪙 +{got.current.coins}</div>
+            {got.current.gems > 0 && <div style={pill}>💎 +{got.current.gems}</div>}
+          </div>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 14 }}>
+            <button style={btnGold} onClick={replay}>Groom Again</button>
+            <button style={btn} onClick={onBack}>🏰 Home</button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ───────── CLOSET RUSH MINI-GAME ───────── */
+const RUSH_POOL = ALL.filter(i => ['dress', 'hair', 'shoes', 'crown', 'necklace', 'wings', 'cape', 'pet', 'top', 'bottom'].includes(i.cat) && i.p?.style !== 'none' && i.p?.shape !== 'none')
+function rushShuffle<T>(a: T[]): T[] { const r = [...a]; for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[r[i], r[j]] = [r[j], r[i]] } return r }
+function ClosetRushScreen({ onBack, onReward, showToast }: any) {
+  const [phase, setPhase] = useState<'ready' | 'play' | 'done'>('ready')
+  const [time, setTime] = useState(28)
+  const [targets, setTargets] = useState<Item[]>([])
+  const [grid, setGrid] = useState<Item[]>([])
+  const [found, setFound] = useState<string[]>([])
+  const [themeLabel, setThemeLabel] = useState('')
+  const foundRef = useRef<string[]>([])
+  const ended = useRef(false)
+  const got = useRef({ coins: 0, xp: 0, found: 0, total: 0, all: false })
+
+  const start = () => {
+    const keys = Object.keys(THEME_LABEL) as Theme[]
+    let theme = keys[0], themed: Item[] = []
+    for (let t = 0; t < 10; t++) { theme = keys[Math.floor(Math.random() * keys.length)]; themed = RUSH_POOL.filter(i => i.themes.includes(theme)); if (themed.length >= 3) break }
+    const tg = rushShuffle(themed).slice(0, 4)
+    if (tg.length < 4) tg.push(...rushShuffle(RUSH_POOL.filter(i => !tg.includes(i))).slice(0, 4 - tg.length))
+    const decoys = rushShuffle(RUSH_POOL.filter(i => !tg.includes(i))).slice(0, 8)
+    foundRef.current = []; ended.current = false
+    setTargets(tg); setGrid(rushShuffle([...tg, ...decoys])); setFound([]); setThemeLabel(THEME_LABEL[theme]); setTime(28); setPhase('play')
+  }
+
+  const endGame = useCallback((tg: Item[]) => {
+    if (ended.current) return
+    ended.current = true
+    const fc = foundRef.current.length
+    const all = fc === tg.length
+    const coins = fc * 30 + (all ? 60 : 0)
+    const xp = fc * 5
+    got.current = { coins, xp, found: fc, total: tg.length, all }
+    onReward(coins, 0, xp)
+    setPhase('done')
+  }, [onReward])
+
+  useEffect(() => {
+    if (phase !== 'play') return
+    const clock = window.setInterval(() => setTime(t => { if (t <= 1) { window.clearInterval(clock); endGame(targets); return 0 } return t - 1 }), 1000)
+    return () => window.clearInterval(clock)
+  }, [phase, targets, endGame])
+
+  const tapItem = (it: Item) => {
+    if (foundRef.current.includes(it.id)) return
+    if (targets.some(t => t.id === it.id)) {
+      const nf = [...foundRef.current, it.id]; foundRef.current = nf; setFound(nf)
+      if (nf.length === targets.length) endGame(targets)
+    } else {
+      setTime(t => Math.max(0, t - 3)); showToast('Not on the list! −3s ⏱️')
+    }
+  }
+
+  return (
+    <div className="de-card">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+        <button style={pill as any} onClick={onBack}>← Home</button>
+        <h2 style={{ fontSize: 15, color: '#b23a7a', margin: 0 }}>⏱️ Closet Rush</h2>
+        {phase === 'play' ? <div style={pill}>⏱️ {time}s</div> : <span style={{ width: 50 }} />}
+      </div>
+
+      {phase === 'ready' && (
+        <div style={{ padding: 24, textAlign: 'center' }}>
+          <p style={{ fontSize: 14, color: '#7a4a6a' }}>Find all the outfit pieces on your list before time runs out! 👗<br />Wrong taps cost 3 seconds.</p>
+          <button style={{ ...btnGold, fontSize: 16, marginTop: 12 }} onClick={start}>Start! ⏱️</button>
+        </div>
+      )}
+
+      {phase === 'play' && (
+        <>
+          <div style={{ textAlign: 'center', marginBottom: 8 }}>
+            <p style={{ fontSize: 12, color: '#a06a90', margin: '0 0 6px' }}>Find these <b style={{ color: '#b23a7a' }}>{themeLabel}</b> pieces:</p>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
+              {targets.map(t => {
+                const f = found.includes(t.id)
+                return <span key={t.id} style={{ ...pill, fontSize: 10, padding: '5px 10px', background: f ? '#e8ffe8' : '#fff', color: f ? '#4faf6a' : '#a04a7a' }}>{f ? '✅' : '🔍'} {t.name}</span>
+              })}
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(82px,1fr))', gap: 8 }}>
+            {grid.map(it => {
+              const f = found.includes(it.id)
+              return (
+                <button key={it.id} onClick={() => tapItem(it)} disabled={f}
+                  style={{
+                    border: f ? '3px solid #5fbf7a' : '2px solid #ffe0ef', borderRadius: 12, padding: 6, cursor: f ? 'default' : 'pointer',
+                    background: f ? '#f0fff0' : '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, position: 'relative', opacity: f ? 0.6 : 1,
+                  }}>
+                  <ItemThumb item={it} />
+                  <div style={{ fontSize: 8.5, fontWeight: 700, color: '#7a4a6a', textAlign: 'center', lineHeight: 1.1 }}>{it.name}</div>
+                  {f && <div style={{ position: 'absolute', top: -6, right: -6, fontSize: 16 }}>✅</div>}
+                </button>
+              )
+            })}
+          </div>
+        </>
+      )}
+
+      {phase === 'done' && (
+        <div style={{ padding: 24, textAlign: 'center' }}>
+          <div className="de-pop" style={{ fontSize: 40 }}>{got.current.all ? '🎉' : '👗'}</div>
+          <h3 style={{ color: '#b23a7a', fontSize: 18 }}>
+            {got.current.all ? 'Perfect! You found them all!' : `You found ${got.current.found} of ${got.current.total}!`}
+          </h3>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 10 }}>
+            <div style={pill}>🪙 +{got.current.coins}</div>
+            <div style={pill}>✨ +{got.current.xp} XP</div>
+          </div>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 14 }}>
+            <button style={btnGold} onClick={start}>Play Again</button>
+            <button style={btn} onClick={onBack}>🏰 Home</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
