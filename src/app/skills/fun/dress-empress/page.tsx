@@ -567,21 +567,39 @@ const DECOR_SLOTS: { slot: DecorSlot; label: string; icon: string }[] = [
   { slot: 'plant', label: 'Plants', icon: '🪴' },
   { slot: 'light', label: 'Lights', icon: '💡' },
 ]
+// All rooms are open from the start — decorating is the fun, no level gating.
 const ROOMS: { id: string; name: string; icon: string; lvl: number }[] = [
   { id: 'bedroom', name: 'Bedroom', icon: '🛏️', lvl: 1 },
-  { id: 'tearoom', name: 'Tea Room', icon: '🫖', lvl: 3 },
-  { id: 'throne', name: 'Throne Room', icon: '👑', lvl: 5 },
-  { id: 'garden', name: 'Garden', icon: '🌸', lvl: 5 },
-  { id: 'petroom', name: 'Pet Room', icon: '🐾', lvl: 8 },
-  { id: 'ballroom', name: 'Ballroom', icon: '💃', lvl: 10 },
-  { id: 'magic', name: 'Magic Room', icon: '✨', lvl: 12 },
+  { id: 'tearoom', name: 'Tea Room', icon: '🫖', lvl: 1 },
+  { id: 'throne', name: 'Throne Room', icon: '👑', lvl: 1 },
+  { id: 'garden', name: 'Garden', icon: '🌸', lvl: 1 },
+  { id: 'petroom', name: 'Pet Room', icon: '🐾', lvl: 1 },
+  { id: 'ballroom', name: 'Ballroom', icon: '💃', lvl: 1 },
+  { id: 'magic', name: 'Magic Room', icon: '✨', lvl: 1 },
 ]
 type Room = Record<DecorSlot, string>
-function defaultRoom(): Room {
-  return { wallpaper: 'wp_pink', floor: 'fl_wood', furniture: 'fr_bed_pink', rug: 'rug_pink', window: 'win_day', wallart: 'art_portrait', plant: 'plant_rose', light: 'light_gold' }
+// Each room opens with its own themed starting look.
+const ROOM_DEFAULTS: Record<string, Room> = {
+  bedroom: { wallpaper: 'wp_pink', floor: 'fl_wood', furniture: 'fr_bed_pink', rug: 'rug_pink', window: 'win_day', wallart: 'art_portrait', plant: 'plant_rose', light: 'light_gold' },
+  tearoom: { wallpaper: 'wp_mint', floor: 'fl_marble', furniture: 'fr_table', rug: 'rug_none', window: 'win_day', wallart: 'art_landscape', plant: 'plant_tulips', light: 'light_gold' },
+  throne: { wallpaper: 'wp_gold', floor: 'fl_gold', furniture: 'fr_throne_gold', rug: 'rug_royal', window: 'win_arch', wallart: 'art_clock', plant: 'plant_tree', light: 'light_gold' },
+  garden: { wallpaper: 'wp_blue', floor: 'fl_grass', furniture: 'fr_sofa', rug: 'rug_none', window: 'win_arch', wallart: 'art_landscape', plant: 'plant_tree', light: 'light_pink' },
+  petroom: { wallpaper: 'wp_blue', floor: 'fl_pink', furniture: 'fr_petbed', rug: 'rug_pink', window: 'win_day', wallart: 'art_portrait', plant: 'plant_fern', light: 'light_gold' },
+  ballroom: { wallpaper: 'wp_lavender', floor: 'fl_marble', furniture: 'fr_sofa', rug: 'rug_royal', window: 'win_arch', wallart: 'art_mirror', plant: 'plant_tree', light: 'light_crystal' },
+  magic: { wallpaper: 'wp_stars', floor: 'fl_galaxy', furniture: 'fr_cauldron', rug: 'rug_star', window: 'win_night', wallart: 'art_mirror', plant: 'plant_fern', light: 'light_crystal' },
 }
+function defaultRoom(roomId = 'bedroom'): Room {
+  return { ...ROOM_DEFAULTS[roomId] || ROOM_DEFAULTS.bedroom }
+}
+// every decor piece used in a room's default look is owned for free, so rooms look right out of the box
+const ROOM_DEFAULT_IDS = Array.from(new Set(Object.values(ROOM_DEFAULTS).flatMap(r => Object.values(r))))
 interface Castle { owned: string[]; rooms: Record<string, Room> }
-function freshCastle(): Castle { return { owned: [...DECOR_STARTERS], rooms: { bedroom: defaultRoom() } } }
+function freshCastle(): Castle {
+  return {
+    owned: Array.from(new Set([...DECOR_STARTERS, ...ROOM_DEFAULT_IDS])),
+    rooms: Object.fromEntries(ROOMS.map(r => [r.id, defaultRoom(r.id)])),
+  }
+}
 
 /* ════════════════════════ JUDGES (cute, positive) ════════════════════════ */
 const JUDGES = ['Queen Rose 🌹', 'Fairy Luna 🌙', 'Mermaid Pearl 🐚', 'Princess Ember 🔥', 'Duchess Violet 💜']
@@ -641,7 +659,11 @@ function loadSave(): Save {
       owned: Array.from(new Set([...STARTERS, ...(s.owned || [])])),
       best: s.best || {},
       castle: s.castle && s.castle.owned
-        ? { owned: Array.from(new Set([...DECOR_STARTERS, ...s.castle.owned])), rooms: s.castle.rooms || { bedroom: defaultRoom() } }
+        ? {
+            owned: Array.from(new Set([...DECOR_STARTERS, ...ROOM_DEFAULT_IDS, ...s.castle.owned])),
+            // keep any rooms the player already decorated; fill in the rest with themed defaults
+            rooms: Object.fromEntries(ROOMS.map(r => [r.id, (s.castle.rooms && s.castle.rooms[r.id]) || defaultRoom(r.id)])),
+          }
         : freshCastle(),
     }
   } catch { return freshSave() }
@@ -1544,7 +1566,7 @@ export default function DressEmpress() {
       ...s,
       castle: {
         ...s.castle,
-        rooms: { ...s.castle.rooms, [roomId]: { ...defaultRoom(), ...(s.castle.rooms[roomId] || {}), [slot]: decorId } },
+        rooms: { ...s.castle.rooms, [roomId]: { ...defaultRoom(roomId), ...(s.castle.rooms[roomId] || {}), [slot]: decorId } },
       },
     } : s)
   }, [])
@@ -1557,7 +1579,7 @@ export default function DressEmpress() {
       if (dec.gem) { if (s.gems < dec.price) { showToast('Not enough gems 💎'); return s } }
       else if (s.coins < dec.price) { showToast('Not enough coins 🪙'); return s }
       showToast(`Unlocked ${dec.name}! +8 XP ✨`)
-      const room = { ...defaultRoom(), ...(s.castle.rooms[roomId] || {}), [slot]: dec.id }
+      const room = { ...defaultRoom(roomId), ...(s.castle.rooms[roomId] || {}), [slot]: dec.id }
       return {
         ...s,
         coins: dec.gem ? s.coins : s.coins - dec.price,
@@ -2039,7 +2061,7 @@ function DailyScreen({ save, canClaim, onClaim, onBack }: any) {
 function CastleScreen({ save, level, onBuy, onPlace, onBack, showToast }: any) {
   const [roomId, setRoomId] = useState('bedroom')
   const [slot, setSlot] = useState<DecorSlot>('furniture')
-  const room: Room = { ...defaultRoom(), ...(save.castle.rooms[roomId] || {}) }
+  const room: Room = { ...defaultRoom(roomId), ...(save.castle.rooms[roomId] || {}) }
   const items = DECOR.filter((x: Decor) => x.slot === slot)
   const roomMeta = ROOMS.find(r => r.id === roomId)!
   return (
