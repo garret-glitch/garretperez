@@ -159,6 +159,7 @@ const Sfx = (() => {
 
 /* ═══ TYPES ═══ */
 interface Player {
+  id: number; build: Build; dead: boolean; respawn: number
   x: number; y: number; vx: number; vy: number; heading: number
   hp: number; maxHp: number; boost: number; boostMax: number; boosting: boolean
   primaryCd: number; secAmmo: number; secCd: number
@@ -193,12 +194,12 @@ interface Rock { x: number; y: number; r: number; seed: number }
 interface Foam { x: number; y: number; len: number; ph: number }
 interface Build { id: string; name: string; icon: string; color: string; accent: string; hp: number; speed: number; accel: number; boostMax: number; dmg: number; fireRate: number; range: number; armor: number; desc: string; weapon: string }
 interface GS {
-  player: Player; enemies: Enemy[]; bullets: Bullet[]; powerups: PowerUp[]
+  players: Player[]; enemies: Enemy[]; bullets: Bullet[]; powerups: PowerUp[]
   particles: Particle[]; beams: Beam[]; tentacles: Tentacle[]; texts: FloatText[]
   rocks: Rock[]; foam: Foam[]; bosses: Boss[]
   cam: { x: number; y: number }; shake: number; time: number
   kills: number; score: number; wave: number; spawnCd: number; bossSpawned: boolean
-  build: Build; state: string; lightCd: number; lightning: { x: number; y: number; t: number; state: string } | null
+  state: string; lightCd: number; lightning: { x: number; y: number; t: number; state: string } | null
   banner: { txt: string; sub: string; life: number } | null; flash: number; hitStop: number
 }
 
@@ -232,7 +233,16 @@ const PUPS: Record<string, { icon: string; color: string; label: string }> = {
 const PUP_KINDS = Object.keys(PUPS)
 
 /* ═══ STATE FACTORY ═══ */
-function mkState(build: Build): GS {
+function mkPlayer(id: number, build: Build, x: number, y: number): Player {
+  return {
+    id, build, dead: false, respawn: 0,
+    x, y, vx: 0, vy: 0, heading: -Math.PI / 2,
+    hp: build.hp, maxHp: build.hp, boost: build.boostMax, boostMax: build.boostMax, boosting: false,
+    primaryCd: 0, secAmmo: 4, secCd: 0, ult: 0, ultMax: 100, ultTimer: 0, ultFireCd: 0,
+    iframe: 1.2, dmgBuff: 0, rapid: 0, shield: 0, nitro: 0, recoil: 0,
+  }
+}
+function mkState(builds: Build[]): GS {
   const rocks: Rock[] = []
   const tryRock = (x: number, y: number, r: number) => {
     if (dist(x, y, WW / 2, WH / 2) < 280) return // keep spawn clear
@@ -242,17 +252,14 @@ function mkState(build: Build): GS {
   for (let i = 0; i < 8; i++) tryRock(rnd(200, WW - 200), rnd(200, WH - 200), rnd(40, 80))
   const foam: Foam[] = []
   for (let i = 0; i < 150; i++) foam.push({ x: rnd(0, WW), y: rnd(0, WH), len: rnd(10, 26), ph: rnd(0, TAU) })
+  const players = builds.map((bd, i) =>
+    mkPlayer(i, bd, WW / 2 + (builds.length > 1 ? (i === 0 ? -70 : 70) : 0), WH / 2))
   return {
-    player: {
-      x: WW / 2, y: WH / 2, vx: 0, vy: 0, heading: -Math.PI / 2,
-      hp: build.hp, maxHp: build.hp, boost: build.boostMax, boostMax: build.boostMax, boosting: false,
-      primaryCd: 0, secAmmo: 4, secCd: 0, ult: 0, ultMax: 100, ultTimer: 0, ultFireCd: 0,
-      iframe: 0.6, dmgBuff: 0, rapid: 0, shield: 0, nitro: 0, recoil: 0,
-    },
+    players,
     enemies: [], bullets: [], powerups: [], particles: [], beams: [], tentacles: [], texts: [],
     rocks, foam, bosses: [], cam: { x: 0, y: 0 }, shake: 0, time: 0,
     kills: 0, score: 0, wave: 1, spawnCd: 1.0, bossSpawned: false,
-    build, state: 'playing', lightCd: 6, lightning: null,
+    state: 'playing', lightCd: 6, lightning: null,
     banner: { txt: 'SET SAIL', sub: 'DESTROY EVERYTHING', life: 2.2 }, flash: 0, hitStop: 0,
   }
 }
@@ -279,11 +286,23 @@ function explode(g: GS, x: number, y: number, radius: number, dmg: number, frien
   for (const e of g.enemies) { if (dist(x, y, e.x, e.y) < radius + e.radius) damageEnemy(g, e, dmg, x, y) }
   if (dmg > 0) { const h = bossHitTest(g, x, y, radius); if (h) damageBoss(g, h.b, dmg * h.mult, x, y) }
   if (!friendly) {
-    const p = g.player
-    const d = dist(x, y, p.x, p.y)
-    if (d < radius + 18) hurtPlayer(g, dmg * (1 - d / (radius + 40)))
+    for (const p of g.players) {
+      if (p.dead) continue
+      const d = dist(x, y, p.x, p.y)
+      if (d < radius + 18) hurtPlayer(g, p, dmg * (1 - d / (radius + 40)))
+    }
   }
 }
+
+/* ═══ PLAYER HELPERS ═══ */
+const aliveP = (g: GS): Player[] => g.players.filter(p => !p.dead)
+function nearestPlayer(g: GS, x: number, y: number): Player | null {
+  let best: Player | null = null, bd = Infinity
+  for (const p of g.players) { if (p.dead) continue; const d = dist(x, y, p.x, p.y); if (d < bd) { bd = d; best = p } }
+  return best
+}
+// the player a boss/enemy should target — nearest living, falling back to any
+const targetPlayer = (g: GS, x: number, y: number): Player => nearestPlayer(g, x, y) ?? g.players[0]
 
 /* ═══ DAMAGE ═══ */
 function damageEnemy(g: GS, e: Enemy, dmg: number, fromX: number, fromY: number, crit = false) {
@@ -297,7 +316,7 @@ function killEnemy(g: GS, e: Enemy) {
   const def = EDEF[e.type]
   e.hp = -999 // mark dead
   g.kills++; g.score += def.score
-  g.player.ult = Math.min(g.player.ultMax, g.player.ult + (def.score / 10) * 1.4)
+  for (const pl of aliveP(g)) pl.ult = Math.min(pl.ultMax, pl.ult + (def.score / 10) * 1.4)
   ftext(g, e.x, e.y - e.radius, '+' + def.score, '#c89b3c', 12)
   explode(g, e.x, e.y, e.radius + 8, 0, true)
   burst(g, e.x, e.y, def.color, 12, 160, 'debris', 4)
@@ -344,20 +363,24 @@ function damageBoss(g: GS, b: Boss, dmg: number, fromX: number, fromY: number) {
   if (b.dying > 0) return
   b.hp -= dmg; b.hitFlash = 0.1
   burst(g, fromX, fromY, '#a8ffb0', 4, 120, 'spark', 3)
-  g.player.ult = Math.min(g.player.ultMax, g.player.ult + dmg * 0.05)
+  for (const pl of aliveP(g)) pl.ult = Math.min(pl.ultMax, pl.ult + dmg * 0.05)
   if (b.hp <= 0) startBossDeath(g, b)
 }
-function hurtPlayer(g: GS, dmg: number) {
-  const p = g.player
-  if (p.shield > 0 || p.iframe > 0 || g.state !== 'playing') return
-  dmg *= g.build.armor
+function hurtPlayer(g: GS, p: Player, dmg: number) {
+  if (p.dead || p.shield > 0 || p.iframe > 0 || g.state !== 'playing') return
+  dmg *= p.build.armor
   p.hp -= dmg; p.iframe = 0.55; g.shake = Math.min(26, g.shake + 8); g.flash = 0.25; g.hitStop = 0.05
   Sfx.hurt(); burst(g, p.x, p.y, '#ff5d5d', 10, 180, 'spark', 4)
-  if (p.hp <= 0) { p.hp = 0; defeat(g) }
+  if (p.hp <= 0) downPlayer(g, p)
+}
+function downPlayer(g: GS, p: Player) {
+  p.hp = 0; p.dead = true; p.respawn = 6
+  explode(g, p.x, p.y, 70, 0, true, true); g.shake = Math.max(g.shake, 24)
+  ftext(g, p.x, p.y - 30, 'P' + (p.id + 1) + ' DOWN', '#ff5d5d', 13)
+  if (aliveP(g).length === 0) defeat(g) // all crews sunk
 }
 function defeat(g: GS) {
   g.state = 'defeat'; g.shake = 30
-  explode(g, g.player.x, g.player.y, 70, 0, true, true)
   Sfx.stopMusic(); Sfx.lose()
 }
 
@@ -374,8 +397,8 @@ function nearestTarget(g: GS, x: number, y: number, range: number): { x: number;
   for (const bo of g.bosses) { if (!bossVulnerable(bo)) continue; const d = dist(x, y, bo.x, bo.y); if (d < bd) { bd = d; best = bo } }
   return best
 }
-function firePrimary(g: GS) {
-  const p = g.player, b = g.build
+function firePrimary(g: GS, p: Player) {
+  const b = p.build
   const tgt = nearestTarget(g, p.x, p.y, b.range)
   if (!tgt) return
   const baseAng = angTo(p.x, p.y, tgt.x, tgt.y)
@@ -397,27 +420,25 @@ function firePrimary(g: GS) {
   }
   burst(g, muzzle.x, muzzle.y, b.accent, 4, 130, 'spark', 2)
 }
-function fireSecondary(g: GS) {
-  const p = g.player
+function fireSecondary(g: GS, p: Player) {
   if (p.secAmmo <= 0 || p.secCd > 0) return
   const tgt = nearestTarget(g, p.x, p.y, 900)
   const ang = tgt ? angTo(p.x, p.y, tgt.x, tgt.y) : p.heading
   p.secAmmo--; p.secCd = 0.5
-  spawnBullet(g, p.x, p.y, ang, 520, 0, 'torpedo', true, { radius: 8, life: 2.2 })
+  spawnBullet(g, p.x, p.y, ang, 520, 70 + p.build.dmg, 'torpedo', true, { radius: 8, life: 2.2 })
   Sfx.torp()
 }
-function fireUlt(g: GS) {
-  const p = g.player
+function fireUlt(g: GS, p: Player) {
   if (p.ult < p.ultMax || p.ultTimer > 0) return
   p.ult = 0; p.ultTimer = 1.3; p.ultFireCd = 0
-  g.banner = { txt: 'BROADSIDE STORM', sub: '', life: 1.4 }
+  g.banner = { txt: 'P' + (p.id + 1) + ' BROADSIDE STORM', sub: '', life: 1.4 }
   Sfx.ult(); g.shake = 16
 }
 
 /* ═══ ENEMY SPAWN ═══ */
 function spawnEnemy(g: GS, type: string) {
   const def = EDEF[type]
-  const p = g.player
+  const p = targetPlayer(g, WW / 2, WH / 2)
   let x = 0, y = 0, tries = 0
   do {
     const a = rnd(0, TAU), r = rnd(620, 820)
@@ -439,7 +460,7 @@ function spawnBoss(g: GS) {
     {
       kind: 'leviathan', x: WW * 0.82, y: WH * 0.7, vx: 0, vy: 0, hp: 1700, maxHp: 1700,
       atkCd: 1.2, hitFlash: 0, aimAng: 0, dying: 0,
-      mode: 'rise', modeT: 1.6, swimAng: angTo(WW * 0.82, WH * 0.7, g.player.x, g.player.y), trail: [], tx: 0, ty: 0,
+      mode: 'rise', modeT: 1.6, swimAng: angTo(WW * 0.82, WH * 0.7, g.players[0].x, g.players[0].y), trail: [], tx: 0, ty: 0,
     },
     {
       kind: 'dutchman', x: WW * 0.18, y: WH * 0.18, vx: 0, vy: 0, hp: 1900, maxHp: 1900,
@@ -458,25 +479,30 @@ function startBossDeath(g: GS, b: Boss) {
   Sfx.roar()
 }
 
-/* ═══ TICK ═══ */
-function tick(g: GS, dt: number, keys: Set<string>, edge: { sec: boolean; ult: boolean }) {
-  if (g.state !== 'playing') { dt = Math.min(dt, 0.033); stepFx(g, dt); return }
-  if (g.hitStop > 0) { g.hitStop -= dt; dt *= 0.25 }
-  dt = Math.min(dt, 0.033)
-  g.time += dt
-  const p = g.player, b = g.build
+/* ═══ PER-PLAYER UPDATE ═══ */
+function tickPlayer(g: GS, p: Player, dt: number, keys: Set<string>, edge: PlayerEdge) {
+  const b = p.build
+  const twoP = g.players.length > 1
 
-  /* — input / movement — */
+  /* — input / movement (P1 = WASD/Shift, P2 = Arrows/'/' ) — */
   let ix = 0, iy = 0
-  if (keys.has('a') || keys.has('arrowleft')) ix -= 1
-  if (keys.has('d') || keys.has('arrowright')) ix += 1
-  if (keys.has('w') || keys.has('arrowup')) iy -= 1
-  if (keys.has('s') || keys.has('arrowdown')) iy += 1
+  if (p.id === 0) {
+    if (keys.has('a') || (!twoP && keys.has('arrowleft'))) ix -= 1
+    if (keys.has('d') || (!twoP && keys.has('arrowright'))) ix += 1
+    if (keys.has('w') || (!twoP && keys.has('arrowup'))) iy -= 1
+    if (keys.has('s') || (!twoP && keys.has('arrowdown'))) iy += 1
+  } else {
+    if (keys.has('arrowleft')) ix -= 1
+    if (keys.has('arrowright')) ix += 1
+    if (keys.has('arrowup')) iy -= 1
+    if (keys.has('arrowdown')) iy += 1
+  }
   const im = Math.hypot(ix, iy) || 1; ix /= im; iy /= im
   const moving = (ix !== 0 || iy !== 0)
 
   // boost
-  const wantBoost = keys.has('shift') && p.boost > 4 && moving
+  const boostKey = p.id === 0 ? keys.has('shift') : keys.has('/')
+  const wantBoost = boostKey && p.boost > 4 && moving
   p.boosting = wantBoost
   if (wantBoost) { p.boost = Math.max(0, p.boost - 42 * dt); if (Math.random() < 0.6) Sfx.boost() }
   else p.boost = Math.min(p.boostMax, p.boost + (p.nitro > 0 ? 60 : 22) * dt)
@@ -486,7 +512,6 @@ function tick(g: GS, dt: number, keys: Set<string>, edge: { sec: boolean; ult: b
   const accel = b.accel * boostMul * nitroMul
   const maxSpd = b.speed * boostMul * nitroMul
   if (moving) { p.vx += ix * accel * dt; p.vy += iy * accel * dt }
-  // friction
   const fr = Math.pow(0.0008, dt)
   p.vx *= fr; p.vy *= fr
   const sp = Math.hypot(p.vx, p.vy)
@@ -499,14 +524,14 @@ function tick(g: GS, dt: number, keys: Set<string>, edge: { sec: boolean; ult: b
     const back = p.heading + Math.PI
     g.particles.push({ x: p.x + Math.cos(back) * 16, y: p.y + Math.sin(back) * 16, vx: Math.cos(back) * 40 + rnd(-20, 20), vy: Math.sin(back) * 40 + rnd(-20, 20), life: 0.6, max: 0.6, size: rnd(3, 6), color: p.boosting ? b.accent : '#cfe6ff', kind: 'wake', spin: 0 })
   }
-  // rock collision (player)
+  // rock collision
   for (const ro of g.rocks) {
     const d = dist(p.x, p.y, ro.x, ro.y)
     if (d < ro.r + 18) {
       const a = angTo(ro.x, ro.y, p.x, p.y)
       p.x = ro.x + Math.cos(a) * (ro.r + 18); p.y = ro.y + Math.sin(a) * (ro.r + 18)
       p.vx *= 0.3; p.vy *= 0.3
-      if (p.boosting) { burst(g, p.x, p.y, '#cfe6ff', 6, 120, 'spark', 3) }
+      if (p.boosting) burst(g, p.x, p.y, '#cfe6ff', 6, 120, 'spark', 3)
     }
   }
 
@@ -531,17 +556,17 @@ function tick(g: GS, dt: number, keys: Set<string>, edge: { sec: boolean; ult: b
     { const h = bossHitTest(g, p.x, p.y, 22); if (h) damageBoss(g, h.b, (b.id === 'tank' ? 50 : 30) * dt * 6 * h.mult, p.x, p.y) }
   }
 
-  /* — primary auto-fire — */
+  // primary auto-fire
   p.primaryCd -= dt
   if (p.primaryCd <= 0) {
     const before = g.bullets.length
-    firePrimary(g)
+    firePrimary(g, p)
     if (g.bullets.length > before) p.primaryCd = b.fireRate / (p.rapid > 0 ? 2 : 1)
     else p.primaryCd = 0.1
   }
-  // secondary / ultimate
-  if (edge.sec) fireSecondary(g)
-  if (edge.ult) fireUlt(g)
+  // secondary / ultimate (edge-triggered)
+  if (edge.sec) fireSecondary(g, p)
+  if (edge.ult) fireUlt(g, p)
   // ultimate broadside burst
   if (p.ultTimer > 0) {
     p.ultTimer -= dt; p.ultFireCd -= dt
@@ -555,6 +580,30 @@ function tick(g: GS, dt: number, keys: Set<string>, edge: { sec: boolean; ult: b
       Sfx.cannon(); g.shake = Math.min(20, g.shake + 4)
     }
   }
+}
+function revivePlayer(g: GS, p: Player) {
+  const ally = aliveP(g)[0]
+  if (!ally) { p.respawn = 0.5; return }
+  p.dead = false; p.hp = Math.round(p.maxHp * 0.5)
+  p.x = ally.x + rnd(-50, 50); p.y = ally.y + rnd(-50, 50); p.vx = 0; p.vy = 0
+  p.iframe = 2.2; p.boost = p.boostMax; p.ultTimer = 0
+  ftext(g, p.x, p.y - 30, 'P' + (p.id + 1) + ' RETURNS!', '#5be08a', 13)
+  burst(g, p.x, p.y, p.build.color, 18, 220, 'spark', 4); Sfx.powerBig()
+}
+
+/* ═══ TICK ═══ */
+interface PlayerEdge { sec: boolean; ult: boolean }
+function tick(g: GS, dt: number, keys: Set<string>, edges: PlayerEdge[]) {
+  if (g.state !== 'playing') { dt = Math.min(dt, 0.033); stepFx(g, dt); return }
+  if (g.hitStop > 0) { g.hitStop -= dt; dt *= 0.25 }
+  dt = Math.min(dt, 0.033)
+  g.time += dt
+
+  /* — players — */
+  for (const p of g.players) {
+    if (p.dead) { p.respawn -= dt; if (p.respawn <= 0) revivePlayer(g, p); continue }
+    tickPlayer(g, p, dt, keys, edges[p.id] ?? { sec: false, ult: false })
+  }
 
   /* — enemies — */
   const aliveCount = g.enemies.filter(e => e.hp > 0).length
@@ -565,8 +614,9 @@ function tick(g: GS, dt: number, keys: Set<string>, edge: { sec: boolean; ult: b
     e.hitFlash = Math.max(0, e.hitFlash - dt)
     // burn dot
     if (e.burn > 0) { e.burn -= dt; e.hp -= e.burnDps * dt; if (Math.random() < 0.4) burst(g, e.x, e.y, '#ff8a3d', 1, 50, 'fire', 3); if (e.hp <= 0) { killEnemy(g, e); continue } }
-    const dToP = dist(e.x, e.y, p.x, p.y)
-    const aToP = angTo(e.x, e.y, p.x, p.y)
+    const tp = targetPlayer(g, e.x, e.y) // nearest living captain
+    const dToP = dist(e.x, e.y, tp.x, tp.y)
+    const aToP = angTo(e.x, e.y, tp.x, tp.y)
     e.heading = angLerp(e.heading, aToP, 1 - Math.pow(0.02, dt))
     // movement AI
     let tx = 0, ty = 0
@@ -587,14 +637,14 @@ function tick(g: GS, dt: number, keys: Set<string>, edge: { sec: boolean; ult: b
     // contact
     if (dToP < e.radius + 20) {
       if (def.kamikaze) { killEnemy(g, e); continue }
-      else if (e.spawnT <= 0) { hurtPlayer(g, def.contact * dt * 4) }
+      else if (e.spawnT <= 0) { hurtPlayer(g, tp, def.contact * dt * 4) }
     }
     // firing
     if (def.fire > 0 && e.spawnT <= 0 && dToP < 620) {
       e.fireCd -= dt
       if (e.fireCd <= 0) {
         e.fireCd = def.fire * rnd(0.8, 1.2)
-        const lead = angTo(e.x, e.y, p.x + p.vx * 0.25, p.y + p.vy * 0.25)
+        const lead = angTo(e.x, e.y, tp.x + tp.vx * 0.25, tp.y + tp.vy * 0.25)
         if (def.triple) { for (const o of [-0.16, 0, 0.16]) spawnBullet(g, e.x, e.y, lead + o, 300, 12, 'eball', false, { radius: 6, life: 2.4 }) }
         else if (e.type === 'cult') spawnBullet(g, e.x, e.y, lead, 280, 10, 'ink', false, { radius: 7, life: 2.6 })
         else spawnBullet(g, e.x, e.y, lead, 320, 9, 'eball', false, { radius: 5, life: 2.4 })
@@ -641,16 +691,16 @@ function tick(g: GS, dt: number, keys: Set<string>, edge: { sec: boolean; ult: b
     if (bu.x < -40 || bu.x > WW + 40 || bu.y < -40 || bu.y > WH + 40) bu.life = 0
     // rock hit
     for (const ro of g.rocks) { if (dist(bu.x, bu.y, ro.x, ro.y) < ro.r) { if (bu.type === 'torpedo') explode(g, bu.x, bu.y, 90, bu.life > 0 ? 0 : 0, true); burst(g, bu.x, bu.y, '#8a7a6a', 4, 80, 'debris', 3); bu.life = 0; break } }
-    if (bu.life <= 0) { if (bu.type === 'torpedo') explode(g, bu.x, bu.y, 95, 70 + g.build.dmg, true); continue }
+    if (bu.life <= 0) { if (bu.type === 'torpedo') explode(g, bu.x, bu.y, 95, bu.dmg, true); continue }
     if (bu.friendly) {
       // vs enemies
       for (const e of g.enemies) {
         if (e.hp <= 0) continue
         if (dist(bu.x, bu.y, e.x, e.y) < e.radius + bu.radius) {
-          if (bu.type === 'torpedo') { explode(g, bu.x, bu.y, 95, 70 + g.build.dmg, true); bu.life = 0; break }
+          if (bu.type === 'torpedo') { explode(g, bu.x, bu.y, 95, bu.dmg, true); bu.life = 0; break }
           const crit = Math.random() < 0.12
           damageEnemy(g, e, bu.dmg * (crit ? 1.8 : 1), bu.x, bu.y, crit)
-          if (bu.burn) { e.burn = 3; e.burnDps = Math.max(e.burnDps, g.build.dmg * 0.5) }
+          if (bu.burn) { e.burn = 3; e.burnDps = Math.max(e.burnDps, bu.dmg * 0.5) }
           if (bu.type === 'lightning') chainLightning(g, e, bu.dmg * 0.6, 2)
           if (bu.pierce > 0) { bu.pierce--; } else { bu.life = 0; break }
         }
@@ -659,13 +709,16 @@ function tick(g: GS, dt: number, keys: Set<string>, edge: { sec: boolean; ult: b
       if (bu.life > 0) {
         const h = bossHitTest(g, bu.x, bu.y, bu.radius)
         if (h) {
-          if (bu.type === 'torpedo') { explode(g, bu.x, bu.y, 95, 70 + g.build.dmg, true); damageBoss(g, h.b, 70 * h.mult, bu.x, bu.y); bu.life = 0 }
+          if (bu.type === 'torpedo') { explode(g, bu.x, bu.y, 95, bu.dmg, true); damageBoss(g, h.b, 70 * h.mult, bu.x, bu.y); bu.life = 0 }
           else { const crit = Math.random() < 0.12; damageBoss(g, h.b, bu.dmg * (crit ? 1.8 : 1) * h.mult, bu.x, bu.y); if (bu.pierce > 0) bu.pierce--; else bu.life = 0 }
         }
       }
     } else {
-      // enemy bullet vs player
-      if (dist(bu.x, bu.y, p.x, p.y) < 18 + bu.radius) { hurtPlayer(g, bu.dmg); bu.life = 0 }
+      // enemy bullet vs any living player
+      for (const tp of g.players) {
+        if (tp.dead) continue
+        if (dist(bu.x, bu.y, tp.x, tp.y) < 18 + bu.radius) { hurtPlayer(g, tp, bu.dmg); bu.life = 0; break }
+      }
     }
   }
   g.bullets = g.bullets.filter(b2 => b2.life > 0)
@@ -673,9 +726,12 @@ function tick(g: GS, dt: number, keys: Set<string>, edge: { sec: boolean; ult: b
   /* — power-ups — */
   for (const pu of g.powerups) {
     pu.life -= dt; pu.bob += dt * 4
-    const d = dist(pu.x, pu.y, p.x, p.y)
-    if (d < 120) { pu.x += (p.x - pu.x) * Math.min(1, dt * 6); pu.y += (p.y - pu.y) * Math.min(1, dt * 6) } // magnet
-    if (d < 26) { applyPower(g, pu.kind); pu.life = 0 }
+    const tp = nearestPlayer(g, pu.x, pu.y)
+    if (tp) {
+      const d = dist(pu.x, pu.y, tp.x, tp.y)
+      if (d < 120) { pu.x += (tp.x - pu.x) * Math.min(1, dt * 6); pu.y += (tp.y - pu.y) * Math.min(1, dt * 6) } // magnet
+      if (d < 26) { applyPower(g, tp, pu.kind); pu.life = 0 }
+    }
   }
   g.powerups = g.powerups.filter(pu => pu.life > 0)
 
@@ -688,21 +744,29 @@ function tick(g: GS, dt: number, keys: Set<string>, edge: { sec: boolean; ult: b
       Sfx.thunder(); g.shake = 14; g.flash = 0.4
       burst(g, g.lightning.x, g.lightning.y, '#bff0ff', 24, 300, 'spark', 4)
       const lx = g.lightning.x, ly = g.lightning.y
-      if (dist(lx, ly, p.x, p.y) < 70) hurtPlayer(g, 26)
+      for (const tp of g.players) if (!tp.dead && dist(lx, ly, tp.x, tp.y) < 70) hurtPlayer(g, tp, 26)
       for (const e of g.enemies) if (e.hp > 0 && dist(lx, ly, e.x, e.y) < 70) damageEnemy(g, e, 60, e.x, e.y)
       { const h = bossHitTest(g, lx, ly, 70); if (h) damageBoss(g, h.b, 40 * h.mult, h.b.x, h.b.y) }
     } else if (g.lightning.state === 'strike' && g.lightning.t <= 0) g.lightning = null
   } else if (g.lightCd <= 0) {
     g.lightCd = rnd(5, 9)
-    g.lightning = { x: clamp(p.x + rnd(-300, 300), 60, WW - 60), y: clamp(p.y + rnd(-300, 300), 60, WH - 60), t: 1.1, state: 'warn' }
+    const sp = targetPlayer(g, WW / 2, WH / 2)
+    g.lightning = { x: clamp(sp.x + rnd(-300, 300), 60, WW - 60), y: clamp(sp.y + rnd(-300, 300), 60, WH - 60), t: 1.1, state: 'warn' }
     Sfx.warn()
   }
 
   stepFx(g, dt)
 
-  // camera follow
-  g.cam.x = clamp(p.x - VW / 2, 0, WW - VW)
-  g.cam.y = clamp(p.y - VH / 2, 0, WH - VH)
+  // camera follows the midpoint of all living ships; living ships are leashed on-screen
+  const live = aliveP(g); const frame = live.length ? live : g.players
+  let mx = 0, my = 0; for (const pp of frame) { mx += pp.x; my += pp.y }
+  mx /= frame.length; my /= frame.length
+  g.cam.x = clamp(mx - VW / 2, 0, WW - VW)
+  g.cam.y = clamp(my - VH / 2, 0, WH - VH)
+  for (const pp of live) {
+    pp.x = clamp(pp.x, g.cam.x + 40, g.cam.x + VW - 40)
+    pp.y = clamp(pp.y, g.cam.y + 40, g.cam.y + VH - 40)
+  }
 }
 
 function chainLightning(g: GS, from: Enemy, dmg: number, jumps: number) {
@@ -719,8 +783,7 @@ function chainLightning(g: GS, from: Enemy, dmg: number, jumps: number) {
   }
 }
 
-function applyPower(g: GS, kind: string) {
-  const p = g.player
+function applyPower(g: GS, p: Player, kind: string) {
   if (kind === 'repair') { p.hp = Math.min(p.maxHp, p.hp + 40); ftext(g, p.x, p.y - 30, '+40 HP', '#4fe07a', 13); Sfx.powerBig() }
   else if (kind === 'damage') { p.dmgBuff = 12; ftext(g, p.x, p.y - 30, '2X DAMAGE', '#ff5d5d', 13); Sfx.powerBig() }
   else if (kind === 'shield') { p.shield = 6; ftext(g, p.x, p.y - 30, 'SHIELD', '#5db8ff', 13); Sfx.powerBig() }
@@ -755,7 +818,7 @@ function handleBossDying(g: GS, b: Boss, dt: number) {
 
 /* ═══ BOSS 1 — Kraken ═══ */
 function tickKraken(g: GS, b: Boss, dt: number) {
-  const p = g.player
+  const p = targetPlayer(g, b.x, b.y)
   // drift slowly, stay roughly center-ish
   const target = { x: WW / 2 + Math.sin(g.time * 0.3) * 260, y: WH / 2 + Math.cos(g.time * 0.4) * 180 }
   b.x += (target.x - b.x) * Math.min(1, dt * 0.6); b.y += (target.y - b.y) * Math.min(1, dt * 0.6)
@@ -766,7 +829,7 @@ function tickKraken(g: GS, b: Boss, dt: number) {
     if (t.state === 'warn' && t.t <= 0) {
       t.state = 'strike'; t.t = 0.5; Sfx.slam(); g.shake = 12
       burst(g, t.x, t.y, '#5b8c6a', 16, 220, 'debris', 5)
-      if (dist(t.x, t.y, p.x, p.y) < t.radius) hurtPlayer(g, 28)
+      for (const tp of g.players) if (!tp.dead && dist(t.x, t.y, tp.x, tp.y) < t.radius) hurtPlayer(g, tp, 28)
       for (const e of g.enemies) if (e.hp > 0 && dist(t.x, t.y, e.x, e.y) < t.radius) damageEnemy(g, e, 40, e.x, e.y)
     } else if (t.state === 'strike' && t.t <= 0) t.state = 'retract'
     else if (t.state === 'retract' && t.t <= -0.5) t.t = -999
@@ -804,7 +867,7 @@ function tickKraken(g: GS, b: Boss, dt: number) {
 
 /* ═══ BOSS 2 — Leviathan (sea serpent) ═══ */
 function pickSwimTarget(g: GS, b: Boss) {
-  const p = g.player
+  const p = targetPlayer(g, b.x, b.y)
   const a = angTo(b.x, b.y, p.x, p.y) + rnd(-1.2, 1.2)
   const r = rnd(280, 460)
   b.tx = clamp(p.x + Math.cos(a) * r, 90, WW - 90)
@@ -831,7 +894,7 @@ function startVenomRing(g: GS, b: Boss, phase: number) {
 function startSlam(g: GS, b: Boss) { b.mode = 'slamWarn'; b.modeT = 0.85; Sfx.warn() }
 
 function tickLeviathan(g: GS, b: Boss, dt: number) {
-  const p = g.player
+  const p = targetPlayer(g, b.x, b.y)
   b.modeT = (b.modeT ?? 0) - dt
   // maintain serpent trail (newest first)
   b.trail!.unshift({ x: b.x, y: b.y })
@@ -843,7 +906,7 @@ function tickLeviathan(g: GS, b: Boss, dt: number) {
   if (b.shock) {
     b.shock.t += dt
     const ringR = (b.shock.t / b.shock.max) * 470
-    if (!b.shock.hit && Math.abs(dist(b.shock.ox, b.shock.oy, p.x, p.y) - ringR) < 34) { hurtPlayer(g, 26); b.shock.hit = true }
+    for (const tp of g.players) if (!tp.dead && Math.abs(dist(b.shock.ox, b.shock.oy, tp.x, tp.y) - ringR) < 34) hurtPlayer(g, tp, 26)
     if (b.shock.t >= b.shock.max) b.shock = undefined
   }
 
@@ -888,7 +951,7 @@ function tickLeviathan(g: GS, b: Boss, dt: number) {
   if (b.mode === 'burst') { // charge along the locked line
     b.x += b.tx! * 760 * dt; b.y += b.ty! * 760 * dt
     if (Math.random() < 0.9) burst(g, b.x, b.y, '#cfe6ff', 2, 100, 'wake', 6)
-    if (dist(b.x, b.y, p.x, p.y) < 62) hurtPlayer(g, 30)
+    for (const tp of g.players) if (!tp.dead && dist(b.x, b.y, tp.x, tp.y) < 62) hurtPlayer(g, tp, 30)
     const out = b.x < 50 || b.x > WW - 50 || b.y < 50 || b.y > WH - 50
     if (out || b.modeT <= 0) {
       b.x = clamp(b.x, 60, WW - 60); b.y = clamp(b.y, 60, WH - 60); g.shake = Math.max(g.shake, 12)
@@ -908,7 +971,7 @@ function tickLeviathan(g: GS, b: Boss, dt: number) {
 
 /* ═══ BOSS 3 — Flying Dutchman (legendary ghost ship) ═══ */
 function pickSailTarget(g: GS, b: Boss) {
-  const p = g.player; const a = rnd(0, TAU); const r = rnd(300, 460)
+  const p = targetPlayer(g, b.x, b.y); const a = rnd(0, TAU); const r = rnd(300, 460)
   b.tx = clamp(p.x + Math.cos(a) * r, 110, WW - 110)
   b.ty = clamp(p.y + Math.sin(a) * r, 110, WH - 110)
 }
@@ -924,7 +987,7 @@ function startArmada(g: GS, b: Boss, phase: number) {
   b.mode = 'sail'; b.modeT = rnd(2, 2.8); b.atkCd = 0.7; pickSailTarget(g, b)
 }
 function tickDutchman(g: GS, b: Boss, dt: number) {
-  const p = g.player
+  const p = targetPlayer(g, b.x, b.y)
   b.modeT = (b.modeT ?? 0) - dt
   const phase = b.hp / b.maxHp
   b.aimAng = angTo(b.x, b.y, p.x, p.y)
@@ -1186,21 +1249,36 @@ function render(ctx: CanvasRenderingContext2D, g: GS) {
     drawTentacle(ctx, s.x, s.y, t, rise, g.time)
   }
 
-  /* — player — */
-  const p = g.player
-  if (g.state !== 'defeat') {
+  /* — players — */
+  for (const p of g.players) {
     const ps = w2s(p.x, p.y)
+    const ring = p.id === 0 ? '#ffd34d' : '#4fd1ff' // P1 gold, P2 cyan
+    if (p.dead) {
+      // downed marker + respawn countdown (if a teammate can revive)
+      if (g.players.length > 1) {
+        ctx.globalAlpha = 0.5 + Math.sin(g.time * 8) * 0.2
+        ctx.strokeStyle = ring; ctx.lineWidth = 2; ctx.setLineDash([4, 4])
+        ctx.beginPath(); ctx.arc(ps.x, ps.y, 18, 0, TAU); ctx.stroke(); ctx.setLineDash([])
+        ctx.globalAlpha = 1
+        ctx.fillStyle = ring; ctx.font = '8px "Press Start 2P", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+        ctx.fillText('P' + (p.id + 1) + ' ' + Math.ceil(p.respawn), ps.x, ps.y)
+      }
+      continue
+    }
+    const bd = p.build
     // shield
     if (p.shield > 0) { ctx.strokeStyle = `rgba(93,184,255,${0.5 + Math.sin(g.time * 10) * 0.2})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(ps.x, ps.y, 30, 0, TAU); ctx.stroke() }
     // boost glow
     if (p.boosting) { ctx.fillStyle = 'rgba(255,200,90,0.25)'; ctx.beginPath(); ctx.arc(ps.x, ps.y, 34, 0, TAU); ctx.fill() }
     const blink = p.iframe > 0 && Math.sin(g.time * 30) < 0
     if (!blink) {
-      ctx.save(); ctx.shadowColor = g.build.color; ctx.shadowBlur = 14
-      drawShip(ctx, ps.x, ps.y, p.heading, 1.15, g.build.color, g.build.accent, 0)
+      // player-id ring so the two ships are easy to tell apart
+      if (g.players.length > 1) { ctx.strokeStyle = ring; ctx.lineWidth = 2; ctx.globalAlpha = 0.8; ctx.beginPath(); ctx.arc(ps.x, ps.y, 26, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1 }
+      ctx.save(); ctx.shadowColor = bd.color; ctx.shadowBlur = 14
+      drawShip(ctx, ps.x, ps.y, p.heading, 1.15, bd.color, bd.accent, 0)
       ctx.restore()
-      // gold flag
-      ctx.fillStyle = p.dmgBuff > 0 ? '#ff5d5d' : '#c89b3c'
+      // flag
+      ctx.fillStyle = p.dmgBuff > 0 ? '#ff5d5d' : ring
       ctx.save(); ctx.translate(ps.x, ps.y); ctx.rotate(p.heading)
       ctx.beginPath(); ctx.moveTo(4, -13); ctx.lineTo(4 + 9, -16); ctx.lineTo(4, -19); ctx.closePath(); ctx.fill(); ctx.restore()
     }
@@ -1300,7 +1378,7 @@ function drawKraken(ctx: CanvasRenderingContext2D, b: Boss, g: GS, w2s: (x: numb
   ctx.fillStyle = '#0c1a12'; ctx.beginPath(); ctx.arc(s.x + 6, s.y - 4, 26, 0, TAU); ctx.fill()
   if (blink) {
     ctx.fillStyle = b.hitFlash > 0 ? '#fff' : '#ffd34d'; ctx.beginPath(); ctx.arc(s.x + 6, s.y - 4, 20, 0, TAU); ctx.fill()
-    ctx.fillStyle = '#1a0c00'; const pa = angTo(b.x, b.y, g.player.x, g.player.y); ctx.beginPath(); ctx.ellipse(s.x + 6 + Math.cos(pa) * 7, s.y - 4 + Math.sin(pa) * 7, 5, 11, pa, 0, TAU); ctx.fill()
+    ctx.fillStyle = '#1a0c00'; const tp = targetPlayer(g, b.x, b.y); const pa = angTo(b.x, b.y, tp.x, tp.y); ctx.beginPath(); ctx.ellipse(s.x + 6 + Math.cos(pa) * 7, s.y - 4 + Math.sin(pa) * 7, 5, 11, pa, 0, TAU); ctx.fill()
   }
   ctx.restore()
   drawBossBar(ctx, b, '🦑 THE KRAKEN', '#7b2f9a', '#c0392b', idx)
@@ -1459,21 +1537,34 @@ function drawDutchman(ctx: CanvasRenderingContext2D, b: Boss, g: GS, w2s: (x: nu
   drawBossBar(ctx, b, '☠ THE FLYING DUTCHMAN', '#2f8a6e', '#1a5a8a', idx)
 }
 
-function drawHUD(ctx: CanvasRenderingContext2D, g: GS) {
-  const p = g.player, b = g.build
-  ctx.textAlign = 'left'; ctx.textBaseline = 'middle'
-  // bottom-left bars
-  const bx = 18, by = VH - 86
-  // HP
-  bar(ctx, bx, by, 220, 16, p.hp / p.maxHp, '#ff5d5d', '#3a1414', `HULL  ${Math.ceil(p.hp)}/${p.maxHp}`)
-  // Boost
-  bar(ctx, bx, by + 24, 220, 12, p.boost / p.boostMax, '#ffc83d', '#3a3014', 'BOOST [SHIFT]')
-  // Ult
+const P_KEYS = [
+  { boost: '[SHIFT]', torp: '[SPACE]', ult: '[E]' },
+  { boost: '[/]', torp: '[.]', ult: '[,]' },
+]
+function drawPlayerHUD(ctx: CanvasRenderingContext2D, p: Player, rightSide: boolean) {
+  const w = 210, x = rightSide ? VW - 18 - w : 18, by = VH - 86
+  const keys = P_KEYS[p.id] ?? P_KEYS[0]
+  const tag = 'P' + (p.id + 1)
+  if (p.dead) {
+    bar(ctx, x, by, w, 16, 0, '#ff5d5d', '#3a1414', `${tag} SUNK`)
+    ctx.font = '8px "Press Start 2P", monospace'; ctx.fillStyle = '#ff9a9a'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'
+    ctx.fillText('RESPAWN IN ' + Math.ceil(p.respawn), x + 5, by + 30)
+    return
+  }
+  bar(ctx, x, by, w, 16, p.hp / p.maxHp, '#ff5d5d', '#3a1414', `${tag} HULL ${Math.ceil(p.hp)}`)
+  bar(ctx, x, by + 24, w, 12, p.boost / p.boostMax, '#ffc83d', '#3a3014', 'BOOST ' + keys.boost)
   const ultk = p.ultTimer > 0 ? 1 : p.ult / p.ultMax
-  bar(ctx, bx, by + 44, 220, 12, ultk, p.ult >= p.ultMax ? '#5be0ff' : '#3a7a8a', '#143038', p.ult >= p.ultMax ? 'ULTIMATE READY [E]' : 'ULTIMATE')
-  // secondary ammo
-  ctx.font = '9px "Press Start 2P", monospace'; ctx.fillStyle = '#ffae4a'; ctx.textAlign = 'left'
-  ctx.fillText('🚀 x' + p.secAmmo + '  [SPACE]', bx, by + 70)
+  bar(ctx, x, by + 44, w, 12, ultk, p.ult >= p.ultMax ? '#5be0ff' : '#3a7a8a', '#143038', p.ult >= p.ultMax ? 'ULT READY ' + keys.ult : 'ULTIMATE')
+  ctx.font = '8px "Press Start 2P", monospace'; ctx.fillStyle = '#ffae4a'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'
+  ctx.fillText('🚀 x' + p.secAmmo + ' ' + keys.torp, x, by + 70)
+  let bxi = x + 118
+  const bi = (cond: boolean, icon: string, col: string) => { if (!cond) return; ctx.font = '13px serif'; ctx.fillStyle = col; ctx.fillText(icon, bxi, by + 70); bxi += 18 }
+  bi(p.dmgBuff > 0, '⚔', '#ff5d5d'); bi(p.shield > 0, '🛡', '#5db8ff'); bi(p.rapid > 0, '⚡', '#ffe14d'); bi(p.nitro > 0, '🔥', '#ffb13d')
+}
+function drawHUD(ctx: CanvasRenderingContext2D, g: GS) {
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle'
+  // per-player panels (P1 bottom-left, P2 bottom-right)
+  for (const p of g.players) drawPlayerHUD(ctx, p, p.id === 1)
 
   // top-left score / wave
   ctx.fillStyle = 'rgba(0,0,0,0.4)'; roundRect(ctx, 14, 14, 200, 56, 6); ctx.fill()
@@ -1483,12 +1574,7 @@ function drawHUD(ctx: CanvasRenderingContext2D, g: GS) {
   ctx.fillText(g.bossSpawned ? 'BOSS FIGHT' : 'WAVE ' + g.wave, 26, 52)
   ctx.fillStyle = '#8a8270'; ctx.fillText('KILLS ' + g.kills, 120, 52)
 
-  // active buffs
-  let bxi = 240
-  const buffIcon = (cond: boolean, icon: string, col: string) => { if (!cond) return; ctx.font = '16px serif'; ctx.fillStyle = col; ctx.fillText(icon, bxi, 40); bxi += 24 }
-  buffIcon(p.dmgBuff > 0, '⚔', '#ff5d5d'); buffIcon(p.shield > 0, '🛡', '#5db8ff'); buffIcon(p.rapid > 0, '⚡', '#ffe14d'); buffIcon(p.nitro > 0, '🔥', '#ffb13d')
-
-  // minimap (top-right) — shift down under the boss bar when the Kraken is up
+  // minimap (top-right) — shifts below the stacked boss bars
   const mmw = 150, mmh = 100, mmx = VW - mmw - 14, mmy = g.bosses.length ? 26 + g.bosses.length * 24 : 14
   ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.strokeStyle = '#2a3340'; ctx.lineWidth = 1
   roundRect(ctx, mmx, mmy, mmw, mmh, 4); ctx.fill(); ctx.stroke()
@@ -1497,7 +1583,7 @@ function drawHUD(ctx: CanvasRenderingContext2D, g: GS) {
   for (const e of g.enemies) { if (e.hp <= 0) continue; ctx.fillStyle = e.type === 'suicide' ? '#ff5d3d' : '#ff8a6a'; ctx.fillRect(mmx + e.x * sx - 1, mmy + e.y * sy - 1, 3, 3) }
   for (const pu of g.powerups) { ctx.fillStyle = '#5be08a'; ctx.fillRect(mmx + pu.x * sx - 1, mmy + pu.y * sy - 1, 2, 2) }
   for (const bo of g.bosses) { ctx.fillStyle = '#c0392b'; ctx.beginPath(); ctx.arc(mmx + bo.x * sx, mmy + bo.y * sy, 4, 0, TAU); ctx.fill() }
-  ctx.fillStyle = b.color; ctx.beginPath(); ctx.arc(mmx + p.x * sx, mmy + p.y * sy, 3, 0, TAU); ctx.fill()
+  for (const p of g.players) { if (p.dead) continue; ctx.fillStyle = p.id === 0 ? '#ffd34d' : '#4fd1ff'; ctx.beginPath(); ctx.arc(mmx + p.x * sx, mmy + p.y * sy, 3, 0, TAU); ctx.fill() }
 
   // banner
   if (g.banner) {
@@ -1527,7 +1613,10 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 /* ═══════════════════ REACT COMPONENT ═══════════════════ */
 export default function PirateCarnage() {
   const [screen, setScreen] = useState<'menu' | 'playing' | 'victory' | 'defeat'>('menu')
-  const [buildIdx, setBuildIdx] = useState(0)
+  const [playerCount, setPlayerCount] = useState(1)
+  const [b1, setB1] = useState(0)   // Player 1 ship index
+  const [b2, setB2] = useState(3)   // Player 2 ship index
+  const [activeTab, setActiveTab] = useState(0) // which player you're picking for (2P)
   const [muted, setMuted] = useState(false)
   const [finalScore, setFinalScore] = useState(0)
   const [finalKills, setFinalKills] = useState(0)
@@ -1538,7 +1627,7 @@ export default function PirateCarnage() {
   const gsRef = useRef<GS | null>(null)
   const rafRef = useRef<number>(0)
   const keysRef = useRef<Set<string>>(new Set())
-  const edgeRef = useRef({ sec: false, ult: false })
+  const edgeRef = useRef<PlayerEdge[]>([{ sec: false, ult: false }, { sec: false, ult: false }])
   const lastRef = useRef(0)
   const pausedRef = useRef(false)
   const screenRef = useRef(screen)
@@ -1550,21 +1639,25 @@ export default function PirateCarnage() {
     try { await fetch('/api/minigame/win', { method: 'POST' }) } catch { /* ignore */ }
   }, [])
 
-  const startGame = useCallback((idx: number) => {
+  const startGame = useCallback((count: number, i1: number, i2: number) => {
     Sfx.resume(); Sfx.playMusic('battle')
-    gsRef.current = mkState(BUILDS[idx])
+    const builds = count === 2 ? [BUILDS[i1], BUILDS[i2]] : [BUILDS[i1]]
+    gsRef.current = mkState(builds)
     setFinalScore(0); setFinalKills(0); setXpDone(false); setPaused(false)
     setScreen('playing')
   }, [])
 
-  // keyboard
+  // keyboard (P1: WASD + Shift/Space/E · P2: Arrows + / . ,)
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase()
-      if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault()
+      if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', '/'].includes(k)) e.preventDefault()
       if (screenRef.current !== 'playing') return
-      if (k === ' ') { if (!keysRef.current.has(' ')) edgeRef.current.sec = true }
-      if (k === 'e') { if (!keysRef.current.has('e')) edgeRef.current.ult = true }
+      const E = edgeRef.current
+      if (k === ' ') { if (!keysRef.current.has(' ')) E[0].sec = true }
+      if (k === 'e') { if (!keysRef.current.has('e')) E[0].ult = true }
+      if (k === '.') { if (!keysRef.current.has('.')) E[1].sec = true }
+      if (k === ',') { if (!keysRef.current.has(',')) E[1].ult = true }
       if (k === 'p' || k === 'escape') setPaused(v => !v)
       keysRef.current.add(k === ' ' ? ' ' : k)
     }
@@ -1586,9 +1679,9 @@ export default function PirateCarnage() {
       let dt = (now - lastRef.current) / 1000; lastRef.current = now
       if (dt > 0.05) dt = 0.05
       if (!pausedRef.current) {
-        const edge = edgeRef.current
-        tick(g, dt, keysRef.current, { sec: edge.sec, ult: edge.ult })
-        edge.sec = false; edge.ult = false
+        const E = edgeRef.current
+        tick(g, dt, keysRef.current, E)
+        E[0].sec = E[0].ult = false; E[1].sec = E[1].ult = false
       }
       render(ctx, g)
       if (pausedRef.current) {
@@ -1611,7 +1704,12 @@ export default function PirateCarnage() {
 
   const toggleMute = () => { const m = !muted; setMuted(m); Sfx.setMuted(m) }
 
-  const build = BUILDS[buildIdx]
+  const activeIdx = playerCount === 2 ? (activeTab === 0 ? b1 : b2) : b1
+  const pickShip = (i: number) => {
+    Sfx.resume()
+    if (playerCount === 2 && activeTab === 1) setB2(i)
+    else setB1(i)
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '8px 0 24px' }}>
@@ -1634,17 +1732,45 @@ export default function PirateCarnage() {
           <div className="pc-overlay" style={{ background: 'radial-gradient(circle at 50% 30%, rgba(20,40,70,0.92), rgba(8,16,28,0.97))', padding: 20, overflow: 'auto' }}>
             <div style={{ fontSize: 'clamp(26px,6vw,46px)', color: '#c89b3c', fontFamily: '"Press Start 2P",monospace', letterSpacing: 3, textShadow: '0 0 18px rgba(200,155,60,0.5)', lineHeight: 1.2 }}>PIRATE</div>
             <div style={{ fontSize: 'clamp(26px,6vw,46px)', color: '#ff6b2b', fontFamily: '"Press Start 2P",monospace', letterSpacing: 3, textShadow: '0 0 18px rgba(255,107,43,0.5)', lineHeight: 1.2, marginBottom: 4 }}>CARNAGE</div>
-            <div style={{ color: '#a09880', fontSize: 11, fontFamily: '"Press Start 2P",monospace', marginBottom: 16 }}>CHOOSE YOUR SHIP</div>
+            {/* player count */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+              {[1, 2].map(n => (
+                <button key={n} className="pc-btn" onClick={() => { Sfx.resume(); setPlayerCount(n); setActiveTab(0) }}
+                  style={{
+                    background: playerCount === n ? 'linear-gradient(135deg,#c89b3c,#8b6914)' : '#13131c',
+                    border: `2px solid ${playerCount === n ? '#c89b3c' : '#2a2820'}`, color: playerCount === n ? '#0d0d14' : '#a09880',
+                    padding: '8px 18px', borderRadius: 6, fontSize: 10,
+                  }}>{n === 1 ? '1 PLAYER' : '2 PLAYERS (CO-OP)'}</button>
+              ))}
+            </div>
+
+            {/* player tabs (2P only) */}
+            {playerCount === 2 && (
+              <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                {[0, 1].map(t => {
+                  const sel = activeTab === t; const col = t === 0 ? '#ffd34d' : '#4fd1ff'
+                  return (
+                    <button key={t} className="pc-btn" onClick={() => setActiveTab(t)}
+                      style={{ background: sel ? `${col}22` : '#0d0d14', border: `2px solid ${sel ? col : '#2a2820'}`, color: col, padding: '6px 14px', borderRadius: 6, fontSize: 9 }}>
+                      P{t + 1}: {BUILDS[t === 0 ? b1 : b2].name}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+            <div style={{ color: '#a09880', fontSize: 10, fontFamily: '"Press Start 2P",monospace', marginBottom: 12 }}>
+              {playerCount === 2 ? `CHOOSE SHIP FOR PLAYER ${activeTab + 1}` : 'CHOOSE YOUR SHIP'}
+            </div>
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', maxWidth: 760 }}>
               {BUILDS.map((bd, i) => (
-                <div key={bd.id} onClick={() => { Sfx.resume(); setBuildIdx(i) }}
+                <div key={bd.id} onClick={() => pickShip(i)}
                   className="pc-btn"
                   style={{
                     width: 168, padding: '14px 12px', borderRadius: 10, textAlign: 'left',
-                    background: i === buildIdx ? `linear-gradient(160deg, ${bd.color}33, #0d0d14)` : '#0d0d14',
-                    border: `2px solid ${i === buildIdx ? bd.color : '#2a2820'}`,
-                    boxShadow: i === buildIdx ? `0 0 22px ${bd.color}55` : 'none',
+                    background: i === activeIdx ? `linear-gradient(160deg, ${bd.color}33, #0d0d14)` : '#0d0d14',
+                    border: `2px solid ${i === activeIdx ? bd.color : '#2a2820'}`,
+                    boxShadow: i === activeIdx ? `0 0 22px ${bd.color}55` : 'none',
                   }}>
                   <div style={{ fontSize: 26, marginBottom: 6 }}>{bd.icon}</div>
                   <div style={{ color: bd.color, fontFamily: '"Press Start 2P",monospace', fontSize: 13, marginBottom: 6 }}>{bd.name}</div>
@@ -1659,13 +1785,22 @@ export default function PirateCarnage() {
               ))}
             </div>
 
-            <button className="pc-btn" onClick={() => startGame(buildIdx)}
-              style={{ marginTop: 18, background: `linear-gradient(135deg,${build.color},#8b4a14)`, border: 'none', color: '#0d0d14', padding: '16px 52px', borderRadius: 8, fontSize: 14, letterSpacing: 2 }}>
+            <button className="pc-btn" onClick={() => startGame(playerCount, b1, b2)}
+              style={{ marginTop: 18, background: `linear-gradient(135deg,${BUILDS[b1].color},#8b4a14)`, border: 'none', color: '#0d0d14', padding: '16px 52px', borderRadius: 8, fontSize: 14, letterSpacing: 2 }}>
               ⚓ SET SAIL
             </button>
             <div style={{ color: '#605848', fontSize: 9, fontFamily: '"Press Start 2P",monospace', marginTop: 14, lineHeight: 1.8 }}>
-              MOVE: WASD / ARROWS &nbsp;·&nbsp; BOOST: SHIFT<br />
-              TORPEDO: SPACE &nbsp;·&nbsp; ULTIMATE: E &nbsp;·&nbsp; PAUSE: P<br />
+              {playerCount === 2 ? (
+                <>
+                  P1 &nbsp;WASD · SHIFT · SPACE · E<br />
+                  P2 &nbsp;ARROWS · / · . · ,&nbsp; (boost · torpedo · ult)<br />
+                </>
+              ) : (
+                <>
+                  MOVE: WASD / ARROWS &nbsp;·&nbsp; BOOST: SHIFT<br />
+                  TORPEDO: SPACE &nbsp;·&nbsp; ULTIMATE: E &nbsp;·&nbsp; PAUSE: P<br />
+                </>
+              )}
               <span style={{ color: '#a09880' }}>Cannons auto-fire — focus on dodging & ramming!</span>
             </div>
           </div>
@@ -1684,7 +1819,7 @@ export default function PirateCarnage() {
               <div style={{ marginTop: 20, color: '#5be08a', fontFamily: '"Press Start 2P",monospace', fontSize: 11 }}>✓ +25 FUN XP AWARDED</div>
             )}
             <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
-              <button className="pc-btn" onClick={() => startGame(buildIdx)} style={menuBtn}>SAIL AGAIN</button>
+              <button className="pc-btn" onClick={() => startGame(playerCount, b1, b2)} style={menuBtn}>SAIL AGAIN</button>
               <button className="pc-btn" onClick={() => setScreen('menu')} style={menuBtnAlt}>CHANGE SHIP</button>
             </div>
           </div>
@@ -1698,7 +1833,7 @@ export default function PirateCarnage() {
             <div style={{ color: '#e8e6e0', fontFamily: '"Press Start 2P",monospace', fontSize: 16, marginTop: 18 }}>SCORE {finalScore}</div>
             <div style={{ color: '#a09880', fontFamily: '"Press Start 2P",monospace', fontSize: 11, marginTop: 8 }}>{finalKills} SHIPS SUNK</div>
             <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
-              <button className="pc-btn" onClick={() => startGame(buildIdx)} style={menuBtn}>TRY AGAIN</button>
+              <button className="pc-btn" onClick={() => startGame(playerCount, b1, b2)} style={menuBtn}>TRY AGAIN</button>
               <button className="pc-btn" onClick={() => setScreen('menu')} style={menuBtnAlt}>CHANGE SHIP</button>
             </div>
           </div>
@@ -1714,7 +1849,7 @@ export default function PirateCarnage() {
       </div>
 
       <p style={{ color: '#605848', fontSize: 12, fontFamily: 'Inter,sans-serif', textAlign: 'center', maxWidth: 640, lineHeight: 1.6 }}>
-        Twisted Metal on the high seas. Pick a ship, boost through the chaos, grab power-ups, and survive all three legendary beasts at once — the Kraken, the Leviathan, AND the Flying Dutchman together. Win to earn <span style={{ color: '#c89b3c' }}>+25 Fun XP</span>.
+        Twisted Metal on the high seas — solo or <span style={{ color: '#c89b3c' }}>2-player local co-op</span>. Pick a ship, boost through the chaos, grab power-ups, and survive all three legendary beasts at once — the Kraken, the Leviathan, AND the Flying Dutchman together. Win to earn <span style={{ color: '#c89b3c' }}>+25 Fun XP</span>.
       </p>
     </div>
   )
