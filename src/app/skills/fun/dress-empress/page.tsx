@@ -47,16 +47,58 @@ const Sfx = (() => {
     if (!enabled || !ensure()) return
     seq.forEach(([f, s]) => tone(f, 0.15, type, s * 0.08, vol))
   }
-  const MEL = [523, 659, 784, 659, 587, 784, 880, 784, 659, 784, 1047, 784, 587, 659, 784, 659]
+  // ── gentle music engine: harp arpeggios + warm pads + bass + echo ──
+  let delay: DelayNode | null = null
+  let delayMix: GainNode | null = null
+  let stepTime = 0
+  function buildFx() {
+    if (!ctx || !musicBus || delay) return
+    delay = ctx.createDelay(0.7); delay.delayTime.value = 0.345
+    const fb = ctx.createGain(); fb.gain.value = 0.26
+    delay.connect(fb); fb.connect(delay)
+    delayMix = ctx.createGain(); delayMix.gain.value = 0.42; delayMix.connect(musicBus)
+    delay.connect(delayMix)
+  }
+  // a warm two-oscillator voice with a soft attack/decay envelope
+  function voice(freq: number, when: number, dur: number, type: OscillatorType, vol: number, attack: number, echo = false) {
+    if (!ctx || !musicBus) return
+    const o = ctx.createOscillator(), o2 = ctx.createOscillator(), g = ctx.createGain()
+    o.type = type; o2.type = type; o.frequency.value = freq; o2.frequency.value = freq; o2.detune.value = 7
+    g.gain.setValueAtTime(0.0001, when)
+    g.gain.exponentialRampToValueAtTime(vol, when + attack)
+    g.gain.exponentialRampToValueAtTime(0.0001, when + dur)
+    o.connect(g); o2.connect(g); g.connect(musicBus)
+    if (echo && delay) g.connect(delay)
+    o.start(when); o2.start(when); o.stop(when + dur + 0.05); o2.stop(when + dur + 0.05)
+  }
+  // chord progression: C – G – Am – F   (root bass, pad tones, harp arpeggio tones)
+  const PROG = [
+    { bass: 65.41, pad: [130.81, 329.63, 392.00], arp: [261.63, 329.63, 392.00, 523.25] },
+    { bass: 98.00, pad: [196.00, 246.94, 293.66], arp: [196.00, 246.94, 293.66, 392.00] },
+    { bass: 110.00, pad: [220.00, 261.63, 329.63], arp: [220.00, 261.63, 329.63, 440.00] },
+    { bass: 87.31, pad: [174.61, 220.00, 261.63], arp: [174.61, 220.00, 261.63, 349.23] },
+  ]
+  const STEP = 0.357, BAR = 8 // eighth-note step, 8 eighths per bar (~84 bpm)
+  function schedule() {
+    if (!enabled || !ctx) return
+    if (stepTime < ctx.currentTime) stepTime = ctx.currentTime + 0.05 // recover from tab throttling — no note pile-up
+    while (stepTime < ctx.currentTime + 0.3) {
+      const bar = Math.floor(beat / BAR) % PROG.length, inBar = beat % BAR, ch = PROG[bar]
+      if (inBar === 0) {
+        ch.pad.forEach(f => voice(f, stepTime, STEP * BAR * 0.95, 'sine', 0.085, 0.45))
+        voice(ch.bass, stepTime, STEP * 2.2, 'sine', 0.16, 0.02)
+      }
+      if (inBar === 4) voice(ch.bass, stepTime, STEP * 2.2, 'sine', 0.12, 0.02)
+      voice(ch.arp[inBar % ch.arp.length], stepTime, STEP * 1.5, 'triangle', 0.15, 0.006, true) // harp
+      if (inBar === 2 || inBar === 6) voice(ch.arp[(inBar + 1) % ch.arp.length] * 2, stepTime, STEP * 1.2, 'sine', 0.05, 0.006, true) // twinkle
+      stepTime += STEP; beat++
+    }
+  }
   function startMusic() {
     if (!enabled || !ensure() || timer) return
-    timer = setInterval(() => {
-      if (!enabled || !ctx || !musicBus) return
-      const f = MEL[beat % MEL.length]
-      tone(f, 0.5, 'triangle', 0, 0.5, musicBus)
-      if (beat % 4 === 0) tone(f / 2, 0.7, 'sine', 0, 0.6, musicBus)
-      beat++
-    }, 480)
+    buildFx()
+    beat = 0; stepTime = ctx!.currentTime + 0.15
+    timer = setInterval(schedule, 50)
   }
   function stopMusic() { if (timer) { clearInterval(timer); timer = null } }
 
