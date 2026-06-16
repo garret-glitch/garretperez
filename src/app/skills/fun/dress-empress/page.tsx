@@ -704,7 +704,7 @@ function scoreOutfit(equip: Equip, ch: Challenge) {
 }
 
 /* ════════════════════════ AVATAR (SVG) ════════════════════════ */
-function Avatar({ equip, size = 300 }: { equip: Equip; size?: number }) {
+function Avatar({ equip, size = 300, noBg = false }: { equip: Equip; size?: number; noBg?: boolean }) {
   const skin = BY_ID[equip.skin]?.p || SKINS[0].p
   const eye = BY_ID[equip.eyes]?.p || EYES[0].p
   const hair = BY_ID[equip.hair]?.p
@@ -733,7 +733,7 @@ function Avatar({ equip, size = 300 }: { equip: Equip; size?: number }) {
         </radialGradient>
       </defs>
 
-      {renderBg(bg)}
+      {!noBg && renderBg(bg)}
       {renderWings(wings)}
       {renderCape(cape)}
       {renderPet(pet)}
@@ -1696,6 +1696,7 @@ export default function DressEmpress() {
             onDaily={() => setScreen('daily')}
             onMini={() => setScreen('minigame')}
             onCastle={() => setScreen('castle')}
+            room={save.castle.rooms.bedroom || defaultRoom('bedroom')}
             refreshKey={refreshKey}
             name={save.name}
             onRename={(nm: string) => setSave(s => s ? { ...s, name: nm } : s)}
@@ -1773,14 +1774,21 @@ const pill: React.CSSProperties = {
 }
 
 /* ───────── HOME ───────── */
-function HomeScreen({ equip, level, canClaim, onPlay, onCloset, onShop, onDaily, onMini, onCastle, name, onRename }: any) {
+function HomeScreen({ equip, level, canClaim, onPlay, onCloset, onShop, onDaily, onMini, onCastle, room, name, onRename }: any) {
   const [editing, setEditing] = useState(false)
   const [tmp, setTmp] = useState(name)
   return (
     <div className="de-card" style={{ display: 'flex', gap: 18, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
-      <div className="de-bounce" style={{ position: 'relative' }}>
-        <Avatar equip={equip} size={280} />
+      {/* her empress standing inside her decorated castle bedroom */}
+      <div style={{ position: 'relative', width: 'min(100%, 380px)', cursor: 'pointer' }} onClick={onCastle} title="Decorate your castle">
+        <RoomScene room={room} size={380} />
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', pointerEvents: 'none' }}>
+          <div className="de-bounce" style={{ marginBottom: '3%' }}>
+            <Avatar equip={equip} size={176} noBg />
+          </div>
+        </div>
         <div style={{ position: 'absolute', top: 8, left: 8, ...pill, fontSize: 10 }}>👑 Empress Lv {level}</div>
+        <div style={{ position: 'absolute', bottom: 8, right: 8, ...pill, fontSize: 9 }}>🏰 Tap to decorate</div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 220 }}>
         <div style={{ textAlign: 'center' }}>
