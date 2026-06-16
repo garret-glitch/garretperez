@@ -312,6 +312,7 @@ function dropPower(g: GS, x: number, y: number) {
 function bossVulnerable(b: Boss): boolean {
   if (b.dying > 0) return false
   if (b.kind === 'leviathan' && (b.mode === 'submerge' || b.mode === 'rise')) return false
+  if (b.kind === 'dutchman' && (b.mode === 'arrive' || b.mode === 'phaseOut' || b.mode === 'phaseIn')) return false
   return true
 }
 // returns a damage multiplier if (x,y,r) overlaps the boss, else null.
@@ -319,6 +320,7 @@ function bossVulnerable(b: Boss): boolean {
 function bossHitTest(g: GS, x: number, y: number, r: number): number | null {
   const b = g.boss; if (!b || !bossVulnerable(b)) return null
   if (b.kind === 'kraken') return dist(x, y, b.x, b.y) < 78 + r ? 1 : null
+  if (b.kind === 'dutchman') return dist(x, y, b.x, b.y) < 66 + r ? 1 : null
   // leviathan
   if (dist(x, y, b.x, b.y) < 32 + r) return 1.6 // head weak point
   const trail = b.trail || []
@@ -441,10 +443,21 @@ function spawnLeviathan(g: GS) {
   g.shake = 26; Sfx.roar()
   g.enemies = [] // clear the deck for the serpent
 }
+function spawnDutchman(g: GS) {
+  g.boss = {
+    kind: 'dutchman', x: WW / 2, y: WH * 0.15, vx: 0, vy: 0, hp: 2800, maxHp: 2800,
+    atkCd: 1.0, hitFlash: 0, aimAng: 0, dying: 0,
+    mode: 'arrive', modeT: 1.6, swimAng: Math.PI / 2, tx: 0, ty: 0,
+  }
+  g.banner = { txt: 'THE FLYING DUTCHMAN', sub: 'THE LEGENDARY GHOST SHIP', life: 3 }
+  g.shake = 26; Sfx.roar()
+  g.enemies = []
+}
 function startBossDeath(g: GS) {
   const b = g.boss; if (!b) return
   b.dying = 2.4; b.hp = 0
-  g.banner = { txt: b.kind === 'leviathan' ? 'LEVIATHAN SLAIN' : 'KRAKEN SLAIN', sub: '', life: 2.5 }
+  const slainTxt = b.kind === 'dutchman' ? 'FLYING DUTCHMAN SUNK' : b.kind === 'leviathan' ? 'LEVIATHAN SLAIN' : 'KRAKEN SLAIN'
+  g.banner = { txt: slainTxt, sub: '', life: 2.5 }
   Sfx.roar()
 }
 
@@ -726,6 +739,7 @@ function tickBoss(g: GS, dt: number) {
   b.hitFlash = Math.max(0, b.hitFlash - dt)
   if (b.dying > 0) { handleBossDying(g, dt); return }
   if (b.kind === 'leviathan') tickLeviathan(g, dt)
+  else if (b.kind === 'dutchman') tickDutchman(g, dt)
   else tickKraken(g, dt)
 }
 function handleBossDying(g: GS, dt: number) {
@@ -738,8 +752,12 @@ function handleBossDying(g: GS, dt: number) {
       g.score += 1500; ftext(g, b.x, b.y, '+1500', '#c89b3c', 22)
       g.boss = null; g.tentacles = []
       spawnLeviathan(g) // the gauntlet continues — the serpent rises
-    } else {
+    } else if (b.kind === 'leviathan') {
       g.score += 2500; ftext(g, b.x, b.y, '+2500', '#c89b3c', 22)
+      g.boss = null
+      spawnDutchman(g) // the legendary ghost ship sails in for the finale
+    } else {
+      g.score += 3500; ftext(g, b.x, b.y, '+3500', '#c89b3c', 22)
       g.boss = null
       g.state = 'victory'; Sfx.stopMusic(); Sfx.win()
     }
@@ -895,6 +913,99 @@ function tickLeviathan(g: GS, dt: number) {
   }
 }
 
+/* ═══ BOSS 3 — Flying Dutchman (legendary ghost ship) ═══ */
+function pickSailTarget(g: GS, b: Boss) {
+  const p = g.player; const a = rnd(0, TAU); const r = rnd(300, 460)
+  b.tx = clamp(p.x + Math.cos(a) * r, 110, WW - 110)
+  b.ty = clamp(p.y + Math.sin(a) * r, 110, WH - 110)
+}
+function startBroadside(g: GS, b: Boss) { b.mode = 'broadsideTele'; b.modeT = 0.9; Sfx.warn() }
+function startPhase(g: GS, b: Boss) {
+  b.mode = 'phaseOut'; b.modeT = 0.55
+  Sfx.dodge(); burst(g, b.x, b.y, '#6effc0', 22, 220, 'spark', 5)
+}
+function startArmada(g: GS, b: Boss, phase: number) {
+  for (let i = 0; i < (phase < 0.5 ? 4 : 3); i++) spawnEnemy(g, pick(['sloop', 'cult', 'suicide']))
+  Sfx.warn(); g.banner = { txt: 'GHOST ARMADA', sub: '', life: 1.4 }
+  b.mode = 'sail'; b.modeT = rnd(2, 2.8); b.atkCd = 0.7; pickSailTarget(g, b)
+}
+function tickDutchman(g: GS, dt: number) {
+  const b = g.boss!; const p = g.player
+  b.modeT = (b.modeT ?? 0) - dt
+  const phase = b.hp / b.maxHp
+  b.aimAng = angTo(b.x, b.y, p.x, p.y)
+  if (b.mode === 'sail' && Math.random() < 0.3) burst(g, b.x + rnd(-34, 34), b.y + rnd(-34, 34), '#6effc0', 1, 50, 'wake', 6)
+
+  if (b.mode === 'arrive') {
+    b.x += (WW / 2 - b.x) * Math.min(1, dt * 1.2); b.y += (WH * 0.4 - b.y) * Math.min(1, dt * 1.2)
+    b.swimAng = angLerp(b.swimAng!, b.aimAng, 1 - Math.pow(0.05, dt))
+    if (b.modeT <= 0) { b.mode = 'sail'; b.modeT = rnd(2.2, 3.0); b.atkCd = 0.8; pickSailTarget(g, b) }
+    return
+  }
+  if (b.mode === 'sail') {
+    if (dist(b.x, b.y, b.tx!, b.ty!) < 90) pickSailTarget(g, b)
+    b.swimAng = angLerp(b.swimAng!, angTo(b.x, b.y, b.tx!, b.ty!), 1 - Math.pow(0.2, dt))
+    const spd = phase < 0.5 ? 155 : 125
+    b.x = clamp(b.x + Math.cos(b.swimAng!) * spd * dt, 100, WW - 100)
+    b.y = clamp(b.y + Math.sin(b.swimAng!) * spd * dt, 100, WH - 100)
+    b.atkCd -= dt
+    if (b.atkCd <= 0) {
+      b.atkCd = phase < 0.5 ? 1.2 : 1.8
+      const aim = angTo(b.x, b.y, p.x + p.vx * 0.2, p.y + p.vy * 0.2)
+      for (const o of [-0.12, 0, 0.12]) spawnBullet(g, b.x, b.y, aim + o, 330, 12, 'ghost', false, { radius: 7, life: 3 })
+      Sfx.cannon()
+    }
+    if (b.modeT <= 0) {
+      const r = Math.random()
+      if (r < 0.4) startBroadside(g, b)
+      else if (r < 0.74) startPhase(g, b)
+      else startArmada(g, b, phase)
+    }
+    return
+  }
+  if (b.mode === 'broadsideTele') { // turn the hull broadside-on to the player (telegraph)
+    b.swimAng = angLerp(b.swimAng!, b.aimAng + Math.PI / 2, 1 - Math.pow(0.06, dt))
+    if (b.modeT <= 0) { b.mode = 'broadside'; b.modeT = 0.7; b.atkCd = 0 }
+    return
+  }
+  if (b.mode === 'broadside') { // unload a wall of cursed cannonfire from the flank
+    b.atkCd -= dt
+    if (b.atkCd <= 0) {
+      b.atkCd = 0.09
+      const aim = angTo(b.x, b.y, p.x, p.y); const perp = aim + Math.PI / 2
+      const n = phase < 0.5 ? 3 : 2
+      for (let i = 0; i < n; i++) {
+        const off = rnd(-55, 55)
+        const ox = b.x + Math.cos(perp) * off, oy = b.y + Math.sin(perp) * off
+        spawnBullet(g, ox, oy, aim + rnd(-0.16, 0.16), 360, 12, 'ghost', false, { radius: 6, life: 3 })
+      }
+      Sfx.cannon(); g.shake = Math.max(g.shake, 6)
+    }
+    if (b.modeT <= 0) { b.mode = 'sail'; b.modeT = rnd(1.8, 2.6); b.atkCd = 0.6; pickSailTarget(g, b) }
+    return
+  }
+  if (b.mode === 'phaseOut') { // vanish, then reappear near the player
+    if (b.modeT <= 0) {
+      const a = rnd(0, TAU), r = rnd(260, 360)
+      b.x = clamp(p.x + Math.cos(a) * r, 100, WW - 100)
+      b.y = clamp(p.y + Math.sin(a) * r, 100, WH - 100)
+      b.swimAng = angTo(b.x, b.y, p.x, p.y)
+      b.mode = 'phaseIn'; b.modeT = 0.5; Sfx.warn()
+      burst(g, b.x, b.y, '#6effc0', 22, 220, 'spark', 5)
+    }
+    return
+  }
+  if (b.mode === 'phaseIn') { // reappear with a radial cannon burst
+    if (b.modeT <= 0) {
+      const n = phase < 0.5 ? 20 : 14
+      for (let i = 0; i < n; i++) { const a = (i / n) * TAU + g.time; spawnBullet(g, b.x, b.y, a, 270, 12, 'ghost', false, { radius: 6, life: 3 }) }
+      Sfx.roar(); g.shake = 12
+      b.mode = 'sail'; b.modeT = rnd(1.6, 2.4); b.atkCd = 0.5; pickSailTarget(g, b)
+    }
+    return
+  }
+}
+
 /* ═══ FX step (runs even when paused/ended) ═══ */
 function stepFx(g: GS, dt: number) {
   g.shake *= Math.pow(0.0015, dt)
@@ -1025,6 +1136,11 @@ function render(ctx: CanvasRenderingContext2D, g: GS) {
       ctx.fillStyle = '#6ddf8a'; ctx.shadowColor = '#2fae5a'; ctx.shadowBlur = 9
       ctx.beginPath(); ctx.arc(s.x, s.y, bu.radius, 0, TAU); ctx.fill()
       ctx.fillStyle = '#d8ffe2'; ctx.beginPath(); ctx.arc(s.x, s.y, bu.radius * 0.45, 0, TAU); ctx.fill(); ctx.shadowBlur = 0
+    } else if (bu.type === 'ghost') {
+      ctx.globalAlpha = 0.85; ctx.fillStyle = '#7effc8'; ctx.shadowColor = '#3affb0'; ctx.shadowBlur = 11
+      ctx.beginPath(); ctx.arc(s.x, s.y, bu.radius, 0, TAU); ctx.fill()
+      ctx.fillStyle = '#eafff5'; ctx.beginPath(); ctx.arc(s.x, s.y, bu.radius * 0.4, 0, TAU); ctx.fill()
+      ctx.shadowBlur = 0; ctx.globalAlpha = 1
     } else { // ball (friendly gold, enemy red)
       ctx.fillStyle = bu.friendly ? '#ffd27a' : '#ff6a5a'
       ctx.shadowColor = bu.friendly ? '#c89b3c' : '#ff3a2a'; ctx.shadowBlur = 7
@@ -1062,7 +1178,11 @@ function render(ctx: CanvasRenderingContext2D, g: GS) {
   }
 
   /* — boss — */
-  if (g.boss) { if (g.boss.kind === 'leviathan') drawLeviathan(ctx, g, w2s); else drawKraken(ctx, g, w2s) }
+  if (g.boss) {
+    if (g.boss.kind === 'leviathan') drawLeviathan(ctx, g, w2s)
+    else if (g.boss.kind === 'dutchman') drawDutchman(ctx, g, w2s)
+    else drawKraken(ctx, g, w2s)
+  }
 
   /* — tentacle strike visuals (above water) — */
   for (const t of g.tentacles) {
@@ -1274,6 +1394,75 @@ function drawLeviathan(ctx: CanvasRenderingContext2D, g: GS, w2s: (x: number, y:
   ctx.restore()
 
   drawBossBar(ctx, b, '🐉 THE LEVIATHAN', '#1f7d62', '#2fae5a')
+}
+
+function drawDutchman(ctx: CanvasRenderingContext2D, g: GS, w2s: (x: number, y: number) => { x: number; y: number }) {
+  const b = g.boss!; const s = w2s(b.x, b.y); const t = g.time
+  // spectral fade per state
+  let alpha = 0.9
+  if (b.mode === 'arrive') alpha = 0.9 * (1 - clamp((b.modeT ?? 0) / 1.6, 0, 1))
+  else if (b.mode === 'phaseOut') alpha = 0.9 * clamp((b.modeT ?? 0) / 0.55, 0, 1)
+  else if (b.mode === 'phaseIn') alpha = 0.9 * (1 - clamp((b.modeT ?? 0) / 0.5, 0, 1))
+
+  // broadside telegraph — glowing firing arc along the flank
+  if (b.mode === 'broadsideTele') {
+    const k = 1 - clamp((b.modeT ?? 0) / 0.9, 0, 1)
+    const aim = b.aimAng
+    ctx.strokeStyle = `rgba(126,255,200,${0.3 + k * 0.5})`; ctx.lineWidth = 3
+    ctx.beginPath(); ctx.arc(s.x, s.y, 90, aim - 0.5, aim + 0.5); ctx.stroke()
+  }
+
+  ctx.save()
+  ctx.globalAlpha = alpha
+  ctx.translate(s.x, s.y); ctx.rotate(b.swimAng ?? 0)
+  ctx.shadowColor = '#6effc0'; ctx.shadowBlur = 26
+  const L = 92, W = 34
+  const hull = b.hitFlash > 0 ? '#eafff2' : '#11332b'
+  // hull
+  ctx.fillStyle = hull
+  ctx.beginPath()
+  ctx.moveTo(L, 0)
+  ctx.bezierCurveTo(L * 0.55, -W, -L * 0.72, -W, -L, -W * 0.5)
+  ctx.lineTo(-L, W * 0.5)
+  ctx.bezierCurveTo(-L * 0.72, W, L * 0.55, W, L, 0)
+  ctx.closePath(); ctx.fill()
+  // glowing rim
+  ctx.strokeStyle = '#6effc0'; ctx.lineWidth = 2; ctx.shadowBlur = 10; ctx.stroke()
+  ctx.shadowBlur = 0
+  // deck
+  ctx.fillStyle = 'rgba(40,90,75,0.7)'
+  ctx.beginPath(); ctx.ellipse(-L * 0.05, 0, L * 0.6, W * 0.62, 0, 0, TAU); ctx.fill()
+  // gun ports (glowing cannon mouths along both flanks)
+  ctx.fillStyle = b.mode === 'broadside' ? '#fff0b0' : '#3a8a6e'
+  for (let i = -2; i <= 2; i++) {
+    for (const dir of [-1, 1]) { ctx.beginPath(); ctx.arc(i * 22, dir * (W * 0.82), 3.2, 0, TAU); ctx.fill() }
+  }
+  // three tattered masts/sails across the beam
+  const masts = [38, -2, -46]
+  for (let m = 0; m < masts.length; m++) {
+    const hx = masts[m]; const sH = (m === 1 ? W * 1.5 : W * 1.25)
+    const billow = Math.sin(t * 2 + m) * 4
+    ctx.fillStyle = `rgba(210,255,235,${0.42 + Math.sin(t * 2 + m) * 0.05})`
+    ctx.beginPath()
+    ctx.moveTo(hx, -sH)
+    ctx.quadraticCurveTo(hx - 10 + billow, 0, hx, sH)
+    // ragged trailing edge
+    ctx.lineTo(hx + 6, sH * 0.6); ctx.lineTo(hx + 1, sH * 0.3)
+    ctx.lineTo(hx + 7, 0); ctx.lineTo(hx + 1, -sH * 0.3); ctx.lineTo(hx + 6, -sH * 0.6)
+    ctx.closePath(); ctx.fill()
+    // mast pole
+    ctx.strokeStyle = 'rgba(20,50,40,0.8)'; ctx.lineWidth = 2.5
+    ctx.beginPath(); ctx.moveTo(hx, -sH); ctx.lineTo(hx, sH); ctx.stroke()
+  }
+  // skull emblem on the main sail
+  ctx.fillStyle = `rgba(235,255,245,${0.7})`
+  ctx.beginPath(); ctx.arc(-2, 0, 7, 0, TAU); ctx.fill()
+  ctx.fillStyle = '#11332b'
+  ctx.beginPath(); ctx.arc(-4, -1.5, 1.6, 0, TAU); ctx.arc(0, -1.5, 1.6, 0, TAU); ctx.fill()
+  ctx.fillRect(-4, 3, 4, 1.4)
+  ctx.restore()
+
+  drawBossBar(ctx, b, '☠ THE FLYING DUTCHMAN', '#2f8a6e', '#1a5a8a')
 }
 
 function drawHUD(ctx: CanvasRenderingContext2D, g: GS) {
@@ -1531,7 +1720,7 @@ export default function PirateCarnage() {
       </div>
 
       <p style={{ color: '#605848', fontSize: 12, fontFamily: 'Inter,sans-serif', textAlign: 'center', maxWidth: 640, lineHeight: 1.6 }}>
-        Twisted Metal on the high seas. Pick a ship, boost through the chaos, grab power-ups, and survive the boss gauntlet — sink the Kraken, then the Leviathan. Win to earn <span style={{ color: '#c89b3c' }}>+25 Fun XP</span>.
+        Twisted Metal on the high seas. Pick a ship, boost through the chaos, grab power-ups, and survive the three-boss gauntlet — the Kraken, the Leviathan, then the Flying Dutchman. Win to earn <span style={{ color: '#c89b3c' }}>+25 Fun XP</span>.
       </p>
     </div>
   )
