@@ -1966,6 +1966,41 @@ function ItemThumb({ item }: { item: Item }) {
   </div>
 }
 
+// a small face used inside the hair icon so the hairstyle reads clearly
+function faceMini() {
+  return <g>
+    <ellipse cx="133" cy="120" rx="7" ry="9" fill="#fff" /><ellipse cx="167" cy="120" rx="7" ry="9" fill="#fff" />
+    <circle cx="134" cy="122" r="4.5" fill="#5aa0e0" /><circle cx="166" cy="122" r="4.5" fill="#5aa0e0" />
+    <circle cx="134" cy="122" r="2" fill="#1c1626" /><circle cx="166" cy="122" r="2" fill="#1c1626" />
+    <ellipse cx="120" cy="134" rx="6" ry="4" fill="#ff9ec4" opacity="0.5" /><ellipse cx="180" cy="134" rx="6" ry="4" fill="#ff9ec4" opacity="0.5" />
+    <path d="M142 138 q8 7 16 0" stroke="#c0506a" strokeWidth="2" fill="none" strokeLinecap="round" />
+  </g>
+}
+
+// ItemIcon — renders JUST the item, big and clear (no full doll). Used by Closet Rush.
+function ItemIcon({ item, size = 74 }: { item: Item; size?: number }) {
+  const p = item.p
+  const vb: Record<string, string> = {
+    dress: '28 162 244 244', top: '98 152 104 104', bottom: '78 244 144 144',
+    shoes: '120 382 56 28', crown: '106 48 88 88', necklace: '126 166 48 34',
+    wings: '38 134 224 224', cape: '38 172 224 224', pet: '189 288 88 88',
+    hair: '54 54 192 192',
+  }
+  const inner =
+    item.cat === 'dress' ? renderDress(p)
+      : item.cat === 'top' ? renderTop(p)
+        : item.cat === 'bottom' ? renderBottom(p)
+          : item.cat === 'shoes' ? renderShoes(p)
+            : item.cat === 'crown' ? renderCrown(p)
+              : item.cat === 'necklace' ? renderNeck(p)
+                : item.cat === 'wings' ? renderWings(p)
+                  : item.cat === 'cape' ? renderCape(p)
+                    : item.cat === 'pet' ? renderPet(p)
+                      : item.cat === 'hair' ? <>{renderHairBack(p)}<ellipse cx="150" cy="118" rx="40" ry="44" fill="#ffe0c4" />{faceMini()}{renderHairFront(p)}</>
+                        : null
+  return <svg viewBox={vb[item.cat] || '0 0 300 420'} width={size} height={size} style={{ display: 'block' }}>{inner}</svg>
+}
+
 /* ───────── RESULT ───────── */
 function ResultScreen({ result, equip, onAgain, onHome }: any) {
   return (
@@ -2300,13 +2335,15 @@ function PetGroomScreen({ petId, onBack, onReward, showToast }: any) {
 /* ───────── CLOSET RUSH MINI-GAME ───────── */
 const RUSH_POOL = ALL.filter(i => ['dress', 'hair', 'shoes', 'crown', 'necklace', 'wings', 'cape', 'pet', 'top', 'bottom'].includes(i.cat) && i.p?.style !== 'none' && i.p?.shape !== 'none')
 function rushShuffle<T>(a: T[]): T[] { const r = [...a]; for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[r[i], r[j]] = [r[j], r[i]] } return r }
+const RUSH_TIME = 35
 function ClosetRushScreen({ onBack, onReward, showToast }: any) {
   const [phase, setPhase] = useState<'ready' | 'play' | 'done'>('ready')
-  const [time, setTime] = useState(28)
+  const [time, setTime] = useState(RUSH_TIME)
   const [targets, setTargets] = useState<Item[]>([])
   const [grid, setGrid] = useState<Item[]>([])
   const [found, setFound] = useState<string[]>([])
   const [themeLabel, setThemeLabel] = useState('')
+  const [wrongId, setWrongId] = useState<string | null>(null)
   const foundRef = useRef<string[]>([])
   const ended = useRef(false)
   const got = useRef({ coins: 0, xp: 0, found: 0, total: 0, all: false })
@@ -2314,12 +2351,12 @@ function ClosetRushScreen({ onBack, onReward, showToast }: any) {
   const start = () => {
     const keys = Object.keys(THEME_LABEL) as Theme[]
     let theme = keys[0], themed: Item[] = []
-    for (let t = 0; t < 10; t++) { theme = keys[Math.floor(Math.random() * keys.length)]; themed = RUSH_POOL.filter(i => i.themes.includes(theme)); if (themed.length >= 3) break }
+    for (let t = 0; t < 12; t++) { theme = keys[Math.floor(Math.random() * keys.length)]; themed = RUSH_POOL.filter(i => i.themes.includes(theme)); if (themed.length >= 4) break }
     const tg = rushShuffle(themed).slice(0, 4)
     if (tg.length < 4) tg.push(...rushShuffle(RUSH_POOL.filter(i => !tg.includes(i))).slice(0, 4 - tg.length))
     const decoys = rushShuffle(RUSH_POOL.filter(i => !tg.includes(i))).slice(0, 8)
     foundRef.current = []; ended.current = false
-    setTargets(tg); setGrid(rushShuffle([...tg, ...decoys])); setFound([]); setThemeLabel(THEME_LABEL[theme]); setTime(28); setPhase('play')
+    setTargets(tg); setGrid(rushShuffle([...tg, ...decoys])); setFound([]); setThemeLabel(THEME_LABEL[theme]); setTime(RUSH_TIME); setWrongId(null); setPhase('play')
   }
 
   const endGame = useCallback((tg: Item[]) => {
@@ -2327,7 +2364,7 @@ function ClosetRushScreen({ onBack, onReward, showToast }: any) {
     ended.current = true
     const fc = foundRef.current.length
     const all = fc === tg.length
-    const coins = fc * 30 + (all ? 60 : 0)
+    const coins = fc * 35 + (all ? 80 : 0)
     const xp = fc * 5
     got.current = { coins, xp, found: fc, total: tg.length, all }
     onReward(coins, 0, xp)
@@ -2346,48 +2383,80 @@ function ClosetRushScreen({ onBack, onReward, showToast }: any) {
       const nf = [...foundRef.current, it.id]; foundRef.current = nf; setFound(nf)
       if (nf.length === targets.length) endGame(targets)
     } else {
-      setTime(t => Math.max(0, t - 3)); showToast('Not on the list! −3s ⏱️')
+      setTime(t => Math.max(0, t - 2)); setWrongId(it.id)
+      window.setTimeout(() => setWrongId(w => (w === it.id ? null : w)), 450)
+      showToast('Not on the list! −2s ⏱️')
     }
   }
+
+  const timePct = Math.max(0, time / RUSH_TIME * 100)
+  const lowTime = time <= 8
 
   return (
     <div className="de-card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
         <button style={pill as any} onClick={onBack}>← Home</button>
         <h2 style={{ fontSize: 15, color: '#b23a7a', margin: 0 }}>⏱️ Closet Rush</h2>
-        {phase === 'play' ? <div style={pill}>⏱️ {time}s</div> : <span style={{ width: 50 }} />}
+        {phase === 'play'
+          ? <div style={{ ...pill, color: lowTime ? '#d0303a' : '#a04a7a' }}>⏱️ {time}s · {found.length}/{targets.length}</div>
+          : <span style={{ width: 50 }} />}
       </div>
 
       {phase === 'ready' && (
         <div style={{ padding: 24, textAlign: 'center' }}>
-          <p style={{ fontSize: 14, color: '#7a4a6a' }}>Find all the outfit pieces on your list before time runs out! 👗<br />Wrong taps cost 3 seconds.</p>
-          <button style={{ ...btnGold, fontSize: 16, marginTop: 12 }} onClick={start}>Start! ⏱️</button>
+          <div style={{ fontSize: 40 }}>👗👑👠</div>
+          <p style={{ fontSize: 14, color: '#7a4a6a', marginTop: 8 }}>
+            Look at the <b style={{ color: '#b23a7a' }}>4 pictures</b> at the top, then tap the matching pieces in the closet below — before time runs out! 💨
+          </p>
+          <p style={{ fontSize: 11, color: '#a06a90' }}>Wrong taps cost 2 seconds.</p>
+          <button style={{ ...btnGold, fontSize: 16, marginTop: 10 }} onClick={start}>Start! ⏱️</button>
         </div>
       )}
 
       {phase === 'play' && (
         <>
-          <div style={{ textAlign: 'center', marginBottom: 8 }}>
-            <p style={{ fontSize: 12, color: '#a06a90', margin: '0 0 6px' }}>Find these <b style={{ color: '#b23a7a' }}>{themeLabel}</b> pieces:</p>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
+          {/* timer bar */}
+          <div style={{ height: 12, background: '#ffe0ef', borderRadius: 8, overflow: 'hidden', border: '2px solid #ffd6ec', marginBottom: 10 }}>
+            <div style={{ width: `${timePct}%`, height: '100%', background: lowTime ? 'linear-gradient(90deg,#ff8a8a,#d0303a)' : 'linear-gradient(90deg,#8fe0a0,#5fbf7a)', transition: 'width 1s linear' }} />
+          </div>
+
+          {/* visual "find these" list — the actual pictures to match */}
+          <div style={{ background: 'linear-gradient(135deg,#fff,#ffeaf5)', border: '2px solid #ffd6ec', borderRadius: 16, padding: '8px 10px', marginBottom: 12 }}>
+            <p style={{ fontSize: 11, color: '#a06a90', margin: '0 0 6px', textAlign: 'center' }}>Find these <b style={{ color: '#b23a7a' }}>{themeLabel}</b> pieces:</p>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
               {targets.map(t => {
                 const f = found.includes(t.id)
-                return <span key={t.id} style={{ ...pill, fontSize: 10, padding: '5px 10px', background: f ? '#e8ffe8' : '#fff', color: f ? '#4faf6a' : '#a04a7a' }}>{f ? '✅' : '🔍'} {t.name}</span>
+                return (
+                  <div key={t.id} style={{
+                    width: 76, borderRadius: 12, padding: 4, background: f ? '#eafff0' : '#fff',
+                    border: f ? '2px solid #5fbf7a' : '2px solid #ffd6ec', position: 'relative', textAlign: 'center',
+                  }}>
+                    <div style={{ opacity: f ? 0.5 : 1 }}><ItemIcon item={t} size={60} /></div>
+                    <div style={{ fontSize: 8, fontWeight: 700, color: '#7a4a6a', lineHeight: 1.1, marginTop: 2 }}>{t.name}</div>
+                    {f && <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', fontSize: 28 }}>✅</div>}
+                  </div>
+                )
               })}
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(82px,1fr))', gap: 8 }}>
+
+          {/* the closet — big clear icon cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(96px,1fr))', gap: 8 }}>
             {grid.map(it => {
               const f = found.includes(it.id)
+              const wrong = wrongId === it.id
               return (
                 <button key={it.id} onClick={() => tapItem(it)} disabled={f}
+                  className={wrong ? 'de-shake' : (f ? 'de-pop' : '')}
                   style={{
-                    border: f ? '3px solid #5fbf7a' : '2px solid #ffe0ef', borderRadius: 12, padding: 6, cursor: f ? 'default' : 'pointer',
-                    background: f ? '#f0fff0' : '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, position: 'relative', opacity: f ? 0.6 : 1,
+                    border: f ? '3px solid #5fbf7a' : wrong ? '3px solid #ff6a6a' : '2px solid #ffe0ef',
+                    borderRadius: 14, padding: 8, cursor: f ? 'default' : 'pointer',
+                    background: f ? '#f0fff0' : wrong ? '#fff0f0' : '#fff',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, position: 'relative', opacity: f ? 0.55 : 1,
                   }}>
-                  <ItemThumb item={it} />
-                  <div style={{ fontSize: 8.5, fontWeight: 700, color: '#7a4a6a', textAlign: 'center', lineHeight: 1.1 }}>{it.name}</div>
-                  {f && <div style={{ position: 'absolute', top: -6, right: -6, fontSize: 16 }}>✅</div>}
+                  <ItemIcon item={it} size={72} />
+                  <div style={{ fontSize: 9, fontWeight: 700, color: '#7a4a6a', textAlign: 'center', lineHeight: 1.1 }}>{it.name}</div>
+                  {f && <div style={{ position: 'absolute', top: -8, right: -8, fontSize: 18 }}>✅</div>}
                 </button>
               )
             })}
@@ -2397,7 +2466,7 @@ function ClosetRushScreen({ onBack, onReward, showToast }: any) {
 
       {phase === 'done' && (
         <div style={{ padding: 24, textAlign: 'center' }}>
-          <div className="de-pop" style={{ fontSize: 40 }}>{got.current.all ? '🎉' : '👗'}</div>
+          <div className="de-pop" style={{ fontSize: 44 }}>{got.current.all ? '🎉' : '👗'}</div>
           <h3 style={{ color: '#b23a7a', fontSize: 18 }}>
             {got.current.all ? 'Perfect! You found them all!' : `You found ${got.current.found} of ${got.current.total}!`}
           </h3>
@@ -2530,6 +2599,8 @@ const DE_CSS = `
 @keyframes de-pop{ 0%{ transform: scale(.4); opacity:0 } 100%{ transform: scale(1); opacity:1 } }
 .de-rise{ animation: de-rise .85s ease-out forwards; }
 @keyframes de-rise{ 0%{ transform: translate(-50%,-50%) scale(.6); opacity:1 } 100%{ transform: translate(-50%,-180%) scale(1.2); opacity:0 } }
+.de-shake{ animation: de-shake .42s ease; }
+@keyframes de-shake{ 0%,100%{ transform: translateX(0) } 20%{ transform: translateX(-5px) } 40%{ transform: translateX(5px) } 60%{ transform: translateX(-4px) } 80%{ transform: translateX(3px) } }
 .de-confetti{ position:absolute; top:-12px; width:9px; height:14px; border-radius:2px; animation: de-conf linear forwards; }
 @keyframes de-conf{ 0%{ transform: translateY(0) rotate(0) } 100%{ transform: translateY(520px) rotate(540deg) } }
 @media (max-width: 640px){ .de-card{ padding: 12px; border-radius: 18px; } }
