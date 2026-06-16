@@ -452,25 +452,32 @@ function spawnEnemy(g: GS, type: string) {
     hitFlash: 0, burn: 0, burnDps: 0, spawnT: 0.5, orbitDir: Math.random() < 0.5 ? 1 : -1,
   })
 }
-// all three legendary beasts surface at once for the ultimate carnage
+// the legendary beasts arrive one at a time — a boss gauntlet
 function spawnBoss(g: GS) {
   g.bossSpawned = true
-  g.bosses = [
-    { kind: 'kraken', x: WW / 2, y: WH / 2, vx: 0, vy: 0, hp: 1500, maxHp: 1500, atkCd: 2.5, hitFlash: 0, aimAng: 0, dying: 0 },
-    {
-      kind: 'leviathan', x: WW * 0.82, y: WH * 0.7, vx: 0, vy: 0, hp: 1700, maxHp: 1700,
-      atkCd: 1.2, hitFlash: 0, aimAng: 0, dying: 0,
-      mode: 'rise', modeT: 1.6, swimAng: angTo(WW * 0.82, WH * 0.7, g.players[0].x, g.players[0].y), trail: [], tx: 0, ty: 0,
-    },
-    {
-      kind: 'dutchman', x: WW * 0.18, y: WH * 0.18, vx: 0, vy: 0, hp: 1900, maxHp: 1900,
-      atkCd: 1.0, hitFlash: 0, aimAng: 0, dying: 0,
-      mode: 'arrive', modeT: 1.6, swimAng: Math.PI / 2, tx: 0, ty: 0,
-    },
-  ]
-  g.banner = { txt: 'THE DEEP UNLEASHED', sub: 'KRAKEN · LEVIATHAN · DUTCHMAN', life: 3.4 }
-  g.shake = 30; Sfx.roar(); Sfx.playMusic('boss')
-  g.enemies = []
+  g.bosses.push({ kind: 'kraken', x: WW / 2, y: WH / 2 - 200, vx: 0, vy: 0, hp: 2200, maxHp: 2200, atkCd: 2.5, hitFlash: 0, aimAng: 0, dying: 0 })
+  g.banner = { txt: 'THE KRAKEN RISES', sub: 'SINK THE BEAST', life: 3 }
+  g.shake = 24; Sfx.roar(); Sfx.playMusic('boss')
+  g.enemies = g.enemies.filter(e => e.type === 'warship')
+}
+function spawnLeviathan(g: GS) {
+  const ex = g.players[0].x < WW / 2 ? WW - 60 : 60 // surface from the far side
+  g.bosses.push({
+    kind: 'leviathan', x: ex, y: WH / 2, vx: 0, vy: 0, hp: 2400, maxHp: 2400,
+    atkCd: 1.2, hitFlash: 0, aimAng: 0, dying: 0,
+    mode: 'rise', modeT: 1.6, swimAng: angTo(ex, WH / 2, g.players[0].x, g.players[0].y), trail: [], tx: 0, ty: 0,
+  })
+  g.banner = { txt: 'THE LEVIATHAN SURFACES', sub: 'THE TRUE BEAST OF THE DEEP', life: 3 }
+  g.shake = 26; Sfx.roar(); g.enemies = []
+}
+function spawnDutchman(g: GS) {
+  g.bosses.push({
+    kind: 'dutchman', x: WW / 2, y: WH * 0.15, vx: 0, vy: 0, hp: 2800, maxHp: 2800,
+    atkCd: 1.0, hitFlash: 0, aimAng: 0, dying: 0,
+    mode: 'arrive', modeT: 1.6, swimAng: Math.PI / 2, tx: 0, ty: 0,
+  })
+  g.banner = { txt: 'THE FLYING DUTCHMAN', sub: 'THE LEGENDARY GHOST SHIP', life: 3 }
+  g.shake = 26; Sfx.roar(); g.enemies = []
 }
 function startBossDeath(g: GS, b: Boss) {
   b.dying = 2.4; b.hp = 0
@@ -812,7 +819,10 @@ function handleBossDying(g: GS, b: Boss, dt: number) {
     g.score += reward; ftext(g, b.x, b.y, '+' + reward, '#c89b3c', 22)
     if (b.kind === 'kraken') g.tentacles = []
     g.bosses = g.bosses.filter(o => o !== b)
-    if (g.bosses.length === 0) { g.state = 'victory'; Sfx.stopMusic(); Sfx.win() }
+    // gauntlet: the next beast arrives, or victory after the Dutchman
+    if (b.kind === 'kraken') spawnLeviathan(g)
+    else if (b.kind === 'leviathan') spawnDutchman(g)
+    else { g.state = 'victory'; Sfx.stopMusic(); Sfx.win() }
   }
 }
 
@@ -1849,7 +1859,7 @@ export default function PirateCarnage() {
       </div>
 
       <p style={{ color: '#605848', fontSize: 12, fontFamily: 'Inter,sans-serif', textAlign: 'center', maxWidth: 640, lineHeight: 1.6 }}>
-        Twisted Metal on the high seas — solo or <span style={{ color: '#c89b3c' }}>2-player local co-op</span>. Pick a ship, boost through the chaos, grab power-ups, and survive all three legendary beasts at once — the Kraken, the Leviathan, AND the Flying Dutchman together. Win to earn <span style={{ color: '#c89b3c' }}>+25 Fun XP</span>.
+        Twisted Metal on the high seas — solo or <span style={{ color: '#c89b3c' }}>2-player local co-op</span>. Pick a ship, boost through the chaos, grab power-ups, and survive the boss gauntlet — the Kraken, then the Leviathan, then the Flying Dutchman. Win to earn <span style={{ color: '#c89b3c' }}>+25 Fun XP</span>.
       </p>
     </div>
   )
