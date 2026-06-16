@@ -11,6 +11,7 @@ const VW = 960, VH = 600          // viewport
 const WW = 2400, WH = 1600        // world / arena
 const BOSS_AT = 28                // kills before the Kraken surfaces
 const TAU = Math.PI * 2
+const LEV_SEGS = 13, LEV_SPACING = 4  // Leviathan serpent body segments / trail sampling
 
 /* ── math ── */
 const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n))
@@ -178,7 +179,15 @@ interface PowerUp { x: number; y: number; kind: string; bob: number; life: numbe
 interface Particle { x: number; y: number; vx: number; vy: number; life: number; max: number; size: number; color: string; kind: string; spin: number }
 interface Beam { ax: number; ay: number; bx: number; by: number; life: number; color: string }
 interface Tentacle { x: number; y: number; state: string; t: number; radius: number; ang: number; sway: number }
-interface Boss { x: number; y: number; vx: number; vy: number; hp: number; maxHp: number; atkCd: number; hitFlash: number; aimAng: number; dying: number }
+interface Boss {
+  kind: string // 'kraken' | 'leviathan'
+  x: number; y: number; vx: number; vy: number; hp: number; maxHp: number
+  atkCd: number; hitFlash: number; aimAng: number; dying: number
+  // leviathan serpent state
+  mode?: string; modeT?: number; swimAng?: number
+  trail?: { x: number; y: number }[]; tx?: number; ty?: number
+  shock?: { ox: number; oy: number; t: number; max: number; hit: boolean }
+}
 interface FloatText { x: number; y: number; txt: string; life: number; color: string; vy: number; size: number }
 interface Rock { x: number; y: number; r: number; seed: number }
 interface Foam { x: number; y: number; len: number; ph: number }
@@ -268,7 +277,7 @@ function explode(g: GS, x: number, y: number, radius: number, dmg: number, frien
   if (big) Sfx.bigExp(); else Sfx.explosion()
   // damage enemies
   for (const e of g.enemies) { if (dist(x, y, e.x, e.y) < radius + e.radius) damageEnemy(g, e, dmg, x, y) }
-  if (g.boss && dist(x, y, g.boss.x, g.boss.y) < radius + 80) damageBoss(g, dmg, x, y)
+  if (g.boss && dmg > 0) { const m = bossHitTest(g, x, y, radius); if (m != null) damageBoss(g, dmg * m, x, y) }
   if (!friendly) {
     const p = g.player
     const d = dist(x, y, p.x, p.y)
@@ -298,6 +307,28 @@ function killEnemy(g: GS, e: Enemy) {
 }
 function dropPower(g: GS, x: number, y: number) {
   g.powerups.push({ x, y, kind: pick(PUP_KINDS), bob: rnd(0, TAU), life: 14 })
+}
+// is the boss currently a valid target?
+function bossVulnerable(b: Boss): boolean {
+  if (b.dying > 0) return false
+  if (b.kind === 'leviathan' && (b.mode === 'submerge' || b.mode === 'rise')) return false
+  return true
+}
+// returns a damage multiplier if (x,y,r) overlaps the boss, else null.
+// Leviathan: head is a 1.6x weak point, body segments take 0.5x.
+function bossHitTest(g: GS, x: number, y: number, r: number): number | null {
+  const b = g.boss; if (!b || !bossVulnerable(b)) return null
+  if (b.kind === 'kraken') return dist(x, y, b.x, b.y) < 78 + r ? 1 : null
+  // leviathan
+  if (dist(x, y, b.x, b.y) < 32 + r) return 1.6 // head weak point
+  const trail = b.trail || []
+  for (let j = 1; j <= LEV_SEGS; j++) {
+    const pt = trail[Math.min(j * LEV_SPACING, trail.length - 1)]
+    if (!pt) break
+    const sr = 26 - (j / LEV_SEGS) * 16
+    if (dist(x, y, pt.x, pt.y) < sr + r) return 0.5
+  }
+  return null
 }
 function damageBoss(g: GS, dmg: number, fromX: number, fromY: number) {
   const b = g.boss; if (!b || b.dying > 0) return
@@ -330,7 +361,7 @@ function spawnBullet(g: GS, x: number, y: number, ang: number, spd: number, dmg:
 function nearestTarget(g: GS, x: number, y: number, range: number): { x: number; y: number } | null {
   let best: { x: number; y: number } | null = null, bd = range
   for (const e of g.enemies) { if (e.hp <= 0) continue; const d = dist(x, y, e.x, e.y); if (d < bd) { bd = d; best = e } }
-  if (g.boss && g.boss.dying <= 0) { const d = dist(x, y, g.boss.x, g.boss.y); if (d < bd) { bd = d; best = g.boss } }
+  if (g.boss && bossVulnerable(g.boss)) { const d = dist(x, y, g.boss.x, g.boss.y); if (d < bd) { bd = d; best = g.boss } }
   return best
 }
 function firePrimary(g: GS) {
@@ -392,16 +423,28 @@ function spawnEnemy(g: GS, type: string) {
 }
 function spawnBoss(g: GS) {
   g.bossSpawned = true
-  g.boss = { x: WW / 2, y: WH / 2 - 200, vx: 0, vy: 0, hp: 2200, maxHp: 2200, atkCd: 2.5, hitFlash: 0, aimAng: 0, dying: 0 }
+  g.boss = { kind: 'kraken', x: WW / 2, y: WH / 2 - 200, vx: 0, vy: 0, hp: 2200, maxHp: 2200, atkCd: 2.5, hitFlash: 0, aimAng: 0, dying: 0 }
   g.banner = { txt: 'THE KRAKEN RISES', sub: 'SINK THE BEAST', life: 3 }
   g.shake = 24; Sfx.roar(); Sfx.playMusic('boss')
   // clear weak adds so the fight reads clean
   g.enemies = g.enemies.filter(e => e.type === 'warship')
 }
+function spawnLeviathan(g: GS) {
+  const ex = g.player.x < WW / 2 ? WW - 60 : 60 // surface from the far side
+  g.boss = {
+    kind: 'leviathan', x: ex, y: WH / 2, vx: 0, vy: 0, hp: 2400, maxHp: 2400,
+    atkCd: 1.2, hitFlash: 0, aimAng: 0, dying: 0,
+    mode: 'rise', modeT: 1.6, swimAng: angTo(ex, WH / 2, g.player.x, g.player.y),
+    trail: [], tx: 0, ty: 0,
+  }
+  g.banner = { txt: 'THE LEVIATHAN SURFACES', sub: 'THE TRUE BEAST OF THE DEEP', life: 3 }
+  g.shake = 26; Sfx.roar()
+  g.enemies = [] // clear the deck for the serpent
+}
 function startBossDeath(g: GS) {
   const b = g.boss; if (!b) return
   b.dying = 2.4; b.hp = 0
-  g.banner = { txt: 'KRAKEN SLAIN', sub: '', life: 2.5 }
+  g.banner = { txt: b.kind === 'leviathan' ? 'LEVIATHAN SLAIN' : 'KRAKEN SLAIN', sub: '', life: 2.5 }
   Sfx.roar()
 }
 
@@ -475,7 +518,7 @@ function tick(g: GS, dt: number, keys: Set<string>, edge: { sec: boolean; ult: b
         const a = angTo(p.x, p.y, e.x, e.y); e.vx += Math.cos(a) * 320; e.vy += Math.sin(a) * 320
       }
     }
-    if (g.boss && g.boss.dying <= 0 && dist(p.x, p.y, g.boss.x, g.boss.y) < 90) damageBoss(g, (b.id === 'tank' ? 50 : 30) * dt * 6, p.x, p.y)
+    if (g.boss) { const m = bossHitTest(g, p.x, p.y, 22); if (m != null) damageBoss(g, (b.id === 'tank' ? 50 : 30) * dt * 6 * m, p.x, p.y) }
   }
 
   /* — primary auto-fire — */
@@ -571,8 +614,8 @@ function tick(g: GS, dt: number, keys: Set<string>, edge: { sec: boolean; ult: b
         spawnEnemy(g, type)
       }
     }
-  } else if (g.boss && g.boss.dying <= 0) {
-    // boss keeps a few adds coming
+  } else if (g.boss && g.boss.dying <= 0 && g.boss.kind === 'kraken') {
+    // the Kraken keeps a few adds coming; the Leviathan duel is one-on-one
     g.spawnCd -= dt
     if (g.spawnCd <= 0 && aliveCount < 6) { g.spawnCd = 3.2; spawnEnemy(g, pick(['sloop', 'cult', 'suicide'])) }
   }
@@ -603,9 +646,12 @@ function tick(g: GS, dt: number, keys: Set<string>, edge: { sec: boolean; ult: b
         }
       }
       // vs boss
-      if (bu.life > 0 && g.boss && g.boss.dying <= 0 && dist(bu.x, bu.y, g.boss.x, g.boss.y) < 78 + bu.radius) {
-        if (bu.type === 'torpedo') { explode(g, bu.x, bu.y, 95, 70 + g.build.dmg, true); damageBoss(g, 70, bu.x, bu.y); bu.life = 0 }
-        else { const crit = Math.random() < 0.12; damageBoss(g, bu.dmg * (crit ? 1.8 : 1), bu.x, bu.y); if (bu.burn) {/* boss burn flavor */ } if (bu.pierce > 0) bu.pierce--; else bu.life = 0 }
+      if (bu.life > 0 && g.boss) {
+        const m = bossHitTest(g, bu.x, bu.y, bu.radius)
+        if (m != null) {
+          if (bu.type === 'torpedo') { explode(g, bu.x, bu.y, 95, 70 + g.build.dmg, true); damageBoss(g, 70 * m, bu.x, bu.y); bu.life = 0 }
+          else { const crit = Math.random() < 0.12; damageBoss(g, bu.dmg * (crit ? 1.8 : 1) * m, bu.x, bu.y); if (bu.pierce > 0) bu.pierce--; else bu.life = 0 }
+        }
       }
     } else {
       // enemy bullet vs player
@@ -634,7 +680,7 @@ function tick(g: GS, dt: number, keys: Set<string>, edge: { sec: boolean; ult: b
       const lx = g.lightning.x, ly = g.lightning.y
       if (dist(lx, ly, p.x, p.y) < 70) hurtPlayer(g, 26)
       for (const e of g.enemies) if (e.hp > 0 && dist(lx, ly, e.x, e.y) < 70) damageEnemy(g, e, 60, e.x, e.y)
-      if (g.boss && g.boss.dying <= 0 && dist(lx, ly, g.boss.x, g.boss.y) < 90) damageBoss(g, 40, g.boss.x, g.boss.y)
+      if (g.boss) { const m = bossHitTest(g, lx, ly, 70); if (m != null) damageBoss(g, 40 * m, g.boss.x, g.boss.y) }
     } else if (g.lightning.state === 'strike' && g.lightning.t <= 0) g.lightning = null
   } else if (g.lightCd <= 0) {
     g.lightCd = rnd(5, 9)
@@ -674,21 +720,35 @@ function applyPower(g: GS, kind: string) {
   burst(g, p.x, p.y, PUPS[kind].color, 14, 200, 'spark', 4)
 }
 
-/* ═══ BOSS (Kraken) ═══ */
+/* ═══ BOSS dispatcher ═══ */
 function tickBoss(g: GS, dt: number) {
-  const b = g.boss!; const p = g.player
+  const b = g.boss!
   b.hitFlash = Math.max(0, b.hitFlash - dt)
-  if (b.dying > 0) {
-    b.dying -= dt
-    if (Math.random() < 0.5) explode(g, b.x + rnd(-70, 70), b.y + rnd(-70, 70), 40, 0, true)
-    if (b.dying <= 0) {
-      explode(g, b.x, b.y, 200, 0, true, true); g.shake = 34
+  if (b.dying > 0) { handleBossDying(g, dt); return }
+  if (b.kind === 'leviathan') tickLeviathan(g, dt)
+  else tickKraken(g, dt)
+}
+function handleBossDying(g: GS, dt: number) {
+  const b = g.boss!
+  b.dying -= dt
+  if (Math.random() < 0.5) explode(g, b.x + rnd(-70, 70), b.y + rnd(-70, 70), 40, 0, true)
+  if (b.dying <= 0) {
+    explode(g, b.x, b.y, 200, 0, true, true); g.shake = 34
+    if (b.kind === 'kraken') {
       g.score += 1500; ftext(g, b.x, b.y, '+1500', '#c89b3c', 22)
       g.boss = null; g.tentacles = []
+      spawnLeviathan(g) // the gauntlet continues — the serpent rises
+    } else {
+      g.score += 2500; ftext(g, b.x, b.y, '+2500', '#c89b3c', 22)
+      g.boss = null
       g.state = 'victory'; Sfx.stopMusic(); Sfx.win()
     }
-    return
   }
+}
+
+/* ═══ BOSS 1 — Kraken ═══ */
+function tickKraken(g: GS, dt: number) {
+  const b = g.boss!; const p = g.player
   // drift slowly, stay roughly center-ish
   const target = { x: WW / 2 + Math.sin(g.time * 0.3) * 260, y: WH / 2 + Math.cos(g.time * 0.4) * 180 }
   b.x += (target.x - b.x) * Math.min(1, dt * 0.6); b.y += (target.y - b.y) * Math.min(1, dt * 0.6)
@@ -728,6 +788,110 @@ function tickBoss(g: GS, dt: number) {
       for (let i = 0; i < (phase < 0.5 ? 3 : 2); i++) spawnEnemy(g, pick(['sloop', 'cult']))
       Sfx.warn()
     }
+  }
+}
+
+/* ═══ BOSS 2 — Leviathan (sea serpent) ═══ */
+function pickSwimTarget(g: GS, b: Boss) {
+  const p = g.player
+  const a = angTo(b.x, b.y, p.x, p.y) + rnd(-1.2, 1.2)
+  const r = rnd(280, 460)
+  b.tx = clamp(p.x + Math.cos(a) * r, 90, WW - 90)
+  b.ty = clamp(p.y + Math.sin(a) * r, 90, WH - 90)
+}
+function swimMove(g: GS, b: Boss, dt: number, spd: number) {
+  if (dist(b.x, b.y, b.tx!, b.ty!) < 80) pickSwimTarget(g, b)
+  const desired = angTo(b.x, b.y, b.tx!, b.ty!)
+  const wiggle = Math.sin(g.time * 4) * 0.5
+  b.swimAng = angLerp(b.swimAng!, desired + wiggle, 1 - Math.pow(0.06, dt))
+  b.x = clamp(b.x + Math.cos(b.swimAng!) * spd * dt, 70, WW - 70)
+  b.y = clamp(b.y + Math.sin(b.swimAng!) * spd * dt, 70, WH - 70)
+}
+function startDive(g: GS, b: Boss) {
+  b.mode = 'submerge'; b.modeT = b.hp / b.maxHp < 0.5 ? 1.0 : 1.3
+  Sfx.warn(); burst(g, b.x, b.y, '#3a6a8a', 16, 200, 'wake', 6)
+}
+function startVenomRing(g: GS, b: Boss, phase: number) {
+  const n = phase < 0.5 ? 26 : 18
+  for (let i = 0; i < n; i++) { const a = (i / n) * TAU + g.time; spawnBullet(g, b.x, b.y, a, 230, 13, 'venom', false, { radius: 8, life: 3.2 }) }
+  Sfx.roar(); g.shake = 10
+  b.mode = 'swim'; b.modeT = rnd(2, 3); b.atkCd = 0.7; pickSwimTarget(g, b)
+}
+function startSlam(g: GS, b: Boss) { b.mode = 'slamWarn'; b.modeT = 0.85; Sfx.warn() }
+
+function tickLeviathan(g: GS, dt: number) {
+  const b = g.boss!; const p = g.player
+  b.modeT = (b.modeT ?? 0) - dt
+  // maintain serpent trail (newest first)
+  b.trail!.unshift({ x: b.x, y: b.y })
+  if (b.trail!.length > LEV_SEGS * LEV_SPACING + 6) b.trail!.pop()
+  const phase = b.hp / b.maxHp
+  b.aimAng = angTo(b.x, b.y, p.x, p.y)
+
+  // expanding shockwave from a slam — damages once as the ring sweeps over the player
+  if (b.shock) {
+    b.shock.t += dt
+    const ringR = (b.shock.t / b.shock.max) * 470
+    if (!b.shock.hit && Math.abs(dist(b.shock.ox, b.shock.oy, p.x, p.y) - ringR) < 34) { hurtPlayer(g, 26); b.shock.hit = true }
+    if (b.shock.t >= b.shock.max) b.shock = undefined
+  }
+
+  if (b.mode === 'rise') {
+    b.x += (WW / 2 - b.x) * Math.min(1, dt * 1.4)
+    b.y += (WH * 0.42 - b.y) * Math.min(1, dt * 1.4)
+    b.swimAng = angLerp(b.swimAng!, b.aimAng, 1 - Math.pow(0.05, dt))
+    if (Math.random() < 0.4) burst(g, b.x + rnd(-40, 40), b.y + rnd(-40, 40), '#bfe8d0', 2, 120, 'wake', 5)
+    if (b.modeT <= 0) { b.mode = 'swim'; b.modeT = rnd(2.4, 3.4); b.atkCd = 0.8; pickSwimTarget(g, b) }
+    return
+  }
+  if (b.mode === 'swim') {
+    swimMove(g, b, dt, phase < 0.5 ? 230 : 190)
+    b.atkCd -= dt
+    if (b.atkCd <= 0) {
+      b.atkCd = phase < 0.5 ? 1.0 : 1.5
+      const aim = angTo(b.x, b.y, p.x + p.vx * 0.2, p.y + p.vy * 0.2)
+      const n = phase < 0.5 ? 5 : 3
+      for (let i = 0; i < n; i++) spawnBullet(g, b.x, b.y, aim + (i - (n - 1) / 2) * 0.16, 300, 12, 'venom', false, { radius: 7, life: 3 })
+      Sfx.cannon()
+    }
+    if (b.modeT <= 0) {
+      const r = Math.random()
+      if (r < (phase < 0.5 ? 0.6 : 0.45)) startDive(g, b)
+      else if (r < 0.82) startVenomRing(g, b, phase)
+      else startSlam(g, b)
+    }
+    return
+  }
+  if (b.mode === 'submerge') { // homing shadow tracking the player
+    b.swimAng = angLerp(b.swimAng!, angTo(b.x, b.y, p.x, p.y), 1 - Math.pow(0.02, dt))
+    b.x = clamp(b.x + Math.cos(b.swimAng!) * 250 * dt, 50, WW - 50)
+    b.y = clamp(b.y + Math.sin(b.swimAng!) * 250 * dt, 50, WH - 50)
+    if (Math.random() < 0.6) burst(g, b.x + rnd(-20, 20), b.y + rnd(-20, 20), '#3a6a8a', 1, 60, 'wake', 6)
+    if (b.modeT <= 0) { // lock direction and erupt toward the player
+      b.mode = 'burst'; b.modeT = 0.7
+      b.swimAng = angTo(b.x, b.y, p.x, p.y); b.tx = Math.cos(b.swimAng); b.ty = Math.sin(b.swimAng)
+      Sfx.roar(); g.shake = 16; burst(g, b.x, b.y, '#cfe6ff', 24, 280, 'wake', 7)
+    }
+    return
+  }
+  if (b.mode === 'burst') { // charge along the locked line
+    b.x += b.tx! * 760 * dt; b.y += b.ty! * 760 * dt
+    if (Math.random() < 0.9) burst(g, b.x, b.y, '#cfe6ff', 2, 100, 'wake', 6)
+    if (dist(b.x, b.y, p.x, p.y) < 62) hurtPlayer(g, 30)
+    const out = b.x < 50 || b.x > WW - 50 || b.y < 50 || b.y > WH - 50
+    if (out || b.modeT <= 0) {
+      b.x = clamp(b.x, 60, WW - 60); b.y = clamp(b.y, 60, WH - 60); g.shake = Math.max(g.shake, 12)
+      b.mode = 'swim'; b.modeT = rnd(1.8, 2.6); b.atkCd = 0.5; pickSwimTarget(g, b)
+    }
+    return
+  }
+  if (b.mode === 'slamWarn') { // rear up, then unleash the shockwave
+    if (b.modeT <= 0) {
+      b.shock = { ox: b.x, oy: b.y, t: 0, max: 0.85, hit: false }
+      Sfx.slam(); g.shake = 18; burst(g, b.x, b.y, '#bfe8d0', 22, 260, 'debris', 6)
+      b.mode = 'swim'; b.modeT = rnd(2, 3); b.atkCd = 0.6; pickSwimTarget(g, b)
+    }
+    return
   }
 }
 
@@ -857,6 +1021,10 @@ function render(ctx: CanvasRenderingContext2D, g: GS) {
     } else if (bu.type === 'ink') {
       ctx.fillStyle = '#7b4fc0'; ctx.shadowColor = '#5b2f9a'; ctx.shadowBlur = 8
       ctx.beginPath(); ctx.arc(s.x, s.y, bu.radius, 0, TAU); ctx.fill(); ctx.shadowBlur = 0
+    } else if (bu.type === 'venom') {
+      ctx.fillStyle = '#6ddf8a'; ctx.shadowColor = '#2fae5a'; ctx.shadowBlur = 9
+      ctx.beginPath(); ctx.arc(s.x, s.y, bu.radius, 0, TAU); ctx.fill()
+      ctx.fillStyle = '#d8ffe2'; ctx.beginPath(); ctx.arc(s.x, s.y, bu.radius * 0.45, 0, TAU); ctx.fill(); ctx.shadowBlur = 0
     } else { // ball (friendly gold, enemy red)
       ctx.fillStyle = bu.friendly ? '#ffd27a' : '#ff6a5a'
       ctx.shadowColor = bu.friendly ? '#c89b3c' : '#ff3a2a'; ctx.shadowBlur = 7
@@ -894,7 +1062,7 @@ function render(ctx: CanvasRenderingContext2D, g: GS) {
   }
 
   /* — boss — */
-  if (g.boss) drawKraken(ctx, g, w2s)
+  if (g.boss) { if (g.boss.kind === 'leviathan') drawLeviathan(ctx, g, w2s); else drawKraken(ctx, g, w2s) }
 
   /* — tentacle strike visuals (above water) — */
   for (const t of g.tentacles) {
@@ -1021,15 +1189,91 @@ function drawKraken(ctx: CanvasRenderingContext2D, g: GS, w2s: (x: number, y: nu
     ctx.fillStyle = '#1a0c00'; const pa = angTo(b.x, b.y, g.player.x, g.player.y); ctx.beginPath(); ctx.ellipse(s.x + 6 + Math.cos(pa) * 7, s.y - 4 + Math.sin(pa) * 7, 5, 11, pa, 0, TAU); ctx.fill()
   }
   ctx.restore()
-  // boss hp bar (top)
+  drawBossBar(ctx, b, '🦑 THE KRAKEN', '#7b2f9a', '#c0392b')
+}
+
+function drawBossBar(ctx: CanvasRenderingContext2D, b: Boss, label: string, c0: string, c1: string) {
   const bw = 560, bx = VW / 2 - bw / 2, by = 18
   ctx.fillStyle = 'rgba(0,0,0,0.55)'; roundRect(ctx, bx - 4, by - 4, bw + 8, 26, 6); ctx.fill()
   ctx.fillStyle = '#2a1414'; roundRect(ctx, bx, by, bw, 18, 4); ctx.fill()
   const hpk = clamp(b.hp / b.maxHp, 0, 1)
-  const hg = ctx.createLinearGradient(bx, 0, bx + bw, 0); hg.addColorStop(0, '#7b2f9a'); hg.addColorStop(1, '#c0392b')
+  const hg = ctx.createLinearGradient(bx, 0, bx + bw, 0); hg.addColorStop(0, c0); hg.addColorStop(1, c1)
   ctx.fillStyle = hg; roundRect(ctx, bx, by, bw * hpk, 18, 4); ctx.fill()
   ctx.fillStyle = '#fff'; ctx.font = '8px "Press Start 2P", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-  ctx.fillText('🦑 THE KRAKEN', VW / 2, by + 9)
+  ctx.fillText(label, VW / 2, by + 9)
+}
+
+function drawLeviathan(ctx: CanvasRenderingContext2D, g: GS, w2s: (x: number, y: number) => { x: number; y: number }) {
+  const b = g.boss!; const t = g.time
+  const submerged = b.mode === 'submerge' || b.mode === 'rise'
+  const trail = b.trail || []
+
+  // expanding shockwave ring
+  if (b.shock) {
+    const o = w2s(b.shock.ox, b.shock.oy); const r = (b.shock.t / b.shock.max) * 470
+    ctx.strokeStyle = `rgba(150,230,200,${clamp(1 - b.shock.t / b.shock.max, 0, 1) * 0.9})`; ctx.lineWidth = 14
+    ctx.beginPath(); ctx.arc(o.x, o.y, r, 0, TAU); ctx.stroke()
+  }
+  // slam telegraph (rear-up warning)
+  if (b.mode === 'slamWarn') {
+    const s = w2s(b.x, b.y); const k = 1 - clamp((b.modeT ?? 0) / 0.85, 0, 1)
+    ctx.strokeStyle = `rgba(255,210,90,${0.4 + k * 0.5})`; ctx.lineWidth = 4
+    ctx.beginPath(); ctx.arc(s.x, s.y, 90 + k * 30, 0, TAU); ctx.stroke()
+  }
+
+  ctx.save()
+  ctx.globalAlpha = submerged ? 0.4 : 1
+  // body segments (tail → head) so the head sits on top
+  for (let j = LEV_SEGS; j >= 1; j--) {
+    const pt = trail[Math.min(j * LEV_SPACING, trail.length - 1)]; if (!pt) continue
+    const s = w2s(pt.x, pt.y); const r = 26 - (j / LEV_SEGS) * 16
+    ctx.fillStyle = submerged ? '#1c3a4a' : (b.hitFlash > 0 ? '#dfffe8' : '#1f5c4a')
+    ctx.beginPath(); ctx.arc(s.x, s.y, r, 0, TAU); ctx.fill()
+    // dorsal ridge highlight
+    ctx.fillStyle = submerged ? '#244a5e' : '#2f7d62'
+    ctx.beginPath(); ctx.arc(s.x, s.y - r * 0.3, r * 0.55, 0, TAU); ctx.fill()
+    // fins every few segments
+    if (!submerged && j % 3 === 0 && j > 2) {
+      const prev = trail[Math.min((j + 1) * LEV_SPACING, trail.length - 1)] || pt
+      const fa = angTo(prev.x, prev.y, pt.x, pt.y) + Math.PI / 2
+      ctx.fillStyle = '#6ddf8a'
+      for (const dir of [1, -1]) {
+        ctx.beginPath(); ctx.moveTo(s.x, s.y)
+        ctx.lineTo(s.x + Math.cos(fa) * dir * (r + 10), s.y + Math.sin(fa) * dir * (r + 10))
+        ctx.lineTo(s.x + Math.cos(fa) * dir * r * 0.4 + Math.cos(fa + 1.4) * dir * 6, s.y + Math.sin(fa) * dir * r * 0.4 + Math.sin(fa + 1.4) * dir * 6)
+        ctx.closePath(); ctx.fill()
+      }
+    }
+  }
+  // head
+  const hs = w2s(b.x, b.y); const ha = b.swimAng ?? 0
+  ctx.translate(hs.x, hs.y); ctx.rotate(ha)
+  ctx.fillStyle = submerged ? '#244a5e' : (b.hitFlash > 0 ? '#fff' : '#256b54')
+  ctx.shadowColor = submerged ? '#0a2a3a' : '#1a3a28'; ctx.shadowBlur = submerged ? 12 : 22
+  ctx.beginPath(); ctx.ellipse(0, 0, 36, 26, 0, 0, TAU); ctx.fill(); ctx.shadowBlur = 0
+  if (!submerged) {
+    // jaw
+    ctx.fillStyle = '#143a2e'
+    ctx.beginPath(); ctx.moveTo(28, -4); ctx.lineTo(44, -2); ctx.lineTo(44, 6); ctx.lineTo(26, 10); ctx.closePath(); ctx.fill()
+    // teeth
+    ctx.fillStyle = '#eafff2'
+    for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.moveTo(30 + i * 4, 2); ctx.lineTo(32 + i * 4, 8); ctx.lineTo(34 + i * 4, 2); ctx.closePath(); ctx.fill() }
+    // horns
+    ctx.strokeStyle = '#163b30'; ctx.lineWidth = 4; ctx.lineCap = 'round'
+    for (const dir of [1, -1]) { ctx.beginPath(); ctx.moveTo(-10, dir * 14); ctx.quadraticCurveTo(-26, dir * 24, -34, dir * 16); ctx.stroke() }
+    // eyes (weak point glow)
+    const eyeOn = b.hitFlash > 0 || Math.sin(t * 6) > -0.6
+    for (const dir of [1, -1]) {
+      ctx.fillStyle = '#0c1a12'; ctx.beginPath(); ctx.arc(8, dir * 11, 7, 0, TAU); ctx.fill()
+      if (eyeOn) { ctx.fillStyle = b.hitFlash > 0 ? '#fff' : '#ffd34d'; ctx.beginPath(); ctx.arc(8, dir * 11, 4.5, 0, TAU); ctx.fill() }
+    }
+  } else {
+    // glowing eyes peering from underwater
+    for (const dir of [1, -1]) { ctx.fillStyle = 'rgba(120,220,180,0.8)'; ctx.beginPath(); ctx.arc(8, dir * 10, 4, 0, TAU); ctx.fill() }
+  }
+  ctx.restore()
+
+  drawBossBar(ctx, b, '🐉 THE LEVIATHAN', '#1f7d62', '#2fae5a')
 }
 
 function drawHUD(ctx: CanvasRenderingContext2D, g: GS) {
@@ -1248,7 +1492,7 @@ export default function PirateCarnage() {
         {screen === 'victory' && (
           <div className="pc-overlay" style={{ background: 'radial-gradient(circle at 50% 40%, rgba(40,70,40,0.92), rgba(8,16,12,0.97))', padding: 24 }}>
             <div style={{ fontSize: 'clamp(28px,7vw,52px)', color: '#5be08a', fontFamily: '"Press Start 2P",monospace', textShadow: '0 0 20px rgba(91,224,138,0.6)' }}>VICTORY</div>
-            <div style={{ color: '#c89b3c', fontFamily: '"Press Start 2P",monospace', fontSize: 13, marginTop: 8 }}>THE KRAKEN IS SLAIN!</div>
+            <div style={{ color: '#c89b3c', fontFamily: '"Press Start 2P",monospace', fontSize: 13, marginTop: 8 }}>THE DEEP IS CONQUERED!</div>
             <div style={{ color: '#e8e6e0', fontFamily: '"Press Start 2P",monospace', fontSize: 16, marginTop: 18 }}>SCORE {finalScore}</div>
             <div style={{ color: '#a09880', fontFamily: '"Press Start 2P",monospace', fontSize: 11, marginTop: 8 }}>{finalKills} SHIPS SUNK</div>
             {!xpDone ? (
@@ -1287,7 +1531,7 @@ export default function PirateCarnage() {
       </div>
 
       <p style={{ color: '#605848', fontSize: 12, fontFamily: 'Inter,sans-serif', textAlign: 'center', maxWidth: 640, lineHeight: 1.6 }}>
-        Twisted Metal on the high seas. Pick a ship, boost through the chaos, grab power-ups, and sink the Kraken. Win the boss fight to earn <span style={{ color: '#c89b3c' }}>+25 Fun XP</span>.
+        Twisted Metal on the high seas. Pick a ship, boost through the chaos, grab power-ups, and survive the boss gauntlet — sink the Kraken, then the Leviathan. Win to earn <span style={{ color: '#c89b3c' }}>+25 Fun XP</span>.
       </p>
     </div>
   )

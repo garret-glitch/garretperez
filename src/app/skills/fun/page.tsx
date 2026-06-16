@@ -21,7 +21,7 @@ const GAMES: GameDef[] = [
   { icon: '🏓', title: 'Pong',         desc: 'vs CPU · first to 5',     href: '/skills/fun/pong',         xp: '+25 XP',           bg: 'linear-gradient(135deg,#181828,#0e0e18)', glow: '#8080c0' },
   { icon: '🍷', title: 'Wine Rush', desc: 'Stock shelves fast and survive the rush.', href: '/skills/fun/wine-stocker', xp: '+25 XP (400+ pts)', bg: 'linear-gradient(135deg,#1a0a14,#0e0508)', glow: '#b03060', featured: true },
   { icon: '⚔️', title: 'Boss Hunter', desc: 'Top-down action RPG. Hunt 3 legendary bosses.', href: '/skills/fun/boss-hunter', xp: '+25 XP', bg: 'linear-gradient(135deg,#1a0a2a,#0e0518)', glow: '#9060c0', featured: true },
-  { icon: '🏴‍☠️', title: 'Pirate Carnage', desc: 'Twisted Metal on the ocean. Boost, blast, sink the Kraken.', href: '/skills/fun/pirate-carnage', xp: '+25 XP', bg: 'linear-gradient(135deg,#0a2438,#06121e)', glow: '#ff6b2b', featured: true },
+  { icon: '🏴‍☠️', title: 'Pirate Carnage', desc: 'Twisted Metal on the ocean. Boost, blast, beat the Kraken & Leviathan.', href: '/skills/fun/pirate-carnage', xp: '+25 XP', bg: 'linear-gradient(135deg,#0a2438,#06121e)', glow: '#ff6b2b', featured: true },
 ]
 
 export default async function FunPage() {
