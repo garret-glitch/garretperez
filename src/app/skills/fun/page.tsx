@@ -22,7 +22,7 @@ const GAMES: GameDef[] = [
   { icon: '🍷', title: 'Wine Rush', desc: 'Stock shelves fast and survive the rush.', href: '/skills/fun/wine-stocker', xp: '+25 XP (400+ pts)', bg: 'linear-gradient(135deg,#1a0a14,#0e0508)', glow: '#b03060', featured: true },
   { icon: '⚔️', title: 'Boss Hunter', desc: 'Top-down action RPG. Hunt 3 legendary bosses.', href: '/skills/fun/boss-hunter', xp: '+25 XP', bg: 'linear-gradient(135deg,#1a0a2a,#0e0518)', glow: '#9060c0', featured: true },
   { icon: '🏴‍☠️', title: 'Pirate Carnage', desc: 'Twisted Metal on the ocean. 1-2P co-op vs a 3-boss gauntlet.', href: '/skills/fun/pirate-carnage', xp: '+25 XP', bg: 'linear-gradient(135deg,#0a2438,#06121e)', glow: '#ff6b2b', featured: true },
-  { icon: '👑', title: 'Dress to Empress', desc: 'Magical dress-up adventure. Style your empress, win fashion shows, unlock outfits & pets.', href: '/skills/fun/dress-empress', xp: '+25 XP', bg: 'linear-gradient(135deg,#3a1430,#2a0e22)', glow: '#ff8fc0', featured: true },
+  { icon: '👑', title: 'Empress Dress Up', desc: 'Magical dress-up adventure. Style your empress, win fashion shows, unlock outfits & pets.', href: '/skills/fun/dress-empress', xp: '+25 XP', bg: 'linear-gradient(135deg,#3a1430,#2a0e22)', glow: '#ff8fc0', featured: true },
 ]
 
 export default async function FunPage() {

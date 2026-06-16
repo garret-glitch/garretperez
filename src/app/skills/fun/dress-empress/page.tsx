@@ -6,7 +6,7 @@ import { emitXpGained } from '@/components/XpToast'
 import GameLeaderboard from '@/components/GameLeaderboard'
 
 /* ═══════════════════════════════════════════════════════════════════
-   DRESS TO EMPRESS — a magical dress-up adventure
+   EMPRESS DRESS UP — a magical dress-up adventure
    A self-contained client game. Progress saves to localStorage.
    ═══════════════════════════════════════════════════════════════════ */
 
@@ -32,11 +32,13 @@ const RARITY: Record<Rarity, { label: string; color: string; pts: number }> = {
 }
 
 /* ───────────────── categories ─────────── */
-type Cat = 'skin' | 'eyes' | 'hair' | 'dress' | 'shoes' | 'crown'
+type Cat = 'skin' | 'eyes' | 'hair' | 'dress' | 'top' | 'bottom' | 'shoes' | 'crown'
   | 'necklace' | 'wings' | 'cape' | 'pet' | 'bg' | 'effect'
 
 const CAT_INFO: { cat: Cat; label: string; icon: string }[] = [
   { cat: 'dress', label: 'Dresses', icon: '👗' },
+  { cat: 'top', label: 'Shirts', icon: '👚' },
+  { cat: 'bottom', label: 'Pants', icon: '👖' },
   { cat: 'hair', label: 'Hair', icon: '💇‍♀️' },
   { cat: 'crown', label: 'Crowns', icon: '👑' },
   { cat: 'necklace', label: 'Jewelry', icon: '📿' },
@@ -101,6 +103,7 @@ const HAIR: Item[] = [
 ]
 
 const DRESSES: Item[] = [
+  c('dr_none', 'dress', 'No Dress · wear a shirt + pants', 'common', [], 0, { shape: 'none' }),
   c('dr_start', 'dress', 'Daydream Dress', 'common', [], 0, { shape: 'aline', bodice: '#f08fb6', skirt: '#ffb3d1', trim: '#fff0f6' }),
   c('dr_blue', 'dress', 'Bluebell Dress', 'common', [], 0, { shape: 'puffy', bodice: '#7fb0e8', skirt: '#a7cdf6', trim: '#ffffff' }),
   c('dr_mint', 'dress', 'Mint Twirl', 'common', ['garden'], 0, { shape: 'aline', bodice: '#86d6b0', skirt: '#aee9cd', trim: '#ffffff' }),
@@ -197,9 +200,92 @@ const EFFECTS: Item[] = [
   c('fx_aura', 'effect', 'Empress Aura', 'legendary', ['empress'], 70, { style: 'aura' }, { gem: true, lvl: 24 }),
 ]
 
+/* ── shirts (shown when "No Dress" is chosen) ── */
+const TOPS: Item[] = [
+  c('t_tee_pink', 'top', 'Pink Tee', 'common', [], 0, { style: 'tee', color: '#ff9ec4', trim: '#fff' }),
+  c('t_tee_white', 'top', 'White Tee', 'common', [], 0, { style: 'tee', color: '#ffffff', trim: '#ffd6ec' }),
+  c('t_hoodie_blue', 'top', 'Blue Hoodie', 'common', ['sunny'], 0, { style: 'hoodie', color: '#7fb0e8', trim: '#cfe2f8' }),
+  c('t_blouse_mint', 'top', 'Mint Blouse', 'uncommon', ['garden'], 130, { style: 'tee', color: '#86d6b0', trim: '#fff' }),
+  c('t_heart_tee', 'top', 'Heart Tee', 'uncommon', ['princess', 'rainbow'], 140, { style: 'heart', color: '#ff7ab0', trim: '#fff0f6' }),
+  c('t_crop_aqua', 'top', 'Aqua Crop Top', 'uncommon', ['mermaid', 'ocean'], 140, { style: 'crop', color: '#3ec7c7', trim: '#dff8ff' }),
+  c('t_blouse_gold', 'top', 'Royal Blouse', 'rare', ['queen'], 240, { style: 'tee', color: '#f0c84a', trim: '#fff6df' }),
+  c('t_starry', 'top', 'Starry Top', 'epic', ['night', 'empress'], 28, { style: 'tee', color: '#4a3aa0', trim: '#b9a6ff' }, { gem: true, lvl: 12 }),
+]
+/* ── pants / skirts (shown when "No Dress" is chosen) ── */
+const BOTTOMS: Item[] = [
+  c('b_jeans', 'bottom', 'Blue Jeans', 'common', [], 0, { style: 'pants', color: '#6f8fc0', trim: '#5a78a8' }),
+  c('b_pink_pants', 'bottom', 'Pink Pants', 'common', [], 0, { style: 'pants', color: '#ff9ec4', trim: '#f07ab0' }),
+  c('b_leggings_purple', 'bottom', 'Purple Leggings', 'common', ['night'], 0, { style: 'leggings', color: '#9a7ad0' }),
+  c('b_shorts_sun', 'bottom', 'Sunny Shorts', 'common', ['sunny', 'garden'], 0, { style: 'shorts', color: '#ffd45a', trim: '#fff' }),
+  c('b_skirt_denim', 'bottom', 'Denim Skirt', 'uncommon', ['sunny'], 130, { style: 'skirt', color: '#6f8fc0', trim: '#fff' }),
+  c('b_tutu_pink', 'bottom', 'Pink Tutu', 'rare', ['princess', 'fairy'], 240, { style: 'tutu', color: '#ffb0d6', trim: '#fff0f6' }),
+  c('b_skirt_gold', 'bottom', 'Royal Skirt', 'rare', ['queen'], 240, { style: 'skirt', color: '#e0b84a', trim: '#fff6df' }),
+  c('b_star_leggings', 'bottom', 'Star Leggings', 'epic', ['night', 'empress'], 28, { style: 'leggings', color: '#3a2f6e' }, { gem: true, lvl: 12 }),
+]
+/* ── extra hair ── */
+const HAIR_X: Item[] = [
+  c('hair_straight_blk', 'hair', 'Sleek Black', 'uncommon', ['night'], 140, { style: 'straight', color: '#2a2530', hi: '#4a4458' }),
+  c('hair_bob_lav', 'hair', 'Lavender Bob', 'uncommon', ['fairy'], 170, { style: 'bob', color: '#b89ad6', hi: '#d4bdf0' }),
+  c('hair_bob_mint', 'hair', 'Mint Bob', 'uncommon', ['garden', 'mermaid'], 170, { style: 'bob', color: '#7fd6c0', hi: '#a8ece0' }),
+  c('hair_pony_red', 'hair', 'Fiery Pony', 'uncommon', ['dragon', 'sunny'], 170, { style: 'pony', color: '#d8552e', hi: '#f0784a' }),
+  c('hair_braid_pink', 'hair', 'Rose Braids', 'rare', ['princess', 'fairy'], 300, { style: 'braid', color: '#e87aa8', hi: '#ffa8cc' }),
+  c('hair_curl_purple', 'hair', 'Violet Curls', 'rare', ['night'], 320, { style: 'curl', color: '#7a5ad0', hi: '#a890f0' }),
+  c('hair_space_pink', 'hair', 'Space Buns', 'rare', ['rainbow'], 320, { style: 'space', color: '#f29ac6', hi: '#ffc0de' }),
+  c('hair_straight_silver', 'hair', 'Silver Straight', 'epic', ['winter', 'empress'], 30, { style: 'straight', color: '#dfe6f0', hi: '#ffffff' }, { gem: true, lvl: 14 }),
+]
+/* ── extra dresses ── */
+const DRESS_X: Item[] = [
+  c('dr_sun', 'dress', 'Sunny Sundress', 'common', ['sunny', 'garden'], 0, { shape: 'aline', bodice: '#ffd45a', skirt: '#ffe79a', trim: '#ffffff' }),
+  c('dr_lav', 'dress', 'Lavender Gown', 'uncommon', ['fairy', 'night'], 200, { shape: 'puffy', bodice: '#9a7ad0', skirt: '#c0a8f0', trim: '#ffffff', sparkle: true }),
+  c('dr_candy', 'dress', 'Candy Pop Dress', 'uncommon', ['rainbow', 'sunny'], 210, { shape: 'puffy', bodice: '#ff9ec4', skirt: '#a8e0ff', trim: '#ffffff', sparkle: true }),
+  c('dr_autumn', 'dress', 'Autumn Leaves', 'uncommon', ['garden'], 200, { shape: 'aline', bodice: '#d8702a', skirt: '#f0a050', trim: '#ffe0a8' }),
+  c('dr_cherry', 'dress', 'Cherry Blossom', 'rare', ['garden', 'princess'], 440, { shape: 'ball', bodice: '#f08fb6', skirt: '#ffd6e6', trim: '#fff0f6', sparkle: true }),
+  c('dr_peacock', 'dress', 'Peacock Gown', 'rare', ['queen', 'ocean'], 460, { shape: 'mermaid', bodice: '#1f8a8a', skirt: '#2fb0c0', trim: '#ffd96a', sparkle: true }),
+  c('dr_emerald', 'dress', 'Emerald Queen', 'rare', ['queen', 'garden'], 460, { shape: 'royal', bodice: '#1f8a4a', skirt: '#2fb060', trim: '#f0c860', sparkle: true }),
+  c('dr_galaxy', 'dress', 'Galaxy Gown', 'epic', ['night', 'empress'], 42, { shape: 'royal', bodice: '#3a2f6e', skirt: '#5a4ab0', trim: '#b9a6ff', sparkle: true, celest: true }, { gem: true, lvl: 16 }),
+  c('dr_starlight', 'dress', 'Starlight Empress', 'legendary', ['empress', 'night'], 95, { shape: 'ball', bodice: '#4a3aa0', skirt: '#7a68d6', trim: '#f4e08a', sparkle: true, celest: true }, { gem: true, lvl: 24 }),
+]
+/* ── extra crowns ── */
+const CROWN_X: Item[] = [
+  c('cr_rose', 'crown', 'Rose Gold Tiara', 'uncommon', ['princess'], 170, { style: 'tiara', metal: '#f0b8a8', gem: '#ff9ec4' }),
+  c('cr_heart', 'crown', 'Heart Crown', 'uncommon', ['princess', 'rainbow'], 180, { style: 'heart', metal: '#f0c84a', gem: '#ff7ab0' }),
+  c('cr_butterfly', 'crown', 'Butterfly Tiara', 'rare', ['fairy', 'garden'], 300, { style: 'flower', metal: '#c08fff', gem: '#ffd36a' }),
+  c('cr_moon', 'crown', 'Moon Crown', 'rare', ['night', 'mermaid'], 300, { style: 'moon', metal: '#d6e6ff', gem: '#fff6d0' }),
+  c('cr_star', 'crown', 'Star Crown', 'rare', ['night', 'empress'], 320, { style: 'star', metal: '#f0e4b0', gem: '#ffe07a' }),
+  c('cr_starlegend', 'crown', 'Celestial Star Crown', 'legendary', ['empress'], 85, { style: 'star', metal: '#b9a6ff', gem: '#f4e08a' }, { gem: true, lvl: 26 }),
+]
+/* ── extra jewelry ── */
+const NECK_X: Item[] = [
+  c('nk_choker', 'necklace', 'Velvet Choker', 'uncommon', ['night', 'queen'], 120, { style: 'choker', color: '#b23a55' }),
+  c('nk_heart', 'necklace', 'Heart Locket', 'uncommon', ['princess', 'rainbow'], 130, { style: 'heart', color: '#ff7ab0' }),
+  c('nk_star', 'necklace', 'Star Pendant', 'rare', ['night', 'empress'], 240, { style: 'star', color: '#ffe07a' }),
+  c('nk_ruby', 'necklace', 'Ruby Drop', 'rare', ['dragon', 'queen'], 240, { style: 'gem', color: '#e0354a' }),
+  c('nk_sapphire', 'necklace', 'Sapphire Drop', 'rare', ['ocean', 'winter'], 240, { style: 'gem', color: '#3a6ae0' }),
+  c('nk_moon', 'necklace', 'Moon Pearl', 'epic', ['mermaid', 'night'], 28, { style: 'pearl', color: '#dfe6ff' }, { gem: true, lvl: 12 }),
+]
+/* ── extra shoes ── */
+const SHOE_X: Item[] = [
+  c('sh_flat_purple', 'shoes', 'Purple Flats', 'common', [], 0, { style: 'flat', color: '#b89ad6' }),
+  c('sh_sneaker', 'shoes', 'Star Sneakers', 'common', ['sunny', 'rainbow'], 120, { style: 'sneaker', color: '#ff9ec4' }),
+  c('sh_boot_pink', 'shoes', 'Pink Boots', 'uncommon', ['winter'], 150, { style: 'boot', color: '#e87aa8' }),
+  c('sh_glass_pink', 'shoes', 'Rose Glass Slippers', 'rare', ['princess'], 250, { style: 'glass', color: '#ffc0e0' }),
+  c('sh_heel_red', 'shoes', 'Ruby Heels', 'rare', ['dragon', 'queen'], 260, { style: 'heel', color: '#d0354a' }),
+  c('sh_heel_silver', 'shoes', 'Starlight Heels', 'epic', ['empress', 'night'], 28, { style: 'heel', color: '#cdd6f0' }, { gem: true, lvl: 16 }),
+]
+/* ── extra pets ── */
+const PET_X: Item[] = [
+  c('pet_kitten_gray', 'pet', 'Gray Kitten', 'common', [], 0, { style: 'cat', color: '#b8bcc8' }),
+  c('pet_hamster', 'pet', 'Hamster', 'uncommon', ['garden', 'sunny'], 180, { style: 'hamster', color: '#e0b070' }),
+  c('pet_penguin', 'pet', 'Penguin', 'uncommon', ['winter', 'ocean'], 190, { style: 'penguin' }),
+  c('pet_panda', 'pet', 'Panda', 'rare', ['garden'], 300, { style: 'panda' }),
+  c('pet_pony', 'pet', 'Pony', 'rare', ['sunny', 'rainbow'], 300, { style: 'pony', color: '#f0d6a0', mane: '#ff9ec4' }),
+  c('pet_dragon_pink', 'pet', 'Pink Dragon', 'legendary', ['fairy', 'empress'], 75, { style: 'dragon', color: '#f0a0c0' }, { gem: true, lvl: 18 }),
+]
+
 const ALL: Item[] = [
-  ...SKINS, ...EYES, ...HAIR, ...DRESSES, ...SHOES, ...CROWNS,
-  ...NECKS, ...WINGS, ...CAPES, ...PETS, ...BGS, ...EFFECTS,
+  ...SKINS, ...EYES, ...HAIR, ...HAIR_X, ...DRESSES, ...DRESS_X,
+  ...TOPS, ...BOTTOMS, ...SHOES, ...SHOE_X, ...CROWNS, ...CROWN_X,
+  ...NECKS, ...NECK_X, ...WINGS, ...CAPES, ...PETS, ...PET_X, ...BGS, ...EFFECTS,
 ]
 const BY_ID: Record<string, Item> = Object.fromEntries(ALL.map(i => [i.id, i]))
 const STARTERS = ALL.filter(i => i.price === 0).map(i => i.id)
@@ -257,6 +343,7 @@ interface Save {
 }
 const DEFAULT_EQUIP: Equip = {
   skin: 'skin_light', eyes: 'eye_blue', hair: 'hair_wave_brn', dress: 'dr_start',
+  top: 't_tee_pink', bottom: 'b_jeans',
   shoes: 'sh_flat_pink', crown: 'cr_tiara', necklace: 'nk_pearl', wings: 'wg_none',
   cape: 'cp_none', pet: 'pet_cat', bg: 'bg_castle', effect: 'fx_sparkle',
 }
@@ -286,7 +373,10 @@ function loadSave(): Save {
 /* ════════════════════════ SCORING ════════════════════════ */
 function scoreOutfit(equip: Equip, ch: Challenge) {
   let pts = 0
-  const filled: Cat[] = ['dress', 'hair', 'shoes', 'crown', 'necklace', 'wings', 'cape', 'pet', 'bg']
+  const dress = BY_ID[equip.dress]
+  const hasDress = !!dress && dress.p?.shape !== 'none'
+  const outfitCats: Cat[] = hasDress ? ['dress'] : ['top', 'bottom']
+  const filled: Cat[] = [...outfitCats, 'hair', 'shoes', 'crown', 'necklace', 'wings', 'cape', 'pet', 'bg']
   let matches = 0
   for (const cat of filled) {
     const it = BY_ID[equip[cat]]
@@ -295,9 +385,12 @@ function scoreOutfit(equip: Equip, ch: Challenge) {
     if (it.themes.includes(ch.theme)) { pts += 6; matches++ }
     if (it.p?.sparkle || it.p?.rainbow || it.p?.celest) pts += 1
   }
-  // bonuses
-  const dress = BY_ID[equip.dress]
-  if (dress?.themes.includes(ch.theme)) pts += 6      // dress is most important
+  // bonuses — the main outfit matters most
+  if (hasDress && dress?.themes.includes(ch.theme)) pts += 6
+  if (!hasDress) {
+    if (BY_ID[equip.top]?.themes.includes(ch.theme)) pts += 3
+    if (BY_ID[equip.bottom]?.themes.includes(ch.theme)) pts += 3
+  }
   if (BY_ID[equip.bg]?.p?.style && BGS.find(b => b.id === equip.bg)?.themes.includes(ch.theme)) pts += 4
   const effect = BY_ID[equip.effect]
   if (effect && effect.p?.style !== 'none' && effect.themes.includes(ch.theme)) pts += 4
@@ -316,7 +409,13 @@ function Avatar({ equip, size = 300 }: { equip: Equip; size?: number }) {
   const skin = BY_ID[equip.skin]?.p || SKINS[0].p
   const eye = BY_ID[equip.eyes]?.p || EYES[0].p
   const hair = BY_ID[equip.hair]?.p
-  const dress = BY_ID[equip.dress]?.p
+  const dressItem = BY_ID[equip.dress]
+  const dress = dressItem?.p
+  const hasDress = !!dress && dress.shape !== 'none'
+  const top = BY_ID[equip.top]?.p || TOPS[0].p
+  const bottom = BY_ID[equip.bottom]?.p || BOTTOMS[0].p
+  const sleeveCol = hasDress ? dress.bodice : top.color
+  const sleeveTrim = hasDress ? dress.trim : top.trim
   const shoes = BY_ID[equip.shoes]?.p
   const crown = BY_ID[equip.crown]?.p
   const neck = BY_ID[equip.necklace]?.p
@@ -342,12 +441,19 @@ function Avatar({ equip, size = 300 }: { equip: Equip; size?: number }) {
 
       {/* legs + shoes */}
       <g>
-        <rect x="135" y="350" width="12" height="40" rx="6" fill={skin.base} />
-        <rect x="153" y="350" width="12" height="40" rx="6" fill={skin.base} />
+        <rect x="135" y="250" width="13" height="140" rx="6.5" fill={skin.base} />
+        <rect x="152" y="250" width="13" height="140" rx="6.5" fill={skin.base} />
         {renderShoes(shoes)}
       </g>
 
-      {renderDress(dress)}
+      {/* torso skin + base underclothes — the character is never bare */}
+      <path d="M128 168 Q150 160 172 168 L168 256 Q150 266 132 256 Z" fill={skin.base} />
+      {renderBase()}
+
+      {/* outfit: a full dress, OR a shirt + pants */}
+      {hasDress
+        ? renderDress(dress)
+        : <>{renderBottom(bottom)}{renderTop(top)}</>}
 
       {/* arms — shoulders → hands resting at the sides */}
       <g>
@@ -355,13 +461,11 @@ function Avatar({ equip, size = 300 }: { equip: Equip; size?: number }) {
         <path d="M174 184 Q192 238 184 298" stroke={skin.base} strokeWidth="13" fill="none" strokeLinecap="round" />
         <circle cx="116" cy="300" r="8" fill={skin.base} />
         <circle cx="184" cy="300" r="8" fill={skin.base} />
-        {dress && <>
-          {/* puff sleeves at the shoulders */}
-          <circle cx="127" cy="186" r="14" fill={dress.bodice} />
-          <circle cx="173" cy="186" r="14" fill={dress.bodice} />
-          <path d="M122 180 q5 -7 11 0" stroke={dress.trim} strokeWidth="2" fill="none" opacity="0.7" />
-          <path d="M167 180 q5 -7 11 0" stroke={dress.trim} strokeWidth="2" fill="none" opacity="0.7" />
-        </>}
+        {/* puff sleeves match the outfit */}
+        <circle cx="127" cy="186" r="14" fill={sleeveCol} />
+        <circle cx="173" cy="186" r="14" fill={sleeveCol} />
+        <path d="M122 180 q5 -7 11 0" stroke={sleeveTrim} strokeWidth="2" fill="none" opacity="0.7" />
+        <path d="M167 180 q5 -7 11 0" stroke={sleeveTrim} strokeWidth="2" fill="none" opacity="0.7" />
       </g>
 
       {/* neck */}
@@ -464,11 +568,82 @@ function renderShoes(p: any) {
   if (p.style === 'glass') return <g fill={col} opacity="0.85" stroke="#ffffff" strokeWidth="1">
     <ellipse cx="139" cy="392" rx="11" ry="6" /><ellipse cx="161" cy="392" rx="11" ry="6" />
   </g>
+  if (p.style === 'sneaker') return <g>
+    <ellipse cx="139" cy="392" rx="12" ry="6.5" fill={col} /><ellipse cx="161" cy="392" rx="12" ry="6.5" fill={col} />
+    <rect x="128" y="393" width="22" height="3" rx="1.5" fill="#fff" /><rect x="150" y="393" width="22" height="3" rx="1.5" fill="#fff" />
+    <circle cx="139" cy="389" r="2" fill="#fff" /><circle cx="161" cy="389" r="2" fill="#fff" />
+  </g>
   return <g fill={col}><ellipse cx="139" cy="392" rx="11" ry="6" /><ellipse cx="161" cy="392" rx="11" ry="6" /></g>
 }
 
-function renderDress(p: any) {
+/* tiny geometry helpers for jewelry/crowns */
+function starD(cx: number, cy: number, r: number) {
+  let d = ''
+  for (let i = 0; i < 10; i++) {
+    const ang = -Math.PI / 2 + i * Math.PI / 5
+    const rr = i % 2 ? r * 0.45 : r
+    d += (i ? 'L' : 'M') + (cx + Math.cos(ang) * rr).toFixed(1) + ' ' + (cy + Math.sin(ang) * rr).toFixed(1) + ' '
+  }
+  return d + 'Z'
+}
+function heartD(cx: number, cy: number, r: number) {
+  return `M${cx} ${cy + r * 0.85} C${cx - r * 1.3} ${cy - r * 0.2} ${cx - r * 0.5} ${cy - r} ${cx} ${cy - r * 0.35} C${cx + r * 0.5} ${cy - r} ${cx + r * 1.3} ${cy - r * 0.2} ${cx} ${cy + r * 0.85} Z`
+}
+
+/* base underclothes — always drawn so the character is never bare */
+function renderBase() {
+  return (
+    <g>
+      <path d="M130 170 Q150 162 170 170 L166 232 Q150 240 134 232 Z" fill="#fff3f8" />
+      <path d="M133 236 Q150 246 167 236 L165 262 Q150 270 135 262 Z" fill="#fff3f8" />
+    </g>
+  )
+}
+
+/* shirt / top — shown when no dress is worn */
+function renderTop(p: any) {
   if (!p) return null
+  const { color, trim, style } = p
+  const crop = style === 'crop'
+  const hemY = crop ? 220 : 256
+  return (
+    <g>
+      <path d={`M126 168 Q150 158 174 168 L${crop ? 168 : 170} ${hemY} Q150 ${hemY + 8} ${crop ? 132 : 130} ${hemY} Z`} fill={color} />
+      <path d="M134 168 Q150 178 166 168" stroke={trim} strokeWidth="2.5" fill="none" />
+      {style === 'hoodie' && <path d="M132 172 Q150 196 168 172" stroke={trim} strokeWidth="3" fill="none" />}
+      {style === 'heart' && <path d={heartD(150, 200, 7)} fill={trim} />}
+    </g>
+  )
+}
+
+/* pants / skirt — shown when no dress is worn */
+function renderBottom(p: any) {
+  if (!p) return null
+  const { color, trim, style } = p
+  if (style === 'skirt' || style === 'tutu') {
+    const path = style === 'tutu'
+      ? 'M122 252 Q72 300 80 322 Q150 342 220 322 Q228 300 178 252 Z'
+      : 'M126 252 Q98 308 104 328 Q150 346 196 328 Q202 308 174 252 Z'
+    return <g><path d={path} fill={color} />{trim && <path d={path} fill="none" stroke={trim} strokeWidth="2.5" opacity="0.8" />}</g>
+  }
+  if (style === 'shorts') {
+    return <g fill={color}>
+      <path d="M131 250 L170 250 L168 286 Q159 292 152 286 L150 268 L148 286 Q141 292 132 286 Z" />
+      {trim && <rect x="131" y="250" width="39" height="5" rx="2" fill={trim} />}
+    </g>
+  }
+  // pants / leggings — cover both legs to the ankle
+  const w = style === 'leggings' ? 14 : 17
+  return <g fill={color}>
+    <rect x="130" y="248" width="40" height="26" rx="9" />
+    <rect x={141 - w / 2} y="262" width={w} height="126" rx={w / 2} />
+    <rect x={159 - w / 2} y="262" width={w} height="126" rx={w / 2} />
+    {trim && <rect x="130" y="248" width="40" height="5" rx="2" fill={trim} />}
+  </g>
+}
+
+function renderDress(p: any) {
+  if (!p || p.shape === 'none') return null
   const { bodice, skirt, trim, shape, sparkle, rainbow, celest } = p
   const sk = rainbow ? 'url(#rainbowG)' : skirt
   let skirtPath = ''
@@ -512,6 +687,12 @@ function renderHairBack(p: any) {
   if (style === 'curl') return <g fill={color}>
     <circle cx="112" cy="160" r="16" /><circle cx="188" cy="160" r="16" /><circle cx="106" cy="200" r="14" /><circle cx="194" cy="200" r="14" />
   </g>
+  if (style === 'bob') return <path d="M104 110 Q96 168 122 182 Q120 152 122 130 L178 130 Q180 152 178 182 Q204 168 196 110 Z" fill={color} />
+  if (style === 'straight') return <path d="M104 108 L99 300 Q112 304 120 300 L120 150 L180 150 L180 300 Q188 304 201 300 L196 108 Z" fill={color} />
+  if (style === 'space') return <g fill={color}>
+    <circle cx="118" cy="76" r="14" /><circle cx="182" cy="76" r="14" />
+    <path d="M108 110 Q100 150 116 168 Q120 140 122 120 L178 120 Q180 140 184 168 Q200 150 192 110 Z" />
+  </g>
   // wave (default): big flowing hair behind shoulders
   return <path d="M104 110 Q78 200 100 280 Q120 210 122 150 L178 150 Q180 210 200 280 Q222 200 196 110 Z" fill={color} />
 }
@@ -523,13 +704,13 @@ function renderHairFront(p: any) {
     <g>
       {/* full hair cap over the scalp — covers the whole crown so no skin shows */}
       <path d="M104 122 Q96 70 150 62 Q204 70 196 122 Q150 96 104 122 Z" fill={color} />
-      {/* soft rounded bangs across the forehead */}
-      <path d="M108 120 Q128 102 150 110 Q172 102 192 120 Q172 92 150 96 Q128 92 108 120 Z" fill={color} />
-      {/* highlight sweep */}
-      <path d="M118 90 Q142 72 162 86 Q142 80 124 96 Z" fill={hi} opacity="0.55" />
+      {/* bangs / fringe across the forehead so the face is framed (no big forehead) */}
+      <path d="M104 88 C103 104 105 113 111 113 C117 113 120 104 126 106 C132 108 135 114 141 113 C146 112 148 105 150 105 C152 105 154 112 159 113 C165 114 168 107 174 106 C180 104 183 113 189 113 C195 113 197 104 196 88 C170 78 130 78 104 88 Z" fill={color} />
+      {/* highlight sweep on the bangs */}
+      <path d="M120 86 Q142 74 160 84 Q142 80 126 92 Z" fill={hi} opacity="0.5" />
       {/* side fringe framing the face */}
-      <path d="M106 114 Q100 146 110 164 Q120 134 120 110 Z" fill={color} />
-      <path d="M194 114 Q200 146 190 164 Q180 134 180 110 Z" fill={color} />
+      <path d="M106 112 Q100 146 110 164 Q120 134 121 108 Z" fill={color} />
+      <path d="M194 112 Q200 146 190 164 Q180 134 179 108 Z" fill={color} />
       {style === 'bun' && <circle cx="150" cy="70" r="13" fill={hi} opacity="0.5" />}
     </g>
   )
@@ -557,6 +738,19 @@ function renderCrown(p: any) {
     <path d="M118 88 L128 66 L138 84 L150 60 L162 84 L172 66 L182 88 Z" fill={metal} stroke="#7a1f16" strokeWidth="1.5" />
     <circle cx="150" cy="76" r="4" fill={gem} />
   </g>
+  if (style === 'heart') return <g>
+    <path d="M120 90 Q150 76 180 90 L176 94 Q150 84 124 94 Z" fill={metal} />
+    <path d={heartD(150, 80, 8)} fill={gem} stroke="#fff" strokeWidth="0.6" />
+  </g>
+  if (style === 'star') return <g>
+    <path d="M120 90 Q150 76 180 90 L176 94 Q150 84 124 94 Z" fill={metal} />
+    <path d={starD(150, 78, 8)} fill={gem} stroke={metal} strokeWidth="0.8" />
+    <path d={starD(131, 86, 4.5)} fill={gem} /><path d={starD(169, 86, 4.5)} fill={gem} />
+  </g>
+  if (style === 'moon') return <g>
+    <path d="M120 90 Q150 76 180 90 L176 94 Q150 84 124 94 Z" fill={metal} />
+    <path d="M150 70 a9 9 0 1 0 6 16 a7 7 0 1 1 -6 -16 z" fill={gem} />
+  </g>
   // gold (queen)
   return <g>
     <path d="M120 90 L122 64 L138 82 L150 60 L162 82 L178 64 L180 90 Z" fill={metal} stroke="#b8860b" strokeWidth="1" />
@@ -573,6 +767,18 @@ function renderNeck(p: any) {
   if (p.style === 'shell') return <g>
     <path d="M134 174 Q150 188 166 174" stroke="#e8c89a" strokeWidth="1.5" fill="none" />
     <path d="M144 180 q6 8 12 0 q-6 -4 -12 0 z" fill={col} />
+  </g>
+  if (p.style === 'choker') return <g>
+    <path d="M134 170 Q150 178 166 170" stroke={col} strokeWidth="4" fill="none" strokeLinecap="round" />
+    <circle cx="150" cy="176" r="2.6" fill="#fff" />
+  </g>
+  if (p.style === 'heart') return <g>
+    <path d="M134 172 Q150 182 166 172" stroke="#d8c89a" strokeWidth="1.5" fill="none" />
+    <path d={heartD(150, 184, 5)} fill={col} stroke="#fff" strokeWidth="0.5" />
+  </g>
+  if (p.style === 'star') return <g>
+    <path d="M134 172 Q150 182 166 172" stroke="#d8c89a" strokeWidth="1.5" fill="none" />
+    <path d={starD(150, 186, 5)} fill={col} />
   </g>
   // gem
   return <g>
@@ -673,6 +879,41 @@ function renderPet(p: any) {
         <path d="M-8 -8 l-2 -8 l6 5 z" fill="#cfe8b0" /><path d="M8 -8 l2 -8 l-6 5 z" fill="#cfe8b0" />
         <circle cx="-5" cy="2" r="2" fill="#2a2230" /><circle cx="5" cy="2" r="2" fill="#2a2230" />
         <ellipse cx="0" cy="9" rx="5" ry="3" fill="#cfe8b0" />
+      </g>}
+      {p.style === 'panda' && <g>
+        <ellipse cx="0" cy="24" rx="18" ry="15" fill="#fff" />
+        <circle cx="0" cy="4" r="13" fill="#fff" />
+        <circle cx="-11" cy="-6" r="5" fill="#2a2230" /><circle cx="11" cy="-6" r="5" fill="#2a2230" />
+        <ellipse cx="-5" cy="2" rx="4" ry="5" fill="#2a2230" /><ellipse cx="5" cy="2" rx="4" ry="5" fill="#2a2230" />
+        <circle cx="-5" cy="3" r="1.6" fill="#fff" /><circle cx="5" cy="3" r="1.6" fill="#fff" />
+        <circle cx="0" cy="8" r="2" fill="#2a2230" />
+        <ellipse cx="-14" cy="20" rx="5" ry="6" fill="#2a2230" /><ellipse cx="14" cy="20" rx="5" ry="6" fill="#2a2230" />
+      </g>}
+      {p.style === 'pony' && <g>
+        <ellipse cx="0" cy="22" rx="18" ry="13" fill={col} />
+        <circle cx="-2" cy="2" r="11" fill={col} />
+        <path d="M6 -4 Q20 0 14 16 Q8 4 6 -2 Z" fill={p.mane || '#ff9ec4'} />
+        <path d="M-8 -8 l-2 -8 l5 5 z" fill={col} />
+        <circle cx="-6" cy="2" r="1.8" fill="#2a2230" /><circle cx="2" cy="2" r="1.8" fill="#2a2230" />
+        <ellipse cx="-4" cy="8" rx="5" ry="3" fill="#f0b0c0" />
+      </g>}
+      {p.style === 'penguin' && <g>
+        <ellipse cx="0" cy="20" rx="15" ry="18" fill="#2a2a38" />
+        <ellipse cx="0" cy="24" rx="9" ry="13" fill="#fff" />
+        <circle cx="0" cy="2" r="11" fill="#2a2a38" />
+        <circle cx="-4" cy="0" r="3" fill="#fff" /><circle cx="4" cy="0" r="3" fill="#fff" />
+        <circle cx="-4" cy="0" r="1.4" fill="#2a2230" /><circle cx="4" cy="0" r="1.4" fill="#2a2230" />
+        <path d="M0 4 l-3 4 l6 0 z" fill="#f0a020" />
+        <path d="M-14 22 l-6 6 l6 0 z" fill="#f0a020" /><path d="M14 22 l6 6 l-6 0 z" fill="#f0a020" />
+      </g>}
+      {p.style === 'hamster' && <g>
+        <ellipse cx="0" cy="22" rx="16" ry="14" fill={col} />
+        <circle cx="0" cy="6" r="12" fill={col} />
+        <circle cx="-9" cy="-3" r="4" fill={col} /><circle cx="9" cy="-3" r="4" fill={col} />
+        <ellipse cx="0" cy="22" rx="9" ry="8" fill="#fff" opacity="0.7" />
+        <circle cx="-5" cy="4" r="1.8" fill="#2a2230" /><circle cx="5" cy="4" r="1.8" fill="#2a2230" />
+        <circle cx="0" cy="9" r="1.6" fill="#f0a0b0" />
+        <ellipse cx="-7" cy="9" rx="3" ry="2" fill="#ffc0d0" /><ellipse cx="7" cy="9" rx="3" ry="2" fill="#ffc0d0" />
       </g>}
     </g>
   )
@@ -855,7 +1096,7 @@ export default function DressEmpress() {
       {/* top nav */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <Link href="/skills/fun" style={{ ...pill, textDecoration: 'none', color: '#a04a7a' }}>← Games</Link>
-        <h1 style={{ fontSize: 16, color: '#b23a7a', textShadow: '0 2px 0 #fff', margin: 0 }}>👑 Dress to Empress</h1>
+        <h1 style={{ fontSize: 16, color: '#b23a7a', textShadow: '0 2px 0 #fff', margin: 0 }}>👑 Empress Dress Up</h1>
         <div style={{ ...pill, color: '#a04a7a' }}>{save.name}</div>
       </div>
 
@@ -1100,7 +1341,8 @@ function ItemThumb({ item }: { item: Item }) {
   </div>
   const mini: Equip = { ...DEFAULT_EQUIP, [item.cat]: item.id, bg: 'bg_castle', effect: 'fx_none' }
   // neutralize distractions for clarity
-  if (item.cat !== 'dress') mini.dress = 'dr_start'
+  if (item.cat === 'top' || item.cat === 'bottom') mini.dress = 'dr_none'   // reveal the shirt/pants
+  else if (item.cat !== 'dress') mini.dress = 'dr_start'
   if (item.cat !== 'pet') mini.pet = 'pet_none'
   if (item.cat !== 'wings') mini.wings = 'wg_none'
   if (item.cat !== 'cape') mini.cape = 'cp_none'
