@@ -6,7 +6,7 @@ import { emitXpGained } from '@/components/XpToast'
 import GameLeaderboard from '@/components/GameLeaderboard'
 
 /* ═══════════════════════════════════════════════════════════════════
-   EMPRESS DRESS UP — a magical dress-up adventure
+   CASTLE DRESS UP — a magical dress-up adventure
    A self-contained client game. Progress saves to localStorage.
    ═══════════════════════════════════════════════════════════════════ */
 
@@ -1810,7 +1810,7 @@ export default function DressEmpress() {
       {/* top nav */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <Link href="/skills/fun" style={{ ...pill, textDecoration: 'none', color: '#a04a7a' }}>← Games</Link>
-        <h1 style={{ fontSize: 15, color: '#b23a7a', textShadow: '0 2px 0 #fff', margin: 0 }}>👑 Empress Dress Up</h1>
+        <h1 style={{ fontSize: 15, color: '#b23a7a', textShadow: '0 2px 0 #fff', margin: 0 }}>👑 Castle Dress Up</h1>
         <button onClick={toggleSound} title={soundOn ? 'Sound on' : 'Sound off'}
           style={{ ...pill, color: '#a04a7a', cursor: 'pointer', minWidth: 40 }}>{soundOn ? '🔊' : '🔇'}</button>
       </div>
