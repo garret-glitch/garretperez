@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { SkillType, UserRole } from '@prisma/client'
 
+// Never run this DB-touching route at build/export time — always on demand.
+export const dynamic = 'force-dynamic'
+
 const ALL_SKILLS = Object.values(SkillType)
 
 // One-time setup: creates the admin account if it doesn't already exist.
