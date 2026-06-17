@@ -26,7 +26,8 @@ const Sfx = (() => {
         const AC = window.AudioContext || (window as any).webkitAudioContext
         ctx = new AC()
         master = ctx.createGain(); master.gain.value = 0.22; master.connect(ctx.destination)
-        musicBus = ctx.createGain(); musicBus.gain.value = 0.072; musicBus.connect(ctx.destination)
+        // musicBus is wired to the speakers (through a warm filter) lazily in buildFx()
+        musicBus = ctx.createGain(); musicBus.gain.value = 0.1
       } catch { return null }
     }
     if (ctx && ctx.state === 'suspended') ctx.resume()
@@ -47,57 +48,100 @@ const Sfx = (() => {
     if (!enabled || !ensure()) return
     seq.forEach(([f, s]) => tone(f, 0.15, type, s * 0.08, vol))
   }
-  // ── gentle music engine: harp arpeggios + warm pads + bass + echo ──
+  /* ════ MUSIC — a longer, layered lullaby (music-box melody + harp + pads + bass) ════ */
+  let mLow: BiquadFilterNode | null = null
   let delay: DelayNode | null = null
-  let delayMix: GainNode | null = null
   let stepTime = 0
-  function buildFx() {
-    if (!ctx || !musicBus || delay) return
-    delay = ctx.createDelay(1.0); delay.delayTime.value = 0.45
-    const fb = ctx.createGain(); fb.gain.value = 0.32
-    delay.connect(fb); fb.connect(delay)
-    delayMix = ctx.createGain(); delayMix.gain.value = 0.4; delayMix.connect(musicBus)
-    delay.connect(delayMix)
+  const melMap = new Map<number, { freq: number; dur: number }>()
+
+  // note name → frequency (C major across a few octaves)
+  const N: Record<string, number> = {
+    C2: 65.41, E2: 82.41, F2: 87.31, G2: 98.00, A2: 110.00, B2: 123.47,
+    C3: 130.81, D3: 146.83, E3: 164.81, F3: 174.61, G3: 196.00, A3: 220.00, B3: 246.94,
+    C4: 261.63, D4: 293.66, E4: 329.63, F4: 349.23, G4: 392.00, A4: 440.00, B4: 493.88,
+    C5: 523.25, D5: 587.33, E5: 659.25, F5: 698.46, G5: 783.99, A5: 880.00,
   }
-  // a warm two-oscillator voice with a soft attack/decay envelope
-  function voice(freq: number, when: number, dur: number, type: OscillatorType, vol: number, attack: number, echo = false) {
+  // chords: root bass, 3 pad tones, 4 arpeggio tones
+  const Cc = { bass: N.C2, pad: [N.G3, N.C4, N.E4], arp: [N.C4, N.E4, N.G4, N.C5] }
+  const Gc = { bass: N.G2, pad: [N.G3, N.B3, N.D4], arp: [N.G3, N.B3, N.D4, N.G4] }
+  const Amc = { bass: N.A2, pad: [N.A3, N.C4, N.E4], arp: [N.A3, N.C4, N.E4, N.A4] }
+  const Fc = { bass: N.F2, pad: [N.F3, N.A3, N.C4], arp: [N.F3, N.A3, N.C4, N.F4] }
+  const Emc = { bass: N.E2, pad: [N.G3, N.B3, N.E4], arp: [N.E4, N.G4, N.B4, N.E5] }
+  // 16-bar progression — A section then B section
+  const PROG = [Cc, Gc, Amc, Fc, Cc, Gc, Fc, Gc, Amc, Fc, Cc, Gc, Amc, Emc, Fc, Gc]
+  // music-box melody, 16 bars x 8 eighth-notes ('-' = let the previous note ring)
+  const MELODY = [
+    'E5 - D5 - C5 - - -', 'D5 - B4 - D5 - - -', 'C5 - A4 - C5 - - -', 'A4 - G4 - F4 - - -',
+    'E5 - G5 - E5 - C5 -', 'D5 - B4 - G4 - - -', 'A4 - C5 - A4 - - -', 'B4 - D5 - G4 - - -',
+    'E5 - - C5 E5 - A4 -', 'F5 - E5 - C5 - A4 -', 'G5 - E5 - C5 - E5 -', 'D5 - B4 - D5 - G5 -',
+    'C5 - A4 - E5 - C5 -', 'B4 - G4 - E4 - B4 -', 'A4 - C5 - F5 - E5 -', 'D5 - G4 - B4 - - -',
+  ]
+  const STEP = 0.4167 // eighth note ~ 72 bpm — calm, gentle lilt
+
+  function buildFx() {
+    if (!ctx || !musicBus || mLow) return
+    // warm low-pass over the music bus -> speakers (rounds off any harshness)
+    mLow = ctx.createBiquadFilter(); mLow.type = 'lowpass'; mLow.frequency.value = 3400; mLow.Q.value = 0.5
+    musicBus.connect(mLow); mLow.connect(ctx.destination)
+    // dreamy echo send
+    delay = ctx.createDelay(1.2); delay.delayTime.value = 0.42
+    const fb = ctx.createGain(); fb.gain.value = 0.33
+    const wet = ctx.createGain(); wet.gain.value = 0.3
+    delay.connect(fb); fb.connect(delay); delay.connect(wet); wet.connect(mLow)
+  }
+  function buildMelody() {
+    if (melMap.size) return
+    MELODY.forEach((bar, bi) => {
+      const toks = bar.split(' ')
+      toks.forEach((t, si) => {
+        if (t === '-' || !N[t]) return
+        let hold = 1
+        for (let k = si + 1; k < toks.length && toks[k] === '-'; k++) hold++
+        melMap.set(bi * 8 + si, { freq: N[t], dur: hold * STEP + 0.25 })
+      })
+    })
+  }
+  // a soft synth voice with optional warmth (fat), octave shimmer, vibrato and echo
+  function mvoice(freq: number, when: number, dur: number, type: OscillatorType, vol: number, attack: number,
+    opts?: { fat?: boolean; shimmer?: boolean; vibrato?: boolean; echo?: boolean }) {
     if (!ctx || !musicBus) return
-    const o = ctx.createOscillator(), o2 = ctx.createOscillator(), g = ctx.createGain()
-    o.type = type; o2.type = type; o.frequency.value = freq; o2.frequency.value = freq; o2.detune.value = 7
+    const g = ctx.createGain()
+    const oscs: OscillatorNode[] = []
+    const o = ctx.createOscillator(); o.type = type; o.frequency.value = freq; o.connect(g); oscs.push(o)
+    if (opts?.fat) { const o2 = ctx.createOscillator(); o2.type = type; o2.frequency.value = freq; o2.detune.value = 8; o2.connect(g); oscs.push(o2) }
+    if (opts?.shimmer) { const o3 = ctx.createOscillator(); o3.type = 'sine'; o3.frequency.value = freq * 2; const g3 = ctx.createGain(); g3.gain.value = 0.26; o3.connect(g3); g3.connect(g); oscs.push(o3) }
+    if (opts?.vibrato) { const lfo = ctx.createOscillator(); lfo.frequency.value = 5.3; const lg = ctx.createGain(); lg.gain.value = freq * 0.005; lfo.connect(lg); oscs.forEach(os => lg.connect(os.frequency)); lfo.start(when); lfo.stop(when + dur + 0.06) }
     g.gain.setValueAtTime(0.0001, when)
     g.gain.exponentialRampToValueAtTime(vol, when + attack)
     g.gain.exponentialRampToValueAtTime(0.0001, when + dur)
-    o.connect(g); o2.connect(g); g.connect(musicBus)
-    if (echo && delay) g.connect(delay)
-    o.start(when); o2.start(when); o.stop(when + dur + 0.05); o2.stop(when + dur + 0.05)
+    g.connect(musicBus)
+    if (opts?.echo && delay) g.connect(delay)
+    oscs.forEach(os => { os.start(when); os.stop(when + dur + 0.06) })
   }
-  // chord progression: C – G – Am – F   (root bass, pad tones, harp arpeggio tones)
-  const PROG = [
-    { bass: 65.41, pad: [130.81, 329.63, 392.00], arp: [261.63, 329.63, 392.00, 523.25] },
-    { bass: 98.00, pad: [196.00, 246.94, 293.66], arp: [196.00, 246.94, 293.66, 392.00] },
-    { bass: 110.00, pad: [220.00, 261.63, 329.63], arp: [220.00, 261.63, 329.63, 440.00] },
-    { bass: 87.31, pad: [174.61, 220.00, 261.63], arp: [174.61, 220.00, 261.63, 349.23] },
-  ]
-  const STEP = 0.6, BAR = 8 // slow, spacious step (~50 bpm) — calm & soothing
   function schedule() {
     if (!enabled || !ctx) return
-    if (stepTime < ctx.currentTime) stepTime = ctx.currentTime + 0.05 // recover from tab throttling — no note pile-up
+    if (stepTime < ctx.currentTime) stepTime = ctx.currentTime + 0.05 // recover from tab throttling
     while (stepTime < ctx.currentTime + 0.4) {
-      const bar = Math.floor(beat / BAR) % PROG.length, inBar = beat % BAR, ch = PROG[bar]
+      const gstep = beat % 128
+      const bar = Math.floor(gstep / 8), inBar = gstep % 8, ch = PROG[bar]
       if (inBar === 0) {
-        ch.pad.forEach(f => voice(f, stepTime, STEP * BAR * 0.98, 'sine', 0.08, 0.9)) // long, slowly-swelling pad
-        voice(ch.bass, stepTime, STEP * 3, 'sine', 0.10, 0.06)                        // soft bass once per bar
+        ch.pad.forEach(f => mvoice(f, stepTime, STEP * 7.6, 'sine', 0.05, 0.7, { fat: true })) // swelling pad
+        mvoice(ch.bass, stepTime, STEP * 3, 'sine', 0.12, 0.05)                                  // bass on beat 1
       }
-      // gentle harp note every other step (spacious), with a soft swell instead of a pluck
-      if (inBar % 2 === 0) voice(ch.arp[(inBar / 2) % ch.arp.length], stepTime, STEP * 2.4, 'triangle', 0.11, 0.06, true)
-      if (inBar === 5) voice(ch.arp[2] * 2, stepTime, STEP * 2, 'sine', 0.04, 0.05, true) // a single soft twinkle per bar
+      if (inBar === 4) mvoice(ch.bass, stepTime, STEP * 2.6, 'sine', 0.09, 0.05)                  // bass on beat 3
+      // harp arpeggio — a gentle pluck every eighth, rolling up then down the chord
+      const ai = inBar < 4 ? inBar : 7 - inBar
+      mvoice(ch.arp[ai % 4], stepTime, STEP * 1.6, 'triangle', 0.05, 0.015, { echo: true })
+      // music-box melody on top
+      const m = melMap.get(gstep)
+      if (m) mvoice(m.freq, stepTime, m.dur, 'triangle', 0.13, 0.006, { shimmer: true, vibrato: true, echo: true })
       stepTime += STEP; beat++
     }
   }
   function startMusic() {
     if (!enabled || !ensure() || timer) return
-    buildFx()
-    beat = 0; stepTime = ctx!.currentTime + 0.15
+    buildFx(); buildMelody()
+    beat = 0; stepTime = ctx!.currentTime + 0.2
     timer = setInterval(schedule, 50)
   }
   function stopMusic() { if (timer) { clearInterval(timer); timer = null } }
@@ -107,12 +151,12 @@ const Sfx = (() => {
     setEnabled(v: boolean) { enabled = v; if (!v) stopMusic(); else ensure() },
     unlock() { ensure() },
     startMusic, stopMusic,
-    click() { notes([[640, 0]], 'square', 0.16) },
-    pop() { if (!enabled || !ensure()) return; tone(880, 0.1, 'sine', 0, 0.4); tone(1320, 0.08, 'sine', 0.02, 0.22) },
-    coin() { notes([[988, 0], [1319, 1]], 'square', 0.28) },
-    chime() { notes([[784, 0], [1047, 1], [1319, 2]], 'triangle', 0.38) },
-    win() { notes([[523, 0], [659, 1], [784, 2], [1047, 3], [1319, 5]], 'triangle', 0.5) },
-    wrong() { if (!enabled || !ensure()) return; tone(196, 0.18, 'sawtooth', 0, 0.22); tone(150, 0.2, 'sawtooth', 0.05, 0.18) },
+    click() { notes([[660, 0]], 'triangle', 0.14) },
+    pop() { if (!enabled || !ensure()) return; tone(920, 0.1, 'sine', 0, 0.4); tone(1380, 0.08, 'sine', 0.02, 0.22) },
+    coin() { notes([[988, 0], [1319, 1], [1760, 2]], 'triangle', 0.24) },          // sparkly bell up
+    chime() { notes([[784, 0], [1047, 1], [1319, 2], [1568, 3]], 'triangle', 0.34) },
+    win() { notes([[523, 0], [659, 1], [784, 2], [1047, 3], [1319, 5], [1568, 6.5]], 'triangle', 0.44) },
+    wrong() { if (!enabled || !ensure()) return; tone(220, 0.16, 'sine', 0, 0.22); tone(165, 0.2, 'sine', 0.06, 0.2) },
   }
 })()
 
