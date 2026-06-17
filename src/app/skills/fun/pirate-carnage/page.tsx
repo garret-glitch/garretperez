@@ -1912,26 +1912,61 @@ function drawMermaid(ctx: CanvasRenderingContext2D, b: Boss, g: GS, w2s: (x: num
     const k = Math.sin(t * 8) * 0.2 + 0.5; ctx.strokeStyle = `rgba(255,110,205,${k})`; ctx.lineWidth = 3
     for (const rr of [44, 64, 86]) { ctx.beginPath(); ctx.arc(0, 0, rr + Math.sin(t * 4 + rr) * 4, 0, TAU); ctx.stroke() }
   }
-  ctx.shadowColor = '#ff7fd0'; ctx.shadowBlur = submerged ? 8 : 20
-  // flowing hair behind
-  ctx.fillStyle = submerged ? '#1c5a4a' : '#1f8d6e'
-  for (let i = -1; i <= 1; i++) {
-    ctx.beginPath(); ctx.moveTo(i * 6, -34)
-    ctx.quadraticCurveTo(i * 22 + Math.sin(t * 3 + i) * 6, -10, i * 14, 24)
-    ctx.quadraticCurveTo(i * 6, 0, i * 4, -30); ctx.closePath(); ctx.fill()
+  const skin = b.hitFlash > 0 ? '#fff' : '#f6cfa6'
+  const hairCol = submerged ? '#1c5a64' : '#168a86'
+  const hairLt = submerged ? '#2f7d86' : '#2fb3a0'
+  ctx.shadowColor = '#ff9ad8'; ctx.shadowBlur = submerged ? 8 : 22
+  // flowing hair behind — long strands either side
+  for (const side of [-1, 1]) {
+    const w1 = Math.sin(t * 1.6 + side) * 7, w2 = Math.cos(t * 1.3 + side) * 9
+    ctx.fillStyle = hairCol
+    ctx.beginPath(); ctx.moveTo(side * 5, -42)
+    ctx.bezierCurveTo(side * 30 + w1, -28, side * 34 + w2, 8, side * 17 + w2, 44)
+    ctx.bezierCurveTo(side * 24, 4, side * 15, -18, side * 3, -36); ctx.closePath(); ctx.fill()
+    ctx.fillStyle = hairLt
+    ctx.beginPath(); ctx.moveTo(side * 5, -40)
+    ctx.bezierCurveTo(side * 20 + w1, -24, side * 22 + w2, 4, side * 13 + w2, 30)
+    ctx.bezierCurveTo(side * 16, 2, side * 11, -16, side * 4, -34); ctx.closePath(); ctx.fill()
   }
-  // tail
-  ctx.save(); ctx.translate(0, 6); ctx.rotate(Math.sin(t * 3) * 0.3)
-  ctx.fillStyle = b.hitFlash > 0 ? '#fff' : '#2fb3a0'
-  ctx.beginPath(); ctx.moveTo(-7, 0); ctx.quadraticCurveTo(-12, 30, -3, 48); ctx.quadraticCurveTo(8, 30, 7, 0); ctx.closePath(); ctx.fill()
-  ctx.fillStyle = '#5be0c8'; ctx.beginPath(); ctx.moveTo(-3, 48); ctx.lineTo(-24, 62); ctx.lineTo(-2, 52); ctx.lineTo(20, 62); ctx.closePath(); ctx.fill()
+  // tail (sways) — gradient body, scale shimmer, fanned fluke
+  ctx.save(); ctx.translate(0, 10); ctx.rotate(Math.sin(t * 2.4) * 0.16)
+  const tg = ctx.createLinearGradient(0, 0, 0, 64)
+  tg.addColorStop(0, b.hitFlash > 0 ? '#fff' : '#4fd6c8'); tg.addColorStop(0.65, b.hitFlash > 0 ? '#fff' : '#1f9aa8'); tg.addColorStop(1, '#15637e')
+  ctx.fillStyle = tg
+  ctx.beginPath(); ctx.moveTo(-9, -2); ctx.bezierCurveTo(-13, 24, -8, 42, -3, 54); ctx.bezierCurveTo(2, 42, 11, 24, 9, -2); ctx.closePath(); ctx.fill()
+  ctx.strokeStyle = 'rgba(190,255,248,0.4)'; ctx.lineWidth = 1.4
+  for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(0, 8 + i * 13, 7 - i * 1.4, Math.PI * 0.18, Math.PI * 0.82); ctx.stroke() }
+  ctx.fillStyle = b.hitFlash > 0 ? '#fff' : 'rgba(118,235,224,0.92)'
+  for (const dir of [-1, 1]) { ctx.beginPath(); ctx.moveTo(0, 50); ctx.quadraticCurveTo(dir * 28, 54, dir * 22, 80); ctx.quadraticCurveTo(dir * 9, 66, 0, 58); ctx.closePath(); ctx.fill() }
   ctx.restore(); ctx.shadowBlur = 0
-  // torso + shell + head
-  ctx.fillStyle = b.hitFlash > 0 ? '#fff' : '#f0c9a0'; ctx.beginPath(); ctx.ellipse(0, -12, 9, 15, 0, 0, TAU); ctx.fill()
-  ctx.fillStyle = '#ff9ad0'; ctx.beginPath(); ctx.arc(-4, -14, 4, 0, TAU); ctx.arc(4, -14, 4, 0, TAU); ctx.fill()
-  ctx.fillStyle = b.hitFlash > 0 ? '#fff' : '#f5d4ad'; ctx.beginPath(); ctx.arc(0, -32, 8, 0, TAU); ctx.fill()
-  if (!submerged) { ctx.fillStyle = '#1a2a2a'; ctx.beginPath(); ctx.arc(-3, -33, 1.4, 0, TAU); ctx.arc(3, -33, 1.4, 0, TAU); ctx.fill() }
-  else { ctx.fillStyle = 'rgba(150,255,220,0.85)'; ctx.beginPath(); ctx.arc(-3, -33, 2, 0, TAU); ctx.arc(3, -33, 2, 0, TAU); ctx.fill() }
+  // torso
+  ctx.fillStyle = skin
+  ctx.beginPath(); ctx.moveTo(-7, 13); ctx.bezierCurveTo(-11, -2, -9, -18, -7, -25); ctx.lineTo(7, -25); ctx.bezierCurveTo(9, -18, 11, -2, 7, 13); ctx.closePath(); ctx.fill()
+  // arms (one resting, one raised gracefully)
+  ctx.strokeStyle = skin; ctx.lineWidth = 5; ctx.lineCap = 'round'
+  const armWave = Math.sin(t * 2) * 6
+  ctx.beginPath(); ctx.moveTo(-6, -18); ctx.quadraticCurveTo(-17, -6, -13, 10); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(6, -18); ctx.quadraticCurveTo(19, -16, 23, -32 + armWave * 0.3); ctx.stroke()
+  // shell top
+  ctx.fillStyle = b.hitFlash > 0 ? '#fff' : '#ff8fd0'
+  for (const dir of [-1, 1]) {
+    ctx.beginPath(); ctx.arc(dir * 4, -15, 5, 0, TAU); ctx.fill()
+    ctx.strokeStyle = '#ffd6ee'; ctx.lineWidth = 1
+    for (let r = -1; r <= 1; r++) { ctx.beginPath(); ctx.moveTo(dir * 4, -12); ctx.lineTo(dir * 4 + r * 3, -19); ctx.stroke() }
+  }
+  // head + hair crown framing the face
+  ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(0, -35, 10, 0, TAU); ctx.fill()
+  ctx.fillStyle = hairCol; ctx.beginPath(); ctx.arc(0, -37, 11, Math.PI * 0.92, TAU + Math.PI * 0.08); ctx.fill()
+  for (const dir of [-1, 1]) { ctx.beginPath(); ctx.moveTo(dir * 9, -40); ctx.quadraticCurveTo(dir * 13, -30, dir * 8, -27); ctx.quadraticCurveTo(dir * 8, -34, dir * 5, -41); ctx.closePath(); ctx.fill() }
+  // face
+  if (!submerged) {
+    ctx.fillStyle = '#33474a'; ctx.beginPath(); ctx.ellipse(-3.6, -35, 1.5, 2.1, 0, 0, TAU); ctx.ellipse(3.6, -35, 1.5, 2.1, 0, 0, TAU); ctx.fill()
+    ctx.strokeStyle = '#33474a'; ctx.lineWidth = 0.9; ctx.beginPath(); ctx.moveTo(-5.4, -38); ctx.lineTo(-2, -37.6); ctx.moveTo(5.4, -38); ctx.lineTo(2, -37.6); ctx.stroke()
+    ctx.strokeStyle = '#d96a86'; ctx.lineWidth = 1.5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-2.6, -30.4); ctx.quadraticCurveTo(0, -28.8, 2.6, -30.4); ctx.stroke()
+    ctx.fillStyle = 'rgba(255,150,180,0.4)'; ctx.beginPath(); ctx.arc(-6, -32, 2, 0, TAU); ctx.arc(6, -32, 2, 0, TAU); ctx.fill()
+  } else {
+    ctx.fillStyle = 'rgba(150,255,235,0.9)'; ctx.beginPath(); ctx.arc(-3.6, -35, 2, 0, TAU); ctx.arc(3.6, -35, 2, 0, TAU); ctx.fill()
+  }
   ctx.restore()
   drawBossBar(ctx, b, '🧜 THE SIREN', '#ff5db8', '#7b2f9a', idx)
 }
