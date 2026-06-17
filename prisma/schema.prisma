@@ -36,6 +36,7 @@ model User {
   skillVisits   SkillVisit[]
   announcements Announcement[]
   gameBests           GameBest[]
+  bossRuns            BossRun[]
   xpEvents            XpEvent[]
   plants              Plant[]
   wineIdentifications WineIdentification[]
@@ -208,6 +209,18 @@ model GameBest {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, game])
+}
+
+// Boss Hunter fastest-kill runs. A user can have many runs per boss (unlike GameBest).
+model BossRun {
+  id        String   @id @default(cuid())
+  userId    String
+  boss      Int      // 0 = Spider Queen, 1 = Lava Drake, 2 = Storm Griffin
+  timeMs    Int      // kill time in milliseconds (lower is better)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([boss, timeMs])
 }
 
 model Project {

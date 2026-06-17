@@ -3252,6 +3252,59 @@ function render(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, bossId: Bo
   }
   ctx.restore()
 }
+/* ═══ FASTEST-KILL LEADERBOARD ═══ */
+function fmtKillTime(ms: number): string {
+  const t = ms / 1000
+  if (t < 60) return t.toFixed(1) + 's'
+  const m = Math.floor(t / 60)
+  const s = t % 60
+  return `${m}:${s.toFixed(1).padStart(4, '0')}`
+}
+
+interface BossRunRow { rank: number; username: string; timeMs: number; isCurrentUser: boolean }
+function BossLeaderboard({ boss, refreshKey = 0, highlightRank }: { boss: number; refreshKey?: number; highlightRank?: number | null }) {
+  const [rows, setRows] = useState<BossRunRow[]>([])
+  const [loading, setLoading] = useState(true)
+  useEffect(() => {
+    let alive = true
+    setLoading(true)
+    fetch(`/api/boss-hunter/leaderboard/${boss}`)
+      .then(r => r.json())
+      .then(d => { if (alive) { setRows(Array.isArray(d) ? d : []); setLoading(false) } })
+      .catch(() => { if (alive) { setRows([]); setLoading(false) } })
+    return () => { alive = false }
+  }, [boss, refreshKey])
+  return (
+    <div style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid #C89B3C40', borderRadius: 8, padding: '12px 14px', fontFamily: '"Press Start 2P",monospace' }}>
+      <div style={{ fontSize: 8, color: '#C89B3C', letterSpacing: 1, marginBottom: 10, textAlign: 'center' }}>🏆 FASTEST KILLS</div>
+      {loading ? (
+        <div style={{ fontSize: 7, color: '#a09880', textAlign: 'center' }}>Loading…</div>
+      ) : rows.length === 0 ? (
+        <div style={{ fontSize: 7, color: '#a09880', textAlign: 'center', lineHeight: 1.9 }}>No kills yet —<br />be the first!</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {rows.map(r => {
+            const medal = r.rank === 1 ? '🥇' : r.rank === 2 ? '🥈' : r.rank === 3 ? '🥉' : `#${r.rank}`
+            const hot = r.isCurrentUser && highlightRank === r.rank
+            return (
+              <div key={r.rank} style={{
+                display: 'flex', alignItems: 'center', gap: 8, fontSize: 7.5,
+                color: r.isCurrentUser ? '#C89B3C' : '#d8d2c4',
+                background: hot ? 'rgba(200,155,60,0.16)' : 'transparent',
+                borderRadius: 4, padding: hot ? '2px 4px' : 0,
+              }}>
+                <span style={{ width: 20, textAlign: 'center' }}>{medal}</span>
+                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.username}{r.isCurrentUser ? ' ★' : ''}</span>
+                <span style={{ color: r.rank <= 3 ? '#fff' : '#a8e0b0' }}>{fmtKillTime(r.timeMs)}</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 /* ═══ REACT COMPONENT ═══ */
 export default function BossHunter() {
   const [screen, setScreen] = useState<'menu'|'hunt_select'|'playing'|'victory'|'defeat'>('menu')
@@ -3267,6 +3320,9 @@ export default function BossHunter() {
     if (isAdmin) setUnlockedGear(Object.keys(GEAR_DEFS) as GearId[])
   }, [isAdmin])
   const [victoryBoss, setVictoryBoss] = useState(0)
+  const [victoryTimeMs, setVictoryTimeMs] = useState(0)
+  const [victoryRank, setVictoryRank] = useState<number | null>(null)
+  const submittedRunRef = useRef(false)
   const [lastUnlockedGear, setLastUnlockedGear] = useState<GearId | null>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const menuCanvasRef = useRef<HTMLCanvasElement>(null)
@@ -3286,6 +3342,7 @@ export default function BossHunter() {
     const wpn = getWpn(weaponId)
     const bossDef = BOSS_DEFS[bossId]
     gsRef.current = mkState(wpn, bossDef, gear)
+    submittedRunRef.current = false
     Sfx.resume(); Sfx.roar()
     setScreen('playing')
   }, [getWpn])
@@ -3508,13 +3565,24 @@ export default function BossHunter() {
       if (g.bossDesperate && g.phase === 'playing') Sfx.playMusic('battle_final')   // frantic phase-3 theme
 
       if (g.phase === 'victory') {
+        const killMs = Math.round(g.gtime * 1000)
         setVictoryBoss(selBoss)
+        setVictoryTimeMs(killMs)
+        setVictoryRank(null)
         const newGear = BOSS_DEFS[selBoss].rewards.filter(r => !unlockedGear.includes(r)) as GearId[]
         const toUnlock = newGear.length > 0 ? newGear[Math.floor(Math.random() * newGear.length)] : null
         if (toUnlock) setUnlockedGear(prev => [...prev, toUnlock])
         setLastUnlockedGear(toUnlock)
         Sfx.victory(); if (toUnlock) Sfx.loot()
         setScreen('victory')
+        // record fastest-kill run (logged-in players); a player may rank more than once
+        if (!submittedRunRef.current) {
+          submittedRunRef.current = true
+          fetch('/api/boss-hunter/run', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ boss: selBoss, timeMs: killMs }),
+          }).then(r => r.ok ? r.json() : null).then(d => { if (d?.rank) setVictoryRank(d.rank) }).catch(() => {})
+        }
         return
       }
       if (g.phase === 'defeat') { setScreen('defeat'); return }
@@ -3711,6 +3779,11 @@ export default function BossHunter() {
 
           <div style={{borderTop:'1px solid #1e1c18',margin:'20px 0'}}/>
 
+          {/* fastest-kill board for the selected boss */}
+          <div style={{maxWidth:360,margin:'0 auto 18px'}}>
+            <BossLeaderboard boss={selBoss} />
+          </div>
+
           <div style={{display:'flex',gap:12,justifyContent:'center'}}>
             <button onClick={()=>setScreen('menu')} style={{background:'#1a1a28',border:'1px solid #2a2820',color:'#A09880',padding:'10px 24px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>BACK</button>
             <button onClick={beginHunt} style={{background:'linear-gradient(135deg,#C89B3C,#8B6914)',border:'none',color:'#0d0d14',padding:'10px 32px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit',letterSpacing:1}}>
@@ -3748,11 +3821,17 @@ export default function BossHunter() {
     const allCollected = collectedCount === boss.rewards.length
     const remaining = boss.rewards.length - collectedCount
     return (
-      <div style={{background:'#080814',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'"Press Start 2P",monospace'}}>
+      <div style={{background:'#080814',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'"Press Start 2P",monospace',overflowY:'auto',padding:'24px 0'}}>
         <div className="bh-screen-wrap" style={{textAlign:'center',maxWidth:560,padding:'0 24px'}}>
           <div style={{fontSize:9,color:'#605848',marginBottom:12}}>HUNT COMPLETE</div>
           <div style={{fontSize:22,color:'#C89B3C',textShadow:'0 0 24px #C89B3C88',marginBottom:8}}>VICTORY!</div>
-          <div style={{fontSize:10,color:boss.color,marginBottom:24}}>{boss.name} Defeated</div>
+          <div style={{fontSize:10,color:boss.color,marginBottom:10}}>{boss.name} Defeated</div>
+          <div style={{fontSize:11,color:'#a8e0b0',marginBottom:victoryRank!=null?4:20}}>⏱ Kill Time: {fmtKillTime(victoryTimeMs)}</div>
+          {victoryRank != null && (
+            <div style={{fontSize:9,color:'#C89B3C',marginBottom:18,textShadow:'0 0 14px #C89B3C66'}}>
+              {victoryRank <= 10 ? `🏆 You ranked #${victoryRank}!` : `Your rank: #${victoryRank}`}
+            </div>
+          )}
           <div style={{background:'#0d0d1a',border:'1px solid #2a2820',borderRadius:10,padding:20,marginBottom:16,textAlign:'left'}}>
             {lastUnlockedGear ? (() => {
               const gid = lastUnlockedGear
@@ -3788,6 +3867,9 @@ export default function BossHunter() {
               Next hunt unlocked: {BOSS_DEFS[victoryBoss+1].name}!
             </div>
           )}
+          <div style={{marginBottom:16}}>
+            <BossLeaderboard boss={victoryBoss} highlightRank={victoryRank} refreshKey={victoryRank ?? 0} />
+          </div>
           <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap'}}>
             <button onClick={beginHunt} style={{background:'#1a1a28',border:'1px solid #2a2820',color:'#A09880',padding:'10px 20px',borderRadius:6,fontSize:8,cursor:'pointer',fontFamily:'inherit'}}>REMATCH</button>
             {victoryBoss < BOSS_DEFS.length - 1 && (
