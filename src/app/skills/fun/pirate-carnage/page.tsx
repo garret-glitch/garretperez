@@ -811,6 +811,8 @@ function tick(g: GS, dt: number, keys: Set<string>, edges: PlayerEdge[]) {
     }
   }
   g.bullets = g.bullets.filter(b2 => b2.life > 0)
+  // safety cap so the bullet-hell finale can't balloon the array and stutter
+  if (g.bullets.length > 700) g.bullets.splice(0, g.bullets.length - 700)
 
   /* — power-ups — */
   for (const pu of g.powerups) {
@@ -2112,10 +2114,16 @@ export default function PirateCarnage() {
       keysRef.current.add(k === ' ' ? ' ' : k)
     }
     const up = (e: KeyboardEvent) => { keysRef.current.delete(e.key.toLowerCase() === ' ' ? ' ' : e.key.toLowerCase()) }
-    const blur = () => keysRef.current.clear()
+    const blur = () => { keysRef.current.clear(); if (screenRef.current === 'playing') setPaused(true) }
+    const onHide = () => { if (document.hidden) { keysRef.current.clear(); if (screenRef.current === 'playing') setPaused(true) } }
     window.addEventListener('keydown', down); window.addEventListener('keyup', up); window.addEventListener('blur', blur)
-    return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); window.removeEventListener('blur', blur) }
+    document.addEventListener('visibilitychange', onHide)
+    return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); window.removeEventListener('blur', blur); document.removeEventListener('visibilitychange', onHide) }
   }, [])
+
+  // is this a touch device? (drives the on-screen controls)
+  const [isTouch, setIsTouch] = useState(false)
+  useEffect(() => { setIsTouch(('ontouchstart' in window) || navigator.maxTouchPoints > 0) }, [])
 
   // game loop
   useEffect(() => {
@@ -2135,13 +2143,7 @@ export default function PirateCarnage() {
         E[0].sec = E[0].ult = false; E[1].sec = E[1].ult = false
       }
       render(ctx, g)
-      if (pausedRef.current) {
-        ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0, 0, VW, VH)
-        ctx.fillStyle = '#c89b3c'; ctx.font = '28px "Press Start 2P", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-        ctx.fillText('PAUSED', VW / 2, VH / 2 - 10)
-        ctx.font = '10px "Press Start 2P", monospace'; ctx.fillStyle = '#a09880'
-        ctx.fillText('PRESS P TO RESUME', VW / 2, VH / 2 + 30)
-      }
+      if (pausedRef.current) { ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(0, 0, VW, VH) }
       if (g.state === 'victory' || g.state === 'defeat') {
         setFinalScore(g.score); setFinalKills(g.kills)
         setScreen(g.state)
@@ -2159,6 +2161,7 @@ export default function PirateCarnage() {
   // gentle menu/shanty music — only after a user gesture (browser autoplay policy)
   const startMenuMusic = useCallback(() => { Sfx.resume(); Sfx.playMusic('menu') }, [])
 
+  const quitToMenu = () => { cancelAnimationFrame(rafRef.current); setPaused(false); setScreen('menu'); Sfx.playMusic('menu') }
   const toggleMute = () => { const m = !muted; setMuted(m); Sfx.setMuted(m) }
   // volume slider — turning it up unmutes
   const onVolume = (v: number) => {
@@ -2324,6 +2327,21 @@ export default function PirateCarnage() {
           )}
           <GodModeToggle />
         </div>
+
+        {/* on-screen controls for touch devices */}
+        {screen === 'playing' && isTouch && !paused && <TouchControls keysRef={keysRef} edgeRef={edgeRef} />}
+
+        {/* clickable pause menu (also fired by tab-switch auto-pause) */}
+        {screen === 'playing' && paused && (
+          <div className="pc-overlay" style={{ background: 'rgba(8,12,20,0.6)' }}>
+            <div style={{ fontSize: 'clamp(24px,6vw,40px)', color: '#c89b3c', fontFamily: '"Press Start 2P",monospace', textShadow: '0 0 18px rgba(200,155,60,0.5)' }}>PAUSED</div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
+              <button className="pc-btn" onClick={() => setPaused(false)} style={menuBtn}>▶ RESUME</button>
+              <button className="pc-btn" onClick={quitToMenu} style={menuBtnAlt}>QUIT</button>
+            </div>
+            <div style={{ color: '#605848', fontSize: 8, fontFamily: '"Press Start 2P",monospace', marginTop: 16 }}>P / ESC to resume</div>
+          </div>
+        )}
       </div>
 
       <p style={{ color: '#605848', fontSize: 12, fontFamily: 'Inter,sans-serif', textAlign: 'center', maxWidth: 640, lineHeight: 1.6 }}>
@@ -2334,6 +2352,50 @@ export default function PirateCarnage() {
         <GameLeaderboard game="pirate-carnage" scoreLabel="pts" refreshKey={refreshKey} />
       </div>
     </div>
+  )
+}
+
+// On-screen joystick + boost/torpedo buttons for touch devices (drives Player 1).
+function TouchControls({ keysRef, edgeRef }: { keysRef: React.MutableRefObject<Set<string>>; edgeRef: React.MutableRefObject<PlayerEdge[]> }) {
+  const baseRef = useRef<HTMLDivElement>(null)
+  const activeId = useRef<number | null>(null)
+  const [thumb, setThumb] = useState({ x: 0, y: 0 })
+  const [boost, setBoost] = useState(false)
+  const R = 52
+  const clearMove = () => { const k = keysRef.current; k.delete('w'); k.delete('a'); k.delete('s'); k.delete('d') }
+  const apply = (dx: number, dy: number) => {
+    clearMove()
+    if (Math.hypot(dx, dy) > R * 0.3) {
+      const k = keysRef.current
+      if (dx < -R * 0.38) k.add('a'); else if (dx > R * 0.38) k.add('d')
+      if (dy < -R * 0.38) k.add('w'); else if (dy > R * 0.38) k.add('s')
+    }
+  }
+  const handle = (e: React.PointerEvent) => {
+    const el = baseRef.current; if (!el) return
+    const r = el.getBoundingClientRect()
+    let dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2)
+    const m = Math.hypot(dx, dy); if (m > R) { dx = dx / m * R; dy = dy / m * R }
+    setThumb({ x: dx, y: dy }); apply(dx, dy)
+  }
+  const down = (e: React.PointerEvent) => { e.preventDefault(); baseRef.current?.setPointerCapture(e.pointerId); activeId.current = e.pointerId; handle(e) }
+  const move = (e: React.PointerEvent) => { if (activeId.current === e.pointerId) handle(e) }
+  const end = (e: React.PointerEvent) => { if (activeId.current !== e.pointerId) return; activeId.current = null; setThumb({ x: 0, y: 0 }); clearMove() }
+  const stopBoost = () => { keysRef.current.delete('shift'); setBoost(false) }
+  const round: React.CSSProperties = { borderRadius: '50%', touchAction: 'none', fontFamily: '"Press Start 2P",monospace', display: 'flex', alignItems: 'center', justifyContent: 'center', userSelect: 'none' }
+  return (
+    <>
+      <div ref={baseRef} onPointerDown={down} onPointerMove={move} onPointerUp={end} onPointerCancel={end}
+        style={{ ...round, position: 'absolute', left: 14, bottom: 14, width: R * 2, height: R * 2, background: 'rgba(13,13,20,0.4)', border: '2px solid rgba(200,155,60,0.5)', zIndex: 6 }}>
+        <div style={{ position: 'absolute', width: 44, height: 44, borderRadius: '50%', background: 'rgba(200,155,60,0.85)', transform: `translate(${thumb.x}px,${thumb.y}px)`, pointerEvents: 'none' }} />
+      </div>
+      <div style={{ position: 'absolute', right: 14, bottom: 14, display: 'flex', gap: 12, alignItems: 'flex-end', zIndex: 6 }}>
+        <button onPointerDown={(e) => { e.preventDefault(); keysRef.current.add('shift'); setBoost(true) }} onPointerUp={stopBoost} onPointerLeave={stopBoost} onPointerCancel={stopBoost}
+          style={{ ...round, width: 62, height: 62, fontSize: 8, border: '2px solid #c89b3c', background: boost ? 'rgba(200,155,60,0.7)' : 'rgba(13,13,20,0.5)', color: '#fff' }}>BOOST</button>
+        <button onPointerDown={(e) => { e.preventDefault(); edgeRef.current[0].sec = true }}
+          style={{ ...round, width: 78, height: 78, fontSize: 22, border: '2px solid #ff8a3d', background: 'rgba(60,20,10,0.6)', color: '#ffae4a' }}>🚀</button>
+      </div>
+    </>
   )
 }
 
