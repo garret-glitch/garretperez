@@ -327,7 +327,7 @@ function mkPlayer(id: number, build: Build, x: number, y: number): Player {
     id, build, dead: false, respawn: 0,
     x, y, vx: 0, vy: 0, heading: -Math.PI / 2,
     hp: build.hp, maxHp: build.hp, boost: build.boostMax, boostMax: build.boostMax, boosting: false,
-    primaryCd: 0, secAmmo: 4, secCd: 0, ult: 0, ultMax: 100, ultTimer: 0, ultFireCd: 0,
+    primaryCd: 0, secAmmo: 8, secCd: 0, ult: 0, ultMax: 100, ultTimer: 0, ultFireCd: 0,
     iframe: 1.2, dmgBuff: 0, rapid: 0, shield: 0, nitro: 0, recoil: 0,
   }
 }
@@ -405,7 +405,6 @@ function killEnemy(g: GS, e: Enemy) {
   const def = EDEF[e.type]
   e.hp = -999 // mark dead
   g.kills++; g.score += def.score
-  for (const pl of aliveP(g)) pl.ult = Math.min(pl.ultMax, pl.ult + (def.score / 10) * 1.4)
   ftext(g, e.x, e.y - e.radius, '+' + def.score, '#c89b3c', 12)
   explode(g, e.x, e.y, e.radius + 8, 0, true)
   burst(g, e.x, e.y, def.color, 12, 160, 'debris', 4)
@@ -454,7 +453,6 @@ function damageBoss(g: GS, b: Boss, dmg: number, fromX: number, fromY: number) {
   if (b.dying > 0) return
   b.hp -= dmg; b.hitFlash = 0.1
   burst(g, fromX, fromY, '#a8ffb0', 4, 120, 'spark', 3)
-  for (const pl of aliveP(g)) pl.ult = Math.min(pl.ultMax, pl.ult + dmg * 0.05)
   if (b.hp <= 0) startBossDeath(g, b)
 }
 function hurtPlayer(g: GS, p: Player, dmg: number) {
@@ -522,12 +520,6 @@ function fireSecondary(g: GS, p: Player) {
   p.secAmmo--; p.secCd = 0.5
   spawnBullet(g, p.x, p.y, ang, 520, 70 + p.build.dmg, 'torpedo', true, { radius: 8, life: 2.2 })
   Sfx.torp()
-}
-function fireUlt(g: GS, p: Player) {
-  if (p.ult < p.ultMax || p.ultTimer > 0) return
-  p.ult = 0; p.ultTimer = 1.3; p.ultFireCd = 0
-  g.banner = { txt: 'P' + (p.id + 1) + ' BROADSIDE STORM', sub: '', life: 1.4 }
-  Sfx.ult(); g.shake = 16
 }
 
 /* ═══ ENEMY SPAWN ═══ */
@@ -675,22 +667,8 @@ function tickPlayer(g: GS, p: Player, dt: number, keys: Set<string>, edge: Playe
     if (g.bullets.length > before) p.primaryCd = b.fireRate / (p.rapid > 0 ? 2 : 1)
     else p.primaryCd = 0.1
   }
-  // secondary / ultimate (edge-triggered)
+  // secondary (edge-triggered) — torpedoes
   if (edge.sec) fireSecondary(g, p)
-  if (edge.ult) fireUlt(g, p)
-  // ultimate broadside burst
-  if (p.ultTimer > 0) {
-    p.ultTimer -= dt; p.ultFireCd -= dt
-    if (p.ultFireCd <= 0) {
-      p.ultFireCd = 0.13
-      const n = 20, base = g.time * 4
-      for (let i = 0; i < n; i++) {
-        const a = base + (i / n) * TAU
-        spawnBullet(g, p.x, p.y, a, 600, b.dmg * 1.2, b.id === 'fire' ? 'fire' : 'ball', true, { radius: 6, burn: b.id === 'fire', life: 1.0 })
-      }
-      Sfx.cannon(); g.shake = Math.min(20, g.shake + 4)
-    }
-  }
 }
 function revivePlayer(g: GS, p: Player) {
   const ally = aliveP(g)[0]
@@ -2000,12 +1978,10 @@ function drawPlayerHUD(ctx: CanvasRenderingContext2D, p: Player, rightSide: bool
   }
   bar(ctx, x, by, w, 16, p.hp / p.maxHp, '#ff5d5d', '#3a1414', `${tag} HULL ${Math.ceil(p.hp)}`)
   bar(ctx, x, by + 24, w, 12, p.boost / p.boostMax, '#ffc83d', '#3a3014', 'BOOST ' + keys.boost)
-  const ultk = p.ultTimer > 0 ? 1 : p.ult / p.ultMax
-  bar(ctx, x, by + 44, w, 12, ultk, p.ult >= p.ultMax ? '#5be0ff' : '#3a7a8a', '#143038', p.ult >= p.ultMax ? 'ULT READY ' + keys.ult : 'ULTIMATE')
   ctx.font = '8px "Press Start 2P", monospace'; ctx.fillStyle = '#ffae4a'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'
-  ctx.fillText('🚀 x' + p.secAmmo + ' ' + keys.torp, x, by + 70)
+  ctx.fillText('🚀 x' + p.secAmmo + ' ' + keys.torp, x, by + 46)
   let bxi = x + 118
-  const bi = (cond: boolean, icon: string, col: string) => { if (!cond) return; ctx.font = '13px serif'; ctx.fillStyle = col; ctx.fillText(icon, bxi, by + 70); bxi += 18 }
+  const bi = (cond: boolean, icon: string, col: string) => { if (!cond) return; ctx.font = '13px serif'; ctx.fillStyle = col; ctx.fillText(icon, bxi, by + 46); bxi += 18 }
   bi(p.dmgBuff > 0, '⚔', '#ff5d5d'); bi(p.shield > 0, '🛡', '#5db8ff'); bi(p.rapid > 0, '⚡', '#ffe14d'); bi(p.nitro > 0, '🔥', '#ffb13d')
 }
 function drawHUD(ctx: CanvasRenderingContext2D, g: GS) {
@@ -2121,9 +2097,7 @@ export default function PirateCarnage() {
       if (screenRef.current !== 'playing') return
       const E = edgeRef.current
       if (k === ' ') { if (!keysRef.current.has(' ')) E[0].sec = true }
-      if (k === 'e') { if (!keysRef.current.has('e')) E[0].ult = true }
       if (k === '.') { if (!keysRef.current.has('.')) E[1].sec = true }
-      if (k === ',') { if (!keysRef.current.has(',')) E[1].ult = true }
       if (k === 'p' || k === 'escape') setPaused(v => !v)
       keysRef.current.add(k === ' ' ? ' ' : k)
     }
@@ -2274,13 +2248,13 @@ export default function PirateCarnage() {
             <div style={{ color: '#605848', fontSize: 9, fontFamily: '"Press Start 2P",monospace', marginTop: 14, lineHeight: 1.8 }}>
               {playerCount === 2 ? (
                 <>
-                  P1 &nbsp;WASD · SHIFT · SPACE · E<br />
-                  P2 &nbsp;ARROWS · / · . · ,&nbsp; (boost · torpedo · ult)<br />
+                  P1 &nbsp;WASD · SHIFT · SPACE&nbsp; (move · boost · torpedo)<br />
+                  P2 &nbsp;ARROWS · / · .&nbsp; (move · boost · torpedo)<br />
                 </>
               ) : (
                 <>
                   MOVE: WASD / ARROWS &nbsp;·&nbsp; BOOST: SHIFT<br />
-                  TORPEDO: SPACE &nbsp;·&nbsp; ULTIMATE: E &nbsp;·&nbsp; PAUSE: P<br />
+                  TORPEDO: SPACE &nbsp;·&nbsp; PAUSE: P<br />
                 </>
               )}
               <span style={{ color: '#a09880' }}>Cannons auto-fire — focus on dodging & ramming!</span>
