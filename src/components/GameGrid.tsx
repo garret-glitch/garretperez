@@ -100,6 +100,29 @@ function AdminImageBtn({ href, hasImage, busy, onUpload, onRemove, pos }: {
   )
 }
 
+// Framed icon tile — border + subtle radial fill so a transparent/non-square
+// image (or emoji) sits in a filled frame instead of floating in dead space.
+function GameIcon({ image, icon, glow, alt = '' }: { image?: string; icon: string; glow: string; alt?: string }) {
+  const size = 58
+  return (
+    <div style={{
+      width: size, height: size, flexShrink: 0,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      borderRadius: 13,
+      border: `1px solid ${glow}55`,
+      background: `radial-gradient(circle at 50% 32%, ${glow}29, ${glow}0f 66%, rgba(0,0,0,0.22) 100%)`,
+      boxShadow: `inset 0 1px 0 rgba(255,255,255,0.07), 0 0 10px ${glow}33`,
+    }}>
+      {image ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={image} alt={alt} style={{ width: size - 16, height: size - 16, objectFit: 'contain', filter: `drop-shadow(0 0 5px ${glow}aa)` }} />
+      ) : (
+        <span style={{ fontSize: 30, lineHeight: 1, filter: `drop-shadow(0 0 6px ${glow}99)` }}>{icon}</span>
+      )}
+    </div>
+  )
+}
+
 function FeaturedGameCard({
   game, isHidden, isBusy, isAdmin, onToggle,
   likeCount, isLiked, isLoggedIn, onLike, likeBusy,
@@ -392,14 +415,7 @@ function SortableGameCard({
 
   const inner = (
     <>
-      {image ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={image} alt={game.title} style={{ width: 42, height: 42, objectFit: 'contain', borderRadius: 8, filter: `drop-shadow(0 0 6px ${game.glow}99)` }} />
-      ) : (
-        <span style={{ fontSize: 30, lineHeight: 1, filter: `drop-shadow(0 0 6px ${game.glow}99)` }}>
-          {game.icon}
-        </span>
-      )}
+      <GameIcon image={image} icon={game.icon} glow={game.glow} alt={game.title} />
       <div className="text-center">
         <div className="text-[9px] font-bold mb-0.5" style={{ color: '#e8e4d8' }}>{game.title}</div>
         <div className="text-[6px] mb-1 body-text" style={{ color: 'rgba(160,152,128,0.7)' }}>{game.desc}</div>
@@ -774,14 +790,7 @@ export default function GameGrid({
                 transform: 'rotate(2deg) scale(1.04)',
               }}
             >
-              {images[activeGame.href] ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={images[activeGame.href]} alt={activeGame.title} style={{ width: 42, height: 42, objectFit: 'contain', borderRadius: 8, filter: `drop-shadow(0 0 8px ${activeGame.glow})` }} />
-              ) : (
-                <span style={{ fontSize: 30, lineHeight: 1, filter: `drop-shadow(0 0 8px ${activeGame.glow})` }}>
-                  {activeGame.icon}
-                </span>
-              )}
+              <GameIcon image={images[activeGame.href]} icon={activeGame.icon} glow={activeGame.glow} alt={activeGame.title} />
               <div className="text-center">
                 <div className="text-[9px] font-bold mb-0.5" style={{ color: '#e8e4d8' }}>{activeGame.title}</div>
                 <div className="text-[6px] body-text" style={{ color: 'rgba(160,152,128,0.7)' }}>{activeGame.desc}</div>
