@@ -1670,15 +1670,15 @@ export default function DressEmpress() {
     document.addEventListener('fullscreenchange', onFs)
     return () => document.removeEventListener('fullscreenchange', onFs)
   }, [])
-  // lock the page behind the mobile overlay so only the game scrolls
+  // lock the page behind the full-screen overlay so only the game scrolls
   useEffect(() => {
-    if (!isMobile) return
+    if (!isMobile && !fsActive) return
     const prevBody = document.body.style.overflow
     const prevHtml = document.documentElement.style.overflow
     document.body.style.overflow = 'hidden'
     document.documentElement.style.overflow = 'hidden'
     return () => { document.body.style.overflow = prevBody; document.documentElement.style.overflow = prevHtml }
-  }, [isMobile])
+  }, [isMobile, fsActive])
   const toggleFullscreen = useCallback(() => {
     Sfx.click()
     if (!document.fullscreenElement) wrapRef.current?.requestFullscreen?.().catch(() => {})
@@ -1837,18 +1837,17 @@ export default function DressEmpress() {
   )
 
   return (
-    <div ref={wrapRef} className={`de-root${fullBleed ? ' de-fs' : ''}`} style={fullBleed ? undefined : { maxWidth: 980, margin: '0 auto' }}>
+    <div ref={wrapRef} className={`de-root${fullBleed ? ' de-fs' : ''}`}>
       <style>{DE_CSS}</style>
+      <div className="de-inner">
 
       {/* top nav */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, gap: 8 }}>
         <Link href="/skills/fun" style={{ ...pill, textDecoration: 'none', color: '#a04a7a', whiteSpace: 'nowrap' }}>← Games</Link>
         <h1 style={{ fontSize: 14, color: '#b23a7a', textShadow: '0 2px 0 #fff', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>👑 Castle Dress Up</h1>
         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-          {isMobile && (
-            <button onClick={toggleFullscreen} title={fsActive ? 'Exit fullscreen' : 'Fullscreen'}
-              style={{ ...pill, color: '#a04a7a', cursor: 'pointer', minWidth: 38, padding: '8px 10px' }}>{fsActive ? '⊠' : '⛶'}</button>
-          )}
+          <button onClick={toggleFullscreen} title={fsActive ? 'Exit fullscreen' : 'Fullscreen'}
+            style={{ ...pill, color: '#a04a7a', cursor: 'pointer', minWidth: 38, padding: '8px 10px' }}>{fsActive ? '⊠' : '⛶'}</button>
           <button onClick={toggleSound} title={soundOn ? 'Sound on' : 'Sound off'}
             style={{ ...pill, color: '#a04a7a', cursor: 'pointer', minWidth: 38, padding: '8px 10px' }}>{soundOn ? '🔊' : '🔇'}</button>
         </div>
@@ -1945,6 +1944,7 @@ export default function DressEmpress() {
           <GameLeaderboard game="dress-empress" scoreLabel="Lv" refreshKey={refreshKey} />
         </div>
       )}
+      </div>
     </div>
   )
 }
@@ -2781,6 +2781,7 @@ function Confetti() {
 const DE_CSS = `
 .de-root{ font-family: 'Inter', system-ui, sans-serif; padding: 6px; }
 .de-root *{ box-sizing: border-box; }
+.de-inner{ max-width: 980px; width: 100%; margin: 0 auto; }
 /* full-screen takeover on mobile (and real device fullscreen) */
 .de-fs{
   position: fixed; inset: 0; z-index: 4000; max-width: none !important; margin: 0 !important;
