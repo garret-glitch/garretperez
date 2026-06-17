@@ -1628,6 +1628,9 @@ export default function DressEmpress() {
   const [toast, setToast] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
   const [soundOn, setSoundOn] = useState(true)
+  const [isMobile, setIsMobile] = useState(false)
+  const [fsActive, setFsActive] = useState(false)
+  const wrapRef = useRef<HTMLDivElement>(null)
 
   // load
   useEffect(() => { setSave(loadSave()); setScreen('home') }, [])
@@ -1652,6 +1655,36 @@ export default function DressEmpress() {
       return nv
     })
   }, [])
+
+  // mobile detection → the game takes over the whole screen on phones/tablets
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 820px)')
+    const upd = () => setIsMobile(mq.matches)
+    upd()
+    mq.addEventListener('change', upd)
+    return () => mq.removeEventListener('change', upd)
+  }, [])
+  // track real device fullscreen
+  useEffect(() => {
+    const onFs = () => setFsActive(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', onFs)
+    return () => document.removeEventListener('fullscreenchange', onFs)
+  }, [])
+  // lock the page behind the mobile overlay so only the game scrolls
+  useEffect(() => {
+    if (!isMobile) return
+    const prevBody = document.body.style.overflow
+    const prevHtml = document.documentElement.style.overflow
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prevBody; document.documentElement.style.overflow = prevHtml }
+  }, [isMobile])
+  const toggleFullscreen = useCallback(() => {
+    Sfx.click()
+    if (!document.fullscreenElement) wrapRef.current?.requestFullscreen?.().catch(() => {})
+    else document.exitFullscreen?.().catch(() => {})
+  }, [])
+  const fullBleed = isMobile || fsActive
 
   const showToast = useCallback((m: string) => {
     setToast(m); window.setTimeout(() => setToast(''), 2200)
@@ -1804,15 +1837,21 @@ export default function DressEmpress() {
   )
 
   return (
-    <div className="de-root" style={{ maxWidth: 980, margin: '0 auto' }}>
+    <div ref={wrapRef} className={`de-root${fullBleed ? ' de-fs' : ''}`} style={fullBleed ? undefined : { maxWidth: 980, margin: '0 auto' }}>
       <style>{DE_CSS}</style>
 
       {/* top nav */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <Link href="/skills/fun" style={{ ...pill, textDecoration: 'none', color: '#a04a7a' }}>← Games</Link>
-        <h1 style={{ fontSize: 15, color: '#b23a7a', textShadow: '0 2px 0 #fff', margin: 0 }}>👑 Castle Dress Up</h1>
-        <button onClick={toggleSound} title={soundOn ? 'Sound on' : 'Sound off'}
-          style={{ ...pill, color: '#a04a7a', cursor: 'pointer', minWidth: 40 }}>{soundOn ? '🔊' : '🔇'}</button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, gap: 8 }}>
+        <Link href="/skills/fun" style={{ ...pill, textDecoration: 'none', color: '#a04a7a', whiteSpace: 'nowrap' }}>← Games</Link>
+        <h1 style={{ fontSize: 14, color: '#b23a7a', textShadow: '0 2px 0 #fff', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>👑 Castle Dress Up</h1>
+        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+          {isMobile && (
+            <button onClick={toggleFullscreen} title={fsActive ? 'Exit fullscreen' : 'Fullscreen'}
+              style={{ ...pill, color: '#a04a7a', cursor: 'pointer', minWidth: 38, padding: '8px 10px' }}>{fsActive ? '⊠' : '⛶'}</button>
+          )}
+          <button onClick={toggleSound} title={soundOn ? 'Sound on' : 'Sound off'}
+            style={{ ...pill, color: '#a04a7a', cursor: 'pointer', minWidth: 38, padding: '8px 10px' }}>{soundOn ? '🔊' : '🔇'}</button>
+        </div>
       </div>
 
       {StatBar}
@@ -2742,6 +2781,14 @@ function Confetti() {
 const DE_CSS = `
 .de-root{ font-family: 'Inter', system-ui, sans-serif; padding: 6px; }
 .de-root *{ box-sizing: border-box; }
+/* full-screen takeover on mobile (and real device fullscreen) */
+.de-fs{
+  position: fixed; inset: 0; z-index: 4000; max-width: none !important; margin: 0 !important;
+  overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  background: linear-gradient(160deg,#ffeef7,#ffe2ef);
+  padding: calc(6px + env(safe-area-inset-top)) calc(6px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(6px + env(safe-area-inset-left));
+}
+.de-fs .de-toast{ z-index: 4200; }
 .de-card{ background: linear-gradient(160deg,#fff7fb,#ffeef6); border: 3px solid #ffd6ec; border-radius: 22px; padding: 16px; box-shadow: 0 10px 30px rgba(200,100,160,0.18); }
 .de-home{ display:flex; gap:14px; align-items:center; }
 .de-home-hero{ flex:0 0 300px; position:relative; cursor:pointer; border-radius:16px; overflow:hidden; }
