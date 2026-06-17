@@ -25,10 +25,18 @@ const angLerp = (a: number, b: number, t: number) => a + normAng(b - a) * t
 /* ═══ SOUND — synthesized Web Audio (no files) ═══ */
 const Sfx = (() => {
   let ctx: AudioContext | null = null
-  let master: GainNode | null = null
+  let master: GainNode | null = null   // mute gate → destination
+  let sfxBus: GainNode | null = null    // dry SFX bus (also feeds reverb)
   let muted = false
   const last: Record<string, number> = {}
   const VOL = 0.34
+  // synthetic impulse response (exponentially-decaying noise) for a cheap convolution reverb
+  function makeIR(c: AudioContext, dur: number, decay: number): AudioBuffer {
+    const n = Math.max(1, Math.floor(c.sampleRate * dur))
+    const buf = c.createBuffer(2, n, c.sampleRate)
+    for (let ch = 0; ch < 2; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, decay) }
+    return buf
+  }
   function ensure(): AudioContext | null {
     if (typeof window === 'undefined') return null
     if (!ctx) {
@@ -36,14 +44,19 @@ const Sfx = (() => {
       if (!AC) return null
       ctx = new AC()
       master = ctx.createGain(); master.gain.value = muted ? 0 : VOL; master.connect(ctx.destination)
+      // SFX bus → master (dry) + a reverb tail for ocean-cavern space
+      sfxBus = ctx.createGain(); sfxBus.gain.value = 1; sfxBus.connect(master)
+      const rev = ctx.createConvolver(); rev.buffer = makeIR(ctx, 1.1, 3.2)
+      const wet = ctx.createGain(); wet.gain.value = 0.16
+      sfxBus.connect(rev); rev.connect(wet); wet.connect(master)
     }
     return ctx
   }
   function resume() { const c = ensure(); if (c && c.state === 'suspended') void c.resume() }
-  function setMuted(m: boolean) { muted = m; if (master) master.gain.value = m ? 0 : VOL }
+  function setMuted(m: boolean) { muted = m; if (master && ctx) master.gain.setTargetAtTime(m ? 0 : VOL, ctx.currentTime, 0.02) }
   function isMuted() { return muted }
   function ok(key?: string, ms?: number): AudioContext | null {
-    const c = ensure(); if (!c || !master || muted) return null
+    const c = ensure(); if (!c || !sfxBus || muted) return null
     if (key && ms) { const now = c.currentTime * 1000; if (last[key] && now - last[key] < ms) return null; last[key] = now }
     return c
   }
@@ -55,7 +68,7 @@ const Sfx = (() => {
     g.gain.setValueAtTime(0.0001, t)
     g.gain.exponentialRampToValueAtTime(vol, t + Math.min(0.012, dur * 0.3))
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur)
-    o.connect(g); g.connect(master!); o.start(t); o.stop(t + dur + 0.03)
+    o.connect(g); g.connect(sfxBus!); o.start(t); o.stop(t + dur + 0.03)
   }
   function noise(c: AudioContext, dur: number, vol: number, filt: BiquadFilterType, freq: number, q = 1, slideTo?: number, delay = 0) {
     const t = c.currentTime + delay
@@ -66,13 +79,24 @@ const Sfx = (() => {
     const f = c.createBiquadFilter(); f.type = filt; f.frequency.setValueAtTime(freq, t); f.Q.value = q
     if (slideTo) f.frequency.exponentialRampToValueAtTime(Math.max(20, slideTo), t + dur)
     const g = c.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur)
-    src.connect(f); f.connect(g); g.connect(master!); src.start(t); src.stop(t + dur)
+    src.connect(f); f.connect(g); g.connect(sfxBus!); src.start(t); src.stop(t + dur)
   }
 
-  /* ── procedural music: a driving pirate-metal loop ── */
-  let musicGain: GainNode | null = null
+  /* ── procedural music engine: layered loops with tape-echo lead, pad, kick/snare/hats ── */
+  let musicBus: GainNode | null = null   // all music → master (duckable)
+  let leadBus: GainNode | null = null     // melody → echo → musicBus
   let musicTimer: ReturnType<typeof setInterval> | null = null
-  let curTrack = '', mstep = 0, nextTime = 0
+  let curTrack = '', mstep = 0, nextTime = 0, lastRoot = 0
+  function ensureMusic() {
+    const c = ensure(); if (!c || musicBus) return
+    musicBus = c.createGain(); musicBus.gain.value = 0.5; musicBus.connect(master!)
+    leadBus = c.createGain(); leadBus.gain.value = 1; leadBus.connect(musicBus)
+    // feedback delay (tape echo) on the lead — that cinematic game-music shimmer
+    const dly = c.createDelay(0.6); dly.delayTime.value = 0.255
+    const fb = c.createGain(); fb.gain.value = 0.33
+    const dw = c.createGain(); dw.gain.value = 0.5
+    leadBus.connect(dly); dly.connect(fb); fb.connect(dly); dly.connect(dw); dw.connect(musicBus)
+  }
   function mnote(c: AudioContext, freq: number, time: number, dur: number, type: OscillatorType, vol: number, dest: AudioNode) {
     const o = c.createOscillator(); o.type = type; o.frequency.setValueAtTime(freq, time)
     const g = c.createGain(); g.gain.setValueAtTime(0.0001, time); g.gain.exponentialRampToValueAtTime(vol, time + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, time + dur)
@@ -83,76 +107,123 @@ const Sfx = (() => {
     const g = c.createGain(); g.gain.setValueAtTime(vol, time); g.gain.exponentialRampToValueAtTime(0.001, time + 0.17)
     o.connect(g); g.connect(dest); o.start(time); o.stop(time + 0.19)
   }
-  const D2 = 73.42, E2 = 82.41, F2 = 87.31, G2 = 98, A2 = 110, C3 = 130.81, F3 = 174.61, G3 = 196, A3 = 220, C4 = 261.63, D4 = 293.66, E4 = 329.63, F4 = 349.23, G4 = 392, A4 = 440, C5 = 523.25, D5 = 587.33, E5 = 659.25
-  type Trk = { bpm: number; bass: (number | null)[]; lead: (number | null)[]; kick: number[]; leadType: OscillatorType }
+  function msnare(c: AudioContext, time: number, dest: AudioNode, vol: number) {
+    const n = Math.max(1, Math.floor(c.sampleRate * 0.13)); const buf = c.createBuffer(1, n, c.sampleRate)
+    const d = buf.getChannelData(0); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 1.4)
+    const src = c.createBufferSource(); src.buffer = buf; const f = c.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 1500
+    const g = c.createGain(); g.gain.setValueAtTime(vol, time); g.gain.exponentialRampToValueAtTime(0.001, time + 0.13)
+    src.connect(f); f.connect(g); g.connect(dest); src.start(time); src.stop(time + 0.14)
+    const o = c.createOscillator(); o.type = 'triangle'; o.frequency.setValueAtTime(190, time)
+    const go = c.createGain(); go.gain.setValueAtTime(vol * 0.5, time); go.gain.exponentialRampToValueAtTime(0.001, time + 0.1)
+    o.connect(go); go.connect(dest); o.start(time); o.stop(time + 0.11)
+  }
+  function mhat(c: AudioContext, time: number, dest: AudioNode, vol: number) {
+    const n = Math.max(1, Math.floor(c.sampleRate * 0.03)); const buf = c.createBuffer(1, n, c.sampleRate)
+    const d = buf.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1
+    const src = c.createBufferSource(); src.buffer = buf; const f = c.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 7800
+    const g = c.createGain(); g.gain.setValueAtTime(vol, time); g.gain.exponentialRampToValueAtTime(0.001, time + 0.03)
+    src.connect(f); f.connect(g); g.connect(dest); src.start(time); src.stop(time + 0.04)
+  }
+  const D2 = 73.42, E2 = 82.41, F2 = 87.31, G2 = 98, A2 = 110, Bb2 = 116.54, C3 = 130.81, F3 = 174.61, G3 = 196, A3 = 220, C4 = 261.63, D4 = 293.66, E4 = 329.63, F4 = 349.23, G4 = 392, A4 = 440, C5 = 523.25, D5 = 587.33, E5 = 659.25, F5 = 698.46
+  type Trk = { bpm: number; bass: (number | null)[]; lead: (number | null)[]; kick: number[]; leadType: OscillatorType; snare?: number[]; soft?: boolean; padVol?: number }
   const TRACKS: Record<string, Trk> = {
     battle: {
       bpm: 150, leadType: 'sawtooth',
       bass: [D2, null, D2, D2, F2, null, C3, null, A2, null, A2, A2, G2, null, F2, null],
       lead: [D4, A3, F4, A3, E4, A3, C4, E4, A3, E4, F4, A3, G3, A3, F3, A3],
-      kick: [0, 4, 6, 8, 10, 12, 14],
+      kick: [0, 4, 6, 8, 10, 12, 14], snare: [4, 12],
     },
     boss: {
       bpm: 168, leadType: 'square',
       bass: [D2, D2, D2, F2, G2, G2, F2, E2, D2, D2, F2, A2, C3, C3, A2, G2],
       lead: [D5, A4, F4, A4, C5, A4, E5, C5, D5, F4, A4, D5, C5, A4, G4, F4],
-      kick: [0, 2, 4, 6, 8, 10, 12, 14],
+      kick: [0, 2, 4, 6, 8, 10, 12, 14], snare: [4, 12],
+    },
+    // calm minor sea-shanty for the menu / between-battle screens
+    menu: {
+      bpm: 96, leadType: 'triangle', soft: true, padVol: 0.06,
+      bass: [D2, null, null, null, Bb2, null, null, null, F2, null, null, null, C3, null, null, null],
+      lead: [D4, null, F4, null, E4, null, null, null, F4, null, A4, null, G4, null, F4, null],
+      kick: [0, 8],
+    },
+    // bright triumphant fanfare looped on the victory screen
+    victory: {
+      bpm: 128, leadType: 'square', padVol: 0.05,
+      bass: [F2, F2, C3, C3, A2, A2, D2, D2, Bb2, Bb2, F2, F2, C3, C3, C3, C3],
+      lead: [C5, F4, A4, C5, F5, C5, A4, C5, D5, A4, F4, A4, C5, A4, G4, F4],
+      kick: [0, 4, 8, 12], snare: [4, 12],
+    },
+    // slow somber dirge on defeat
+    defeat: {
+      bpm: 62, leadType: 'triangle', soft: true, padVol: 0.07,
+      bass: [D2, null, null, null, null, null, null, null, A2, null, null, null, null, null, null, null],
+      lead: [D4, null, null, null, F4, null, E4, null, D4, null, null, null, A3, null, null, null],
+      kick: [0],
     },
   }
+  function duck(on: boolean) { if (musicBus && ctx) musicBus.gain.setTargetAtTime(on ? 0.13 : 0.5, ctx.currentTime, 0.08) }
   function startScheduler() {
     if (musicTimer) return
-    const c = ensure(); if (!c || !musicGain) return
+    const c = ensure(); if (!c || !musicBus || !leadBus) return
     nextTime = c.currentTime + 0.08
     musicTimer = setInterval(() => {
-      const cc = ctx; if (!cc || !musicGain) return
+      const cc = ctx; const mb = musicBus, lb = leadBus; if (!cc || !mb || !lb) return
       const tk = TRACKS[curTrack]; if (!tk) return
       const stepDur = 60 / tk.bpm / 2
       while (nextTime < cc.currentTime + 0.12) {
         const s = mstep % 16
-        const b = tk.bass[s]; if (b) { mnote(cc, b, nextTime, stepDur * 1.1, 'sawtooth', 0.16, musicGain); mnote(cc, b / 2, nextTime, stepDur * 1.1, 'sine', 0.10, musicGain) }
-        const l = tk.lead[s]; if (l) mnote(cc, l, nextTime, stepDur * 0.85, tk.leadType, 0.055, musicGain)
-        if (tk.kick.includes(s)) mkick(cc, nextTime, musicGain, 0.34)
-        if (s % 2 === 1) { // hat
-          const n = Math.max(1, Math.floor(cc.sampleRate * 0.03)); const buf = cc.createBuffer(1, n, cc.sampleRate)
-          const d = buf.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1
-          const src = cc.createBufferSource(); src.buffer = buf; const f = cc.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 7500
-          const g = cc.createGain(); g.gain.setValueAtTime(0.05, nextTime); g.gain.exponentialRampToValueAtTime(0.001, nextTime + 0.03)
-          src.connect(f); f.connect(g); g.connect(musicGain); src.start(nextTime); src.stop(nextTime + 0.04)
+        const b = tk.bass[s]
+        if (b) {
+          lastRoot = b
+          mnote(cc, b, nextTime, stepDur * 1.1, 'sawtooth', tk.soft ? 0.10 : 0.16, mb)
+          mnote(cc, b / 2, nextTime, stepDur * 1.1, 'sine', tk.soft ? 0.08 : 0.10, mb)
         }
+        // sustained pad chord (octave + fifth above the current root) every bar — harmonic glue
+        if (s % 4 === 0 && lastRoot && tk.padVol) {
+          mnote(cc, lastRoot * 2, nextTime, stepDur * 4, 'triangle', tk.padVol, mb)
+          mnote(cc, lastRoot * 3, nextTime, stepDur * 4, 'triangle', tk.padVol * 0.6, mb)
+        }
+        const l = tk.lead[s]; if (l) mnote(cc, l, nextTime, stepDur * 0.85, tk.leadType, tk.soft ? 0.05 : 0.06, lb)
+        if (tk.kick.includes(s)) mkick(cc, nextTime, mb, tk.soft ? 0.18 : 0.34)
+        if (tk.snare?.includes(s)) msnare(cc, nextTime, mb, 0.16)
+        if (!tk.soft && s % 2 === 1) mhat(cc, nextTime, mb, 0.05)
+        else if (tk.soft && s % 4 === 2) mhat(cc, nextTime, mb, 0.03)
         mstep++; nextTime += stepDur
       }
     }, 25)
   }
   function playMusic(name: string) {
     const c = ensure(); if (!c) return
+    ensureMusic()
     if (curTrack === name && musicTimer) return
-    if (!musicGain) { musicGain = c.createGain(); musicGain.gain.value = 0.5; musicGain.connect(master!) }
-    curTrack = name; mstep = 0; nextTime = c.currentTime + 0.08
+    curTrack = name; mstep = 0; lastRoot = 0; nextTime = c.currentTime + 0.08
+    duck(false)
     startScheduler()
   }
   function stopMusic() { if (musicTimer) { clearInterval(musicTimer); musicTimer = null } curTrack = '' }
 
   return {
-    resume, setMuted, isMuted, playMusic, stopMusic,
-    cannon() { const c = ok('cannon', 45); if (!c) return; blip(c, 220, 0.08, 'square', 0.10, 90); noise(c, 0.10, 0.10, 'lowpass', 1200, 1, 300) },
-    fireCannon() { const c = ok('fcannon', 45); if (!c) return; blip(c, 180, 0.10, 'sawtooth', 0.10, 70); noise(c, 0.14, 0.10, 'bandpass', 900, 2, 400) },
-    zap() { const c = ok('zap', 40); if (!c) return; blip(c, 900, 0.07, 'sawtooth', 0.07, 2200); noise(c, 0.06, 0.06, 'highpass', 4000) },
-    hit() { const c = ok('hit', 28); if (!c) return; blip(c, 320, 0.05, 'square', 0.05, 160) },
-    crit() { const c = ok('crit', 50); if (!c) return; blip(c, 520, 0.09, 'square', 0.09, 200); blip(c, 780, 0.07, 'square', 0.06, 300, 0.03) },
-    explosion() { const c = ok('exp', 40); if (!c) return; noise(c, 0.4, 0.26, 'lowpass', 800, 1, 120); blip(c, 90, 0.32, 'sine', 0.18, 38) },
-    bigExp() { const c = ok('bexp', 60); if (!c) return; noise(c, 0.7, 0.34, 'lowpass', 600, 1, 80); blip(c, 70, 0.6, 'sine', 0.24, 30); noise(c, 0.5, 0.16, 'highpass', 2000, 1, 200, 0.05) },
-    boost() { const c = ok('boost', 120); if (!c) return; noise(c, 0.3, 0.12, 'bandpass', 600, 1.5, 1600) },
-    pickup() { const c = ok('pick', 30); if (!c) return; blip(c, 520, 0.08, 'triangle', 0.10, 880); blip(c, 880, 0.10, 'triangle', 0.08, 1320, 0.05) },
-    powerBig() { const c = ok('pbig', 60); if (!c) return; blip(c, 440, 0.1, 'square', 0.1, 660); blip(c, 660, 0.12, 'square', 0.09, 990, 0.06); blip(c, 990, 0.14, 'square', 0.08, 1320, 0.12) },
-    ult() { const c = ok('ult', 100); if (!c) return; blip(c, 110, 0.5, 'sawtooth', 0.18, 440); noise(c, 0.5, 0.18, 'bandpass', 700, 1.5, 2000); blip(c, 220, 0.4, 'square', 0.12, 660, 0.05) },
-    torp() { const c = ok('torp', 60); if (!c) return; blip(c, 140, 0.2, 'sine', 0.12, 280); noise(c, 0.25, 0.10, 'bandpass', 500, 2, 1400) },
+    resume, setMuted, isMuted, playMusic, stopMusic, duck,
+    // layered cannon: a square crack, a sub-bass thump, and a filtered smoke-puff
+    cannon() { const c = ok('cannon', 45); if (!c) return; blip(c, 200, 0.09, 'square', 0.10, 80); blip(c, 80, 0.18, 'sine', 0.16, 42); noise(c, 0.12, 0.12, 'lowpass', 1400, 1, 300) },
+    fireCannon() { const c = ok('fcannon', 45); if (!c) return; blip(c, 170, 0.11, 'sawtooth', 0.10, 66); blip(c, 70, 0.20, 'sine', 0.14, 38); noise(c, 0.16, 0.12, 'bandpass', 1000, 1.5, 500); noise(c, 0.18, 0.06, 'highpass', 3200, 1, 1200, 0.02) },
+    zap() { const c = ok('zap', 40); if (!c) return; blip(c, 1100, 0.07, 'sawtooth', 0.06, 2600); blip(c, 1420, 0.06, 'square', 0.04, 3100, 0.01); noise(c, 0.07, 0.06, 'highpass', 4500) },
+    hit() { const c = ok('hit', 28); if (!c) return; blip(c, 340, 0.05, 'square', 0.05, 170); noise(c, 0.04, 0.03, 'bandpass', 2600, 2) },
+    crit() { const c = ok('crit', 50); if (!c) return; blip(c, 560, 0.09, 'square', 0.09, 220); blip(c, 840, 0.08, 'square', 0.06, 360, 0.03); noise(c, 0.06, 0.05, 'highpass', 4200) },
+    explosion() { const c = ok('exp', 40); if (!c) return; noise(c, 0.42, 0.26, 'lowpass', 900, 1, 120); blip(c, 95, 0.34, 'sine', 0.20, 34); blip(c, 60, 0.50, 'sine', 0.16, 28, 0.02); noise(c, 0.25, 0.10, 'highpass', 2200, 1, 400, 0.03) },
+    bigExp() { const c = ok('bexp', 60); if (!c) return; noise(c, 0.75, 0.34, 'lowpass', 650, 1, 80); blip(c, 72, 0.65, 'sine', 0.26, 28); blip(c, 48, 0.85, 'sine', 0.20, 22, 0.03); noise(c, 0.50, 0.16, 'highpass', 1800, 1, 300, 0.05) },
+    boost() { const c = ok('boost', 120); if (!c) return; noise(c, 0.30, 0.12, 'bandpass', 600, 1.5, 1600) },
+    pickup() { const c = ok('pick', 30); if (!c) return; blip(c, 640, 0.08, 'triangle', 0.10, 960); blip(c, 960, 0.10, 'triangle', 0.08, 1440, 0.05) },
+    powerBig() { const c = ok('pbig', 60); if (!c) return;[440, 660, 880, 1320].forEach((f, i) => blip(c, f, 0.13, 'square', 0.09, undefined, i * 0.05)); blip(c, 1760, 0.22, 'sine', 0.05, undefined, 0.20) },
+    ult() { const c = ok('ult', 100); if (!c) return; blip(c, 110, 0.50, 'sawtooth', 0.18, 440); blip(c, 73, 0.60, 'sine', 0.16, 55); noise(c, 0.50, 0.18, 'bandpass', 700, 1.5, 2200); blip(c, 220, 0.40, 'square', 0.12, 660, 0.05);[330, 440, 550].forEach((f, i) => blip(c, f, 0.30, 'square', 0.07, undefined, 0.10 + i * 0.06)) },
+    torp() { const c = ok('torp', 60); if (!c) return; blip(c, 140, 0.20, 'sine', 0.12, 280); noise(c, 0.28, 0.10, 'bandpass', 500, 2, 1400); noise(c, 0.30, 0.05, 'highpass', 2600, 1, 900, 0.04) },
     hurt() { const c = ok('hurt', 60); if (!c) return; blip(c, 240, 0.16, 'sawtooth', 0.14, 70); noise(c, 0.14, 0.10, 'lowpass', 700) },
-    roar() { const c = ok('roar', 200); if (!c) return; blip(c, 70, 0.8, 'sawtooth', 0.22, 130); blip(c, 55, 0.9, 'square', 0.14, 110, 0.05); noise(c, 0.7, 0.14, 'lowpass', 500, 1, 200) },
-    slam() { const c = ok('slam', 60); if (!c) return; blip(c, 100, 0.3, 'sine', 0.2, 40); noise(c, 0.35, 0.2, 'lowpass', 600, 1, 120) },
-    warn() { const c = ok('warn', 120); if (!c) return; blip(c, 760, 0.1, 'square', 0.07, 760); blip(c, 760, 0.1, 'square', 0.07, 760, 0.14) },
-    thunder() { const c = ok('thndr', 80); if (!c) return; noise(c, 0.6, 0.28, 'lowpass', 1400, 1, 200); blip(c, 1200, 0.1, 'sawtooth', 0.1, 200) },
-    win() { const c = ok('win'); if (!c) return;[523, 659, 784, 1047].forEach((f, i) => blip(c, f, 0.3, 'square', 0.12, undefined, i * 0.13)) },
-    lose() { const c = ok('lose'); if (!c) return;[330, 262, 196, 131].forEach((f, i) => blip(c, f, 0.4, 'sawtooth', 0.12, undefined, i * 0.16)) },
+    roar() { const c = ok('roar', 200); if (!c) return; blip(c, 68, 0.85, 'sawtooth', 0.22, 128); blip(c, 52, 0.95, 'square', 0.14, 104, 0.05); blip(c, 40, 1.00, 'sine', 0.16, 30); noise(c, 0.80, 0.16, 'lowpass', 520, 1, 180) },
+    slam() { const c = ok('slam', 60); if (!c) return; blip(c, 100, 0.30, 'sine', 0.20, 40); blip(c, 55, 0.40, 'sine', 0.16, 28, 0.02); noise(c, 0.35, 0.20, 'lowpass', 600, 1, 120) },
+    warn() { const c = ok('warn', 120); if (!c) return; blip(c, 740, 0.10, 'square', 0.07, 740); blip(c, 740, 0.10, 'square', 0.07, 740, 0.15); noise(c, 0.05, 0.03, 'highpass', 5000) },
+    thunder() { const c = ok('thndr', 80); if (!c) return; noise(c, 0.60, 0.28, 'lowpass', 1400, 1, 200); blip(c, 1200, 0.10, 'sawtooth', 0.10, 200); blip(c, 60, 0.50, 'sine', 0.18, 30, 0.04) },
+    win() { const c = ok('win'); if (!c) return;[523, 659, 784, 1047].forEach((f, i) => blip(c, f, 0.30, 'square', 0.12, undefined, i * 0.13)) },
+    lose() { const c = ok('lose'); if (!c) return;[330, 262, 196, 131].forEach((f, i) => blip(c, f, 0.40, 'sawtooth', 0.12, undefined, i * 0.16)) },
     dodge() { const c = ok('dodge', 60); if (!c) return; noise(c, 0.16, 0.08, 'bandpass', 1200, 2, 400) },
   }
 })()
@@ -381,7 +452,7 @@ function downPlayer(g: GS, p: Player) {
 }
 function defeat(g: GS) {
   g.state = 'defeat'; g.shake = 30
-  Sfx.stopMusic(); Sfx.lose()
+  Sfx.lose(); Sfx.playMusic('defeat')
 }
 
 /* ═══ FIRING ═══ */
@@ -419,6 +490,9 @@ function firePrimary(g: GS, p: Player) {
     Sfx.cannon()
   }
   burst(g, muzzle.x, muzzle.y, b.accent, 4, 130, 'spark', 2)
+  // muzzle flash pointed at the target
+  const fm = { x: p.x + Math.cos(baseAng) * 24, y: p.y + Math.sin(baseAng) * 24 }
+  g.particles.push({ x: fm.x, y: fm.y, vx: Math.cos(baseAng) * 24, vy: Math.sin(baseAng) * 24, life: 0.11, max: 0.11, size: 13, color: '#fff3c4', kind: 'flash', spin: 0 })
 }
 function fireSecondary(g: GS, p: Player) {
   if (p.secAmmo <= 0 || p.secCd > 0) return
@@ -822,7 +896,7 @@ function handleBossDying(g: GS, b: Boss, dt: number) {
     // gauntlet: the next beast arrives, or victory after the Dutchman
     if (b.kind === 'kraken') spawnLeviathan(g)
     else if (b.kind === 'leviathan') spawnDutchman(g)
-    else { g.state = 'victory'; Sfx.stopMusic(); Sfx.win() }
+    else { g.state = 'victory'; Sfx.win(); Sfx.playMusic('victory') }
   }
 }
 
@@ -1131,6 +1205,10 @@ function render(ctx: CanvasRenderingContext2D, g: GS) {
   const grd = ctx.createLinearGradient(0, 0, 0, VH)
   grd.addColorStop(0, '#0a2438'); grd.addColorStop(0.5, '#0d3350'); grd.addColorStop(1, '#0a2a44')
   ctx.fillStyle = grd; ctx.fillRect(0, 0, VW, VH)
+  // soft sun-shimmer highlight on the water
+  const sun = ctx.createRadialGradient(VW * 0.32, VH * 0.16, 20, VW * 0.32, VH * 0.16, VH * 0.95)
+  sun.addColorStop(0, 'rgba(120,185,225,0.12)'); sun.addColorStop(1, 'rgba(120,185,225,0)')
+  ctx.fillStyle = sun; ctx.fillRect(0, 0, VW, VH)
   // moving caustic glints
   ctx.save()
   ctx.globalAlpha = 0.10; ctx.strokeStyle = '#5fb0e0'; ctx.lineWidth = 2
@@ -1284,12 +1362,15 @@ function render(ctx: CanvasRenderingContext2D, g: GS) {
     if (!blink) {
       // player-id ring so the two ships are easy to tell apart
       if (g.players.length > 1) { ctx.strokeStyle = ring; ctx.lineWidth = 2; ctx.globalAlpha = 0.8; ctx.beginPath(); ctx.arc(ps.x, ps.y, 26, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1 }
+      // recoil kick — the hull lurches back briefly when the cannons fire
+      const rk = p.recoil * 5
+      const drawX = ps.x - Math.cos(p.heading) * rk, drawY = ps.y - Math.sin(p.heading) * rk
       ctx.save(); ctx.shadowColor = bd.color; ctx.shadowBlur = 14
-      drawShip(ctx, ps.x, ps.y, p.heading, 1.15, bd.color, bd.accent, 0)
+      drawShip(ctx, drawX, drawY, p.heading, 1.15, bd.color, bd.accent, 0)
       ctx.restore()
       // flag
       ctx.fillStyle = p.dmgBuff > 0 ? '#ff5d5d' : ring
-      ctx.save(); ctx.translate(ps.x, ps.y); ctx.rotate(p.heading)
+      ctx.save(); ctx.translate(drawX, drawY); ctx.rotate(p.heading)
       ctx.beginPath(); ctx.moveTo(4, -13); ctx.lineTo(4 + 9, -16); ctx.lineTo(4, -19); ctx.closePath(); ctx.fill(); ctx.restore()
     }
   }
@@ -1306,6 +1387,10 @@ function render(ctx: CanvasRenderingContext2D, g: GS) {
     } else if (pt.kind === 'wake') {
       ctx.fillStyle = pt.color; ctx.globalAlpha = a * 0.5
       ctx.beginPath(); ctx.arc(s.x, s.y, pt.size * a, 0, TAU); ctx.fill(); ctx.globalAlpha = 1
+    } else if (pt.kind === 'flash') {
+      ctx.globalAlpha = a; ctx.fillStyle = pt.color; ctx.shadowColor = '#ffcf6b'; ctx.shadowBlur = 14
+      ctx.beginPath(); ctx.arc(s.x, s.y, pt.size * (0.5 + a * 0.8), 0, TAU); ctx.fill()
+      ctx.shadowBlur = 0; ctx.globalAlpha = 1
     } else {
       ctx.fillStyle = pt.color; ctx.globalAlpha = a
       ctx.beginPath(); ctx.arc(s.x, s.y, pt.size, 0, TAU); ctx.fill(); ctx.globalAlpha = 1
@@ -1340,6 +1425,11 @@ function render(ctx: CanvasRenderingContext2D, g: GS) {
 
   /* — screen flash (damage / lightning) — */
   if (g.flash > 0) { ctx.fillStyle = `rgba(255,80,80,${g.flash * 0.4})`; ctx.fillRect(0, 0, VW, VH) }
+
+  /* — vignette (focuses the eye on the action) — */
+  const vg = ctx.createRadialGradient(VW / 2, VH / 2, VH * 0.42, VW / 2, VH / 2, VH * 0.98)
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.42)')
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, VW, VH)
 
   drawHUD(ctx, g)
 }
@@ -1712,6 +1802,12 @@ export default function PirateCarnage() {
 
   useEffect(() => () => { Sfx.stopMusic() }, [])
 
+  // duck the music while paused
+  useEffect(() => { Sfx.duck(paused && screen === 'playing') }, [paused, screen])
+
+  // gentle menu/shanty music — only after a user gesture (browser autoplay policy)
+  const startMenuMusic = useCallback(() => { Sfx.resume(); Sfx.playMusic('menu') }, [])
+
   const toggleMute = () => { const m = !muted; setMuted(m); Sfx.setMuted(m) }
 
   const activeIdx = playerCount === 2 ? (activeTab === 0 ? b1 : b2) : b1
@@ -1739,7 +1835,7 @@ export default function PirateCarnage() {
 
         {/* MENU */}
         {screen === 'menu' && (
-          <div className="pc-overlay" style={{ background: 'radial-gradient(circle at 50% 30%, rgba(20,40,70,0.92), rgba(8,16,28,0.97))', padding: 20, overflow: 'auto' }}>
+          <div className="pc-overlay" onMouseDown={startMenuMusic} style={{ background: 'radial-gradient(circle at 50% 30%, rgba(20,40,70,0.92), rgba(8,16,28,0.97))', padding: 20, overflow: 'auto' }}>
             <div style={{ fontSize: 'clamp(26px,6vw,46px)', color: '#c89b3c', fontFamily: '"Press Start 2P",monospace', letterSpacing: 3, textShadow: '0 0 18px rgba(200,155,60,0.5)', lineHeight: 1.2 }}>PIRATE</div>
             <div style={{ fontSize: 'clamp(26px,6vw,46px)', color: '#ff6b2b', fontFamily: '"Press Start 2P",monospace', letterSpacing: 3, textShadow: '0 0 18px rgba(255,107,43,0.5)', lineHeight: 1.2, marginBottom: 4 }}>CARNAGE</div>
             {/* player count */}
@@ -1830,7 +1926,7 @@ export default function PirateCarnage() {
             )}
             <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
               <button className="pc-btn" onClick={() => startGame(playerCount, b1, b2)} style={menuBtn}>SAIL AGAIN</button>
-              <button className="pc-btn" onClick={() => setScreen('menu')} style={menuBtnAlt}>CHANGE SHIP</button>
+              <button className="pc-btn" onClick={() => { setScreen('menu'); Sfx.playMusic('menu') }} style={menuBtnAlt}>CHANGE SHIP</button>
             </div>
           </div>
         )}
@@ -1844,18 +1940,18 @@ export default function PirateCarnage() {
             <div style={{ color: '#a09880', fontFamily: '"Press Start 2P",monospace', fontSize: 11, marginTop: 8 }}>{finalKills} SHIPS SUNK</div>
             <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
               <button className="pc-btn" onClick={() => startGame(playerCount, b1, b2)} style={menuBtn}>TRY AGAIN</button>
-              <button className="pc-btn" onClick={() => setScreen('menu')} style={menuBtnAlt}>CHANGE SHIP</button>
+              <button className="pc-btn" onClick={() => { setScreen('menu'); Sfx.playMusic('menu') }} style={menuBtnAlt}>CHANGE SHIP</button>
             </div>
           </div>
         )}
 
-        {/* in-game top buttons */}
-        {screen === 'playing' && (
-          <div style={{ position: 'absolute', top: 10, right: 10, display: 'flex', gap: 6 }}>
-            <button className="pc-btn" onClick={toggleMute} style={iconBtn}>{muted ? '🔇' : '🔊'}</button>
-            <button className="pc-btn" onClick={() => setPaused(v => !v)} style={iconBtn}>{paused ? '▶' : '⏸'}</button>
-          </div>
-        )}
+        {/* top controls — mute is always available so music can be turned off anywhere */}
+        <div style={{ position: 'absolute', top: 10, right: 10, display: 'flex', gap: 6, zIndex: 5 }}>
+          <button className="pc-btn" onClick={toggleMute} style={iconBtn} title={muted ? 'Sound off' : 'Sound on'}>{muted ? '🔇' : '🔊'}</button>
+          {screen === 'playing' && (
+            <button className="pc-btn" onClick={() => setPaused(v => !v)} style={iconBtn} title={paused ? 'Resume' : 'Pause'}>{paused ? '▶' : '⏸'}</button>
+          )}
+        </div>
       </div>
 
       <p style={{ color: '#605848', fontSize: 12, fontFamily: 'Inter,sans-serif', textAlign: 'center', maxWidth: 640, lineHeight: 1.6 }}>
