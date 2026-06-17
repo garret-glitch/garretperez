@@ -275,6 +275,7 @@ interface Boss {
   // poseidon tidal wave (t<0 = telegraph) and lightning storm
   wave?: { x: number; dir: number; t: number; gapY: number; gap: number }
   bolts?: { x: number; y: number; t: number; state: string }[]
+  enraged?: boolean   // poseidon desperate phase fired once
 }
 interface FloatText { x: number; y: number; txt: string; life: number; color: string; vy: number; size: number }
 interface Rock { x: number; y: number; r: number; seed: number }
@@ -586,9 +587,9 @@ function spawnMermaid(g: GS) {
 }
 function spawnPoseidon(g: GS) {
   g.bosses.push({
-    kind: 'poseidon', x: WW / 2, y: WH * 0.30, vx: 0, vy: 0, hp: 4400, maxHp: 4400,
+    kind: 'poseidon', x: WW / 2, y: WH * 0.30, vx: 0, vy: 0, hp: 5600, maxHp: 5600,
     atkCd: 1.4, hitFlash: 0, aimAng: 0, dying: 0,
-    mode: 'arrive', modeT: 2.0, swimAng: Math.PI / 2, tx: 0, ty: 0, bolts: [],
+    mode: 'arrive', modeT: 2.0, swimAng: Math.PI / 2, tx: 0, ty: 0, bolts: [], enraged: false,
   })
   g.banner = { txt: 'POSEIDON', sub: 'GOD OF THE SEA', life: 3.4 }
   g.shake = 30; Sfx.roar(); Sfx.playMusic('final'); g.enemies = []
@@ -1289,38 +1290,51 @@ function tickMermaid(g: GS, b: Boss, dt: number) {
 }
 
 /* ═══ FINAL BOSS — Poseidon, God of the Sea ═══ */
-function startTrident(g: GS, b: Boss) { b.mode = 'tridentWarn'; b.modeT = 0.95; Sfx.warn() }
+function startTrident(g: GS, b: Boss) { b.mode = 'tridentWarn'; b.modeT = 0.85; Sfx.warn() }
 function startWave(g: GS, b: Boss, phase: number) {
+  const desperate = phase < 0.4
   const p = targetPlayer(g, b.x, b.y); const fromLeft = p.x > WW / 2
-  b.wave = { x: fromLeft ? -40 : WW + 40, dir: fromLeft ? 1 : -1, t: -1.0, gapY: clamp(p.y + rnd(-100, 100), 170, WH - 170), gap: phase < 0.5 ? 95 : 125 }
-  Sfx.warn(); b.mode = 'hover'; b.modeT = rnd(2.6, 3.4); b.atkCd = 0.9
+  b.wave = { x: fromLeft ? -40 : WW + 40, dir: fromLeft ? 1 : -1, t: -0.9, gapY: clamp(p.y + rnd(-90, 90), 170, WH - 170), gap: desperate ? 78 : (phase < 0.6 ? 96 : 122) }
+  Sfx.warn(); b.mode = 'hover'; b.modeT = rnd(2.2, 3.0); b.atkCd = 0.8
 }
 function startStorm(g: GS, b: Boss, phase: number) {
-  const p = targetPlayer(g, b.x, b.y); const n = phase < 0.5 ? 6 : 4
+  const desperate = phase < 0.4
+  const p = targetPlayer(g, b.x, b.y); const n = desperate ? 9 : (phase < 0.6 ? 6 : 4)
   b.bolts = b.bolts || []
-  for (let i = 0; i < n; i++) b.bolts.push({ x: clamp(p.x + rnd(-360, 360), 60, WW - 60), y: clamp(p.y + rnd(-360, 360), 60, WH - 60), t: 0.85 + i * 0.16, state: 'warn' })
-  Sfx.warn(); b.mode = 'hover'; b.modeT = rnd(2.2, 3); b.atkCd = 0.7
+  for (let i = 0; i < n; i++) b.bolts.push({ x: clamp(p.x + rnd(-380, 380), 60, WW - 60), y: clamp(p.y + rnd(-380, 380), 60, WH - 60), t: 0.75 + i * (desperate ? 0.10 : 0.15), state: 'warn' })
+  // a bolt that leads the player's movement
+  b.bolts.push({ x: clamp(p.x + p.vx * 0.6, 60, WW - 60), y: clamp(p.y + p.vy * 0.6, 60, WH - 60), t: desperate ? 0.7 : 0.95, state: 'warn' })
+  Sfx.warn(); b.mode = 'hover'; b.modeT = rnd(1.8, 2.6); b.atkCd = 0.6
 }
-function startMaelstrom(g: GS, b: Boss, phase: number) { b.mode = 'maelstrom'; b.modeT = phase < 0.5 ? 2.6 : 2.0; b.atkCd = 0.3; Sfx.roar(); g.shake = 12 }
+function startMaelstrom(g: GS, b: Boss, phase: number) { b.mode = 'maelstrom'; b.modeT = phase < 0.4 ? 3.0 : 2.2; b.atkCd = 0.3; Sfx.roar(); g.shake = 12 }
 function tickPoseidon(g: GS, b: Boss, dt: number) {
   const p = targetPlayer(g, b.x, b.y)
   b.modeT = (b.modeT ?? 0) - dt
   const phase = b.hp / b.maxHp
+  const desperate = phase < 0.4
   b.aimAng = angTo(b.x, b.y, p.x, p.y)
 
-  // trident-slam shockwave ring
+  // enrage at 40% HP
+  if (desperate && !b.enraged) { b.enraged = true; g.banner = { txt: 'POSEIDON RAGES', sub: 'THE SEA BOILS', life: 2 }; g.shake = 28; g.flash = 0.3; Sfx.roar() }
+
+  // trident-slam shockwave ring (a second inner ring while enraged)
   if (b.shock) {
     b.shock.t += dt
-    const ringR = (b.shock.t / b.shock.max) * 560
-    for (const tp of g.players) if (!tp.dead && Math.abs(dist(b.shock.ox, b.shock.oy, tp.x, tp.y) - ringR) < 42) hurtPlayer(g, tp, 26)
+    const ringR = (b.shock.t / b.shock.max) * 600
+    for (const tp of g.players) {
+      if (tp.dead) continue
+      const d = dist(b.shock.ox, b.shock.oy, tp.x, tp.y)
+      if (Math.abs(d - ringR) < 44) hurtPlayer(g, tp, 28)
+      else if (desperate && ringR > 180 && Math.abs(d - (ringR - 170)) < 40) hurtPlayer(g, tp, 26)
+    }
     if (b.shock.t >= b.shock.max) b.shock = undefined
   }
-  // tidal wave (t<0 telegraph, then sweeps across with a single safe gap)
+  // tidal wave (t<0 telegraph, then sweeps across with a single safe gap — faster when enraged)
   if (b.wave) {
     b.wave.t += dt
     if (b.wave.t >= 0) {
-      b.wave.x += b.wave.dir * 420 * dt
-      for (const tp of g.players) { if (tp.dead) continue; if (Math.abs(tp.x - b.wave.x) < 40 && Math.abs(tp.y - b.wave.gapY) > b.wave.gap) hurtPlayer(g, tp, 30 * dt * 4) }
+      b.wave.x += b.wave.dir * (desperate ? 510 : 430) * dt
+      for (const tp of g.players) { if (tp.dead) continue; if (Math.abs(tp.x - b.wave.x) < 40 && Math.abs(tp.y - b.wave.gapY) > b.wave.gap) hurtPlayer(g, tp, 32 * dt * 4) }
       if (Math.random() < 0.9) g.particles.push({ x: b.wave.x + rnd(-18, 18), y: rnd(0, WH), vx: b.wave.dir * 60, vy: rnd(-40, 40), life: 0.4, max: 0.4, size: rnd(3, 7), color: '#9fd8ee', kind: 'wake', spin: 0 })
       if (b.wave.x < -60 || b.wave.x > WW + 60) b.wave = undefined
     }
@@ -1349,16 +1363,17 @@ function tickPoseidon(g: GS, b: Boss, dt: number) {
     b.y += (WH * 0.26 - b.y) * Math.min(1, dt * 0.6)
     b.atkCd -= dt
     if (b.atkCd <= 0) {
-      b.atkCd = phase < 0.5 ? 0.9 : 1.3
+      b.atkCd = desperate ? 0.6 : (phase < 0.6 ? 0.85 : 1.2)
       const aim = angTo(b.x, b.y, p.x + p.vx * 0.2, p.y + p.vy * 0.2)
-      for (const o of [-0.14, 0, 0.14]) spawnBullet(g, b.x, b.y, aim + o, 360, 13, 'water', false, { radius: 7, life: 3.4 })
+      const fan = desperate ? [-0.28, -0.14, 0, 0.14, 0.28] : [-0.14, 0, 0.14]
+      for (const o of fan) spawnBullet(g, b.x, b.y, aim + o, desperate ? 400 : 360, 13, 'water', false, { radius: 7, life: 3.4 })
       Sfx.cannon()
     }
     if (b.modeT <= 0) {
       const r = Math.random()
-      if (r < 0.3) startTrident(g, b)
-      else if (r < 0.55 && !b.wave) startWave(g, b, phase)
-      else if (r < 0.8) startStorm(g, b, phase)
+      if (r < 0.30) startTrident(g, b)
+      else if (r < 0.54 && !b.wave) startWave(g, b, phase)
+      else if (r < 0.78) startStorm(g, b, phase)
       else startMaelstrom(g, b, phase)
     }
     return
@@ -1366,20 +1381,21 @@ function tickPoseidon(g: GS, b: Boss, dt: number) {
   if (b.mode === 'tridentWarn') {
     if (b.modeT <= 0) {
       b.shock = { ox: b.x, oy: b.y + 60, t: 0, max: 1.0, hit: false }
-      Sfx.slam(); g.shake = 24; g.flash = 0.3; burst(g, b.x, b.y + 40, '#bff0ff', 26, 320, 'wake', 7)
-      b.mode = 'hover'; b.modeT = rnd(1.8, 2.6); b.atkCd = 0.6
+      Sfx.slam(); g.shake = 26; g.flash = 0.3; burst(g, b.x, b.y + 40, '#bff0ff', 26, 320, 'wake', 7)
+      b.mode = 'hover'; b.modeT = desperate ? rnd(1.2, 1.8) : rnd(1.8, 2.6); b.atkCd = 0.5
     }
     return
   }
-  if (b.mode === 'maelstrom') { // rotating spiral of water spears
+  if (b.mode === 'maelstrom') { // rotating spiral of water spears (counter-rotating when enraged)
     b.atkCd -= dt
     if (b.atkCd <= 0) {
-      b.atkCd = phase < 0.5 ? 0.16 : 0.22
-      const n = phase < 0.5 ? 5 : 3, base = g.time * 2.2
-      for (let i = 0; i < n; i++) { const a = base + (i / n) * TAU; spawnBullet(g, b.x, b.y, a, 260, 12, 'water', false, { radius: 7, life: 3.6 }) }
+      b.atkCd = desperate ? 0.13 : 0.20
+      const n = desperate ? 6 : 4, base = g.time * 2.4
+      for (let i = 0; i < n; i++) { const a = base + (i / n) * TAU; spawnBullet(g, b.x, b.y, a, desperate ? 290 : 260, 12, 'water', false, { radius: 7, life: 3.6 }) }
+      if (desperate) for (let i = 0; i < n; i++) { const a = -base + (i / n) * TAU; spawnBullet(g, b.x, b.y, a, 250, 12, 'water', false, { radius: 7, life: 3.6 }) }
       Sfx.zap()
     }
-    if (b.modeT <= 0) { b.mode = 'hover'; b.modeT = rnd(1.8, 2.6); b.atkCd = 0.6 }
+    if (b.modeT <= 0) { b.mode = 'hover'; b.modeT = desperate ? rnd(1.2, 1.8) : rnd(1.8, 2.6); b.atkCd = 0.5 }
     return
   }
 }
@@ -2026,11 +2042,13 @@ function drawMermaid(ctx: CanvasRenderingContext2D, b: Boss, g: GS, w2s: (x: num
 
 function drawPoseidon(ctx: CanvasRenderingContext2D, b: Boss, g: GS, w2s: (x: number, y: number) => { x: number; y: number }, idx: number) {
   const t = g.time; const s = w2s(b.x, b.y)
-  // shockwave ring
+  // shockwave ring(s)
   if (b.shock) {
-    const o = w2s(b.shock.ox, b.shock.oy); const r = (b.shock.t / b.shock.max) * 560
-    ctx.strokeStyle = `rgba(150,220,255,${clamp(1 - b.shock.t / b.shock.max, 0, 1) * 0.9})`; ctx.lineWidth = 18
+    const o = w2s(b.shock.ox, b.shock.oy); const r = (b.shock.t / b.shock.max) * 600
+    const a = clamp(1 - b.shock.t / b.shock.max, 0, 1) * 0.9
+    ctx.strokeStyle = `rgba(150,220,255,${a})`; ctx.lineWidth = 18
     ctx.beginPath(); ctx.arc(o.x, o.y, r, 0, TAU); ctx.stroke()
+    if (b.hp / b.maxHp < 0.4 && r > 180) { ctx.strokeStyle = `rgba(190,150,255,${a})`; ctx.lineWidth = 14; ctx.beginPath(); ctx.arc(o.x, o.y, r - 170, 0, TAU); ctx.stroke() }
   }
   // tidal wave (telegraph while t<0, solid wall once sweeping) with a single safe gap
   if (b.wave) {
@@ -2059,6 +2077,17 @@ function drawPoseidon(ctx: CanvasRenderingContext2D, b: Boss, g: GS, w2s: (x: nu
   ctx.save(); ctx.translate(s.x, s.y)
   const flash = b.hitFlash > 0
   const charging = b.mode === 'tridentWarn'
+  const enraged = b.hp / b.maxHp < 0.4
+  ctx.scale(1.12, 1.12) // more imposing
+  // storm halo behind
+  const halo = ctx.createRadialGradient(0, -30, 10, 0, -30, 150)
+  halo.addColorStop(0, enraged ? 'rgba(110,50,150,0.55)' : 'rgba(40,90,140,0.45)'); halo.addColorStop(1, 'rgba(0,0,0,0)')
+  ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(0, -30, 150, 0, TAU); ctx.fill()
+  // crackling electric arcs around him
+  { const arcN = (enraged ? 4 : 2) + (charging ? 3 : 0)
+    ctx.strokeStyle = enraged ? 'rgba(190,150,255,0.7)' : 'rgba(150,220,255,0.6)'; ctx.lineWidth = 2; ctx.shadowColor = '#7fe0ff'; ctx.shadowBlur = 8
+    for (let k = 0; k < arcN; k++) { const a0 = (t * 3 + k * 1.7) % TAU, r0 = 72 + (k % 3) * 14; let ax = Math.cos(a0) * r0, ay = -30 + Math.sin(a0) * r0 * 0.9; ctx.beginPath(); ctx.moveTo(ax, ay); for (let s2 = 0; s2 < 4; s2++) { ax += rnd(-13, 13); ay += rnd(-13, 13); ctx.lineTo(ax, ay) } ctx.stroke() } }
+  ctx.shadowBlur = 0
   ctx.shadowColor = '#4fd1ff'; ctx.shadowBlur = 30
   // swirling water at the base
   ctx.save(); ctx.strokeStyle = 'rgba(120,210,240,0.5)'; ctx.lineWidth = 5; ctx.lineCap = 'round'
@@ -2066,12 +2095,12 @@ function drawPoseidon(ctx: CanvasRenderingContext2D, b: Boss, g: GS, w2s: (x: nu
   ctx.restore()
   // lower body fading into the sea
   const baseG = ctx.createLinearGradient(0, 20, 0, 92)
-  baseG.addColorStop(0, flash ? '#eaf6ff' : '#2f88a8'); baseG.addColorStop(1, 'rgba(20,70,100,0.15)')
+  baseG.addColorStop(0, flash ? '#eaf6ff' : (enraged ? '#2a5f86' : '#2f88a8')); baseG.addColorStop(1, 'rgba(20,70,100,0.15)')
   ctx.fillStyle = baseG
   ctx.beginPath(); ctx.moveTo(-46, 22); ctx.quadraticCurveTo(-64, 70, -40, 92); ctx.quadraticCurveTo(0, 80, 40, 92); ctx.quadraticCurveTo(64, 70, 46, 22); ctx.closePath(); ctx.fill()
   // muscular torso (gradient)
   const bodyG = ctx.createLinearGradient(-40, -20, 40, 40)
-  bodyG.addColorStop(0, flash ? '#fff' : '#3fa6c4'); bodyG.addColorStop(1, flash ? '#dffaff' : '#1f6e8c')
+  bodyG.addColorStop(0, flash ? '#fff' : (enraged ? '#3a6f9a' : '#3fa6c4')); bodyG.addColorStop(1, flash ? '#dffaff' : (enraged ? '#163a5a' : '#1f6e8c'))
   ctx.fillStyle = bodyG
   ctx.beginPath()
   ctx.moveTo(-44, -16); ctx.quadraticCurveTo(-50, 8, -34, 30); ctx.quadraticCurveTo(0, 40, 34, 30)
@@ -2081,13 +2110,24 @@ function drawPoseidon(ctx: CanvasRenderingContext2D, b: Boss, g: GS, w2s: (x: nu
   ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(0, 26); ctx.stroke()
   ctx.beginPath(); ctx.arc(-15, -8, 12, Math.PI * 0.1, Math.PI * 0.85); ctx.stroke()
   ctx.beginPath(); ctx.arc(15, -8, 12, Math.PI * 0.15, Math.PI * 0.9); ctx.stroke()
-  // arms (left lowered, right raises the trident)
-  ctx.strokeStyle = flash ? '#fff' : '#3fa0c0'; ctx.lineWidth = 15; ctx.lineCap = 'round'
+  // glowing trident rune on the chest
+  ctx.strokeStyle = enraged ? `rgba(190,150,255,${0.6 + Math.sin(t * 6) * 0.3})` : `rgba(127,224,255,${0.6 + Math.sin(t * 4) * 0.25})`
+  ctx.lineWidth = 2; ctx.shadowColor = '#7fe0ff'; ctx.shadowBlur = 8
+  ctx.beginPath(); ctx.moveTo(0, -4); ctx.lineTo(0, 14); ctx.moveTo(-6, -2); ctx.lineTo(-6, 6); ctx.moveTo(6, -2); ctx.lineTo(6, 6); ctx.moveTo(-7, 0); ctx.lineTo(7, 0); ctx.stroke(); ctx.shadowBlur = 0
+  // golden pauldrons
+  ctx.fillStyle = flash ? '#fff' : '#ffd34d'
+  for (const dir of [-1, 1]) { ctx.beginPath(); ctx.ellipse(dir * 40, -16, 13, 10, dir * 0.3, 0, TAU); ctx.fill() }
+  ctx.fillStyle = '#b8841f'; for (const dir of [-1, 1]) { ctx.beginPath(); ctx.ellipse(dir * 40, -16, 6, 4, dir * 0.3, 0, TAU); ctx.fill() }
+  // arms (left lowered with cascading water, right raises the trident)
+  ctx.strokeStyle = flash ? '#fff' : (enraged ? '#3a6f9a' : '#3fa0c0'); ctx.lineWidth = 15; ctx.lineCap = 'round'
   const sway = Math.sin(t * 1.4) * 5
   ctx.beginPath(); ctx.moveTo(-38, -12); ctx.quadraticCurveTo(-66, 8 + sway, -58, 44); ctx.stroke()
   ctx.beginPath(); ctx.moveTo(38, -12); ctx.quadraticCurveTo(66, -34, 74, -70); ctx.stroke()
-  ctx.fillStyle = flash ? '#fff' : '#3fa0c0'
+  ctx.fillStyle = flash ? '#fff' : (enraged ? '#3a6f9a' : '#3fa0c0')
   ctx.beginPath(); ctx.arc(-58, 46, 7, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.arc(74, -70, 7, 0, TAU); ctx.fill()
+  // water cascading off the lowered hand
+  ctx.fillStyle = 'rgba(150,225,250,0.6)'
+  for (let k = 0; k < 4; k++) { const yy = 50 + ((t * 60 + k * 18) % 40); ctx.beginPath(); ctx.arc(-58 + Math.sin(yy) * 2, yy, 2.2, 0, TAU); ctx.fill() }
   // neck + flowing hair + head
   ctx.fillStyle = flash ? '#fff' : '#56b6cf'; ctx.fillRect(-7, -46, 14, 14)
   ctx.fillStyle = flash ? '#fff' : '#dfeef5'
@@ -2102,14 +2142,14 @@ function drawPoseidon(ctx: CanvasRenderingContext2D, b: Boss, g: GS, w2s: (x: nu
   ctx.beginPath(); ctx.moveTo(-10, -49); ctx.quadraticCurveTo(0, -44, 10, -49); ctx.quadraticCurveTo(0, -45, -10, -49); ctx.closePath(); ctx.fill()
   // eyes (glowing) + brows
   ctx.fillStyle = '#0c1a22'; ctx.beginPath(); ctx.arc(-7, -58, 4, 0, TAU); ctx.arc(7, -58, 4, 0, TAU); ctx.fill()
-  if (flash || Math.sin(t * 5) > -0.7) { ctx.fillStyle = flash ? '#fff' : '#7fe0ff'; ctx.shadowColor = '#4fd1ff'; ctx.shadowBlur = 12; ctx.beginPath(); ctx.arc(-7, -58, 2.4, 0, TAU); ctx.arc(7, -58, 2.4, 0, TAU); ctx.fill(); ctx.shadowBlur = 0 }
+  if (flash || enraged || Math.sin(t * 5) > -0.7) { ctx.fillStyle = flash ? '#fff' : (enraged ? '#ff6a8a' : '#7fe0ff'); ctx.shadowColor = enraged ? '#ff3a6a' : '#4fd1ff'; ctx.shadowBlur = 12; ctx.beginPath(); ctx.arc(-7, -58, 2.6, 0, TAU); ctx.arc(7, -58, 2.6, 0, TAU); ctx.fill(); ctx.shadowBlur = 0 }
   ctx.strokeStyle = flash ? '#fff' : '#eaf4f8'; ctx.lineWidth = 3; ctx.lineCap = 'round'
   ctx.beginPath(); ctx.moveTo(-12, -64); ctx.lineTo(-3, -62); ctx.moveTo(12, -64); ctx.lineTo(3, -62); ctx.stroke()
   // golden gemmed crown
   ctx.fillStyle = '#ffd34d'
-  ctx.beginPath(); ctx.moveTo(-20, -70); ctx.lineTo(-20, -80); ctx.lineTo(-12, -74); ctx.lineTo(-6, -88); ctx.lineTo(0, -76); ctx.lineTo(6, -88); ctx.lineTo(12, -74); ctx.lineTo(20, -80); ctx.lineTo(20, -70); ctx.closePath(); ctx.fill()
-  ctx.fillStyle = '#ff5d8a'; ctx.beginPath(); ctx.arc(0, -73, 2.4, 0, TAU); ctx.fill()
-  ctx.fillStyle = '#5be0ff'; ctx.beginPath(); ctx.arc(-10, -73, 1.8, 0, TAU); ctx.arc(10, -73, 1.8, 0, TAU); ctx.fill()
+  ctx.beginPath(); ctx.moveTo(-22, -70); ctx.lineTo(-22, -82); ctx.lineTo(-13, -76); ctx.lineTo(-7, -94); ctx.lineTo(0, -78); ctx.lineTo(7, -94); ctx.lineTo(13, -76); ctx.lineTo(22, -82); ctx.lineTo(22, -70); ctx.closePath(); ctx.fill()
+  ctx.fillStyle = '#ff5d8a'; ctx.beginPath(); ctx.arc(0, -74, 2.6, 0, TAU); ctx.fill()
+  ctx.fillStyle = '#5be0ff'; ctx.beginPath(); ctx.arc(-11, -74, 2, 0, TAU); ctx.arc(11, -74, 2, 0, TAU); ctx.fill()
   // ornate trident in the raised hand
   ctx.save(); ctx.translate(74, -70)
   ctx.strokeStyle = '#ffd34d'; ctx.lineWidth = 5; ctx.lineCap = 'round'
@@ -2118,9 +2158,15 @@ function drawPoseidon(ctx: CanvasRenderingContext2D, b: Boss, g: GS, w2s: (x: nu
   ctx.beginPath(); ctx.moveTo(-12, -6); ctx.lineTo(-12, -34); ctx.moveTo(0, -8); ctx.lineTo(0, -44); ctx.moveTo(12, -6); ctx.lineTo(12, -34); ctx.stroke()
   ctx.beginPath(); ctx.moveTo(-12, -34); ctx.lineTo(-16, -27); ctx.moveTo(-12, -34); ctx.lineTo(-8, -27); ctx.moveTo(12, -34); ctx.lineTo(16, -27); ctx.moveTo(12, -34); ctx.lineTo(8, -27); ctx.stroke()
   ctx.beginPath(); ctx.moveTo(-14, -10); ctx.lineTo(14, -10); ctx.stroke()
+  // crackling energy at the tines when charging / enraged
+  if (charging || enraged) {
+    ctx.strokeStyle = `rgba(127,224,255,${0.6 + Math.sin(t * 22) * 0.3})`; ctx.lineWidth = 1.5; ctx.shadowColor = '#7fe0ff'; ctx.shadowBlur = 10
+    for (let k = 0; k < 3; k++) { let ax = -12 + k * 12, ay = -34; ctx.beginPath(); ctx.moveTo(ax, ay); for (let s2 = 0; s2 < 3; s2++) { ax += rnd(-7, 7); ay -= rnd(4, 10); ctx.lineTo(ax, ay) } ctx.stroke() }
+    ctx.shadowBlur = 0
+  }
   ctx.fillStyle = charging ? `rgba(127,224,255,${0.5 + Math.sin(t * 20) * 0.4})` : 'rgba(127,224,255,0.55)'
-  ctx.shadowColor = '#4fd1ff'; ctx.shadowBlur = charging ? 20 : 10
-  ctx.beginPath(); ctx.arc(0, -46, charging ? 7 : 4, 0, TAU); ctx.fill(); ctx.shadowBlur = 0
+  ctx.shadowColor = '#4fd1ff'; ctx.shadowBlur = charging ? 22 : 10
+  ctx.beginPath(); ctx.arc(0, -46, charging ? 8 : 4.5, 0, TAU); ctx.fill(); ctx.shadowBlur = 0
   ctx.restore()
   ctx.restore(); ctx.shadowBlur = 0
   drawBossBar(ctx, b, '🔱 POSEIDON', '#1f8ad0', '#7b2f9a', idx)
