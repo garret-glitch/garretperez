@@ -518,7 +518,7 @@ function fireSecondary(g: GS, p: Player) {
   const tgt = nearestTarget(g, p.x, p.y, 900)
   const ang = tgt ? angTo(p.x, p.y, tgt.x, tgt.y) : p.heading
   p.secAmmo--; p.secCd = 0.5
-  spawnBullet(g, p.x, p.y, ang, 520, 70 + p.build.dmg, 'torpedo', true, { radius: 8, life: 2.2 })
+  spawnBullet(g, p.x, p.y, ang, 540, 130 + p.build.dmg * 2, 'torpedo', true, { radius: 11, life: 2.2 })
   Sfx.torp()
 }
 
@@ -776,17 +776,17 @@ function tick(g: GS, dt: number, keys: Set<string>, edges: PlayerEdge[]) {
   for (const bu of g.bullets) {
     bu.life -= dt; bu.trail += dt
     bu.x += bu.vx * dt; bu.y += bu.vy * dt
-    if (bu.type === 'torpedo' && Math.random() < 0.8) g.particles.push({ x: bu.x, y: bu.y, vx: rnd(-20, 20), vy: rnd(-20, 20), life: 0.4, max: 0.4, size: rnd(2, 4), color: '#cfe6ff', kind: 'wake', spin: 0 })
+    if (bu.type === 'torpedo') g.particles.push({ x: bu.x, y: bu.y, vx: rnd(-25, 25), vy: rnd(-25, 25), life: 0.5, max: 0.5, size: rnd(3, 6), color: Math.random() < 0.5 ? '#ffae4a' : '#ff6a3d', kind: 'fire', spin: 0 })
     if (bu.x < -40 || bu.x > WW + 40 || bu.y < -40 || bu.y > WH + 40) bu.life = 0
     // rock hit
     for (const ro of g.rocks) { if (dist(bu.x, bu.y, ro.x, ro.y) < ro.r) { if (bu.type === 'torpedo') explode(g, bu.x, bu.y, 90, bu.life > 0 ? 0 : 0, true); burst(g, bu.x, bu.y, '#8a7a6a', 4, 80, 'debris', 3); bu.life = 0; break } }
-    if (bu.life <= 0) { if (bu.type === 'torpedo') explode(g, bu.x, bu.y, 95, bu.dmg, true); continue }
+    if (bu.life <= 0) { if (bu.type === 'torpedo') explode(g, bu.x, bu.y, 112, bu.dmg, true); continue }
     if (bu.friendly) {
       // vs enemies
       for (const e of g.enemies) {
         if (e.hp <= 0) continue
         if (dist(bu.x, bu.y, e.x, e.y) < e.radius + bu.radius) {
-          if (bu.type === 'torpedo') { explode(g, bu.x, bu.y, 95, bu.dmg, true); bu.life = 0; break }
+          if (bu.type === 'torpedo') { explode(g, bu.x, bu.y, 112, bu.dmg, true); bu.life = 0; break }
           const crit = Math.random() < 0.12
           damageEnemy(g, e, bu.dmg * (crit ? 1.8 : 1), bu.x, bu.y, crit)
           if (bu.burn) { e.burn = 3; e.burnDps = Math.max(e.burnDps, bu.dmg * 0.5) }
@@ -798,7 +798,7 @@ function tick(g: GS, dt: number, keys: Set<string>, edges: PlayerEdge[]) {
       if (bu.life > 0) {
         const h = bossHitTest(g, bu.x, bu.y, bu.radius)
         if (h) {
-          if (bu.type === 'torpedo') { explode(g, bu.x, bu.y, 95, bu.dmg, true); damageBoss(g, h.b, 70 * h.mult, bu.x, bu.y); bu.life = 0 }
+          if (bu.type === 'torpedo') { explode(g, bu.x, bu.y, 112, bu.dmg, true); damageBoss(g, h.b, 130 * h.mult, bu.x, bu.y); bu.life = 0 }
           else { const crit = Math.random() < 0.12; damageBoss(g, h.b, bu.dmg * (crit ? 1.8 : 1) * h.mult, bu.x, bu.y); if (bu.pierce > 0) bu.pierce--; else bu.life = 0 }
         }
       }
@@ -1429,8 +1429,24 @@ function render(ctx: CanvasRenderingContext2D, g: GS) {
     } else if (bu.type === 'torpedo') {
       const a = Math.atan2(bu.vy, bu.vx)
       ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(a)
-      ctx.fillStyle = '#cfd8e0'; roundRect(ctx, -10, -4, 20, 8, 3); ctx.fill()
-      ctx.fillStyle = '#ff5d3d'; ctx.beginPath(); ctx.arc(8, 0, 4, 0, TAU); ctx.fill(); ctx.restore()
+      // outer glow so it stands out in the chaos
+      ctx.shadowColor = '#ff7a3d'; ctx.shadowBlur = 16
+      // exhaust flame flickering behind
+      ctx.fillStyle = `rgba(255,${150 + Math.floor(Math.random() * 80)},60,0.92)`
+      const fl = 12 + Math.random() * 12
+      ctx.beginPath(); ctx.moveTo(-13, 0); ctx.lineTo(-13 - fl, -4); ctx.lineTo(-13 - fl, 4); ctx.closePath(); ctx.fill()
+      // body
+      ctx.fillStyle = '#e6edf4'; roundRect(ctx, -13, -5, 26, 10, 4); ctx.fill()
+      ctx.strokeStyle = '#9fb3c4'; ctx.lineWidth = 1; ctx.stroke()
+      // tail fins
+      ctx.fillStyle = '#b6c4d2'
+      ctx.beginPath(); ctx.moveTo(-9, -5); ctx.lineTo(-15, -9); ctx.lineTo(-7, -5); ctx.closePath(); ctx.fill()
+      ctx.beginPath(); ctx.moveTo(-9, 5); ctx.lineTo(-15, 9); ctx.lineTo(-7, 5); ctx.closePath(); ctx.fill()
+      // glowing warhead
+      ctx.shadowColor = '#ff3a2a'; ctx.shadowBlur = 12
+      ctx.fillStyle = '#ff5d3d'; ctx.beginPath(); ctx.arc(11, 0, 5, 0, TAU); ctx.fill()
+      ctx.fillStyle = '#ffe0b0'; ctx.beginPath(); ctx.arc(11, 0, 2.2, 0, TAU); ctx.fill()
+      ctx.restore(); ctx.shadowBlur = 0
     } else if (bu.type === 'ink') {
       ctx.fillStyle = '#7b4fc0'; ctx.shadowColor = '#5b2f9a'; ctx.shadowBlur = 8
       ctx.beginPath(); ctx.arc(s.x, s.y, bu.radius, 0, TAU); ctx.fill(); ctx.shadowBlur = 0
