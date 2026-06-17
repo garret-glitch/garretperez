@@ -1762,6 +1762,46 @@ function drawBossBar(ctx: CanvasRenderingContext2D, b: Boss, label: string, c0: 
   ctx.fillText(label, VW / 2, by + 8)
 }
 
+// serpent ribbon helpers
+function levNorm(pts: { x: number; y: number; w: number }[], i: number) {
+  const pn = pts[Math.min(i + 1, pts.length - 1)], pp = pts[Math.max(i - 1, 0)]
+  const dx = pn.x - pp.x, dy = pn.y - pp.y, dl = Math.hypot(dx, dy) || 1
+  return { nx: -dy / dl, ny: dx / dl }
+}
+function levRibbon(ctx: CanvasRenderingContext2D, pts: { x: number; y: number; w: number }[], fill: string) {
+  ctx.beginPath()
+  for (let i = 0; i < pts.length; i++) { const p = pts[i], n = levNorm(pts, i); if (i === 0) ctx.moveTo(p.x + n.nx * p.w, p.y + n.ny * p.w); else ctx.lineTo(p.x + n.nx * p.w, p.y + n.ny * p.w) }
+  for (let i = pts.length - 1; i >= 0; i--) { const p = pts[i], n = levNorm(pts, i); ctx.lineTo(p.x - n.nx * p.w, p.y - n.ny * p.w) }
+  ctx.closePath(); ctx.fillStyle = fill; ctx.fill()
+}
+function levFins(ctx: CanvasRenderingContext2D, pts: { x: number; y: number; w: number }[], t: number, col: string) {
+  for (const side of [1, -1]) {
+    ctx.beginPath()
+    for (let i = 0; i < pts.length; i++) { const p = pts[i], n = levNorm(pts, i); const off = p.w + 9 + Math.sin(t * 4 + i * 0.8) * 4; const ox = p.x + n.nx * side * off, oy = p.y + n.ny * side * off; if (i === 0) ctx.moveTo(ox, oy); else ctx.lineTo(ox, oy) }
+    for (let i = pts.length - 1; i >= 0; i--) { const p = pts[i], n = levNorm(pts, i); ctx.lineTo(p.x + n.nx * side * p.w, p.y + n.ny * side * p.w) }
+    ctx.closePath(); ctx.fillStyle = col; ctx.fill()
+  }
+}
+function drawLevHead(ctx: CanvasRenderingContext2D, hx: number, hy: number, ha: number, t: number, hitFlash: number, submerged: boolean) {
+  ctx.save(); ctx.translate(hx, hy); ctx.rotate(ha)
+  if (!submerged) { ctx.fillStyle = '#1a5240'; for (const dir of [1, -1]) for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.moveTo(-8, dir * 8); ctx.lineTo(-20 - k * 6, dir * (10 + k * 10)); ctx.lineTo(-6, dir * 16); ctx.closePath(); ctx.fill() } }
+  ctx.shadowColor = submerged ? '#0a2a3a' : '#0a3a28'; ctx.shadowBlur = submerged ? 12 : 20
+  const hg = ctx.createLinearGradient(0, -26, 0, 26)
+  hg.addColorStop(0, submerged ? '#2a5060' : (hitFlash > 0 ? '#fff' : '#2f8a6a')); hg.addColorStop(1, submerged ? '#1c3a4a' : (hitFlash > 0 ? '#dfffe8' : '#15493a'))
+  ctx.fillStyle = hg
+  ctx.beginPath(); ctx.ellipse(0, 0, 30, 24, 0, 0, TAU); ctx.fill()
+  ctx.beginPath(); ctx.moveTo(18, -14); ctx.quadraticCurveTo(50, -8, 52, 0); ctx.quadraticCurveTo(50, 8, 18, 14); ctx.closePath(); ctx.fill()
+  ctx.shadowBlur = 0
+  if (!submerged) {
+    ctx.fillStyle = '#0e3328'; ctx.beginPath(); ctx.moveTo(22, 6); ctx.quadraticCurveTo(46, 10, 52, 4); ctx.quadraticCurveTo(40, 18, 22, 16); ctx.closePath(); ctx.fill()
+    ctx.fillStyle = '#eafff2'; for (let i = 0; i < 5; i++) { const x = 24 + i * 6; ctx.beginPath(); ctx.moveTo(x, 2); ctx.lineTo(x + 2, 8); ctx.lineTo(x + 4, 2); ctx.closePath(); ctx.fill() }
+    ctx.strokeStyle = '#0e3328'; ctx.lineWidth = 5; ctx.lineCap = 'round'; for (const dir of [1, -1]) { ctx.beginPath(); ctx.moveTo(-4, dir * 12); ctx.quadraticCurveTo(-24, dir * 22, -40, dir * 14); ctx.stroke() }
+    const eyeOn = hitFlash > 0 || Math.sin(t * 6) > -0.6
+    for (const dir of [1, -1]) { ctx.fillStyle = '#0c1a12'; ctx.beginPath(); ctx.ellipse(6, dir * 12, 7, 8, 0, 0, TAU); ctx.fill(); if (eyeOn) { ctx.fillStyle = hitFlash > 0 ? '#fff' : '#ffd34d'; ctx.shadowColor = '#ffb030'; ctx.shadowBlur = 8; ctx.beginPath(); ctx.ellipse(6, dir * 12, 4, 5, 0, 0, TAU); ctx.fill(); ctx.shadowBlur = 0; ctx.fillStyle = '#1a0c00'; ctx.beginPath(); ctx.ellipse(8, dir * 12, 1.6, 4, 0, 0, TAU); ctx.fill() } }
+    ctx.fillStyle = '#0e3328'; ctx.beginPath(); ctx.arc(46, -3, 1.6, 0, TAU); ctx.arc(46, 3, 1.6, 0, TAU); ctx.fill()
+  } else { for (const dir of [1, -1]) { ctx.fillStyle = 'rgba(120,220,180,0.85)'; ctx.beginPath(); ctx.arc(6, dir * 10, 4, 0, TAU); ctx.fill() } }
+  ctx.restore()
+}
 function drawLeviathan(ctx: CanvasRenderingContext2D, b: Boss, g: GS, w2s: (x: number, y: number) => { x: number; y: number }, idx: number) {
   const t = g.time
   const submerged = b.mode === 'submerge' || b.mode === 'rise'
@@ -1780,56 +1820,18 @@ function drawLeviathan(ctx: CanvasRenderingContext2D, b: Boss, g: GS, w2s: (x: n
     ctx.beginPath(); ctx.arc(s.x, s.y, 90 + k * 30, 0, TAU); ctx.stroke()
   }
 
-  ctx.save()
-  ctx.globalAlpha = submerged ? 0.4 : 1
-  // body segments (tail → head) so the head sits on top
-  for (let j = LEV_SEGS; j >= 1; j--) {
-    const pt = trail[Math.min(j * LEV_SPACING, trail.length - 1)]; if (!pt) continue
-    const s = w2s(pt.x, pt.y); const r = 26 - (j / LEV_SEGS) * 16
-    ctx.fillStyle = submerged ? '#1c3a4a' : (b.hitFlash > 0 ? '#dfffe8' : '#1f5c4a')
-    ctx.beginPath(); ctx.arc(s.x, s.y, r, 0, TAU); ctx.fill()
-    // dorsal ridge highlight
-    ctx.fillStyle = submerged ? '#244a5e' : '#2f7d62'
-    ctx.beginPath(); ctx.arc(s.x, s.y - r * 0.3, r * 0.55, 0, TAU); ctx.fill()
-    // fins every few segments
-    if (!submerged && j % 3 === 0 && j > 2) {
-      const prev = trail[Math.min((j + 1) * LEV_SPACING, trail.length - 1)] || pt
-      const fa = angTo(prev.x, prev.y, pt.x, pt.y) + Math.PI / 2
-      ctx.fillStyle = '#6ddf8a'
-      for (const dir of [1, -1]) {
-        ctx.beginPath(); ctx.moveTo(s.x, s.y)
-        ctx.lineTo(s.x + Math.cos(fa) * dir * (r + 10), s.y + Math.sin(fa) * dir * (r + 10))
-        ctx.lineTo(s.x + Math.cos(fa) * dir * r * 0.4 + Math.cos(fa + 1.4) * dir * 6, s.y + Math.sin(fa) * dir * r * 0.4 + Math.sin(fa + 1.4) * dir * 6)
-        ctx.closePath(); ctx.fill()
-      }
-    }
-  }
-  // head
-  const hs = w2s(b.x, b.y); const ha = b.swimAng ?? 0
-  ctx.translate(hs.x, hs.y); ctx.rotate(ha)
-  ctx.fillStyle = submerged ? '#244a5e' : (b.hitFlash > 0 ? '#fff' : '#256b54')
-  ctx.shadowColor = submerged ? '#0a2a3a' : '#1a3a28'; ctx.shadowBlur = submerged ? 12 : 22
-  ctx.beginPath(); ctx.ellipse(0, 0, 36, 26, 0, 0, TAU); ctx.fill(); ctx.shadowBlur = 0
-  if (!submerged) {
-    // jaw
-    ctx.fillStyle = '#143a2e'
-    ctx.beginPath(); ctx.moveTo(28, -4); ctx.lineTo(44, -2); ctx.lineTo(44, 6); ctx.lineTo(26, 10); ctx.closePath(); ctx.fill()
-    // teeth
-    ctx.fillStyle = '#eafff2'
-    for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.moveTo(30 + i * 4, 2); ctx.lineTo(32 + i * 4, 8); ctx.lineTo(34 + i * 4, 2); ctx.closePath(); ctx.fill() }
-    // horns
-    ctx.strokeStyle = '#163b30'; ctx.lineWidth = 4; ctx.lineCap = 'round'
-    for (const dir of [1, -1]) { ctx.beginPath(); ctx.moveTo(-10, dir * 14); ctx.quadraticCurveTo(-26, dir * 24, -34, dir * 16); ctx.stroke() }
-    // eyes (weak point glow)
-    const eyeOn = b.hitFlash > 0 || Math.sin(t * 6) > -0.6
-    for (const dir of [1, -1]) {
-      ctx.fillStyle = '#0c1a12'; ctx.beginPath(); ctx.arc(8, dir * 11, 7, 0, TAU); ctx.fill()
-      if (eyeOn) { ctx.fillStyle = b.hitFlash > 0 ? '#fff' : '#ffd34d'; ctx.beginPath(); ctx.arc(8, dir * 11, 4.5, 0, TAU); ctx.fill() }
-    }
-  } else {
-    // glowing eyes peering from underwater
-    for (const dir of [1, -1]) { ctx.fillStyle = 'rgba(120,220,180,0.8)'; ctx.beginPath(); ctx.arc(8, dir * 10, 4, 0, TAU); ctx.fill() }
-  }
+  // build the serpent centreline (head-first) from the motion trail
+  const pts: { x: number; y: number; w: number }[] = []
+  { const hs = w2s(b.x, b.y); pts.push({ x: hs.x, y: hs.y, w: 24 }) }
+  for (let j = 1; j <= LEV_SEGS; j++) { const pt = trail[Math.min(j * LEV_SPACING, trail.length - 1)]; if (!pt) break; const sp = w2s(pt.x, pt.y); pts.push({ x: sp.x, y: sp.y, w: 24 - (j / LEV_SEGS) * 20 }) }
+  if (pts.length < 2) { const h = pts[0]; pts.push({ x: h.x - 1, y: h.y, w: 6 }) }
+
+  ctx.save(); ctx.globalAlpha = submerged ? 0.4 : 1
+  if (!submerged) levFins(ctx, pts, t, b.hitFlash > 0 ? 'rgba(220,255,235,0.5)' : 'rgba(90,210,150,0.32)')
+  levRibbon(ctx, pts, submerged ? '#1c3a4a' : (b.hitFlash > 0 ? '#dfffe8' : '#1f5c4a'))
+  levRibbon(ctx, pts.map(p => ({ x: p.x, y: p.y, w: p.w * 0.5 })), submerged ? '#244a5e' : '#2f7d62')
+  if (!submerged) { ctx.fillStyle = 'rgba(120,230,170,0.6)'; for (let i = 1; i < pts.length; i++) { const p = pts[i]; ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(1, p.w * 0.18 + Math.sin(t * 3 + i) * 0.5), 0, TAU); ctx.fill() } }
+  drawLevHead(ctx, pts[0].x, pts[0].y, b.swimAng ?? 0, t, b.hitFlash, submerged)
   ctx.restore()
 
   drawBossBar(ctx, b, '🐉 THE LEVIATHAN', '#1f7d62', '#2fae5a', idx)
@@ -1855,50 +1857,49 @@ function drawDutchman(ctx: CanvasRenderingContext2D, b: Boss, g: GS, w2s: (x: nu
   ctx.globalAlpha = alpha
   ctx.translate(s.x, s.y); ctx.rotate(b.swimAng ?? 0)
   ctx.shadowColor = '#6effc0'; ctx.shadowBlur = 26
-  const L = 92, W = 34
-  const hull = b.hitFlash > 0 ? '#eafff2' : '#11332b'
-  // hull
-  ctx.fillStyle = hull
+  const L = 94, W = 36
+  const flash = b.hitFlash > 0, broadside = b.mode === 'broadside'
+  // hull — spectral gradient with a raised stern castle and pointed bow
+  const hg = ctx.createLinearGradient(0, -W, 0, W)
+  hg.addColorStop(0, flash ? '#fff' : '#1a4a3c'); hg.addColorStop(1, flash ? '#eafff2' : '#0c2a22')
+  ctx.fillStyle = hg
   ctx.beginPath()
-  ctx.moveTo(L, 0)
-  ctx.bezierCurveTo(L * 0.55, -W, -L * 0.72, -W, -L, -W * 0.5)
-  ctx.lineTo(-L, W * 0.5)
-  ctx.bezierCurveTo(-L * 0.72, W, L * 0.55, W, L, 0)
+  ctx.moveTo(L, -2)
+  ctx.bezierCurveTo(L * 0.6, -W, -L * 0.5, -W * 1.05, -L, -W * 0.5)
+  ctx.lineTo(-L * 1.06, -W * 0.95); ctx.lineTo(-L * 1.06, W * 0.2); ctx.lineTo(-L, W * 0.6)
+  ctx.bezierCurveTo(-L * 0.5, W * 1.05, L * 0.6, W, L, 2)
   ctx.closePath(); ctx.fill()
   // glowing rim
-  ctx.strokeStyle = '#6effc0'; ctx.lineWidth = 2; ctx.shadowBlur = 10; ctx.stroke()
-  ctx.shadowBlur = 0
-  // deck
-  ctx.fillStyle = 'rgba(40,90,75,0.7)'
-  ctx.beginPath(); ctx.ellipse(-L * 0.05, 0, L * 0.6, W * 0.62, 0, 0, TAU); ctx.fill()
-  // gun ports (glowing cannon mouths along both flanks)
-  ctx.fillStyle = b.mode === 'broadside' ? '#fff0b0' : '#3a8a6e'
+  ctx.strokeStyle = '#7effc8'; ctx.lineWidth = 2; ctx.shadowBlur = 10; ctx.stroke(); ctx.shadowBlur = 0
+  // planking lines
+  ctx.strokeStyle = 'rgba(110,255,200,0.18)'; ctx.lineWidth = 1
+  for (const yy of [-W * 0.4, 0, W * 0.4]) { ctx.beginPath(); ctx.moveTo(-L * 0.9, yy); ctx.lineTo(L * 0.85, yy * 0.7); ctx.stroke() }
+  // bowsprit
+  ctx.strokeStyle = '#2a5a4a'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(L, 0); ctx.lineTo(L + 22, -6); ctx.stroke()
+  // gun ports — flare when a broadside fires
   for (let i = -2; i <= 2; i++) {
-    for (const dir of [-1, 1]) { ctx.beginPath(); ctx.arc(i * 22, dir * (W * 0.82), 3.2, 0, TAU); ctx.fill() }
+    if (broadside) { ctx.fillStyle = 'rgba(255,240,160,0.5)'; ctx.beginPath(); ctx.arc(i * 20 - 6, W * 0.72, 7, 0, TAU); ctx.fill() }
+    ctx.fillStyle = broadside ? '#fff0b0' : '#0a1f18'; ctx.beginPath(); ctx.arc(i * 20 - 6, W * 0.72, 3.4, 0, TAU); ctx.fill()
   }
-  // three tattered masts/sails across the beam
-  const masts = [38, -2, -46]
+  // stern lantern (flickers)
+  ctx.fillStyle = `rgba(255,220,120,${0.6 + Math.sin(t * 9) * 0.3})`; ctx.shadowColor = '#ffd060'; ctx.shadowBlur = 10
+  ctx.beginPath(); ctx.arc(-L * 0.99, -W * 0.5, 3.5, 0, TAU); ctx.fill(); ctx.shadowBlur = 0
+  // three tattered masts/sails with tear-holes
+  const masts = [44, 2, -44]
   for (let m = 0; m < masts.length; m++) {
-    const hx = masts[m]; const sH = (m === 1 ? W * 1.5 : W * 1.25)
-    const billow = Math.sin(t * 2 + m) * 4
-    ctx.fillStyle = `rgba(210,255,235,${0.42 + Math.sin(t * 2 + m) * 0.05})`
-    ctx.beginPath()
-    ctx.moveTo(hx, -sH)
-    ctx.quadraticCurveTo(hx - 10 + billow, 0, hx, sH)
-    // ragged trailing edge
-    ctx.lineTo(hx + 6, sH * 0.6); ctx.lineTo(hx + 1, sH * 0.3)
-    ctx.lineTo(hx + 7, 0); ctx.lineTo(hx + 1, -sH * 0.3); ctx.lineTo(hx + 6, -sH * 0.6)
-    ctx.closePath(); ctx.fill()
-    // mast pole
-    ctx.strokeStyle = 'rgba(20,50,40,0.8)'; ctx.lineWidth = 2.5
-    ctx.beginPath(); ctx.moveTo(hx, -sH); ctx.lineTo(hx, sH); ctx.stroke()
+    const hx = masts[m]; const sH = (m === 1 ? W * 1.7 : W * 1.4); const billow = Math.sin(t * 2 + m) * 5
+    ctx.strokeStyle = 'rgba(20,50,40,0.9)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(hx, -sH - 6); ctx.lineTo(hx, sH); ctx.stroke()
+    ctx.fillStyle = `rgba(205,255,232,${0.4 + Math.sin(t * 2 + m) * 0.05})`
+    ctx.beginPath(); ctx.moveTo(hx, -sH); ctx.quadraticCurveTo(hx - 12 + billow, 0, hx, sH)
+    ctx.lineTo(hx + 8, sH * 0.55); ctx.lineTo(hx + 2, sH * 0.3); ctx.lineTo(hx + 9, 0); ctx.lineTo(hx + 2, -sH * 0.3); ctx.lineTo(hx + 8, -sH * 0.55); ctx.closePath(); ctx.fill()
+    ctx.fillStyle = 'rgba(8,20,16,0.45)'; ctx.beginPath(); ctx.ellipse(hx - 3, -sH * 0.1, 3, 5, 0, 0, TAU); ctx.fill()
   }
-  // skull emblem on the main sail
-  ctx.fillStyle = `rgba(235,255,245,${0.7})`
-  ctx.beginPath(); ctx.arc(-2, 0, 7, 0, TAU); ctx.fill()
-  ctx.fillStyle = '#11332b'
-  ctx.beginPath(); ctx.arc(-4, -1.5, 1.6, 0, TAU); ctx.arc(0, -1.5, 1.6, 0, TAU); ctx.fill()
-  ctx.fillRect(-4, 3, 4, 1.4)
+  // skull & crossbones on the main sail
+  ctx.fillStyle = 'rgba(235,255,245,0.9)'
+  ctx.beginPath(); ctx.arc(2, -2, 7, 0, TAU); ctx.fill(); ctx.fillRect(-2, 3, 8, 4)
+  ctx.fillStyle = '#11332b'; ctx.beginPath(); ctx.arc(-1, -3, 1.8, 0, TAU); ctx.arc(5, -3, 1.8, 0, TAU); ctx.fill()
+  ctx.strokeStyle = 'rgba(235,255,245,0.7)'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'
+  ctx.beginPath(); ctx.moveTo(-8, 10); ctx.lineTo(12, 16); ctx.moveTo(12, 10); ctx.lineTo(-8, 16); ctx.stroke()
   ctx.restore()
 
   drawBossBar(ctx, b, '☠ THE FLYING DUTCHMAN', '#2f8a6e', '#1a5a8a', idx)
