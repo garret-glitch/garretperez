@@ -1836,10 +1836,10 @@ export default function PirateCarnage() {
         .pc-btn { font-family:"Press Start 2P",monospace; cursor:pointer; transition:transform .1s,filter .1s; }
         .pc-btn:hover { transform:translateY(-2px); filter:brightness(1.12); }
         .pc-build { animation:pc-pop .25s ease; }
-        .pc-vol { -webkit-appearance:none; appearance:none; height:6px; border-radius:3px; background:#2a2820; outline:none; accent-color:#c89b3c; }
-        .pc-vol::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:14px; height:14px; border-radius:50%; background:#c89b3c; border:1px solid #8b6914; cursor:pointer; box-shadow:0 0 6px rgba(200,155,60,0.6); }
-        .pc-vol::-moz-range-thumb { width:14px; height:14px; border-radius:50%; background:#c89b3c; border:1px solid #8b6914; cursor:pointer; box-shadow:0 0 6px rgba(200,155,60,0.6); }
-        .pc-vol::-moz-range-track { height:6px; border-radius:3px; background:#2a2820; }
+        .pc-vol { -webkit-appearance:none; appearance:none; height:12px; border-radius:6px; background:#2a2820; outline:none; accent-color:#c89b3c; }
+        .pc-vol::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:26px; height:26px; border-radius:50%; background:#c89b3c; border:2px solid #8b6914; cursor:pointer; box-shadow:0 0 8px rgba(200,155,60,0.7); }
+        .pc-vol::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:#c89b3c; border:2px solid #8b6914; cursor:pointer; box-shadow:0 0 8px rgba(200,155,60,0.7); }
+        .pc-vol::-moz-range-track { height:12px; border-radius:6px; background:#2a2820; }
       `}</style>
 
       <div className="pc-wrap">
@@ -1959,15 +1959,15 @@ export default function PirateCarnage() {
 
         {/* top controls — volume + mute are always available so sound can be tuned anywhere */}
         <div style={{ position: 'absolute', top: 10, right: 10, display: 'flex', alignItems: 'center', gap: 6, zIndex: 5 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(13,13,20,0.8)', border: '1px solid #2a2820', borderRadius: 6, padding: '6px 10px' }}>
-            <span style={{ fontSize: 12 }}>{muted || vol === 0 ? '🔇' : vol < 0.4 ? '🔉' : '🔊'}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(13,13,20,0.85)', border: '1px solid #2a2820', borderRadius: 8, padding: '8px 14px' }}>
+            <span style={{ fontSize: 16 }}>{muted || vol === 0 ? '🔇' : vol < 0.4 ? '🔉' : '🔊'}</span>
             <input
               className="pc-vol"
               type="range" min={0} max={1} step={0.01}
               value={muted ? 0 : vol}
               onChange={e => onVolume(parseFloat(e.target.value))}
               title="Volume"
-              style={{ width: 84, cursor: 'pointer' }}
+              style={{ width: 150, cursor: 'pointer' }}
             />
           </div>
           <button className="pc-btn" onClick={toggleMute} style={iconBtn} title={muted ? 'Sound off' : 'Sound on'}>{muted ? '🔇' : '🔊'}</button>
