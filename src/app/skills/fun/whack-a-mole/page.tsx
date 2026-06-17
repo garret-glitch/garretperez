@@ -275,9 +275,9 @@ export default function WhackAMolePage() {
               {/* mole */}
               <span
                 key={`m-${up}-${bonk[i]}`}
-                className="absolute inset-x-0 flex items-end justify-center"
+                className="absolute left-0 right-0 text-center"
                 style={{
-                  bottom: '8%', height: '78%', fontSize: 34, lineHeight: 1,
+                  bottom: '20%', fontSize: 38, lineHeight: 1, zIndex: 1,
                   animation: up ? 'wam-rise 0.22s cubic-bezier(.2,1.4,.5,1) forwards' : 'wam-hide 0.18s ease-in forwards',
                   filter: up ? 'drop-shadow(0 3px 4px rgba(0,0,0,0.5))' : 'none',
                 }}
@@ -286,7 +286,7 @@ export default function WhackAMolePage() {
               </span>
 
               {/* dirt mound (foreground so mole emerges from it) */}
-              <span style={{ position: 'absolute', left: '-5%', right: '-5%', bottom: '-2%', height: '34%', borderRadius: '50% 50% 0 0 / 80% 80% 0 0', background: 'linear-gradient(180deg, #4a3a28, #2d2418)', boxShadow: 'inset 0 3px 4px rgba(255,220,150,0.08)' }} />
+              <span style={{ position: 'absolute', left: '-5%', right: '-5%', bottom: '-2%', height: '22%', borderRadius: '50% 50% 0 0 / 80% 80% 0 0', background: 'linear-gradient(180deg, #4a3a28, #2d2418)', boxShadow: 'inset 0 3px 4px rgba(255,220,150,0.08)', zIndex: 2 }} />
 
               {/* whack feedback */}
               {bonk[i] > 0 && (
