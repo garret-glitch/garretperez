@@ -17,7 +17,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Tailwind CSS** + **Press Start 2P** (pixel headings) + **Inter** (body text via `.body-text` class)
 - **NextAuth.js v5 beta** (`next-auth@beta`) — credentials provider, JWT strategy, `role` field in token/session
 - **Prisma v5** ORM + **`@auth/prisma-adapter`**
-- **Neon PostgreSQL** (free tier at neon.tech) — DATABASE_URL in `.env.local`
+- **Neon PostgreSQL** (paid plan at neon.tech — was free tier; upgraded after hitting the data-transfer quota) — DATABASE_URL in `.env.local`
 - **bcryptjs** — password hashing
 - **`gray-matter`** + **`next-mdx-remote/rsc`** — static MDX blog posts
 - **`@dnd-kit/core` + `@dnd-kit/sortable` + `@dnd-kit/utilities`** — drag-and-drop (builder canvas + About Me bubble reorder)
@@ -50,13 +50,18 @@ Vercel auto-deploys from `main` via GitHub integration. Project: `garretperez` u
 
 ```
 prisma/
-  schema.prisma         # User, UserSkill, Post, Recipe, SiteSetting, PageBlock + NextAuth tables
+  schema.prisma         # UserRole enum (USER | ADMIN | SUPERADMIN); User, UserSkill, Post/PostReply/PostUpvote,
+                        #   Recipe, SiteSetting, PageBlock, Project, Quest, UserBadge, SkillVisit, Announcement,
+                        #   GameBest + BossRun (leaderboards), XpEvent, Plant/GardenPlantType/GardenYardPlant,
+                        #   Wine* (Identification/Favorite/Rating/Comment) + FeaturedWine, FishingSpot/FishingTackle,
+                        #   CoolItem, BusinessCard, YoutubeChannel, TravelPin, CmsBlogPost, GameLike + NextAuth tables
 public/
   resume.docx           # Garret's resume — served as static file
 src/
-  auth.ts               # NextAuth config — credentials provider, JWT, role in token
+  auth.ts               # NextAuth config — credentials provider, JWT. SUPERADMIN maps to role 'ADMIN' in the
+                        #   session (so all admin gates work) + sets a separate session.user.superAdmin flag
   types/
-    next-auth.d.ts      # Session type: user.id + user.role
+    next-auth.d.ts      # Session type: user.id + user.role + user.superAdmin
     builder.ts          # All builder types: BlockType, AnyBlockConfig, AboutBubble, BlockStyles,
                         #   PageBlock, BlockLiveData, BuilderState, BuilderAction
   app/
@@ -85,20 +90,31 @@ src/
     skills/
       [skill]/page.tsx  # Dynamic skill page — posts + PostForm (health, projects, fishing, etc.)
       food/page.tsx     # Cooking skill — recipes + RecipeForm + food posts
-      fun/page.tsx      # Fun skill — mini-game hub
+      fun/page.tsx      # Fun skill — mini-game hub (admin can upload custom card images)
       fun/wine-trivia/page.tsx  # Wine Trivia quiz (client component)
       fun/matching/page.tsx     # Matching card game (client component)
+      fun/whack-a-mole/page.tsx # Whack-a-Mole (synth audio + animation)
+      fun/snake/page.tsx        # Snake
+      fun/breakout/page.tsx     # Breakout
+      fun/pong/page.tsx         # Pong vs CPU
+      fun/ballgame/page.tsx     # Ball Game (keep-it-alive)
+      fun/dragball/page.tsx     # Drag Ball (dodge enemies, collect coins)
+      fun/wine-stocker/page.tsx # Wine Stocker Rush (canvas; 3 strikes = fired)
+      fun/dress-empress/page.tsx# Dress-up sandbox (Castle Dress Up)
       fun/boss-hunter/page.tsx  # Boss Hunter — full canvas action-RPG boss-fight game (see "Boss Hunter" section)
+      fun/pirate-carnage/page.tsx # Pirate Carnage — canvas action game + 4-boss gauntlet (see "Pirate Carnage" section)
     blog/page.tsx       # Static MDX blog index
     blog/[slug]/page.tsx  # Individual blog post (statically generated)
     api/
       auth/[...nextauth]/route.ts   # NextAuth handlers
-      setup/route.ts                # One-time admin account creation from env vars
+      setup/route.ts                # One-time admin account creation from env vars (force-dynamic — DB route)
       register/route.ts             # Create user + init 9 UserSkill rows
-      posts/route.ts                # Create post + award +50 XP to skill
-      recipes/route.ts              # Create recipe + award +50 Food XP
-      minigame/win/route.ts         # Award +25 Fun XP on game win
-      daily-login/route.ts          # Award +10 XP to random skill (once/day)
+      posts/route.ts                # Create post + award +50 XP to skill (skipped for super admins)
+      recipes/route.ts              # Create recipe + award +50 Food XP (skipped for super admins)
+      minigame/win/route.ts         # Award +25 Fun XP on game win (skipped for super admins)
+      minigame/score/route.ts       # Upsert per-user best score → GameBest (skips super admins)
+      minigame/leaderboard/[game]/route.ts # Top-10 scores for a game
+      daily-login/route.ts          # Award +10 XP to random skill (once/day; skipped for super admins)
       admin/
         settings/route.ts           # GET/POST site settings (headshot, etc.) — ADMIN only
         users/route.ts              # List all users — ADMIN only
@@ -117,7 +133,9 @@ src/
     SiteHeader.tsx      # Ultra-slim sticky nav — "GP" logo, Quests, Resume links, Admin link (role-based), AuthButton
     AuthButton.tsx      # Login/Logout toggle (client component)
     SessionProvider.tsx # NextAuth SessionProvider wrapper (client component)
-    SkillsPanel.tsx     # Guild channel sidebar — Garret profile block, skill channels with post counts, user level
+    SkillsPanel.tsx     # Guild channel sidebar (renders in root layout on EVERY page) — skill channels w/ post counts
+    GameLeaderboard.tsx # Client — top-10 board for a game (fetches /api/minigame/leaderboard/[game])
+    GodModeToggle.tsx   # Client — 🛡 God Mode switch (super admins only) + useGodMode() hook
     SkillCell.tsx       # Individual skill icon + level + link (client component)
     XpBar.tsx           # XP progress bar with level display
     OsrsPanel.tsx       # Reusable panel wrapper
@@ -146,6 +164,9 @@ src/
         ContactCardBlock.tsx   # Phone/email/LinkedIn/resume from liveData
   lib/
     prisma.ts           # Singleton PrismaClient
+    godmode.ts          # Super-admin God Mode flag (localStorage + 'sa-godmode-change' event)
+    award-xp.ts         # awardXp() chokepoint for client XP events (skips SUPERADMIN); getXpAmount()
+    admin-xp.ts         # mirrorXpToAdmin() — mirrors community XP onto the ADMIN account
     xp.ts               # XP/level calculation: xpToLevel(), xpProgress(), constants
     skills.ts           # SKILLS array — slug, dbEnum, icon, label, href for all 9 skills
     badges.ts           # BADGE_META — badge types, icons, labels
@@ -180,15 +201,36 @@ content/
 | Win Wine Trivia (≥7/10) | +25 | Fun |
 | Complete Matching Game | +25 | Fun |
 | Daily login | +10 | random skill |
+| Minigame win (Boss Hunter, Pirate Carnage, etc.) | +25 | Fun (via `/api/minigame/win`) |
 
 Level formula (in `src/lib/xp.ts`): `Math.min(99, Math.floor(Math.pow(xp / 100, 1/1.5)) + 1)`
 
+**Super admins earn no XP** — every XP-award path (the `awardXp()` helper and the direct-increment routes: posts, recipes, minigame/win, daily-login, replies, upvote, skill-visit, wine-favorite, wine-identify, plants) checks `superAdmin` and skips the award while still performing the underlying action. Their game scores are also kept off the leaderboards (`/api/minigame/score` + boss-hunter run route skip super admins).
+
+**Game leaderboards:** mini-games POST a score to `/api/minigame/score` (upserts per-user best into `GameBest`, keyed `userId+game`; `matching` is lower-is-better). `<GameLeaderboard game="..." />` renders the top 10. Boss Hunter uses a separate `BossRun` table (fastest-kill per boss).
+
 ## Auth & roles
 
-- All users have `role: USER` by default. Admin has `role: ADMIN`.
+- `UserRole` enum: `USER` (default), `ADMIN`, `SUPERADMIN`.
 - Admin-gated API routes check `session.user.role !== 'ADMIN'` and return 403.
 - Role flows: DB → `authorize()` return → JWT `token.role` → `session.user.role`.
-- Use `(prisma as any).modelName` for models added after initial Prisma client generation (PostUpvote, UserBadge, SkillVisit, Announcement, SiteSetting, PageBlock).
+- **SUPERADMIN is a tier above ADMIN, implemented without touching the ~50 existing `=== 'ADMIN'` gates:** in `auth.ts` the JWT callback maps a DB role of `SUPERADMIN` to **`session.user.role = 'ADMIN'`** AND sets **`session.user.superAdmin = true`**. So super admins pass every admin check, and the new powers key off the `superAdmin` flag (server) or `useGodMode()` (client). See the "Super Admin & God Mode" section.
+- Use `(prisma as any).modelName` for models added after initial Prisma client generation (PostUpvote, UserBadge, SkillVisit, Announcement, SiteSetting, PageBlock, GameBest, BossRun, Plant, Wine*, etc.).
+
+## Super Admin & God Mode
+
+A `SUPERADMIN` is the owner/tester tier with three powers:
+
+1. **Earns no XP anywhere** (see XP system above) and is excluded from leaderboards.
+2. **Everything unlocked** — Boss Hunter / Pirate Carnage gate unlocks on `role === 'ADMIN'`, and super admins map to `ADMIN`, so they start fully unlocked automatically (no extra code).
+3. **God Mode** — an in-game invincibility toggle, shown only to super admins.
+
+**God Mode plumbing:**
+- `src/lib/godmode.ts` — `isGodModeOn()` / `setGodMode()` backed by `localStorage` (key `sa-godmode`), broadcasts a `sa-godmode-change` event so live games react.
+- `src/components/GodModeToggle.tsx` — the 🛡 toggle button (renders `null` unless `session.user.superAdmin`) **and** the `useGodMode()` hook returning `{ superAdmin, on }` (`on` is only true for super admins with the flag set).
+- Each losable game imports `useGodMode()`, mirrors `on` into a ref read inside its loop, and renders `<GodModeToggle />`. Games covered: **Snake, Breakout, Pong, Ball Game, Drag Ball, Wine Stocker, Boss Hunter, Pirate Carnage.** Each gates its own death/lose path (e.g., skip the `lives--`, `if (g.god) return` in `hurtPlayer`/`dealDmgToPlayer`, never accrue strikes). Games with no lose state (Whack-a-Mole, Matching, Wine Trivia, Dress-Empress) have nothing to toggle.
+
+**Promote/demote:** Admin → Users → "Super Admin" button (`PUT /api/admin/user` accepts role `SUPERADMIN`). The user must log out/in for the new session flag to take effect. Super-admin accounts can't be deleted from the users panel.
 
 ## Homepage rendering pipeline
 
@@ -336,6 +378,17 @@ A self-contained **canvas action-RPG** in a single client component (`src/app/sk
 
 **Adding to the game:** a new boss attack = add to a pool in `selectBossAttack`, a telegraph time + `data` in `startBossAttack`, a resolve branch in `resolveBossAttack`, and a `renderTelegraph` branch. A new weapon look = a `LOADOUT_WEAPONS` entry + a `wid` branch in `renderPlayer`. A new sound = a method on the `Sfx` return object. Always `npm run build` before pushing — the file is large and easy to typo.
 
+## Pirate Carnage mini-game (`/skills/fun/pirate-carnage`)
+
+A second self-contained **canvas action game** (Twisted Metal × Vampire Survivors on the ocean) in one client component. No assets; hand-drawn canvas + synthesized Web Audio (`Sfx` IIFE with a reverb send, SFX, and a procedural music engine — `TRACKS`: menu/battle/boss/final/victory/defeat). Solo or local 2-player co-op.
+
+- **Module-scope `tick(g, dt, keys, edges)` + `render(ctx, g)`**, with a `GS` interface built by `mkState(builds)`. The React component owns the RAF loop and `screen` state (`menu | playing | victory | defeat`).
+- **Ships:** 4 builds (Inferno/Tempest/Ironclad/Cutlass). Shared `drawShip()` (with `shadeHex()`) draws a galleon; enemy `variant` tweaks it (warship = 3 cannons, cult = eye-rune sail); suicide enemy is a powder barrel. Player auto-fires; **Space/`.` = torpedo** (the only secondary — the old "E" ultimate was removed; 8 starting torpedoes).
+- **Boss gauntlet (in order):** Kraken → Leviathan → Flying Dutchman → **Poseidon** (final; has an enrage phase < 40% HP). The Siren/mermaid boss was removed. Each boss = a `tick<Boss>` + `draw<Boss>` + entries in `bossVulnerable` / `bossPointMult` / the `tickBoss` & `render` dispatchers / `handleBossDying` chain / `startBossDeath`. A guaranteed repair + 2 loot drops spawn between bosses.
+- **God Mode / invincibility:** `g.god` is set from the component each frame; `hurtPlayer()` early-returns when true. Leaderboard score is submitted on win/sink via `/api/minigame/score`.
+- **Touch devices:** an on-screen joystick + BOOST + 🚀 buttons (`TouchControls`) appear during play; auto-pauses on tab blur; HTML pause menu (Resume / Quit).
+- Bosses, ship art, and SFX are verified by rendering to a PNG with `@napi-rs/canvas` (install `--no-save`, render in a temp script, inspect, then port the identical code in — `next build` cannot show canvas output).
+
 ## Common tasks
 
 **Run locally:**
@@ -384,6 +437,13 @@ Your content here.
 npm run build
 ```
 
+**Smoke-test runtime for layout / dynamically-rendered changes:** `next build` only *compiles* — it does NOT execute the homepage, the `SkillsPanel` sidebar, or other `force-dynamic` pages, so a runtime crash in them passes the build and then 500s in production. Because `SkillsPanel` renders in the root layout, a crash there takes down **every** page. For changes to the layout, sidebar, homepage data-loading, or anything dynamically rendered, run a real production server and curl pages before pushing:
+```
+npm run build && npm start    # then: curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/ (and /privacy, /skills/fun)
+```
+
+**Make a super admin:** Admin → Users → "Super Admin" on the account, then log out/in. (Or set `role = 'SUPERADMIN'` in the DB.)
+
 ## DNS setup (garretperez.com)
 
 Domain uses **Netlify DNS** (nameservers: dns1-4.p03.nsone.net) but the site is hosted on **Vercel**. DNS records in the Netlify dashboard:
@@ -407,3 +467,6 @@ Vercel is configured with both `garretperez.com` and `www.garretperez.com` as al
 - **Mobile overflow — inline styles**: `overflow: visible` on a grid item is not overrideable by a plain CSS rule — requires `!important` in the media query. The mobile CSS uses `overflow: hidden !important` on `.content-grid > div` to hard-constrain blocks regardless of inline styles.
 - **iOS Safari overflow**: Requires BOTH `html { overflow-x: hidden }` AND `body { overflow-x: hidden }` — just `body` alone is insufficient.
 - **Tiny font sizes**: Labels using inline `style={{ fontSize: X }}` cannot be targeted by mobile CSS bump rules. Convert to Tailwind `text-[Xpx]` classes so the `@media (max-width: 767px)` overrides apply.
+- **Neon data-transfer quota = whole site looks wiped (but data is safe)**: if every feature suddenly shows empty (no users/posts, levels "reset", fishing/garden/wine all blank), the first suspect is the Neon **data-transfer quota**, not a code bug or data loss. Queries fail with `ERROR: ...exceeded the data transfer quota`; most pages catch DB errors and fall back to empty, so the entire site appears blank. A transfer quota blocks reads — it does **not** delete rows. Fix = upgrade the Neon plan (on the *same* project the connection points to, or via Vercel→Storage if Neon was added through the Vercel integration). Verify with a read-only `prisma.*.count()` script that loads `.env.local` manually.
+- **`next build` passing ≠ production works** for dynamic pages — see "Smoke-test runtime" under Common tasks. A failed attempt to wrap `SkillsPanel`/homepage queries in `unstable_cache` compiled fine but 500'd every page at runtime; it was reverted. Re-attempt such caching only with a local `npm start` smoke test first.
+- **DB-touching API routes must be dynamic**: a parameterless `GET` route handler that queries the DB (e.g. `/api/setup`) gets *executed at build time* and fails the build. Add `export const dynamic = 'force-dynamic'` to any route that reads/writes the DB without already depending on request data.
