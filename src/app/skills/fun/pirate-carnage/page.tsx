@@ -2005,30 +2005,70 @@ function drawPoseidon(ctx: CanvasRenderingContext2D, b: Boss, g: GS, w2s: (x: nu
   // the god himself
   ctx.save(); ctx.translate(s.x, s.y)
   const flash = b.hitFlash > 0
+  const charging = b.mode === 'tridentWarn'
   ctx.shadowColor = '#4fd1ff'; ctx.shadowBlur = 30
-  ctx.fillStyle = flash ? '#eaf6ff' : '#1f6a8a' // sea-foam base
-  ctx.beginPath(); ctx.moveTo(-60, 70); ctx.quadraticCurveTo(0, 30, 60, 70); ctx.quadraticCurveTo(0, 95, -60, 70); ctx.closePath(); ctx.fill()
-  ctx.fillStyle = flash ? '#fff' : '#2f88a8'; ctx.beginPath(); ctx.ellipse(0, 6, 40, 50, 0, 0, TAU); ctx.fill()
-  ctx.fillStyle = flash ? '#dffaff' : '#3fa0c0'; ctx.beginPath(); ctx.ellipse(0, -2, 30, 34, 0, 0, TAU); ctx.fill()
-  // arms (left rests, right raises the trident)
-  ctx.strokeStyle = flash ? '#fff' : '#2f88a8'; ctx.lineWidth = 16; ctx.lineCap = 'round'
-  const swing = Math.sin(t * 1.5) * 6
-  ctx.beginPath(); ctx.moveTo(-30, -10); ctx.quadraticCurveTo(-60, 10 + swing, -64, 40); ctx.stroke()
-  ctx.beginPath(); ctx.moveTo(30, -10); ctx.quadraticCurveTo(64, -30, 72, -64); ctx.stroke()
-  // head + beard + crown
-  ctx.fillStyle = flash ? '#fff' : '#cfe6f0'; ctx.beginPath(); ctx.arc(0, -52, 22, 0, TAU); ctx.fill()
-  ctx.fillStyle = flash ? '#fff' : '#dfeef5'; ctx.beginPath(); ctx.moveTo(-18, -50); ctx.quadraticCurveTo(0, -8, 18, -50); ctx.quadraticCurveTo(0, -34, -18, -50); ctx.closePath(); ctx.fill()
-  ctx.fillStyle = '#ffd34d'; ctx.beginPath(); ctx.moveTo(-20, -68); ctx.lineTo(-20, -78); ctx.lineTo(-12, -72); ctx.lineTo(-4, -82); ctx.lineTo(4, -72); ctx.lineTo(12, -82); ctx.lineTo(20, -72); ctx.lineTo(20, -68); ctx.closePath(); ctx.fill()
-  // glowing eyes
-  ctx.fillStyle = '#0c1a22'; ctx.beginPath(); ctx.arc(-8, -54, 4, 0, TAU); ctx.arc(8, -54, 4, 0, TAU); ctx.fill()
-  if (flash || Math.sin(t * 5) > -0.7) { ctx.fillStyle = flash ? '#fff' : '#7fe0ff'; ctx.shadowColor = '#4fd1ff'; ctx.shadowBlur = 10; ctx.beginPath(); ctx.arc(-8, -54, 2.4, 0, TAU); ctx.arc(8, -54, 2.4, 0, TAU); ctx.fill(); ctx.shadowBlur = 0 }
-  // trident
-  ctx.strokeStyle = '#ffd34d'; ctx.lineWidth = 5; ctx.lineCap = 'round'
-  ctx.beginPath(); ctx.moveTo(72, -64); ctx.lineTo(86, 12); ctx.stroke()
+  // swirling water at the base
+  ctx.save(); ctx.strokeStyle = 'rgba(120,210,240,0.5)'; ctx.lineWidth = 5; ctx.lineCap = 'round'
+  for (let k = 0; k < 3; k++) { const ph = t * 2 + k * 2.1; ctx.beginPath(); for (let a = 0; a < Math.PI; a += 0.3) { const r = 46 + k * 14; ctx.lineTo(Math.cos(a + ph) * r * 1.3, 64 + Math.sin(a * 2 + ph) * 8 + k * 6) } ctx.stroke() }
+  ctx.restore()
+  // lower body fading into the sea
+  const baseG = ctx.createLinearGradient(0, 20, 0, 92)
+  baseG.addColorStop(0, flash ? '#eaf6ff' : '#2f88a8'); baseG.addColorStop(1, 'rgba(20,70,100,0.15)')
+  ctx.fillStyle = baseG
+  ctx.beginPath(); ctx.moveTo(-46, 22); ctx.quadraticCurveTo(-64, 70, -40, 92); ctx.quadraticCurveTo(0, 80, 40, 92); ctx.quadraticCurveTo(64, 70, 46, 22); ctx.closePath(); ctx.fill()
+  // muscular torso (gradient)
+  const bodyG = ctx.createLinearGradient(-40, -20, 40, 40)
+  bodyG.addColorStop(0, flash ? '#fff' : '#3fa6c4'); bodyG.addColorStop(1, flash ? '#dffaff' : '#1f6e8c')
+  ctx.fillStyle = bodyG
   ctx.beginPath()
-  ctx.moveTo(60, -64); ctx.lineTo(60, -92); ctx.moveTo(72, -66); ctx.lineTo(72, -98); ctx.moveTo(84, -64); ctx.lineTo(84, -92); ctx.moveTo(58, -86); ctx.lineTo(86, -86)
-  ctx.stroke()
-  if (b.mode === 'tridentWarn') { ctx.fillStyle = `rgba(127,224,255,${0.4 + Math.sin(t * 20) * 0.3})`; ctx.beginPath(); ctx.arc(72, -92, 8, 0, TAU); ctx.fill() }
+  ctx.moveTo(-44, -16); ctx.quadraticCurveTo(-50, 8, -34, 30); ctx.quadraticCurveTo(0, 40, 34, 30)
+  ctx.quadraticCurveTo(50, 8, 44, -16); ctx.quadraticCurveTo(20, -34, 0, -34); ctx.quadraticCurveTo(-20, -34, -44, -16)
+  ctx.closePath(); ctx.fill()
+  ctx.strokeStyle = 'rgba(10,40,55,0.4)'; ctx.lineWidth = 2; ctx.lineCap = 'round'
+  ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(0, 26); ctx.stroke()
+  ctx.beginPath(); ctx.arc(-15, -8, 12, Math.PI * 0.1, Math.PI * 0.85); ctx.stroke()
+  ctx.beginPath(); ctx.arc(15, -8, 12, Math.PI * 0.15, Math.PI * 0.9); ctx.stroke()
+  // arms (left lowered, right raises the trident)
+  ctx.strokeStyle = flash ? '#fff' : '#3fa0c0'; ctx.lineWidth = 15; ctx.lineCap = 'round'
+  const sway = Math.sin(t * 1.4) * 5
+  ctx.beginPath(); ctx.moveTo(-38, -12); ctx.quadraticCurveTo(-66, 8 + sway, -58, 44); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(38, -12); ctx.quadraticCurveTo(66, -34, 74, -70); ctx.stroke()
+  ctx.fillStyle = flash ? '#fff' : '#3fa0c0'
+  ctx.beginPath(); ctx.arc(-58, 46, 7, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.arc(74, -70, 7, 0, TAU); ctx.fill()
+  // neck + flowing hair + head
+  ctx.fillStyle = flash ? '#fff' : '#56b6cf'; ctx.fillRect(-7, -46, 14, 14)
+  ctx.fillStyle = flash ? '#fff' : '#dfeef5'
+  for (const dir of [-1, 1]) { ctx.beginPath(); ctx.moveTo(dir * 8, -58); ctx.quadraticCurveTo(dir * 30 + Math.sin(t * 2) * 4, -44, dir * 22, -12); ctx.quadraticCurveTo(dir * 18, -40, dir * 6, -54); ctx.closePath(); ctx.fill() }
+  ctx.fillStyle = flash ? '#fff' : '#56b6cf'; ctx.beginPath(); ctx.arc(0, -56, 20, 0, TAU); ctx.fill()
+  // big flowing beard + moustache
+  ctx.fillStyle = flash ? '#fff' : '#eaf4f8'
+  ctx.beginPath()
+  ctx.moveTo(-18, -56); ctx.quadraticCurveTo(-24, -32, -14, -16); ctx.quadraticCurveTo(-8, -4 + Math.sin(t * 2) * 2, 0, -8)
+  ctx.quadraticCurveTo(8, -4 + Math.cos(t * 2) * 2, 14, -16); ctx.quadraticCurveTo(24, -32, 18, -56); ctx.quadraticCurveTo(0, -42, -18, -56)
+  ctx.closePath(); ctx.fill()
+  ctx.beginPath(); ctx.moveTo(-10, -49); ctx.quadraticCurveTo(0, -44, 10, -49); ctx.quadraticCurveTo(0, -45, -10, -49); ctx.closePath(); ctx.fill()
+  // eyes (glowing) + brows
+  ctx.fillStyle = '#0c1a22'; ctx.beginPath(); ctx.arc(-7, -58, 4, 0, TAU); ctx.arc(7, -58, 4, 0, TAU); ctx.fill()
+  if (flash || Math.sin(t * 5) > -0.7) { ctx.fillStyle = flash ? '#fff' : '#7fe0ff'; ctx.shadowColor = '#4fd1ff'; ctx.shadowBlur = 12; ctx.beginPath(); ctx.arc(-7, -58, 2.4, 0, TAU); ctx.arc(7, -58, 2.4, 0, TAU); ctx.fill(); ctx.shadowBlur = 0 }
+  ctx.strokeStyle = flash ? '#fff' : '#eaf4f8'; ctx.lineWidth = 3; ctx.lineCap = 'round'
+  ctx.beginPath(); ctx.moveTo(-12, -64); ctx.lineTo(-3, -62); ctx.moveTo(12, -64); ctx.lineTo(3, -62); ctx.stroke()
+  // golden gemmed crown
+  ctx.fillStyle = '#ffd34d'
+  ctx.beginPath(); ctx.moveTo(-20, -70); ctx.lineTo(-20, -80); ctx.lineTo(-12, -74); ctx.lineTo(-6, -88); ctx.lineTo(0, -76); ctx.lineTo(6, -88); ctx.lineTo(12, -74); ctx.lineTo(20, -80); ctx.lineTo(20, -70); ctx.closePath(); ctx.fill()
+  ctx.fillStyle = '#ff5d8a'; ctx.beginPath(); ctx.arc(0, -73, 2.4, 0, TAU); ctx.fill()
+  ctx.fillStyle = '#5be0ff'; ctx.beginPath(); ctx.arc(-10, -73, 1.8, 0, TAU); ctx.arc(10, -73, 1.8, 0, TAU); ctx.fill()
+  // ornate trident in the raised hand
+  ctx.save(); ctx.translate(74, -70)
+  ctx.strokeStyle = '#ffd34d'; ctx.lineWidth = 5; ctx.lineCap = 'round'
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(10, 86); ctx.stroke()
+  ctx.lineWidth = 4
+  ctx.beginPath(); ctx.moveTo(-12, -6); ctx.lineTo(-12, -34); ctx.moveTo(0, -8); ctx.lineTo(0, -44); ctx.moveTo(12, -6); ctx.lineTo(12, -34); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(-12, -34); ctx.lineTo(-16, -27); ctx.moveTo(-12, -34); ctx.lineTo(-8, -27); ctx.moveTo(12, -34); ctx.lineTo(16, -27); ctx.moveTo(12, -34); ctx.lineTo(8, -27); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(-14, -10); ctx.lineTo(14, -10); ctx.stroke()
+  ctx.fillStyle = charging ? `rgba(127,224,255,${0.5 + Math.sin(t * 20) * 0.4})` : 'rgba(127,224,255,0.55)'
+  ctx.shadowColor = '#4fd1ff'; ctx.shadowBlur = charging ? 20 : 10
+  ctx.beginPath(); ctx.arc(0, -46, charging ? 7 : 4, 0, TAU); ctx.fill(); ctx.shadowBlur = 0
+  ctx.restore()
   ctx.restore(); ctx.shadowBlur = 0
   drawBossBar(ctx, b, '🔱 POSEIDON', '#1f8ad0', '#7b2f9a', idx)
 }
