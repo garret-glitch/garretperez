@@ -1399,32 +1399,61 @@ function stepFx(g: GS, dt: number) {
 }
 
 /* ═══════════════════ RENDER ═══════════════════ */
-function drawShip(ctx: CanvasRenderingContext2D, x: number, y: number, heading: number, size: number, hull: string, accent: string, flash: number, sail = true) {
+// lighten (amt>0) / darken (amt<0) a #rrggbb colour
+function shadeHex(hex: string, amt: number): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex); if (!m) return hex
+  const n = parseInt(m[1], 16); let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255
+  const f = amt < 0 ? 1 + amt : 1, add = amt > 0 ? amt * 255 : 0
+  r = Math.max(0, Math.min(255, Math.round(r * f + add)))
+  g = Math.max(0, Math.min(255, Math.round(g * f + add)))
+  b = Math.max(0, Math.min(255, Math.round(b * f + add)))
+  return `rgb(${r},${g},${b})`
+}
+function drawShip(ctx: CanvasRenderingContext2D, x: number, y: number, heading: number, size: number, hull: string, accent: string, flash: number, sail = true, variant = '') {
   ctx.save(); ctx.translate(x, y); ctx.rotate(heading)
   const len = 26 * size, w = 11 * size
   // shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(0, 4, len * 1.05, w * 1.1, 0, 0, TAU); ctx.fill()
-  // hull
-  ctx.fillStyle = flash > 0 ? '#ffffff' : hull
+  ctx.fillStyle = 'rgba(0,0,0,0.30)'; ctx.beginPath(); ctx.ellipse(0, 5, len * 1.08, w * 1.15, 0, 0, TAU); ctx.fill()
+  // hull — pointed bow, rounded stern, vertical shade
+  const hg = ctx.createLinearGradient(0, -w, 0, w)
+  hg.addColorStop(0, flash > 0 ? '#fff' : hull); hg.addColorStop(1, flash > 0 ? '#ffd2d2' : shadeHex(hull, -0.3))
+  ctx.fillStyle = flash > 0 ? '#fff' : hg
   ctx.beginPath()
-  ctx.moveTo(len, 0)
-  ctx.bezierCurveTo(len * 0.55, -w, -len * 0.6, -w, -len, -w * 0.45)
-  ctx.lineTo(-len, w * 0.45)
-  ctx.bezierCurveTo(-len * 0.6, w, len * 0.55, w, len, 0)
+  ctx.moveTo(len * 1.08, 0)
+  ctx.bezierCurveTo(len * 0.5, -w, -len * 0.55, -w, -len * 0.92, -w * 0.5)
+  ctx.quadraticCurveTo(-len * 1.02, 0, -len * 0.92, w * 0.5)
+  ctx.bezierCurveTo(-len * 0.55, w, len * 0.5, w, len * 1.08, 0)
   ctx.closePath(); ctx.fill()
-  // deck
-  ctx.fillStyle = flash > 0 ? '#ffd2d2' : 'rgba(0,0,0,0.25)'
-  ctx.beginPath(); ctx.ellipse(-len * 0.05, 0, len * 0.62, w * 0.6, 0, 0, TAU); ctx.fill()
-  // accent stripe
+  ctx.strokeStyle = flash > 0 ? '#fff' : shadeHex(hull, 0.25); ctx.lineWidth = 1.4 * size; ctx.stroke()
+  // deck + planks (clipped to the deck)
+  ctx.fillStyle = flash > 0 ? '#ffe8e8' : '#caa977'
+  ctx.beginPath(); ctx.ellipse(-len * 0.02, 0, len * 0.66, w * 0.58, 0, 0, TAU); ctx.fill()
+  ctx.save(); ctx.beginPath(); ctx.ellipse(-len * 0.02, 0, len * 0.66, w * 0.58, 0, 0, TAU); ctx.clip()
+  ctx.strokeStyle = 'rgba(80,55,30,0.35)'; ctx.lineWidth = 0.8
+  for (let i = -2; i <= 3; i++) { const px = i * len * 0.22; ctx.beginPath(); ctx.moveTo(px, -w); ctx.lineTo(px, w); ctx.stroke() }
+  ctx.restore()
+  // cannons along the flanks (warships pack a third)
+  ctx.fillStyle = '#26262a'
+  const guns = variant === 'warship' ? 3 : 2
+  for (let i = 0; i < guns; i++) { const px = (i - (guns - 1) / 2) * len * 0.42; for (const dir of [-1, 1]) { ctx.beginPath(); ctx.ellipse(px, dir * w * 0.82, 1.7 * size, 1.2 * size, 0, 0, TAU); ctx.fill() } }
+  // bow trim (figurehead V)
   ctx.strokeStyle = accent; ctx.lineWidth = 1.6 * size; ctx.globalAlpha = 0.9
-  ctx.beginPath(); ctx.moveTo(len * 0.92, 0); ctx.bezierCurveTo(len * 0.5, -w * 0.92, -len * 0.55, -w * 0.92, -len * 0.95, -w * 0.4); ctx.stroke()
-  ctx.globalAlpha = 1
+  ctx.beginPath(); ctx.moveTo(len * 1.0, 0); ctx.lineTo(len * 0.5, -w * 0.5); ctx.moveTo(len * 1.0, 0); ctx.lineTo(len * 0.5, w * 0.5); ctx.stroke(); ctx.globalAlpha = 1
   if (sail) {
-    // mast + sail
-    ctx.fillStyle = flash > 0 ? '#fff' : 'rgba(245,240,225,0.92)'
-    ctx.beginPath(); ctx.moveTo(len * 0.12, -w * 0.9); ctx.lineTo(len * 0.12, w * 0.9); ctx.lineTo(-len * 0.4, 0); ctx.closePath(); ctx.fill()
-    ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 1; ctx.stroke()
-    ctx.fillStyle = '#3a2a1a'; ctx.beginPath(); ctx.arc(len * 0.12, 0, 2.4 * size, 0, TAU); ctx.fill()
+    const mastX = len * 0.05
+    ctx.strokeStyle = '#3a2a1a'; ctx.lineWidth = 2 * size
+    ctx.beginPath(); ctx.moveTo(mastX, -w * 1.0); ctx.lineTo(mastX, w * 1.0); ctx.stroke() // yardarm
+    const sailCol = variant === 'cult' ? 'rgba(120,80,170,0.95)' : (flash > 0 ? '#fff' : 'rgba(245,240,225,0.95)')
+    ctx.fillStyle = flash > 0 ? '#fff' : sailCol
+    ctx.beginPath()
+    ctx.moveTo(mastX, -w * 0.95)
+    ctx.quadraticCurveTo(mastX + len * 0.5, -w * 0.5, mastX + len * 0.42, 0)
+    ctx.quadraticCurveTo(mastX + len * 0.5, w * 0.5, mastX, w * 0.95)
+    ctx.quadraticCurveTo(mastX - len * 0.12, 0, mastX, -w * 0.95)
+    ctx.closePath(); ctx.fill()
+    ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1; ctx.stroke()
+    if (variant === 'cult') { ctx.fillStyle = '#caa8ff'; ctx.beginPath(); ctx.ellipse(mastX + len * 0.18, 0, 3 * size, 5 * size, 0, 0, TAU); ctx.fill(); ctx.fillStyle = '#2a0c3a'; ctx.beginPath(); ctx.arc(mastX + len * 0.18, 0, 1.6 * size, 0, TAU); ctx.fill() }
+    ctx.fillStyle = '#3a2a1a'; ctx.beginPath(); ctx.arc(mastX, 0, 2.2 * size, 0, TAU); ctx.fill()
   }
   ctx.restore()
 }
@@ -1556,10 +1585,13 @@ function render(ctx: CanvasRenderingContext2D, g: GS) {
   for (const e of g.enemies) {
     const s = w2s(e.x, e.y); const def = EDEF[e.type]
     if (s.x < -60 || s.x > VW + 60 || s.y < -60 || s.y > VH + 60) continue
-    drawShip(ctx, s.x, s.y, e.heading, def.size, e.hitFlash > 0 ? '#fff' : def.color, def.accent, e.hitFlash, e.type !== 'suicide')
-    if (e.type === 'suicide') { // barrel
-      ctx.fillStyle = e.hitFlash > 0 ? '#fff' : '#7a3a2a'; ctx.beginPath(); ctx.arc(s.x, s.y, 7, 0, TAU); ctx.fill()
-      ctx.fillStyle = '#ffae4a'; ctx.beginPath(); ctx.arc(s.x, s.y - 6, 2 + Math.sin(g.time * 16) * 1, 0, TAU); ctx.fill()
+    if (e.type === 'suicide') { // floating powder barrel with a lit fuse
+      ctx.fillStyle = e.hitFlash > 0 ? '#fff' : '#7a3a2a'; ctx.beginPath(); ctx.arc(s.x, s.y, 9, 0, TAU); ctx.fill()
+      ctx.strokeStyle = '#4a2418'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(s.x, s.y, 9, 0, TAU); ctx.stroke()
+      ctx.beginPath(); ctx.moveTo(s.x - 9, s.y); ctx.lineTo(s.x + 9, s.y); ctx.stroke()
+      ctx.fillStyle = '#ffae4a'; ctx.beginPath(); ctx.arc(s.x, s.y - 8, 2 + Math.sin(g.time * 16) * 1, 0, TAU); ctx.fill()
+    } else {
+      drawShip(ctx, s.x, s.y, e.heading, def.size, def.color, def.accent, e.hitFlash, true, e.type)
     }
     if (e.burn > 0 && Math.random() < 0.5) { ctx.fillStyle = '#ff8a3d'; ctx.beginPath(); ctx.arc(s.x + rnd(-8, 8), s.y + rnd(-8, 8), rnd(1, 3), 0, TAU); ctx.fill() }
     // hp bar
