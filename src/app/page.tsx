@@ -6,90 +6,60 @@ import HomepageBlockRenderer from '@/components/HomepageBlockRenderer'
 import SkillsPanel from '@/components/SkillsPanel'
 import type { PageBlock, HeroBlockConfig } from '@/types/builder'
 import { migrateExistingSections } from '@/lib/builder-migration'
-import { unstable_cache } from 'next/cache'
 import { Mail, FileText } from 'lucide-react'
 
 
 export const dynamic = 'force-dynamic'
 
-// Shared, non-personal homepage data is the same for every visitor — cache it
-// for 60s so the most-visited page doesn't re-run ~7 queries on every request.
-const loadHomeShared = unstable_cache(
-  async () => {
-    const out = {
-      headshot: '', heroLocation: 'Houston, TX',
-      contactPhone: '(346) 604-1635', contactEmail: 'gis.owner@gmail.com', contactLinkedin: 'garretperez',
-      garretTotalLevel: 9,
-      garretXpBar: { currentXp: 0, neededXp: 100, percent: 0 } as { currentXp: number; neededXp: number; percent: number },
-      totalPosts: 0, totalUsers: 0,
-      recentPosts: [] as Array<{ id: string; title: string; body: string; skill: string; createdAt: string; user: { username: string }; upvotes: Array<{ userId: string }>; replies: Array<{ id: string }> }>,
-      dbProjects: [] as Array<{ id: string; icon: string; title: string; desc: string; progress: number; href: string; updated: string }>,
-      quests: [] as Array<{ id: string; icon: string; title: string; description: string; xp: number; skill: string; href: string }>,
-    }
-    try {
-      const allSettings = await (prisma as any).siteSetting.findMany()
-      const settingsMap: Record<string, string> = {}
-      for (const s of allSettings) settingsMap[s.key] = s.value
-      out.headshot = settingsMap.headshot ?? ''
-      if (settingsMap.hero_location) out.heroLocation = settingsMap.hero_location
-      if (settingsMap.contact_phone) out.contactPhone = settingsMap.contact_phone
-      if (settingsMap.contact_email) out.contactEmail = settingsMap.contact_email
-      if (settingsMap.contact_linkedin) out.contactLinkedin = settingsMap.contact_linkedin
-
-      const adminUser = await prisma.user.findFirst({ where: { role: 'ADMIN' }, select: { skills: { select: { xp: true } } } })
-      if (adminUser?.skills?.length) {
-        out.garretTotalLevel = adminUser.skills.reduce((s: number, sk: { xp: number }) => s + xpToLevel(sk.xp), 0)
-        out.garretXpBar = xpProgress(adminUser.skills.reduce((s: number, sk: { xp: number }) => s + sk.xp, 0))
-      }
-      out.totalPosts = await prisma.post.count()
-      out.totalUsers = await prisma.user.count()
-      try {
-        const rp = await (prisma as any).post.findMany({
-          orderBy: { createdAt: 'desc' }, take: 8,
-          include: { user: { select: { username: true } }, upvotes: { select: { userId: true } }, replies: { select: { id: true } } },
-        })
-        out.recentPosts = rp.map((p: { createdAt: Date } & Record<string, unknown>) => ({ ...p, createdAt: p.createdAt.toISOString() })) as typeof out.recentPosts
-      } catch { /* relation tables may not exist yet */ }
-      out.dbProjects = await (prisma as any).project.findMany({ orderBy: [{ order: 'asc' }, { createdAt: 'asc' }], take: 3 })
-      out.quests = await (prisma as any).quest.findMany({ where: { active: true }, orderBy: { order: 'asc' } })
-    } catch { /* DB not configured */ }
-    return out
-  },
-  ['home-shared-v1'],
-  { revalidate: 60, tags: ['home', 'site'] },
-)
-
 export default async function Home() {
   const session = await auth()
 
-  // Shared (cached) data — same for everyone
-  const shared = await loadHomeShared()
-  const { headshot, garretTotalLevel, garretXpBar, totalPosts, totalUsers, recentPosts, dbProjects, quests } = shared
-  let heroLocation = shared.heroLocation
-  let contactPhone = shared.contactPhone
-  let contactEmail = shared.contactEmail
-  let contactLinkedin = shared.contactLinkedin
-
-  // Live (uncached) data — homepage blocks (so builder edits show immediately) + per-user
-  let homeBlocks: PageBlock[] = []
+  let recentPosts: Array<{
+    id: string; title: string; body: string; skill: string; createdAt: Date
+    user: { username: string }
+    upvotes: Array<{ userId: string }>
+    replies: Array<{ id: string }>
+  }> = []
+  let totalPosts = 0
+  let totalUsers = 0
+  let headshot = ''
   let userBadges: string[] = []
+  let garretTotalLevel = 9
+  let garretXpBar = { currentXp: 0, neededXp: 100, percent: 0 }
+  let garretTotalXpRaw = 0
+  let dbProjects: Array<{ id: string; icon: string; title: string; desc: string; progress: number; href: string; updated: string }> = []
   let currentUserXp = 0
   let currentUserLevel = 1
   let currentUserXpBar = { currentXp: 0, neededXp: 100, percent: 0 }
   let shieldColor = '#1a0e06'
+  let heroLocation = 'Houston, TX'
+  let contactPhone = '(346) 604-1635'
+  let contactEmail = 'gis.owner@gmail.com'
+  let contactLinkedin = 'garretperez'
 
-  const parseBlocks = (rows: ({ config: string; styles: string } & Record<string, unknown>)[]): PageBlock[] =>
-    rows.map(b => ({
-      ...b,
-      config: (() => { try { return JSON.parse(b.config as string) } catch { return {} } })(),
-      styles: (() => { try { return JSON.parse(b.styles as string) } catch { return {} } })(),
-    })) as PageBlock[]
+  let homeBlocks: PageBlock[] = []
+  let quests: Array<{ id: string; icon: string; title: string; description: string; xp: number; skill: string; href: string }> = []
 
   try {
+    const allSettings = await (prisma as any).siteSetting.findMany()
+    const settingsMap: Record<string, string> = {}
+    for (const s of allSettings) settingsMap[s.key] = s.value
+    headshot = settingsMap.headshot ?? ''
+    if (settingsMap.hero_location) heroLocation = settingsMap.hero_location
+    if (settingsMap.contact_phone) contactPhone = settingsMap.contact_phone
+    if (settingsMap.contact_email) contactEmail = settingsMap.contact_email
+    if (settingsMap.contact_linkedin) contactLinkedin = settingsMap.contact_linkedin
     const rawBlocks = await (prisma as any).pageBlock.findMany({
       where: { pageSlug: 'home', visible: true },
       orderBy: { order: 'asc' },
     })
+    const parseBlocks = (rows: ({ config: string; styles: string } & Record<string, unknown>)[]): PageBlock[] =>
+      rows.map(b => ({
+        ...b,
+        config: (() => { try { return JSON.parse(b.config as string) } catch { return {} } })(),
+        styles: (() => { try { return JSON.parse(b.styles as string) } catch { return {} } })(),
+      })) as PageBlock[]
+
     homeBlocks = parseBlocks(rawBlocks)
 
     // Auto-seed blocks on first visit after deploy
@@ -104,7 +74,7 @@ export default async function Home() {
       } catch { /* migration failed silently */ }
     }
 
-    // If a hero block exists, its config overrides the text fields
+    // If a hero block exists, its config overrides SiteSetting text fields
     const heroBlock = homeBlocks.find(b => b.type === 'hero')
     if (heroBlock) {
       const hcfg = heroBlock.config as HeroBlockConfig
@@ -113,6 +83,42 @@ export default async function Home() {
       if (hcfg.contactEmail)    contactEmail    = hcfg.contactEmail
       if (hcfg.contactLinkedin) contactLinkedin = hcfg.contactLinkedin
     }
+
+
+    const adminUser = await prisma.user.findFirst({
+      where: { role: 'ADMIN' },
+      select: { skills: { select: { xp: true } } },
+    })
+    if (adminUser?.skills?.length) {
+      garretTotalLevel = adminUser.skills.reduce((s: number, sk: { xp: number }) => s + xpToLevel(sk.xp), 0)
+      garretTotalXpRaw = adminUser.skills.reduce((s: number, sk: { xp: number }) => s + sk.xp, 0)
+      garretXpBar = xpProgress(garretTotalXpRaw)
+    }
+
+    totalPosts = await prisma.post.count()
+    totalUsers = await prisma.user.count()
+
+    try {
+      recentPosts = await (prisma as any).post.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 8,
+        include: {
+          user: { select: { username: true } },
+          upvotes: { select: { userId: true } },
+          replies: { select: { id: true } },
+        },
+      })
+    } catch { /* relation tables may not exist yet */ }
+
+    dbProjects = await (prisma as any).project.findMany({
+      orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
+      take: 3,
+    })
+
+    quests = await (prisma as any).quest.findMany({
+      where: { active: true },
+      orderBy: { order: 'asc' },
+    })
 
     if (session?.user?.id) {
       const [badges, userSkills, userData] = await Promise.all([
@@ -401,7 +407,7 @@ export default async function Home() {
       <HomepageBlockRenderer
         blocks={homeBlocks}
         dbProjects={dbProjects}
-        recentPosts={recentPosts}
+        recentPosts={recentPosts.map(p => ({ ...p, createdAt: p.createdAt.toISOString() }))}
         hasSession={!!session?.user}
         userBadges={userBadges}
         contactPhone={contactPhone}

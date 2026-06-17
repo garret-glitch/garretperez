@@ -2,52 +2,52 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { xpToLevel } from '@/lib/xp'
 import { getCommunityXpAll } from '@/lib/community-xp'
-import { unstable_cache } from 'next/cache'
 import Link from 'next/link'
 import SkillsPanelClient, { DEFAULT_CHAN_ORDER, type ChanKey } from './SkillsPanelClient'
-
-// Community-wide sidebar data is identical for every visitor, so cache it for
-// 60s instead of querying the DB on every page view (this runs site-wide).
-const loadPanelData = unstable_cache(
-  async () => {
-    const postCounts: Record<string, number> = {}
-    const communityLevels: Record<string, number> = {}
-    let channelOrder: ChanKey[] = DEFAULT_CHAN_ORDER
-    try {
-      const orderSetting = await (prisma as any).siteSetting.findUnique({ where: { key: 'skills:order' } })
-      if (orderSetting?.value) {
-        const parsed = JSON.parse(orderSetting.value)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const filtered = parsed.filter((k: string) => DEFAULT_CHAN_ORDER.includes(k as ChanKey))
-          const deduped = filtered.filter((k: string, i: number) => filtered.indexOf(k) === i)
-          if (deduped.length > 0) {
-            const missing = DEFAULT_CHAN_ORDER.filter(k => !deduped.includes(k))
-            channelOrder = [...deduped, ...missing] as ChanKey[]
-          }
-        }
-      }
-    } catch { /* use default order */ }
-    try {
-      const [postRows, communityXpMap] = await Promise.all([
-        prisma.post.groupBy({ by: ['skill'], _count: { id: true } }),
-        getCommunityXpAll(),
-      ])
-      for (const r of postRows) postCounts[r.skill] = r._count.id
-      for (const [skill, xp] of Object.entries(communityXpMap)) {
-        communityLevels[skill] = xpToLevel(xp as number)
-      }
-    } catch { /* DB not ready */ }
-    return { channelOrder, postCounts, communityLevels }
-  },
-  ['skills-panel-v1'],
-  { revalidate: 60, tags: ['site'] },
-)
 
 export default async function SkillsPanel() {
   const session = await auth()
   const isAdmin = session?.user?.role === 'ADMIN'
 
-  const { channelOrder, postCounts, communityLevels } = await loadPanelData()
+  const postCounts: Record<string, number> = {}
+  const adminSkillLevels: Record<string, number> = {}
+  const communityLevels: Record<string, number> = {}
+  let channelOrder: ChanKey[] = DEFAULT_CHAN_ORDER
+
+  // Read saved order independently so any other DB failure can't reset it to default
+  try {
+    const orderSetting = await (prisma as any).siteSetting.findUnique({ where: { key: 'skills:order' } })
+    if (orderSetting?.value) {
+      const parsed = JSON.parse(orderSetting.value)
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const filtered = parsed.filter((k: string) => DEFAULT_CHAN_ORDER.includes(k as ChanKey))
+        const deduped = filtered.filter((k: string, i: number) => filtered.indexOf(k) === i)
+        if (deduped.length > 0) {
+          const missing = DEFAULT_CHAN_ORDER.filter(k => !deduped.includes(k))
+          channelOrder = [...deduped, ...missing] as ChanKey[]
+        }
+      }
+    }
+  } catch { /* use default order */ }
+
+  try {
+    const [postRows, adminUser, communityXpMap] = await Promise.all([
+      prisma.post.groupBy({ by: ['skill'], _count: { id: true } }),
+      prisma.user.findFirst({
+        where: { role: 'ADMIN' },
+        select: { skills: { select: { skill: true, xp: true } } },
+      }),
+      getCommunityXpAll(),
+    ])
+
+    for (const r of postRows) postCounts[r.skill] = r._count.id
+    if (adminUser?.skills) {
+      for (const sk of adminUser.skills) adminSkillLevels[sk.skill] = xpToLevel(sk.xp)
+    }
+    for (const [skill, xp] of Object.entries(communityXpMap)) {
+      communityLevels[skill] = xpToLevel(xp as number)
+    }
+  } catch { /* DB not ready */ }
 
   return (
     <aside
