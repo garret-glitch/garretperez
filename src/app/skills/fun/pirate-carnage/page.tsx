@@ -1703,33 +1703,50 @@ function drawTentacle(ctx: CanvasRenderingContext2D, x: number, y: number, t: Te
 
 function drawKraken(ctx: CanvasRenderingContext2D, b: Boss, g: GS, w2s: (x: number, y: number) => { x: number; y: number }, idx: number) {
   const s = w2s(b.x, b.y); const t = g.time
-  // body shadow / mass
-  ctx.save()
-  ctx.shadowColor = '#1a3a28'; ctx.shadowBlur = 30
-  ctx.fillStyle = b.hitFlash > 0 ? '#dfffe8' : '#274d38'
-  ctx.beginPath(); ctx.ellipse(s.x, s.y, 84, 76, 0, 0, TAU); ctx.fill()
-  ctx.shadowBlur = 0
-  // mantle highlight
-  ctx.fillStyle = b.hitFlash > 0 ? '#fff' : '#356b4c'
-  ctx.beginPath(); ctx.ellipse(s.x - 14, s.y - 20, 50, 42, 0, 0, TAU); ctx.fill()
-  // writhing arms around body
-  ctx.strokeStyle = '#274d38'; ctx.lineCap = 'round'
+  const tp = targetPlayer(g, b.x, b.y); const faceAng = angTo(b.x, b.y, tp.x, tp.y)
+  ctx.save(); ctx.translate(s.x, s.y)
+  ctx.shadowColor = '#0a2a1a'; ctx.shadowBlur = 26
+  // 8 writhing tentacles (behind the mantle) — tapered ribbons with suckers
   for (let i = 0; i < 8; i++) {
-    const a = (i / 8) * TAU + Math.sin(t * 0.8 + i) * 0.2
-    ctx.lineWidth = 16
-    ctx.beginPath(); ctx.moveTo(s.x + Math.cos(a) * 60, s.y + Math.sin(a) * 56)
-    const ex = s.x + Math.cos(a) * (110 + Math.sin(t * 3 + i) * 16)
-    const ey = s.y + Math.sin(a) * (104 + Math.cos(t * 3 + i) * 16)
-    const mx = s.x + Math.cos(a + 0.4) * 90, my = s.y + Math.sin(a + 0.4) * 86
-    ctx.quadraticCurveTo(mx, my, ex, ey); ctx.stroke()
+    const a = (i / 8) * TAU + Math.sin(t * 0.8 + i) * 0.18
+    const wig = Math.sin(t * 2.4 + i * 1.3)
+    const segs = 5, baseR = 44, len = 96 + Math.sin(t * 1.6 + i) * 10
+    const pts: { x: number; y: number; w: number }[] = []
+    for (let sg = 0; sg <= segs; sg++) {
+      const f = sg / segs, aa = a + wig * 0.55 * f, r = baseR + len * f
+      pts.push({ x: Math.cos(aa) * r, y: Math.sin(aa) * r, w: (1 - f) * 13 + 2 })
+    }
+    const norm = (sg: number) => { const pn = pts[Math.min(sg + 1, segs)], pp = pts[Math.max(sg - 1, 0)]; const dx = pn.x - pp.x, dy = pn.y - pp.y, dl = Math.hypot(dx, dy) || 1; return { nx: -dy / dl, ny: dx / dl } }
+    ctx.fillStyle = b.hitFlash > 0 ? '#cdeedd' : (i % 2 ? '#1f5a3f' : '#27664a')
+    ctx.beginPath()
+    for (let sg = 0; sg <= segs; sg++) { const p = pts[sg], n = norm(sg); if (sg === 0) ctx.moveTo(p.x + n.nx * p.w, p.y + n.ny * p.w); else ctx.lineTo(p.x + n.nx * p.w, p.y + n.ny * p.w) }
+    for (let sg = segs; sg >= 0; sg--) { const p = pts[sg], n = norm(sg); ctx.lineTo(p.x - n.nx * p.w, p.y - n.ny * p.w) }
+    ctx.closePath(); ctx.fill()
+    ctx.fillStyle = b.hitFlash > 0 ? '#fff' : '#9fd9b8'
+    for (let sg = 1; sg < segs; sg++) { const p = pts[sg]; ctx.beginPath(); ctx.arc(p.x, p.y, (1 - sg / segs) * 3 + 1, 0, TAU); ctx.fill() }
   }
-  // eye (weak point)
-  const blink = Math.sin(t * 0.7) > -0.9
-  ctx.fillStyle = '#0c1a12'; ctx.beginPath(); ctx.arc(s.x + 6, s.y - 4, 26, 0, TAU); ctx.fill()
-  if (blink) {
-    ctx.fillStyle = b.hitFlash > 0 ? '#fff' : '#ffd34d'; ctx.beginPath(); ctx.arc(s.x + 6, s.y - 4, 20, 0, TAU); ctx.fill()
-    ctx.fillStyle = '#1a0c00'; const tp = targetPlayer(g, b.x, b.y); const pa = angTo(b.x, b.y, tp.x, tp.y); ctx.beginPath(); ctx.ellipse(s.x + 6 + Math.cos(pa) * 7, s.y - 4 + Math.sin(pa) * 7, 5, 11, pa, 0, TAU); ctx.fill()
+  ctx.shadowBlur = 0
+  // mantle (head) with radial shading
+  const mg = ctx.createRadialGradient(-12, -20, 8, 0, -4, 80)
+  mg.addColorStop(0, b.hitFlash > 0 ? '#fff' : '#3a7d59'); mg.addColorStop(1, b.hitFlash > 0 ? '#dfffe8' : '#1c4733')
+  ctx.fillStyle = mg
+  ctx.beginPath(); ctx.ellipse(0, -4, 60, 64, 0, 0, TAU); ctx.fill()
+  // bioluminescent spots
+  ctx.fillStyle = b.hitFlash > 0 ? '#fff' : 'rgba(120,230,170,0.5)'
+  for (const sp of [[-26, -34, 4], [12, -40, 3], [30, -16, 3.5], [-32, 4, 3], [22, 16, 4], [-8, 30, 3]]) { ctx.beginPath(); ctx.arc(sp[0], sp[1], sp[2] + Math.sin(t * 3 + sp[0]) * 0.6, 0, TAU); ctx.fill() }
+  // two glaring eyes (weak point) tracking the player + angry lids
+  for (const exx of [-21, 21]) {
+    ctx.fillStyle = '#0c1a12'; ctx.beginPath(); ctx.ellipse(exx, -10, 15, 17, 0, 0, TAU); ctx.fill()
+    ctx.fillStyle = b.hitFlash > 0 ? '#fff' : '#ffd34d'; ctx.beginPath(); ctx.ellipse(exx, -10, 11, 13, 0, 0, TAU); ctx.fill()
+    ctx.fillStyle = '#1a0c00'; ctx.beginPath(); ctx.ellipse(exx + Math.cos(faceAng) * 4, -10 + Math.sin(faceAng) * 5, 4, 8, faceAng, 0, TAU); ctx.fill()
+    ctx.fillStyle = b.hitFlash > 0 ? '#eafff2' : '#1c4733'
+    const dir = exx < 0 ? 1 : -1
+    ctx.beginPath(); ctx.moveTo(exx - 16, -24); ctx.lineTo(exx + 16, -24); ctx.lineTo(exx + 16 * dir, -12); ctx.closePath(); ctx.fill()
   }
+  // beak
+  ctx.fillStyle = b.hitFlash > 0 ? '#fff' : '#e8d9b0'
+  ctx.beginPath(); ctx.moveTo(-10, 22); ctx.lineTo(0, 42); ctx.lineTo(10, 22); ctx.closePath(); ctx.fill()
+  ctx.strokeStyle = '#5a4a2a'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(0, 24); ctx.lineTo(0, 39); ctx.stroke()
   ctx.restore()
   drawBossBar(ctx, b, '🦑 THE KRAKEN', '#7b2f9a', '#c0392b', idx)
 }
