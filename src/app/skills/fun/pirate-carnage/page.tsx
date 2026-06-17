@@ -28,8 +28,8 @@ const Sfx = (() => {
   let master: GainNode | null = null   // mute gate → destination
   let sfxBus: GainNode | null = null    // dry SFX bus (also feeds reverb)
   let muted = false
+  let vol = 0.34   // master volume (0..1) — driven by the in-game volume slider
   const last: Record<string, number> = {}
-  const VOL = 0.34
   // synthetic impulse response (exponentially-decaying noise) for a cheap convolution reverb
   function makeIR(c: AudioContext, dur: number, decay: number): AudioBuffer {
     const n = Math.max(1, Math.floor(c.sampleRate * dur))
@@ -43,7 +43,7 @@ const Sfx = (() => {
       const AC = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
       if (!AC) return null
       ctx = new AC()
-      master = ctx.createGain(); master.gain.value = muted ? 0 : VOL; master.connect(ctx.destination)
+      master = ctx.createGain(); master.gain.value = muted ? 0 : vol; master.connect(ctx.destination)
       // SFX bus → master (dry) + a reverb tail for ocean-cavern space
       sfxBus = ctx.createGain(); sfxBus.gain.value = 1; sfxBus.connect(master)
       const rev = ctx.createConvolver(); rev.buffer = makeIR(ctx, 1.1, 3.2)
@@ -53,8 +53,10 @@ const Sfx = (() => {
     return ctx
   }
   function resume() { const c = ensure(); if (c && c.state === 'suspended') void c.resume() }
-  function setMuted(m: boolean) { muted = m; if (master && ctx) master.gain.setTargetAtTime(m ? 0 : VOL, ctx.currentTime, 0.02) }
+  function setMuted(m: boolean) { muted = m; if (master && ctx) master.gain.setTargetAtTime(m ? 0 : vol, ctx.currentTime, 0.02) }
   function isMuted() { return muted }
+  function setVolume(v: number) { vol = Math.max(0, Math.min(1, v)); if (master && ctx && !muted) master.gain.setTargetAtTime(vol, ctx.currentTime, 0.02) }
+  function getVolume() { return vol }
   function ok(key?: string, ms?: number): AudioContext | null {
     const c = ensure(); if (!c || !sfxBus || muted) return null
     if (key && ms) { const now = c.currentTime * 1000; if (last[key] && now - last[key] < ms) return null; last[key] = now }
@@ -203,7 +205,7 @@ const Sfx = (() => {
   function stopMusic() { if (musicTimer) { clearInterval(musicTimer); musicTimer = null } curTrack = '' }
 
   return {
-    resume, setMuted, isMuted, playMusic, stopMusic, duck,
+    resume, setMuted, isMuted, setVolume, getVolume, playMusic, stopMusic, duck,
     // layered cannon: a square crack, a sub-bass thump, and a filtered smoke-puff
     cannon() { const c = ok('cannon', 45); if (!c) return; blip(c, 200, 0.09, 'square', 0.10, 80); blip(c, 80, 0.18, 'sine', 0.16, 42); noise(c, 0.12, 0.12, 'lowpass', 1400, 1, 300) },
     fireCannon() { const c = ok('fcannon', 45); if (!c) return; blip(c, 170, 0.11, 'sawtooth', 0.10, 66); blip(c, 70, 0.20, 'sine', 0.14, 38); noise(c, 0.16, 0.12, 'bandpass', 1000, 1.5, 500); noise(c, 0.18, 0.06, 'highpass', 3200, 1, 1200, 0.02) },
@@ -1718,6 +1720,7 @@ export default function PirateCarnage() {
   const [b2, setB2] = useState(3)   // Player 2 ship index
   const [activeTab, setActiveTab] = useState(0) // which player you're picking for (2P)
   const [muted, setMuted] = useState(false)
+  const [vol, setVol] = useState(0.34)
   const [finalScore, setFinalScore] = useState(0)
   const [finalKills, setFinalKills] = useState(0)
   const [xpDone, setXpDone] = useState(false)
@@ -1809,6 +1812,11 @@ export default function PirateCarnage() {
   const startMenuMusic = useCallback(() => { Sfx.resume(); Sfx.playMusic('menu') }, [])
 
   const toggleMute = () => { const m = !muted; setMuted(m); Sfx.setMuted(m) }
+  // volume slider — turning it up unmutes
+  const onVolume = (v: number) => {
+    setVol(v); Sfx.resume(); Sfx.setVolume(v)
+    if (muted && v > 0) { setMuted(false); Sfx.setMuted(false) }
+  }
 
   const activeIdx = playerCount === 2 ? (activeTab === 0 ? b1 : b2) : b1
   const pickShip = (i: number) => {
@@ -1828,6 +1836,10 @@ export default function PirateCarnage() {
         .pc-btn { font-family:"Press Start 2P",monospace; cursor:pointer; transition:transform .1s,filter .1s; }
         .pc-btn:hover { transform:translateY(-2px); filter:brightness(1.12); }
         .pc-build { animation:pc-pop .25s ease; }
+        .pc-vol { -webkit-appearance:none; appearance:none; height:6px; border-radius:3px; background:#2a2820; outline:none; accent-color:#c89b3c; }
+        .pc-vol::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:14px; height:14px; border-radius:50%; background:#c89b3c; border:1px solid #8b6914; cursor:pointer; box-shadow:0 0 6px rgba(200,155,60,0.6); }
+        .pc-vol::-moz-range-thumb { width:14px; height:14px; border-radius:50%; background:#c89b3c; border:1px solid #8b6914; cursor:pointer; box-shadow:0 0 6px rgba(200,155,60,0.6); }
+        .pc-vol::-moz-range-track { height:6px; border-radius:3px; background:#2a2820; }
       `}</style>
 
       <div className="pc-wrap">
@@ -1945,8 +1957,19 @@ export default function PirateCarnage() {
           </div>
         )}
 
-        {/* top controls — mute is always available so music can be turned off anywhere */}
-        <div style={{ position: 'absolute', top: 10, right: 10, display: 'flex', gap: 6, zIndex: 5 }}>
+        {/* top controls — volume + mute are always available so sound can be tuned anywhere */}
+        <div style={{ position: 'absolute', top: 10, right: 10, display: 'flex', alignItems: 'center', gap: 6, zIndex: 5 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(13,13,20,0.8)', border: '1px solid #2a2820', borderRadius: 6, padding: '6px 10px' }}>
+            <span style={{ fontSize: 12 }}>{muted || vol === 0 ? '🔇' : vol < 0.4 ? '🔉' : '🔊'}</span>
+            <input
+              className="pc-vol"
+              type="range" min={0} max={1} step={0.01}
+              value={muted ? 0 : vol}
+              onChange={e => onVolume(parseFloat(e.target.value))}
+              title="Volume"
+              style={{ width: 84, cursor: 'pointer' }}
+            />
+          </div>
           <button className="pc-btn" onClick={toggleMute} style={iconBtn} title={muted ? 'Sound off' : 'Sound on'}>{muted ? '🔇' : '🔊'}</button>
           {screen === 'playing' && (
             <button className="pc-btn" onClick={() => setPaused(v => !v)} style={iconBtn} title={paused ? 'Resume' : 'Pause'}>{paused ? '▶' : '⏸'}</button>
