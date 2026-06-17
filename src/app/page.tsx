@@ -211,12 +211,12 @@ export default async function Home() {
                 </div>
 
                 {/* CTA — to the right of Level chip */}
-                <div style={{ borderLeft: '1px solid rgba(200,155,60,0.2)', paddingLeft: 12, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
-                    <span style={{ fontSize: 12, lineHeight: 1 }}>⚡</span>
-                    <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 6.5, color: '#e8c060', letterSpacing: '0.03em' }}>Help Me Level Up</span>
+                <div style={{ borderLeft: '1px solid rgba(200,155,60,0.2)', paddingLeft: 14, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 7 }}>
+                    <span style={{ fontSize: 16, lineHeight: 1 }}>⚡</span>
+                    <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: '#e8c060', letterSpacing: '0.03em' }}>Help Me Level Up</span>
                   </div>
-                  <p className="body-text" style={{ fontSize: 10, color: 'var(--text-2)', lineHeight: 1.55, margin: 0 }}>
+                  <p className="body-text" style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6, margin: 0 }}>
                     Interacting with the website I gain XP — you can gain XP too!
                   </p>
                 </div>
@@ -335,11 +335,11 @@ export default async function Home() {
 
             {/* Mobile CTA — above XP bar */}
             <div style={{ padding: '14px 16px', background: 'rgba(200,155,60,0.06)', border: '1px solid rgba(200,155,60,0.22)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7 }}>
-                <span style={{ fontSize: 14 }}>⚡</span>
-                <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: '#e8c060' }}>Help Me Level Up</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <span style={{ fontSize: 18 }}>⚡</span>
+                <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: '#e8c060' }}>Help Me Level Up</span>
               </div>
-              <p className="body-text" style={{ fontSize: 11, color: 'var(--text-2)', lineHeight: 1.55, margin: '0 0 10px' }}>
+              <p className="body-text" style={{ fontSize: 13.5, color: 'var(--text-2)', lineHeight: 1.6, margin: '0 0 10px' }}>
                 Interacting with the website I gain XP — you can gain XP too!
               </p>
             </div>
