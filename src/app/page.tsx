@@ -193,19 +193,19 @@ export default async function Home() {
                 {/* Chips */}
                 <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                   {([
-                    { value: totalUsers,       label: 'Members', highlight: false },
-                    { value: totalPosts,       label: 'Posts',   highlight: false },
-                    { value: garretTotalLevel, label: 'Level',   highlight: true  },
+                    { value: totalUsers,       label: 'Members', highlight: false, small: false },
+                    { value: totalPosts,       label: 'Posts',   highlight: false, small: true  },
+                    { value: garretTotalLevel, label: 'Level',   highlight: true,  small: true  },
                   ] as const).map(stat => (
                     <div key={stat.label} style={{
-                      display: 'flex', flexDirection: 'column', alignItems: 'center',
-                      padding: '10px 18px',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      padding: stat.small ? '7px 12px' : '10px 18px',
                       background: stat.highlight ? 'rgba(200,155,60,0.13)' : 'rgba(200,155,60,0.07)',
                       border: `1px solid rgba(200,155,60,${stat.highlight ? '0.45' : '0.22'})`,
                       boxShadow: stat.highlight ? '0 0 12px rgba(200,155,60,0.18)' : 'none',
                     }}>
-                      <span className="body-text" style={{ fontSize: 22, fontWeight: 700, color: '#c89b3c', lineHeight: 1, marginBottom: 5 }}>{stat.value}</span>
-                      <span style={{ fontSize: 5.5, color: '#7a6040', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: "'Press Start 2P', monospace" }}>{stat.label}</span>
+                      <span className="body-text" style={{ fontSize: stat.small ? 15 : 22, fontWeight: 700, color: '#c89b3c', lineHeight: 1, marginBottom: stat.small ? 4 : 5 }}>{stat.value}</span>
+                      <span style={{ fontSize: stat.small ? 5 : 5.5, color: '#7a6040', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: "'Press Start 2P', monospace" }}>{stat.label}</span>
                     </div>
                   ))}
                 </div>
@@ -317,18 +317,18 @@ export default async function Home() {
             {/* Stats — 1 per row, label left / number right */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {([
-                { value: totalUsers,       label: 'Members' },
-                { value: totalPosts,        label: 'Posts' },
-                { value: garretTotalLevel,  label: 'Level' },
+                { value: totalUsers,       label: 'Members', small: false },
+                { value: totalPosts,        label: 'Posts',  small: true  },
+                { value: garretTotalLevel,  label: 'Level',  small: true  },
               ] as const).map(stat => (
                 <div key={stat.label} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '10px 14px',
+                  padding: stat.small ? '7px 14px' : '10px 14px',
                   background: 'rgba(200,155,60,0.07)',
                   border: '1px solid rgba(200,155,60,0.22)',
                 }}>
-                  <span style={{ fontSize: 8, color: '#7a6040', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: "'Press Start 2P', monospace" }}>{stat.label}</span>
-                  <span className="body-text" style={{ fontSize: 20, fontWeight: 700, color: '#c89b3c', lineHeight: 1 }}>{stat.value}</span>
+                  <span style={{ fontSize: stat.small ? 7 : 8, color: '#7a6040', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: "'Press Start 2P', monospace" }}>{stat.label}</span>
+                  <span className="body-text" style={{ fontSize: stat.small ? 14 : 20, fontWeight: 700, color: '#c89b3c', lineHeight: 1 }}>{stat.value}</span>
                 </div>
               ))}
             </div>
