@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useRef, useState, useCallback } from 'react'
+import GameLeaderboard from '@/components/GameLeaderboard'
 
 /* ═══════════════════════════════════════════════════════════════════════
    PIRATE CARNAGE — Twisted Metal x Vampire Survivors on the ocean.
@@ -2083,6 +2084,8 @@ export default function PirateCarnage() {
   const [finalKills, setFinalKills] = useState(0)
   const [xpDone, setXpDone] = useState(false)
   const [paused, setPaused] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
+  const submittedRef = useRef(false)
 
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const gsRef = useRef<GS | null>(null)
@@ -2105,8 +2108,21 @@ export default function PirateCarnage() {
     const builds = count === 2 ? [BUILDS[i1], BUILDS[i2]] : [BUILDS[i1]]
     gsRef.current = mkState(builds)
     setFinalScore(0); setFinalKills(0); setXpDone(false); setPaused(false)
+    submittedRef.current = false
     setScreen('playing')
   }, [])
+
+  // record the run's score to the leaderboard once the game ends (win or sink)
+  useEffect(() => {
+    if (screen !== 'victory' && screen !== 'defeat') return
+    if (submittedRef.current || finalScore <= 0) return
+    submittedRef.current = true
+    fetch('/api/minigame/score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ game: 'pirate-carnage', score: finalScore }),
+    }).then(() => setRefreshKey(k => k + 1)).catch(() => { /* ignore */ })
+  }, [screen, finalScore])
 
   // keyboard (P1: WASD + Shift/Space/E · P2: Arrows + / . ,)
   useEffect(() => {
@@ -2338,6 +2354,10 @@ export default function PirateCarnage() {
       <p style={{ color: '#605848', fontSize: 12, fontFamily: 'Inter,sans-serif', textAlign: 'center', maxWidth: 640, lineHeight: 1.6 }}>
         Twisted Metal on the high seas — solo or <span style={{ color: '#c89b3c' }}>2-player local co-op</span>. Pick a ship, boost through the chaos, grab power-ups, and survive the boss gauntlet — the Kraken, the Leviathan, the Siren, the Flying Dutchman, and finally <span style={{ color: '#c89b3c' }}>Poseidon</span> himself. Win to earn <span style={{ color: '#c89b3c' }}>+25 Fun XP</span>.
       </p>
+
+      <div style={{ width: '100%', maxWidth: 420 }}>
+        <GameLeaderboard game="pirate-carnage" scoreLabel="pts" refreshKey={refreshKey} />
+      </div>
     </div>
   )
 }
