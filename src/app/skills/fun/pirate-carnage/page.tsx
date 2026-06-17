@@ -263,7 +263,7 @@ interface Particle { x: number; y: number; vx: number; vy: number; life: number;
 interface Beam { ax: number; ay: number; bx: number; by: number; life: number; color: string }
 interface Tentacle { x: number; y: number; state: string; t: number; radius: number; ang: number; sway: number }
 interface Boss {
-  kind: string // 'kraken' | 'leviathan' | 'mermaid' | 'dutchman' | 'poseidon'
+  kind: string // 'kraken' | 'leviathan' | 'dutchman' | 'poseidon'
   x: number; y: number; vx: number; vy: number; hp: number; maxHp: number
   atkCd: number; hitFlash: number; aimAng: number; dying: number
   // leviathan serpent state
@@ -421,7 +421,6 @@ function bossVulnerable(b: Boss): boolean {
   if (b.dying > 0) return false
   if (b.kind === 'leviathan' && (b.mode === 'submerge' || b.mode === 'rise')) return false
   if (b.kind === 'dutchman' && (b.mode === 'arrive' || b.mode === 'phaseOut' || b.mode === 'phaseIn')) return false
-  if (b.kind === 'mermaid' && (b.mode === 'arrive' || b.mode === 'dive')) return false
   if (b.kind === 'poseidon' && b.mode === 'arrive') return false
   return true
 }
@@ -430,7 +429,6 @@ function bossVulnerable(b: Boss): boolean {
 function bossPointMult(b: Boss, x: number, y: number, r: number): number | null {
   if (b.kind === 'kraken') return dist(x, y, b.x, b.y) < 78 + r ? 1 : null
   if (b.kind === 'dutchman') return dist(x, y, b.x, b.y) < 66 + r ? 1 : null
-  if (b.kind === 'mermaid') return dist(x, y, b.x, b.y) < 56 + r ? 1 : null
   if (b.kind === 'poseidon') return dist(x, y, b.x, b.y) < 82 + r ? 1 : null
   // leviathan
   if (dist(x, y, b.x, b.y) < 32 + r) return 1.6 // head weak point
@@ -576,15 +574,6 @@ function spawnDutchman(g: GS) {
   g.banner = { txt: 'THE FLYING DUTCHMAN', sub: 'THE LEGENDARY GHOST SHIP', life: 3 }
   g.shake = 26; Sfx.roar(); g.enemies = []
 }
-function spawnMermaid(g: GS) {
-  g.bosses.push({
-    kind: 'mermaid', x: WW / 2, y: WH * 0.22, vx: 0, vy: 0, hp: 2600, maxHp: 2600,
-    atkCd: 1.0, hitFlash: 0, aimAng: 0, dying: 0,
-    mode: 'arrive', modeT: 1.4, swimAng: Math.PI / 2, tx: WW / 2, ty: WH / 2,
-  })
-  g.banner = { txt: 'THE SIREN', sub: 'BEWARE HER SONG', life: 3 }
-  g.shake = 24; Sfx.roar(); g.enemies = []
-}
 function spawnPoseidon(g: GS) {
   g.bosses.push({
     kind: 'poseidon', x: WW / 2, y: WH * 0.30, vx: 0, vy: 0, hp: 5600, maxHp: 5600,
@@ -596,7 +585,7 @@ function spawnPoseidon(g: GS) {
 }
 function startBossDeath(g: GS, b: Boss) {
   b.dying = 2.4; b.hp = 0
-  const slainTxt = b.kind === 'poseidon' ? 'POSEIDON FALLS' : b.kind === 'dutchman' ? 'FLYING DUTCHMAN SUNK' : b.kind === 'mermaid' ? 'THE SIREN SILENCED' : b.kind === 'leviathan' ? 'LEVIATHAN SLAIN' : 'KRAKEN SLAIN'
+  const slainTxt = b.kind === 'poseidon' ? 'POSEIDON FALLS' : b.kind === 'dutchman' ? 'FLYING DUTCHMAN SUNK' : b.kind === 'leviathan' ? 'LEVIATHAN SLAIN' : 'KRAKEN SLAIN'
   g.banner = { txt: slainTxt, sub: '', life: 2.5 }
   Sfx.roar()
 }
@@ -922,7 +911,6 @@ function tickBoss(g: GS, dt: number) {
     if (b.dying > 0) { handleBossDying(g, b, dt); continue }
     if (b.kind === 'leviathan') tickLeviathan(g, b, dt)
     else if (b.kind === 'dutchman') tickDutchman(g, b, dt)
-    else if (b.kind === 'mermaid') tickMermaid(g, b, dt)
     else if (b.kind === 'poseidon') tickPoseidon(g, b, dt)
     else tickKraken(g, b, dt)
   }
@@ -932,14 +920,13 @@ function handleBossDying(g: GS, b: Boss, dt: number) {
   if (Math.random() < 0.5) explode(g, b.x + rnd(-70, 70), b.y + rnd(-70, 70), 40, 0, true)
   if (b.dying <= 0) {
     explode(g, b.x, b.y, 200, 0, true, true); g.shake = 34
-    const reward = b.kind === 'poseidon' ? 5000 : b.kind === 'dutchman' ? 3500 : b.kind === 'mermaid' ? 3000 : b.kind === 'leviathan' ? 2500 : 1500
+    const reward = b.kind === 'poseidon' ? 5000 : b.kind === 'dutchman' ? 3500 : b.kind === 'leviathan' ? 2500 : 1500
     g.score += reward; ftext(g, b.x, b.y, '+' + reward, '#c89b3c', 22)
     if (b.kind === 'kraken') g.tentacles = []
     g.bosses = g.bosses.filter(o => o !== b)
-    // gauntlet: Kraken → Leviathan → Siren → Flying Dutchman → Poseidon → victory
+    // gauntlet: Kraken → Leviathan → Flying Dutchman → Poseidon → victory
     if (b.kind === 'kraken') spawnLeviathan(g)
-    else if (b.kind === 'leviathan') spawnMermaid(g)
-    else if (b.kind === 'mermaid') spawnDutchman(g)
+    else if (b.kind === 'leviathan') spawnDutchman(g)
     else if (b.kind === 'dutchman') spawnPoseidon(g)
     else { g.state = 'victory'; Sfx.win(); Sfx.playMusic('victory') }
     // between bosses, leave a guaranteed repair + a couple of loot drops so the gauntlet stays fun
@@ -1198,96 +1185,6 @@ function tickDutchman(g: GS, b: Boss, dt: number) {
   }
 }
 
-/* ═══ BOSS 2.5 — The Siren (mermaid) — sits between Leviathan and Dutchman ═══ */
-function startSong(g: GS, b: Boss) { b.mode = 'songWarn'; b.modeT = 0.9; Sfx.warn() }
-function startWhirl(g: GS, b: Boss) {
-  const p = targetPlayer(g, b.x, b.y)
-  b.tx = clamp(p.x + p.vx * 0.3, 130, WW - 130); b.ty = clamp(p.y + p.vy * 0.3, 130, WH - 130)
-  b.mode = 'poolWarn'; b.modeT = 1.0; Sfx.warn()
-}
-function startDiveM(g: GS, b: Boss) { b.mode = 'dive'; b.modeT = 1.1; Sfx.dodge(); burst(g, b.x, b.y, '#7fd5e0', 16, 200, 'wake', 6) }
-function tickMermaid(g: GS, b: Boss, dt: number) {
-  const p = targetPlayer(g, b.x, b.y)
-  b.modeT = (b.modeT ?? 0) - dt
-  const phase = b.hp / b.maxHp
-  b.aimAng = angTo(b.x, b.y, p.x, p.y)
-
-  // active whirlpool — pulls captains in and drowns those who linger at the eye
-  if (b.pool) {
-    b.pool.t += dt
-    const pr = 150
-    for (const tp of g.players) {
-      if (tp.dead) continue
-      const d = dist(b.pool.x, b.pool.y, tp.x, tp.y)
-      if (d < pr) {
-        const a = angTo(tp.x, tp.y, b.pool.x, b.pool.y)
-        const pull = (1 - d / pr) * 240 * dt
-        tp.x = clamp(tp.x + Math.cos(a) * pull, 30, WW - 30); tp.y = clamp(tp.y + Math.sin(a) * pull, 30, WH - 30)
-        if (d < 42) hurtPlayer(g, tp, 22 * dt * 4)
-      }
-    }
-    if (Math.random() < 0.8) { const a = rnd(0, TAU), rr = rnd(28, pr); g.particles.push({ x: b.pool.x + Math.cos(a) * rr, y: b.pool.y + Math.sin(a) * rr, vx: Math.cos(a + 1.5) * 130, vy: Math.sin(a + 1.5) * 130, life: 0.5, max: 0.5, size: rnd(2, 5), color: '#7fd5e0', kind: 'wake', spin: 0 }) }
-    if (b.pool.t >= b.pool.max) b.pool = undefined
-  }
-
-  if (b.mode === 'arrive') {
-    b.x += (WW / 2 - b.x) * Math.min(1, dt * 1.3); b.y += (WH * 0.35 - b.y) * Math.min(1, dt * 1.3)
-    b.swimAng = angLerp(b.swimAng!, b.aimAng, 1 - Math.pow(0.05, dt))
-    if (b.modeT <= 0) { b.mode = 'swim'; b.modeT = rnd(2, 2.8); b.atkCd = 0.8; pickSwimTarget(g, b) }
-    return
-  }
-  if (b.mode === 'swim') {
-    swimMove(g, b, dt, phase < 0.5 ? 205 : 170)
-    b.atkCd -= dt
-    if (b.atkCd <= 0) {
-      b.atkCd = phase < 0.5 ? 1.1 : 1.6
-      const aim = angTo(b.x, b.y, p.x + p.vx * 0.2, p.y + p.vy * 0.2)
-      const n = phase < 0.5 ? 5 : 3
-      for (let i = 0; i < n; i++) spawnBullet(g, b.x, b.y, aim + (i - (n - 1) / 2) * 0.18, 300, 12, 'pearl', false, { radius: 7, life: 3 })
-      Sfx.cannon()
-    }
-    if (b.modeT <= 0) {
-      const r = Math.random()
-      if (r < 0.42) startSong(g, b)
-      else if (r < 0.72) startWhirl(g, b)
-      else startDiveM(g, b)
-    }
-    return
-  }
-  if (b.mode === 'songWarn') { if (b.modeT <= 0) { b.mode = 'song'; b.modeT = phase < 0.5 ? 1.7 : 1.3; b.atkCd = 0 } return }
-  if (b.mode === 'song') { // expanding rings of charmed song-notes
-    b.atkCd -= dt
-    if (b.atkCd <= 0) {
-      b.atkCd = phase < 0.5 ? 0.42 : 0.56
-      const n = phase < 0.5 ? 20 : 14, off = g.time * 1.5
-      for (let i = 0; i < n; i++) { const a = (i / n) * TAU + off; spawnBullet(g, b.x, b.y, a, 210, 12, 'note', false, { radius: 8, life: 3.4 }) }
-      Sfx.zap()
-    }
-    if (b.modeT <= 0) { b.mode = 'swim'; b.modeT = rnd(2, 2.6); b.atkCd = 0.6; pickSwimTarget(g, b) }
-    return
-  }
-  if (b.mode === 'poolWarn') {
-    if (b.modeT <= 0) {
-      b.pool = { x: b.tx!, y: b.ty!, t: 0, max: phase < 0.5 ? 4 : 3 }
-      Sfx.slam(); g.shake = 14; burst(g, b.pool.x, b.pool.y, '#7fd5e0', 18, 220, 'wake', 6)
-      b.mode = 'swim'; b.modeT = rnd(2.2, 3); b.atkCd = 0.6; pickSwimTarget(g, b)
-    }
-    return
-  }
-  if (b.mode === 'dive') { // submerge (invulnerable), then surface beside the player with a splash ring
-    b.swimAng = angLerp(b.swimAng!, angTo(b.x, b.y, p.x, p.y), 1 - Math.pow(0.03, dt))
-    b.x = clamp(b.x + Math.cos(b.swimAng!) * 220 * dt, 60, WW - 60); b.y = clamp(b.y + Math.sin(b.swimAng!) * 220 * dt, 60, WH - 60)
-    if (Math.random() < 0.5) burst(g, b.x + rnd(-20, 20), b.y + rnd(-20, 20), '#7fd5e0', 1, 60, 'wake', 5)
-    if (b.modeT <= 0) {
-      b.x = clamp(p.x + rnd(-120, 120), 80, WW - 80); b.y = clamp(p.y + rnd(-120, 120), 80, WH - 80)
-      const n = phase < 0.5 ? 16 : 12
-      for (let i = 0; i < n; i++) { const a = (i / n) * TAU; spawnBullet(g, b.x, b.y, a, 260, 12, 'pearl', false, { radius: 6, life: 2.6 }) }
-      Sfx.roar(); g.shake = 14; burst(g, b.x, b.y, '#cfe6ff', 20, 260, 'wake', 6)
-      b.mode = 'swim'; b.modeT = rnd(1.8, 2.4); b.atkCd = 0.5; pickSwimTarget(g, b)
-    }
-    return
-  }
-}
 
 /* ═══ FINAL BOSS — Poseidon, God of the Sea ═══ */
 function startTrident(g: GS, b: Boss) { b.mode = 'tridentWarn'; b.modeT = 0.85; Sfx.warn() }
@@ -1625,7 +1522,6 @@ function render(ctx: CanvasRenderingContext2D, g: GS) {
   g.bosses.forEach((bo, i) => {
     if (bo.kind === 'leviathan') drawLeviathan(ctx, bo, g, w2s, i)
     else if (bo.kind === 'dutchman') drawDutchman(ctx, bo, g, w2s, i)
-    else if (bo.kind === 'mermaid') drawMermaid(ctx, bo, g, w2s, i)
     else if (bo.kind === 'poseidon') drawPoseidon(ctx, bo, g, w2s, i)
     else drawKraken(ctx, bo, g, w2s, i)
   })
@@ -1954,90 +1850,6 @@ function drawDutchman(ctx: CanvasRenderingContext2D, b: Boss, g: GS, w2s: (x: nu
   ctx.restore()
 
   drawBossBar(ctx, b, '☠ THE FLYING DUTCHMAN', '#2f8a6e', '#1a5a8a', idx)
-}
-
-function drawMermaid(ctx: CanvasRenderingContext2D, b: Boss, g: GS, w2s: (x: number, y: number) => { x: number; y: number }, idx: number) {
-  const t = g.time
-  // whirlpool telegraph ring at the chosen spot
-  if (b.mode === 'poolWarn') {
-    const o = w2s(b.tx!, b.ty!); const k = 1 - clamp((b.modeT ?? 0) / 1.0, 0, 1)
-    ctx.strokeStyle = `rgba(120,225,235,${0.4 + k * 0.5})`; ctx.lineWidth = 4
-    ctx.beginPath(); ctx.arc(o.x, o.y, 150, 0, TAU); ctx.stroke()
-    ctx.fillStyle = `rgba(60,160,180,${0.1 + k * 0.18})`; ctx.beginPath(); ctx.arc(o.x, o.y, 150 * k, 0, TAU); ctx.fill()
-  }
-  // active whirlpool
-  if (b.pool) {
-    const o = w2s(b.pool.x, b.pool.y)
-    ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(t * 3)
-    ctx.strokeStyle = 'rgba(140,225,235,0.55)'; ctx.lineWidth = 5; ctx.lineCap = 'round'
-    for (let a = 0; a < 3; a++) { ctx.beginPath(); for (let r = 18; r < 150; r += 6) { const an = r * 0.06 + a * TAU / 3; ctx.lineTo(Math.cos(an) * r, Math.sin(an) * r) } ctx.stroke() }
-    ctx.fillStyle = 'rgba(15,55,75,0.55)'; ctx.beginPath(); ctx.arc(0, 0, 38, 0, TAU); ctx.fill()
-    ctx.restore()
-  }
-  const s = w2s(b.x, b.y); const submerged = b.mode === 'dive'
-  ctx.save(); ctx.globalAlpha = submerged ? 0.4 : 1; ctx.translate(s.x, s.y); ctx.translate(0, Math.sin(t * 2) * 4)
-  // siren-song aura
-  if (b.mode === 'song' || b.mode === 'songWarn') {
-    const k = Math.sin(t * 8) * 0.2 + 0.5; ctx.strokeStyle = `rgba(255,110,205,${k})`; ctx.lineWidth = 3
-    for (const rr of [44, 64, 86]) { ctx.beginPath(); ctx.arc(0, 0, rr + Math.sin(t * 4 + rr) * 4, 0, TAU); ctx.stroke() }
-  }
-  const skin = b.hitFlash > 0 ? '#fff' : '#f6cfa6'
-  const hairCol = submerged ? '#1c5a64' : '#168a86'
-  const hairLt = submerged ? '#2f7d86' : '#2fb3a0'
-  ctx.shadowColor = '#ff9ad8'; ctx.shadowBlur = submerged ? 8 : 22
-  // flowing hair behind — long strands either side
-  for (const side of [-1, 1]) {
-    const w1 = Math.sin(t * 1.6 + side) * 7, w2 = Math.cos(t * 1.3 + side) * 9
-    ctx.fillStyle = hairCol
-    ctx.beginPath(); ctx.moveTo(side * 5, -42)
-    ctx.bezierCurveTo(side * 30 + w1, -28, side * 34 + w2, 8, side * 17 + w2, 44)
-    ctx.bezierCurveTo(side * 24, 4, side * 15, -18, side * 3, -36); ctx.closePath(); ctx.fill()
-    ctx.fillStyle = hairLt
-    ctx.beginPath(); ctx.moveTo(side * 5, -40)
-    ctx.bezierCurveTo(side * 20 + w1, -24, side * 22 + w2, 4, side * 13 + w2, 30)
-    ctx.bezierCurveTo(side * 16, 2, side * 11, -16, side * 4, -34); ctx.closePath(); ctx.fill()
-  }
-  // tail (sways) — gradient body, scale shimmer, fanned fluke
-  ctx.save(); ctx.translate(0, 10); ctx.rotate(Math.sin(t * 2.4) * 0.16)
-  const tg = ctx.createLinearGradient(0, 0, 0, 64)
-  tg.addColorStop(0, b.hitFlash > 0 ? '#fff' : '#4fd6c8'); tg.addColorStop(0.65, b.hitFlash > 0 ? '#fff' : '#1f9aa8'); tg.addColorStop(1, '#15637e')
-  ctx.fillStyle = tg
-  ctx.beginPath(); ctx.moveTo(-9, -2); ctx.bezierCurveTo(-13, 24, -8, 42, -3, 54); ctx.bezierCurveTo(2, 42, 11, 24, 9, -2); ctx.closePath(); ctx.fill()
-  ctx.strokeStyle = 'rgba(190,255,248,0.4)'; ctx.lineWidth = 1.4
-  for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(0, 8 + i * 13, 7 - i * 1.4, Math.PI * 0.18, Math.PI * 0.82); ctx.stroke() }
-  ctx.fillStyle = b.hitFlash > 0 ? '#fff' : 'rgba(118,235,224,0.92)'
-  for (const dir of [-1, 1]) { ctx.beginPath(); ctx.moveTo(0, 50); ctx.quadraticCurveTo(dir * 28, 54, dir * 22, 80); ctx.quadraticCurveTo(dir * 9, 66, 0, 58); ctx.closePath(); ctx.fill() }
-  ctx.restore(); ctx.shadowBlur = 0
-  // torso
-  ctx.fillStyle = skin
-  ctx.beginPath(); ctx.moveTo(-7, 13); ctx.bezierCurveTo(-11, -2, -9, -18, -7, -25); ctx.lineTo(7, -25); ctx.bezierCurveTo(9, -18, 11, -2, 7, 13); ctx.closePath(); ctx.fill()
-  // arms (one resting, one raised gracefully)
-  ctx.strokeStyle = skin; ctx.lineWidth = 5; ctx.lineCap = 'round'
-  const armWave = Math.sin(t * 2) * 6
-  ctx.beginPath(); ctx.moveTo(-6, -18); ctx.quadraticCurveTo(-17, -6, -13, 10); ctx.stroke()
-  ctx.beginPath(); ctx.moveTo(6, -18); ctx.quadraticCurveTo(19, -16, 23, -32 + armWave * 0.3); ctx.stroke()
-  // shell top
-  ctx.fillStyle = b.hitFlash > 0 ? '#fff' : '#ff8fd0'
-  for (const dir of [-1, 1]) {
-    ctx.beginPath(); ctx.arc(dir * 4, -15, 5, 0, TAU); ctx.fill()
-    ctx.strokeStyle = '#ffd6ee'; ctx.lineWidth = 1
-    for (let r = -1; r <= 1; r++) { ctx.beginPath(); ctx.moveTo(dir * 4, -12); ctx.lineTo(dir * 4 + r * 3, -19); ctx.stroke() }
-  }
-  // head + hair crown framing the face
-  ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(0, -35, 10, 0, TAU); ctx.fill()
-  ctx.fillStyle = hairCol; ctx.beginPath(); ctx.arc(0, -37, 11, Math.PI * 0.92, TAU + Math.PI * 0.08); ctx.fill()
-  for (const dir of [-1, 1]) { ctx.beginPath(); ctx.moveTo(dir * 9, -40); ctx.quadraticCurveTo(dir * 13, -30, dir * 8, -27); ctx.quadraticCurveTo(dir * 8, -34, dir * 5, -41); ctx.closePath(); ctx.fill() }
-  // face
-  if (!submerged) {
-    ctx.fillStyle = '#33474a'; ctx.beginPath(); ctx.ellipse(-3.6, -35, 1.5, 2.1, 0, 0, TAU); ctx.ellipse(3.6, -35, 1.5, 2.1, 0, 0, TAU); ctx.fill()
-    ctx.strokeStyle = '#33474a'; ctx.lineWidth = 0.9; ctx.beginPath(); ctx.moveTo(-5.4, -38); ctx.lineTo(-2, -37.6); ctx.moveTo(5.4, -38); ctx.lineTo(2, -37.6); ctx.stroke()
-    ctx.strokeStyle = '#d96a86'; ctx.lineWidth = 1.5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-2.6, -30.4); ctx.quadraticCurveTo(0, -28.8, 2.6, -30.4); ctx.stroke()
-    ctx.fillStyle = 'rgba(255,150,180,0.4)'; ctx.beginPath(); ctx.arc(-6, -32, 2, 0, TAU); ctx.arc(6, -32, 2, 0, TAU); ctx.fill()
-  } else {
-    ctx.fillStyle = 'rgba(150,255,235,0.9)'; ctx.beginPath(); ctx.arc(-3.6, -35, 2, 0, TAU); ctx.arc(3.6, -35, 2, 0, TAU); ctx.fill()
-  }
-  ctx.restore()
-  drawBossBar(ctx, b, '🧜 THE SIREN', '#ff5db8', '#7b2f9a', idx)
 }
 
 function drawPoseidon(ctx: CanvasRenderingContext2D, b: Boss, g: GS, w2s: (x: number, y: number) => { x: number; y: number }, idx: number) {
@@ -2531,7 +2343,7 @@ export default function PirateCarnage() {
       </div>
 
       <p style={{ color: '#605848', fontSize: 12, fontFamily: 'Inter,sans-serif', textAlign: 'center', maxWidth: 640, lineHeight: 1.6 }}>
-        Twisted Metal on the high seas — solo or <span style={{ color: '#c89b3c' }}>2-player local co-op</span>. Pick a ship, boost through the chaos, grab power-ups, and survive the boss gauntlet — the Kraken, the Leviathan, the Siren, the Flying Dutchman, and finally <span style={{ color: '#c89b3c' }}>Poseidon</span> himself. Win to earn <span style={{ color: '#c89b3c' }}>+25 Fun XP</span>.
+        Twisted Metal on the high seas — solo or <span style={{ color: '#c89b3c' }}>2-player local co-op</span>. Pick a ship, boost through the chaos, grab power-ups, and survive the boss gauntlet — the Kraken, the Leviathan, the Flying Dutchman, and finally <span style={{ color: '#c89b3c' }}>Poseidon</span> himself. Win to earn <span style={{ color: '#c89b3c' }}>+25 Fun XP</span>.
       </p>
 
       <div style={{ width: '100%', maxWidth: 420 }}>
