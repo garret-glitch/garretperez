@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import GameLeaderboard from '@/components/GameLeaderboard'
+import GodModeToggle, { useGodMode } from '@/components/GodModeToggle'
 
 /* ═══════════════════════════════════════════════════════════════════════
    PIRATE CARNAGE — Twisted Metal x Vampire Survivors on the ocean.
@@ -287,6 +288,7 @@ interface GS {
   kills: number; score: number; wave: number; spawnCd: number; bossSpawned: boolean
   state: string; lightCd: number; lightning: { x: number; y: number; t: number; state: string } | null
   banner: { txt: string; sub: string; life: number } | null; flash: number; hitStop: number
+  god: boolean   // super-admin God Mode — players take no damage
 }
 
 /* ═══ BUILDS ═══ */
@@ -346,7 +348,7 @@ function mkState(builds: Build[]): GS {
     rocks, foam, bosses: [], cam: { x: 0, y: 0 }, shake: 0, time: 0,
     kills: 0, score: 0, wave: 1, spawnCd: 1.0, bossSpawned: false,
     state: 'playing', lightCd: 6, lightning: null,
-    banner: { txt: 'SET SAIL', sub: 'DESTROY EVERYTHING', life: 2.2 }, flash: 0, hitStop: 0,
+    banner: { txt: 'SET SAIL', sub: 'DESTROY EVERYTHING', life: 2.2 }, flash: 0, hitStop: 0, god: false,
   }
 }
 
@@ -457,6 +459,7 @@ function damageBoss(g: GS, b: Boss, dmg: number, fromX: number, fromY: number) {
   if (b.hp <= 0) startBossDeath(g, b)
 }
 function hurtPlayer(g: GS, p: Player, dmg: number) {
+  if (g.god) return // God Mode — invincible
   if (p.dead || p.shield > 0 || p.iframe > 0 || g.state !== 'playing') return
   dmg *= p.build.armor
   p.hp -= dmg; p.iframe = 0.55; g.shake = Math.min(26, g.shake + 8); g.flash = 0.25; g.hitStop = 0.05
@@ -2222,6 +2225,9 @@ export default function PirateCarnage() {
   const screenRef = useRef(screen)
   screenRef.current = screen
   pausedRef.current = paused
+  const { on: godOn } = useGodMode()
+  const godRef = useRef(false)
+  godRef.current = godOn
 
   const claimXp = useCallback(async () => {
     setXpDone(true)
@@ -2281,6 +2287,7 @@ export default function PirateCarnage() {
       let dt = (now - lastRef.current) / 1000; lastRef.current = now
       if (dt > 0.05) dt = 0.05
       if (!pausedRef.current) {
+        g.god = godRef.current
         const E = edgeRef.current
         tick(g, dt, keysRef.current, E)
         E[0].sec = E[0].ult = false; E[1].sec = E[1].ult = false
@@ -2473,6 +2480,7 @@ export default function PirateCarnage() {
           {screen === 'playing' && (
             <button className="pc-btn" onClick={() => setPaused(v => !v)} style={iconBtn} title={paused ? 'Resume' : 'Pause'}>{paused ? '▶' : '⏸'}</button>
           )}
+          <GodModeToggle />
         </div>
       </div>
 

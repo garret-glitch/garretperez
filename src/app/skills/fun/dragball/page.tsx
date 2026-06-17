@@ -2,6 +2,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import GameLeaderboard from '@/components/GameLeaderboard'
+import GodModeToggle, { useGodMode } from '@/components/GodModeToggle'
 
 const W = 480
 const H = 360
@@ -43,6 +44,9 @@ export default function DragBallPage() {
   const [lives, setLives] = useState(3)
   const [refreshKey, setRefreshKey] = useState(0)
   const submitted = useRef(false)
+  const { on: godOn } = useGodMode()
+  const godRef = useRef(false)
+  useEffect(() => { godRef.current = godOn }, [godOn])
 
   const frameRef = useRef<() => void>(() => {})
   const g = useRef({
@@ -233,7 +237,7 @@ export default function DragBallPage() {
       }
 
       // Collision
-      if (s.iframes === 0) {
+      if (s.iframes === 0 && !godRef.current) {
         for (const rb of enemies) {
           if (Math.hypot(ball.x - rb.x, ball.y - rb.y) < BR + RR + 1) {
             s.lives--
@@ -311,6 +315,7 @@ export default function DragBallPage() {
               Drag to steer · dodge 🔴 enemies · collect ⭐ coins
             </div>
           </div>
+          <div style={{ marginLeft: 'auto' }}><GodModeToggle /></div>
         </div>
       </div>
 

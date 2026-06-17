@@ -14,7 +14,7 @@ export async function DELETE(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 })
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } })
   if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
-  if (user.role === 'ADMIN') return NextResponse.json({ error: 'Cannot delete admin accounts' }, { status: 403 })
+  if (user.role === 'ADMIN' || user.role === 'SUPERADMIN') return NextResponse.json({ error: 'Cannot delete admin accounts' }, { status: 403 })
   await prisma.user.delete({ where: { id: userId } })
   return NextResponse.json({ ok: true })
 }
@@ -25,7 +25,7 @@ export async function PUT(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 })
   const update: Record<string, unknown> = {}
   if (role !== undefined) {
-    if (role !== 'USER' && role !== 'ADMIN') return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
+    if (role !== 'USER' && role !== 'ADMIN' && role !== 'SUPERADMIN') return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
     update.role = role
   }
   if (newPassword) {

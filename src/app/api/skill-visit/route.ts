@@ -31,14 +31,15 @@ export async function POST(req: Request) {
 
     const xpAmount = await getXpAmount('SKILL_OPEN')
 
-    await prisma.userSkill.update({
-      where: { userId_skill: { userId: session.user.id, skill: skill as SkillType } },
-      data: { xp: { increment: xpAmount } },
-    })
+    if (!session.user.superAdmin) {
+      await prisma.userSkill.update({
+        where: { userId_skill: { userId: session.user.id, skill: skill as SkillType } },
+        data: { xp: { increment: xpAmount } },
+      })
+      await mirrorXpToAdmin(skill as SkillType, xpAmount, session.user.id)
+    }
 
-    await mirrorXpToAdmin(skill as SkillType, xpAmount, session.user.id)
-
-    return NextResponse.json({ ok: true, xpAwarded: xpAmount })
+    return NextResponse.json({ ok: true, xpAwarded: session.user.superAdmin ? 0 : xpAmount })
   } catch {
     return NextResponse.json({ ok: false })
   }

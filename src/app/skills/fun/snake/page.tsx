@@ -2,6 +2,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import GameLeaderboard from '@/components/GameLeaderboard'
+import GodModeToggle, { useGodMode } from '@/components/GodModeToggle'
 
 const CELL = 16
 const COLS = 24
@@ -31,6 +32,9 @@ export default function SnakePage() {
   const [xpDone, setXpDone] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const hasSubmittedScore = useRef(false)
+  const { on: godOn } = useGodMode()
+  const godRef = useRef(false)
+  useEffect(() => { godRef.current = godOn }, [godOn])
   const st = useRef({
     snake: [] as Pt[],
     dir: 'R' as Dir,
@@ -97,7 +101,12 @@ export default function SnakePage() {
 
     if (next.x < 0 || next.x >= COLS || next.y < 0 || next.y >= ROWS ||
       s.snake.slice(1).some(p => p.x === next.x && p.y === next.y)) {
-      s.alive = false; setPhase('dead'); render(); return
+      if (godRef.current) {
+        // God Mode — wrap through walls and slither harmlessly through yourself
+        next.x = (next.x + COLS) % COLS; next.y = (next.y + ROWS) % ROWS
+      } else {
+        s.alive = false; setPhase('dead'); render(); return
+      }
     }
 
     const ate = next.x === s.food.x && next.y === s.food.y
@@ -163,6 +172,7 @@ export default function SnakePage() {
           <h1 className="text-[11px]" style={{ color: 'var(--text-1)' }}>Snake</h1>
           <span className="ml-auto text-[7px]" style={{ color: 'var(--gold)' }}>⭐ {score} / 10</span>
         </div>
+        <div className="flex justify-end mb-2"><GodModeToggle /></div>
 
         <div className="relative">
           <canvas ref={cvs} width={W} height={H}

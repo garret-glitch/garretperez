@@ -36,6 +36,10 @@ export async function awardXp({
   const today = todayStr()
   const db = prisma as any
 
+  // Super admins are observers — they never accrue XP from any event.
+  const earner = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } })
+  if ((earner?.role as string) === 'SUPERADMIN') return { awarded: false, reason: 'superadmin' }
+
   // Check count-based daily limit
   const countLimit = XP_COUNT_LIMITS[eventType]
   if (countLimit !== undefined) {

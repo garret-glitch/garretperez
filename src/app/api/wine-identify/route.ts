@@ -110,7 +110,7 @@ export async function POST(req: Request) {
     })
 
     let xpAwarded = 0
-    if (existingToday === 0) {
+    if (existingToday === 0 && !session.user.superAdmin) {
       const xpAmount = await getXpAmount('PHOTO_UPLOAD')
       await prisma.userSkill.update({
         where: { userId_skill: { userId: session.user.id, skill: 'FOOD' } },

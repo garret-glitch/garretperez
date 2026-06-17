@@ -21,7 +21,8 @@ export async function POST(req: Request) {
     const ingredientList = Array.isArray(ingredients) ? ingredients : [ingredients]
     const xpAmount = await getXpAmount('RECIPE_ADD')
 
-    await prisma.$transaction([
+    const noXp = !!session.user.superAdmin // super admins add recipes but never earn XP
+    const ops: any[] = [
       prisma.recipe.create({
         data: {
           userId: session.user.id,
@@ -31,16 +32,21 @@ export async function POST(req: Request) {
           instructions: instructions.trim(),
         },
       }),
+    ]
+    if (!noXp) ops.push(
       prisma.userSkill.update({
         where: { userId_skill: { userId: session.user.id, skill: 'FOOD' } },
         data: { xp: { increment: xpAmount } },
-      }),
-    ])
+      })
+    )
+    await prisma.$transaction(ops)
 
-    await checkBadges(session.user.id, 'recipe')
-    await mirrorXpToAdmin('FOOD', xpAmount, session.user.id)
+    if (!noXp) {
+      await checkBadges(session.user.id, 'recipe')
+      await mirrorXpToAdmin('FOOD', xpAmount, session.user.id)
+    }
 
-    return NextResponse.json({ success: true, xpAwarded: xpAmount })
+    return NextResponse.json({ success: true, xpAwarded: noXp ? 0 : xpAmount })
   } catch (error) {
     console.error('Recipe error:', error)
     return NextResponse.json({ error: 'Failed to create recipe.' }, { status: 500 })

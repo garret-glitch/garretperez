@@ -12,6 +12,9 @@ export async function POST() {
   }
 
   try {
+    // super admins play but never earn XP
+    if (session.user.superAdmin) return NextResponse.json({ success: true, xpAwarded: 0 })
+
     const xpAmount = await getXpAmount('MINIGAME_WIN')
 
     await prisma.userSkill.update({

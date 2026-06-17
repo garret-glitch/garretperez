@@ -27,13 +27,15 @@ export async function POST(req: Request) {
 
   // Award XP for hearting a wine (once per wine — unique constraint means no spam)
   const xpAmount = await getXpAmount('UPVOTE_GIVEN')
-  await prisma.userSkill.update({
-    where: { userId_skill: { userId: session.user.id, skill: 'FOOD' } },
-    data: { xp: { increment: xpAmount } },
-  })
-  await mirrorXpToAdmin('FOOD', xpAmount, session.user.id)
+  if (!session.user.superAdmin) {
+    await prisma.userSkill.update({
+      where: { userId_skill: { userId: session.user.id, skill: 'FOOD' } },
+      data: { xp: { increment: xpAmount } },
+    })
+    await mirrorXpToAdmin('FOOD', xpAmount, session.user.id)
+  }
 
-  return NextResponse.json({ favorited: true, xpAwarded: xpAmount })
+  return NextResponse.json({ favorited: true, xpAwarded: session.user.superAdmin ? 0 : xpAmount })
 }
 
 export async function GET(req: Request) {

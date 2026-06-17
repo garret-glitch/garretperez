@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { emitXpGained } from '@/components/XpToast'
 import GameLeaderboard from '@/components/GameLeaderboard'
+import GodModeToggle, { useGodMode } from '@/components/GodModeToggle'
 
 /* ═══════════════════════ CONSTANTS ═══════════════════════ */
 const CW = 800, CH = 570
@@ -214,6 +215,7 @@ interface GS {
   custPerk: { type: PUType; timer: number } | null  // notification for perk earned
   levelUpTimer: number
   stockFlashes: Array<{ shelfId: number; timer: number }>
+  god: boolean   // super-admin God Mode — never accrue strikes
 }
 
 /* ═══════════════════════ HELPERS ═══════════════════════ */
@@ -264,6 +266,7 @@ function mkState(): GS {
     efx: { sprint: 0, forklift: 0, vendor: 0, vendorShelf: -1, multi: 1, multiTimer: 0 },
     activeAsker: null, wrongFlash: 0, custPerk: null,
     levelUpTimer: 0, stockFlashes: [],
+    god: false,
   }
 }
 
@@ -498,7 +501,7 @@ function tickPlay(g: GS, dt: number, keys: Set<string>) {
       } else {
         m.mood = 'angry'
         m.lines = ANGRY[Math.min(g.strikes, 2)]
-        g.strikes++
+        if (!g.god) g.strikes++ // God Mode never accrues strikes, so you can't be fired
         g.score = Math.max(0, g.score - 50)
         Sfx.inspectBad()
       }
@@ -1252,6 +1255,9 @@ export default function WineStockerRush() {
   const rafRef      = useRef(0)
   const goFiredRef  = useRef(false)   // guard against repeated setState in RAF
   const xpRef       = useRef(false)
+  const { on: godOn } = useGodMode()
+  const godRef      = useRef(false)
+  useEffect(() => { godRef.current = godOn }, [godOn])
 
   const wrapRef     = useRef<HTMLDivElement | null>(null)   // outer / fullscreen target
   const stageRef    = useRef<HTMLDivElement | null>(null)   // canvas + overlays box
@@ -1436,6 +1442,7 @@ export default function WineStockerRush() {
 
       const g = gsRef.current
       if (g) {
+        g.god = godRef.current
         const allKeys = new Set([...Array.from(keysRef.current), ...Array.from(touchRef.current)])
         tick(g, dt, allKeys)
 
@@ -1505,6 +1512,9 @@ export default function WineStockerRush() {
             cursor: 'default',
           }}
         />
+
+        {/* God Mode (super admins only) */}
+        <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 60 }}><GodModeToggle /></div>
 
         {/* ── Menu overlay (scaled to match the canvas) ── */}
         {screen === 'menu' && (

@@ -254,6 +254,16 @@ export default function AdminUsersPage() {
                     {u.role === 'ADMIN' ? 'Demote' : 'Make Admin'}
                   </button>
                   <button
+                    onClick={() => {
+                      const newRole = u.role === 'SUPERADMIN' ? 'ADMIN' : 'SUPERADMIN'
+                      if (confirm(`Change ${u.username} to ${newRole}? Super admins earn no XP, have everything unlocked, and can enable God Mode in games.`)) changeRole(u.id, newRole)
+                    }}
+                    className="admin-action-btn rounded border"
+                    style={{ borderColor: '#7b2f9a', color: '#caa8ff' }}
+                  >
+                    {u.role === 'SUPERADMIN' ? 'Unset Super' : 'Super Admin'}
+                  </button>
+                  <button
                     onClick={() => { setPwUserId(u.id); setNewPassword('') }}
                     className="admin-action-btn rounded border"
                     style={{ borderColor: 'var(--border)', color: 'var(--text-2)' }}

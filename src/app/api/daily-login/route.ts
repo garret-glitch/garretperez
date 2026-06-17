@@ -29,6 +29,12 @@ export async function POST() {
       return NextResponse.json({ alreadyClaimed: true })
     }
 
+    // super admins still record the login but never earn XP
+    if (session.user.superAdmin) {
+      await prisma.user.update({ where: { id: session.user.id }, data: { lastLoginAt: new Date() } })
+      return NextResponse.json({ success: true, xpAwarded: 0 })
+    }
+
     const randomSkill = ALL_SKILLS[Math.floor(Math.random() * ALL_SKILLS.length)]
     const xpAmount = await getXpAmount('DAILY_LOGIN')
 

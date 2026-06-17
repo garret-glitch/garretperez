@@ -30,16 +30,18 @@ export async function POST(req: Request) {
       },
     })
 
-    await prisma.userSkill.upsert({
-      where: { userId_skill: { userId: session.user.id, skill: post.skill } },
-      create: { userId: session.user.id, skill: post.skill, xp: xpAmount },
-      update: { xp: { increment: xpAmount } },
-    })
+    if (!session.user.superAdmin) {
+      await prisma.userSkill.upsert({
+        where: { userId_skill: { userId: session.user.id, skill: post.skill } },
+        create: { userId: session.user.id, skill: post.skill, xp: xpAmount },
+        update: { xp: { increment: xpAmount } },
+      })
 
-    await mirrorXpToAdmin(post.skill, xpAmount, session.user.id)
-    await checkBadges(session.user.id, 'reply')
+      await mirrorXpToAdmin(post.skill, xpAmount, session.user.id)
+      await checkBadges(session.user.id, 'reply')
+    }
 
-    return NextResponse.json({ success: true, xpAwarded: xpAmount })
+    return NextResponse.json({ success: true, xpAwarded: session.user.superAdmin ? 0 : xpAmount })
   } catch (error) {
     console.error('Reply error:', error)
     return NextResponse.json({ error: 'Failed to post reply.' }, { status: 500 })

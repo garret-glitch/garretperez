@@ -14,7 +14,7 @@ export async function POST(req: Request) {
 
   try {
     const { postId } = await req.json()
-    const post = await prisma.post.findUnique({ where: { id: postId }, select: { userId: true, skill: true } })
+    const post = await prisma.post.findUnique({ where: { id: postId }, select: { userId: true, skill: true, user: { select: { role: true } } } })
     if (!post) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     const existing = await (prisma as any).postUpvote.findUnique({
@@ -30,8 +30,8 @@ export async function POST(req: Request) {
 
     await (prisma as any).postUpvote.create({ data: { postId, userId: session.user.id } })
 
-    // XP to post author (someone liked their post)
-    if (post.userId !== session.user.id) {
+    // XP to post author (someone liked their post) — never to a super-admin author
+    if (post.userId !== session.user.id && (post.user?.role as string) !== 'SUPERADMIN') {
       await prisma.userSkill.update({
         where: { userId_skill: { userId: post.userId, skill: post.skill } },
         data: { xp: { increment: XP_PER_UPVOTE_RECEIVED } },
@@ -40,15 +40,17 @@ export async function POST(req: Request) {
       await checkBadges(post.userId, 'post')
     }
 
-    // XP to the upvoter (for engaging with the community)
+    // XP to the upvoter (for engaging) — super admins earn nothing
     const voterXp = await getXpAmount('UPVOTE_GIVEN')
-    await prisma.userSkill.update({
-      where: { userId_skill: { userId: session.user.id, skill: post.skill } },
-      data: { xp: { increment: voterXp } },
-    })
-    await mirrorXpToAdmin(post.skill, voterXp, session.user.id)
+    if (!session.user.superAdmin) {
+      await prisma.userSkill.update({
+        where: { userId_skill: { userId: session.user.id, skill: post.skill } },
+        data: { xp: { increment: voterXp } },
+      })
+      await mirrorXpToAdmin(post.skill, voterXp, session.user.id)
+    }
 
-    return NextResponse.json({ upvoted: true, xpAwarded: voterXp })
+    return NextResponse.json({ upvoted: true, xpAwarded: session.user.superAdmin ? 0 : voterXp })
   } catch (e) {
     console.error(e)
     return NextResponse.json({ error: 'Failed' }, { status: 500 })

@@ -1,6 +1,7 @@
 ﻿'use client'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
+import GodModeToggle, { useGodMode } from '@/components/GodModeToggle'
 
 /* ═══ CONSTANTS ═══ */
 const CW = 960, CH = 600, WW = 2400, WH = 1500
@@ -247,6 +248,7 @@ interface GS {
   bossDesperate: boolean; phaseBanner: { text: string; sub: string; timer: number } | null
   sigTimer: number
   mageCircle: number
+  god: boolean   // super-admin God Mode — player takes no damage
 }
 interface PlayerState {
   pos: V2; vel: V2; targetPos: V2 | null
@@ -425,6 +427,7 @@ function mkState(wpn: WeaponDef, boss: BossDef, gear: GearId[]): GS {
     bossDesperate: false, phaseBanner: null,
     sigTimer: 0,
     mageCircle: 0,
+    god: false,
     griffinState: { mode: 0, timer: 3.0, dive: v(1, 0), shotT: 0 },
   }
 }
@@ -441,6 +444,7 @@ function spawnParticles(g: GS, pos: V2, count: number, color: string, speed = 12
 
 function dealDmgToPlayer(g: GS, dmg: number, wpn: WeaponDef, gear: GearId[], knockDir?: V2) {
   const p = g.player
+  if (g.god) return // God Mode — invincible
   if (p.iframeTimer > 0) return
   let fd = dmg
   if (g.rageActive) fd = Math.round(fd * 1.2)
@@ -1171,7 +1175,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
     zone.life -= dt; if (zone.life <= 0) return false
     if (dist(p.pos, zone.pos) < zone.radius + 14) {
       if (zone.type === 'web') p.slowTimer = Math.max(p.slowTimer, 1.8)
-      if (p.iframeTimer <= 0 && zone.dps > 0) {
+      if (p.iframeTimer <= 0 && zone.dps > 0 && !g.god) {
         const tick2 = zone.dps * dt; p.hp = Math.max(0, p.hp - tick2); p.hitFlash = Math.max(p.hitFlash, 0.06)
         if (zone.type === 'poison' && Math.random() < dt * 2) g.damageNums.push({ id: ++g.nextDmgId, pos: { x: p.pos.x + rnd(-14, 14), y: p.pos.y - 18 }, val: Math.round(tick2), life: 0.8, isPlayer: true })
         if (p.hp <= 0) killPlayer(g)
@@ -3316,6 +3320,9 @@ export default function BossHunter() {
   // Admins start with every weapon and armour unlocked
   const { data: session } = useSession()
   const isAdmin = (session?.user as { role?: string } | undefined)?.role === 'ADMIN'
+  const { on: godOn } = useGodMode()
+  const godRef = useRef(false)
+  godRef.current = godOn
   useEffect(() => {
     if (isAdmin) setUnlockedGear(Object.keys(GEAR_DEFS) as GearId[])
   }, [isAdmin])
@@ -3560,6 +3567,7 @@ export default function BossHunter() {
       pendingAbilityRef.current = null
       pendingDodgeRef.current = false
 
+      g.god = godRef.current
       tick(g, dt, wpn, selBoss, gear, mouseWorldRef.current, new Set(), mouseWorldRef.current, pending)
 
       if (g.bossDesperate && g.phase === 'playing') Sfx.playMusic('battle_final')   // frantic phase-3 theme
@@ -3807,6 +3815,7 @@ export default function BossHunter() {
         <canvas ref={canvasRef} width={CW} height={CH} className="bh-canvas" />
       </div>
       <div style={{position:'absolute',top:8,right:8,display:'flex',gap:6,zIndex:1}}>
+        <GodModeToggle style={{ fontSize: 7, padding: '4px 10px' }} />
         <button onClick={() => { const nm = !muted; setMuted(nm); Sfx.setMuted(nm); Sfx.resume() }} style={{background:'rgba(4,4,14,0.85)',border:'1px solid #2a2820',color:'#605848',padding:'4px 10px',borderRadius:4,fontSize:7,cursor:'pointer',fontFamily:'inherit'}}>{muted ? '🔇 SOUND OFF' : '🔊 SOUND ON'}</button>
         <button onClick={toggleFullscreen} style={{background:'rgba(4,4,14,0.85)',border:'1px solid #2a2820',color:'#605848',padding:'4px 10px',borderRadius:4,fontSize:7,cursor:'pointer',fontFamily:'inherit'}}>{isFullscreen ? '⊠ WINDOW' : '⛶ FULLSCREEN'}</button>
         <button onClick={() => { cancelAnimationFrame(rafRef.current); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); setScreen('menu') }} style={{background:'rgba(4,4,14,0.85)',border:'1px solid #2a2820',color:'#605848',padding:'4px 10px',borderRadius:4,fontSize:7,cursor:'pointer',fontFamily:'inherit'}}>✕ QUIT</button>

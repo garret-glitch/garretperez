@@ -2,6 +2,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import GameLeaderboard from '@/components/GameLeaderboard'
+import GodModeToggle, { useGodMode } from '@/components/GodModeToggle'
 
 const W = 400, H = 280
 const BCOLS = 8, BROWS = 4
@@ -30,6 +31,9 @@ export default function BreakoutPage() {
   const [xpDone, setXpDone] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const hasSubmittedScore = useRef(false)
+  const { on: godOn } = useGodMode()
+  const godRef = useRef(false)
+  useEffect(() => { godRef.current = godOn }, [godOn])
 
   const st = useRef({
     bricks: mkBricks(),
@@ -107,8 +111,10 @@ export default function BreakoutPage() {
 
     // Lost ball
     if (ball.y > H + 20) {
-      s.lives--; setLives(s.lives)
-      if (s.lives <= 0) { s.alive = false; setPhase('dead'); return }
+      if (!godRef.current) { // God Mode keeps all lives
+        s.lives--; setLives(s.lives)
+        if (s.lives <= 0) { s.alive = false; setPhase('dead'); return }
+      }
       ball.x = s.pad + PAD_W / 2; ball.y = H - 60
       ball.vx = 2.5 * (Math.random() > 0.5 ? 1 : -1); ball.vy = -2.5
     }
@@ -167,6 +173,7 @@ export default function BreakoutPage() {
           <h1 className="text-[11px]" style={{ color: 'var(--text-1)' }}>Breakout</h1>
           <span className="ml-auto text-[7px]" style={{ color: 'var(--gold)' }}>Score: {score} · ❤️ {lives}</span>
         </div>
+        <div className="flex justify-end mb-2"><GodModeToggle /></div>
 
         <div className="relative">
           <canvas ref={cvs} width={W} height={H}

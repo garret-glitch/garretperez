@@ -36,7 +36,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     jwt({ token, user }) {
       if (user) {
         token.id = user.id
-        token.role = (user as any).role
+        const dbRole = (user as any).role
+        // SUPERADMIN is a tier above ADMIN. It carries all admin privileges, so we
+        // expose role as 'ADMIN' (every existing admin gate keeps working) and flag
+        // the super-admin powers separately.
+        token.superAdmin = dbRole === 'SUPERADMIN'
+        token.role = dbRole === 'SUPERADMIN' ? 'ADMIN' : dbRole
       }
       return token
     },
@@ -44,6 +49,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (session.user) {
         session.user.id = token.id as string
         session.user.role = token.role as string
+        session.user.superAdmin = !!token.superAdmin
       }
       return session
     },

@@ -9,6 +9,10 @@ export async function POST(req: Request) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  // super admins (who can play with god mode) never post to the leaderboards
+  if (session.user.superAdmin) {
+    return NextResponse.json({ updated: false, skipped: 'superadmin' })
+  }
 
   const body = await req.json().catch(() => null)
   if (!body || typeof body.game !== 'string' || typeof body.score !== 'number') {

@@ -25,7 +25,8 @@ export async function POST(req: Request) {
 
     const xpAmount = await getXpAmount('POST_CREATE')
 
-    await prisma.$transaction([
+    const noXp = !!session.user.superAdmin // super admins post but never earn XP
+    const ops: any[] = [
       prisma.post.create({
         data: {
           userId: session.user.id,
@@ -35,17 +36,22 @@ export async function POST(req: Request) {
           ...(imageUrl ? { imageUrl } : {}),
         },
       }),
+    ]
+    if (!noXp) ops.push(
       prisma.userSkill.upsert({
         where: { userId_skill: { userId: session.user.id, skill: skill as SkillType } },
         create: { userId: session.user.id, skill: skill as SkillType, xp: xpAmount },
         update: { xp: { increment: xpAmount } },
-      }),
-    ])
+      })
+    )
+    await prisma.$transaction(ops)
 
-    await checkBadges(session.user.id, 'post')
-    await mirrorXpToAdmin(skill as SkillType, xpAmount, session.user.id)
+    if (!noXp) {
+      await checkBadges(session.user.id, 'post')
+      await mirrorXpToAdmin(skill as SkillType, xpAmount, session.user.id)
+    }
 
-    return NextResponse.json({ success: true, xpAwarded: xpAmount })
+    return NextResponse.json({ success: true, xpAwarded: noXp ? 0 : xpAmount })
   } catch (error) {
     console.error('Post error:', error)
     return NextResponse.json({ error: 'Failed to create post.' }, { status: 500 })

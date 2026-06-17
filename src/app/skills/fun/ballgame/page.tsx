@@ -2,6 +2,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import GameLeaderboard from '@/components/GameLeaderboard'
+import GodModeToggle, { useGodMode } from '@/components/GodModeToggle'
 
 const W = 400
 const H = 320
@@ -32,6 +33,9 @@ export default function BallGamePage() {
   const [refreshKey, setRefreshKey] = useState(0)
   const submitted = useRef(false)
   const touchX    = useRef<number | null>(null)
+  const { on: godOn } = useGodMode()
+  const godRef = useRef(false)
+  useEffect(() => { godRef.current = godOn }, [godOn])
 
   const st = useRef<State>({
     ball:  { x: W / 2, y: H / 2, vx: BASE_SPD, vy: BASE_SPD },
@@ -146,12 +150,14 @@ export default function BallGamePage() {
 
     // Ball missed (falls below paddle)
     if (ball.y - BALL_R > H) {
-      s.lives--
-      setLives(s.lives)
-      if (s.lives <= 0) {
-        cancelAnimationFrame(s.raf)
-        setPhase('dead')
-        return
+      if (!godRef.current) { // God Mode keeps all lives
+        s.lives--
+        setLives(s.lives)
+        if (s.lives <= 0) {
+          cancelAnimationFrame(s.raf)
+          setPhase('dead')
+          return
+        }
       }
       // Reset ball
       ball.x  = W / 2
@@ -229,6 +235,7 @@ export default function BallGamePage() {
               Keep the ball alive — 3 lives · speed increases every bounce
             </div>
           </div>
+          <div style={{ marginLeft: 'auto' }}><GodModeToggle /></div>
         </div>
       </div>
 

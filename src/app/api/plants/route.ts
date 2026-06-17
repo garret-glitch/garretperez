@@ -37,13 +37,15 @@ export async function POST(req: Request) {
     include: { user: { select: { username: true } } },
   })
 
-  // Award +50 XP to Gardening + mirror to admin
-  await prisma.userSkill.upsert({
-    where: { userId_skill: { userId: session.user.id, skill: 'GARDENING' } },
-    update: { xp: { increment: 50 } },
-    create: { userId: session.user.id, skill: 'GARDENING', xp: 50 },
-  })
-  await mirrorXpToAdmin('GARDENING', 50, session.user.id)
+  // Award +50 XP to Gardening + mirror to admin (super admins earn nothing)
+  if (!session.user.superAdmin) {
+    await prisma.userSkill.upsert({
+      where: { userId_skill: { userId: session.user.id, skill: 'GARDENING' } },
+      update: { xp: { increment: 50 } },
+      create: { userId: session.user.id, skill: 'GARDENING', xp: 50 },
+    })
+    await mirrorXpToAdmin('GARDENING', 50, session.user.id)
+  }
 
-  return NextResponse.json({ plant, xpAwarded: 50 }, { status: 201 })
+  return NextResponse.json({ plant, xpAwarded: session.user.superAdmin ? 0 : 50 }, { status: 201 })
 }

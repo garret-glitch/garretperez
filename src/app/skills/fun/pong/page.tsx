@@ -2,6 +2,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import GameLeaderboard from '@/components/GameLeaderboard'
+import GodModeToggle, { useGodMode } from '@/components/GodModeToggle'
 
 const W = 400, H = 280
 const PAD_W = 8, PAD_H = 55
@@ -20,6 +21,9 @@ export default function PongPage() {
   const keys = useRef({ up: false, dn: false })
   const resultRef = useRef<'win' | 'loss'>('win')
   const hasSubmittedScore = useRef(false)
+  const { on: godOn } = useGodMode()
+  const godRef = useRef(false)
+  useEffect(() => { godRef.current = godOn }, [godOn])
 
   const st = useRef({
     ball: { x: W / 2, y: H / 2, vx: 3, vy: 1.5 },
@@ -121,9 +125,12 @@ export default function PongPage() {
     }
 
     if (ball.x < -20) {
-      s.score.c++; setSc({ ...s.score })
-      if (s.score.c >= WIN) { s.alive = false; resultRef.current = 'loss'; setResult('loss'); setPhase('done'); return }
-      resetBall(-1)
+      if (godRef.current) { s.score.c = Math.min(s.score.c, WIN - 1); resetBall(-1) } // God Mode never loses
+      else {
+        s.score.c++; setSc({ ...s.score })
+        if (s.score.c >= WIN) { s.alive = false; resultRef.current = 'loss'; setResult('loss'); setPhase('done'); return }
+        resetBall(-1)
+      }
     }
     if (ball.x > W + 20) {
       s.score.p++; setSc({ ...s.score })
@@ -184,6 +191,7 @@ export default function PongPage() {
           <h1 className="text-[11px]" style={{ color: 'var(--text-1)' }}>Pong</h1>
           <span className="ml-auto text-[7px]" style={{ color: 'var(--gold)' }}>You {sc.p} · {sc.c} CPU</span>
         </div>
+        <div className="flex justify-end mb-2"><GodModeToggle /></div>
 
         <div className="relative">
           <canvas ref={cvs} width={W} height={H}
