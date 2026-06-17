@@ -1819,12 +1819,6 @@ function drawDutchman(ctx: CanvasRenderingContext2D, b: Boss, g: GS, w2s: (x: nu
     ctx.lineTo(hx + 8, sH * 0.55); ctx.lineTo(hx + 2, sH * 0.3); ctx.lineTo(hx + 9, 0); ctx.lineTo(hx + 2, -sH * 0.3); ctx.lineTo(hx + 8, -sH * 0.55); ctx.closePath(); ctx.fill()
     ctx.fillStyle = 'rgba(8,20,16,0.45)'; ctx.beginPath(); ctx.ellipse(hx - 3, -sH * 0.1, 3, 5, 0, 0, TAU); ctx.fill()
   }
-  // skull & crossbones on the main sail
-  ctx.fillStyle = 'rgba(235,255,245,0.9)'
-  ctx.beginPath(); ctx.arc(2, -2, 7, 0, TAU); ctx.fill(); ctx.fillRect(-2, 3, 8, 4)
-  ctx.fillStyle = '#11332b'; ctx.beginPath(); ctx.arc(-1, -3, 1.8, 0, TAU); ctx.arc(5, -3, 1.8, 0, TAU); ctx.fill()
-  ctx.strokeStyle = 'rgba(235,255,245,0.7)'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'
-  ctx.beginPath(); ctx.moveTo(-8, 10); ctx.lineTo(12, 16); ctx.moveTo(12, 10); ctx.lineTo(-8, 16); ctx.stroke()
   ctx.restore()
 
   drawBossBar(ctx, b, '☠ THE FLYING DUTCHMAN', '#2f8a6e', '#1a5a8a', idx)
