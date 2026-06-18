@@ -173,14 +173,35 @@ const Sfx = (() => {
         { steps: arp, type: 'sine', vol: 0.07, dur: 0.5 },
         { steps: lead, type: 'triangle', vol: 0.14, dur: 1.1 },
       ], kick: new Array(len).fill(0), hat: new Array(len).fill(0) } }
-    // VICTORY — bright C-major fanfare loop
-    { const arp = [C4, E4, G4, C5, E5, G5, E5, C5], bassN = [C3, C3, G2, G2, A3, A3, F2, G2]
-      const bass: (number | null)[] = [], lead: (number | null)[] = [], kick: number[] = [], hat: number[] = []
-      for (let s = 0; s < 16; s++) { const b = s % 8; lead.push(arp[s % 8]); bass.push(b % 2 === 0 ? bassN[s % 8] : null); kick.push(b % 2 === 0 ? 1 : 0); hat.push(b % 2 === 1 ? 1 : 0) }
-      T.victory = { stepDur: 60 / 120 / 2, len: 16, voices: [{ steps: bass, type: 'sawtooth', vol: 0.2, dur: 0.22 }, { steps: lead, type: 'square', vol: 0.14, dur: 0.18 }], kick, hat } }
-    // DEFEAT — somber descending minor
-    { const mel = [A4, null, G4, null, F4, null, E4, null, D4, null, E4, null, C4, null, null, null], bass = [A2, null, null, null, F2, null, null, null, D3, null, null, null, E3, null, null, null]
-      T.defeat = { stepDur: 60 / 64 / 2, len: 16, voices: [{ steps: bass, type: 'triangle', vol: 0.18, dur: 2.4 }, { steps: mel, type: 'sine', vol: 0.1, dur: 1.0 }], kick: new Array(16).fill(0), hat: new Array(16).fill(0) } }
+    // VICTORY — "Triumph": bright C-major fanfare, heroic rising hook + full kit
+    const victoryArps = [[C5, E5, G5, E5], [B4, D5, G5, D5], [A4, C5, E5, C5], [F4, A4, C5, A4]]
+    const victoryMel: (number | null)[][] = [
+      [G4, null, C5, null, E5, null, G5, null],
+      [D5, null, B4, null, D5, null, G5, null],
+      [E5, null, C5, null, A4, null, C5, null],
+      [F5, null, E5, null, D5, null, G5, null]]
+    T.victory = band(128, [C3, G2, A2, F2], victoryArps, { lt: 'square', lv: 0.12, snare: true, mel: victoryMel, melType: 'square', melVol: 0.16, melDur: 0.28 })
+    // DEFEAT — "Fallen Hunter": slow cinematic lament (Am–F–Dm–E), mournful sighing lead over a drone
+    { const roots = [A2, F2, D3, E2]
+      const chord = [[C4, E4], [A3, C4], [D4, A3], [B3, E4]]
+      const melo: (number | null)[][] = [
+        [E5, null, D5, null, C5, null, B4, null],
+        [A4, null, null, null, C5, null, A4, null],
+        [D5, null, C5, null, A4, null, F4, null],
+        [E4, null, G4, null, B4, null, E4, null]]
+      const len = 32
+      const pad: (number | null)[] = [], bass: (number | null)[] = [], harm: (number | null)[] = [], lead: (number | null)[] = []
+      for (let s = 0; s < len; s++) { const sec = Math.floor(s / 8), b = s % 8
+        pad.push(b === 0 ? roots[sec] * 2 : null)
+        bass.push(b === 0 ? roots[sec] : null)
+        harm.push(b === 0 ? chord[sec][0] : b === 4 ? chord[sec][1] : null)   // slow tolling inner harmony
+        lead.push(melo[sec][b]) }
+      T.defeat = { stepDur: 60 / 66 / 2, len, voices: [
+        { steps: pad, type: 'sawtooth', vol: 0.05, dur: 3.8 },
+        { steps: bass, type: 'triangle', vol: 0.18, dur: 3.4 },
+        { steps: harm, type: 'sine', vol: 0.07, dur: 1.8 },
+        { steps: lead, type: 'sine', vol: 0.12, dur: 1.2 },
+      ], kick: new Array(len).fill(0), hat: new Array(len).fill(0) } }
     return T
   })()
   function playStep(tr: Trk, s: number, time: number) {
