@@ -219,6 +219,8 @@ interface Particle { id: number; pos: V2; vel: V2; life: number; maxLife: number
 interface SlowTrap { id: number; pos: V2; life: number; fromPlayer: boolean }
 interface HazardZone { id: number; pos: V2; radius: number; type: 'poison' | 'fire' | 'lightning' | 'web'; dps: number; life: number; maxLife: number }
 interface AttackFlash { angle: number; timer: number; maxTimer: number; type: 'slash' | 'slam' | 'shot' | 'magic' | 'shadow' | 'power_shot' | 'greatslash'; color: string }
+// Transient ability visual-effects layer (shockwaves, novas, muzzle stars, cast runes)
+interface Fx { id: number; type: 'shock' | 'nova' | 'star' | 'rune'; pos: V2; timer: number; maxTimer: number; color: string; radius: number; rot: number }
 interface SkyArrow { id: number; targetPos: V2; warnTimer: number; hit: boolean; dmg: number; kind?: 'arrow' | 'meteor' }
 interface EnvObject { type: 'rock' | 'bone' | 'skull' | 'web' | 'ruin' | 'crystal' | 'nest' | 'claw'; pos: V2; size: number; angle: number; variant: number }
 interface Minion { id: number; pos: V2; vel: V2; hp: number; maxHp: number; hitFlash: number; atkCd: number; legPhase: number; spawnAnim: number }
@@ -248,6 +250,9 @@ interface GS {
   bossDesperate: boolean; phaseBanner: { text: string; sub: string; timer: number } | null
   sigTimer: number
   mageCircle: number
+  bossDmgTakenMult: number   // <1 hardens the boss (Spider stage-3 carapace)
+  fx: Fx[]                   // transient ability effects
+  manaShieldTimer: number    // staff W — glowing dome around the player while active
   god: boolean   // super-admin God Mode — player takes no damage
 }
 interface PlayerState {
@@ -292,13 +297,13 @@ const WEAPON_DEFS: WeaponDef[] = [
   },
   {
     id: 'staff', name: 'Starter Staff', icon: '🔮', color: '#9B59B6', element: 'arcane',
-    dmg: 20, range: 540, atkCd: 0.82,
-    desc: 'Glass-cannon artillery. Longest range in the game but fragile — weak basics, devastating spells. Survive on positioning and range.',
+    dmg: 38, range: 540, atkCd: 0.64,
+    desc: 'Arcane artillery. Longest range in the game with rapid, hard-hitting bolts and devastating spells. Master positioning to dominate.',
     abilities: [
-      { key: 'Q', name: 'Arcane Bolt', desc: 'Fast arcane missile — 115 dmg toward cursor', cd: 5 },
-      { key: 'W', name: 'Mana Shield', desc: '1.5s full invulnerability bubble', cd: 14 },
-      { key: 'E', name: 'Arcane Surge', desc: 'Blink toward cursor and erupt — 100 dmg nova on arrival', cd: 8 },
-      { key: 'R', name: 'Meteor', desc: 'Giant meteor — 270 dmg in 110px AOE at cursor', cd: 22 },
+      { key: 'Q', name: 'Arcane Bolt', desc: 'Fast arcane missile — 175 dmg toward cursor', cd: 5 },
+      { key: 'W', name: 'Mana Shield', desc: '2.5s bubble — blocks ALL incoming damage', cd: 14 },
+      { key: 'E', name: 'Arcane Surge', desc: 'Blink toward cursor and erupt — 165 dmg nova on arrival', cd: 8 },
+      { key: 'R', name: 'Meteor', desc: 'Giant meteor — 400 dmg in 110px AOE at cursor', cd: 22 },
     ],
   },
 ]
@@ -314,7 +319,7 @@ const BOSS_DEFS: BossDef[] = [
   {
     id: 1, name: 'Lava Drake', color: '#E67E22', icon: '🐉', element: 'fire',
     lore: 'Born in the molten core. Ancient and enormous. Her fire melts stone. Her claws split mountains.',
-    hp: 6500, size: 115, enrageAt: 0.35,
+    hp: 8200, size: 115, enrageAt: 0.38,
     rewards: ['drake_sword', 'fire_staff', 'ember_armor'], arenaType: 'drake',
   },
   {
@@ -329,13 +334,13 @@ const BOSS_DEFS: BossDef[] = [
 const GEAR_DEFS: Record<GearId, GearDef> = {
   spider_fang:   { id: 'spider_fang',   name: 'Spider Fang Daggers', icon: '🗡️', desc: 'Dual daggers — attack 40% faster, unique dagger animations' },
   venom_bow:     { id: 'venom_bow',     name: 'Venom Bow',           icon: '🏹', desc: 'Purple poison bow — arrows inflict 15 dmg/s for 5s' },
-  web_amulet:    { id: 'web_amulet',    name: 'Web Armour',          icon: '🕸️', desc: 'Webbed plating — reduces incoming damage by 35%, plus 15% chance on hit to web-stun the boss 2s' },
+  web_amulet:    { id: 'web_amulet',    name: 'Web Armour',          icon: '🕸️', desc: 'Webbed plating — reduces incoming damage by 18%, plus 10% chance on hit to web-stun the boss 1.5s' },
   drake_sword:   { id: 'drake_sword',   name: 'Drake Greatsword',    icon: '⚔️', desc: '+35% damage. 15% chance to stun boss on hit' },
-  fire_staff:    { id: 'fire_staff',    name: 'Fire Staff',          icon: '🔥', desc: 'Q fires a Fireball — 110px AOE explosion, 115 dmg' },
-  ember_armor:   { id: 'ember_armor',   name: 'Ember Armour',        icon: '🛡️', desc: 'Reduces all incoming damage by 25%' },
+  fire_staff:    { id: 'fire_staff',    name: 'Fire Staff',          icon: '🔥', desc: 'Casts 22% faster. Basics become splashing firebolts (+60% dmg, scorch the ground). Q hurls a Fireball — 120px AOE, 240 dmg' },
+  ember_armor:   { id: 'ember_armor',   name: 'Ember Armour',        icon: '🛡️', desc: 'Heavy ember plate — reduces all incoming damage by 45% and grants +30 max HP' },
   thunder_blade: { id: 'thunder_blade', name: 'Thunder Blade',       icon: '⚡', desc: 'Every 3rd hit unleashes a lightning strike (+80 bonus dmg)' },
   storm_bow:     { id: 'storm_bow',     name: 'Storm Bow',           icon: '🌩️', desc: 'Arrows are lightning bolts — AOE on impact (40px, 30 dmg)' },
-  feather_boots: { id: 'feather_boots', name: 'Feather Armour',      icon: '🪶', desc: 'Reduces all incoming damage by 25%' },
+  feather_boots: { id: 'feather_boots', name: 'Feather Armour',      icon: '🪶', desc: 'Feather-light — +22% move speed. No damage reduction.' },
 }
 const GEAR_CATEGORY: Record<GearId, 'attack' | 'defense'> = {
   spider_fang: 'attack', venom_bow: 'attack', web_amulet: 'defense',
@@ -352,7 +357,7 @@ const LOADOUT_WEAPONS: LoadoutWeapon[] = [
   { id: 'spider_fang',   base: 'sword', gear: 'spider_fang',   unlock: 'spider_fang',   name: 'Spider Fang Daggers', icon: '🗡️', color: '#8E44AD', sub: 'Melee • +40% attack speed' },
   { id: 'venom_bow',     base: 'bow',   gear: 'venom_bow',     unlock: 'venom_bow',     name: 'Venom Bow',           icon: '🏹', color: '#8E44AD', sub: 'Ranged • poison DoT' },
   { id: 'drake_sword',   base: 'sword', gear: 'drake_sword',   unlock: 'drake_sword',   name: 'Drake Greatsword',    icon: '⚔️', color: '#E67E22', sub: 'Melee • +35% dmg, stun' },
-  { id: 'fire_staff',    base: 'staff', gear: 'fire_staff',    unlock: 'fire_staff',    name: 'Fire Staff',          icon: '🔥', color: '#E67E22', sub: 'Ranged • fireball Q' },
+  { id: 'fire_staff',    base: 'staff', gear: 'fire_staff',    unlock: 'fire_staff',    name: 'Fire Staff',          icon: '🔥', color: '#E67E22', sub: 'Ranged • splash firebolts + fireball Q' },
   { id: 'thunder_blade', base: 'sword', gear: 'thunder_blade', unlock: 'thunder_blade', name: 'Thunder Blade',       icon: '⚡', color: '#F1C40F', sub: 'Melee • lightning every 3rd hit' },
   { id: 'storm_bow',     base: 'bow',   gear: 'storm_bow',     unlock: 'storm_bow',     name: 'Storm Bow',           icon: '🌩️', color: '#F1C40F', sub: 'Ranged • AOE lightning bolts' },
 ]
@@ -386,7 +391,8 @@ function mkState(wpn: WeaponDef, boss: BossDef, gear: GearId[]): GS {
   const featherMode = false   // armours no longer grant dash charges; all dodges share one cooldown
   const sx = WW / 2, sy = WH - 250
   // weapon-path durability: melee tankiest, bow balanced, magic glass cannon
-  const baseHp = wpn.id === 'sword' ? 180 : wpn.id === 'staff' ? 110 : 150
+  let baseHp = wpn.id === 'sword' ? 180 : wpn.id === 'staff' ? 150 : 150
+  if (gear.includes('ember_armor')) baseHp += 30   // ember plate also grants bonus HP (buff)
   return {
     phase: 'playing',
     player: {
@@ -417,7 +423,7 @@ function mkState(wpn: WeaponDef, boss: BossDef, gear: GearId[]): GS {
     camX: clamp(sx - CW / 2, 0, WW - CW), camY: clamp(sy - CH / 2, 0, WH - CH),
     webProcAnim: null,
     bossFlightAngle: boss.id === 1 ? Math.PI * 0.75 : boss.id === 2 ? Math.PI * 0.25 : 0,
-    bossFlightSpeed: boss.id === 2 ? 0.70 : 0,
+    bossFlightSpeed: boss.id === 2 ? 0.52 : 0,
     bossFlightRadius: boss.id === 2 ? 240 : 0,
     bossFlightCenter: v(WW / 2, WH / 2 - 80),
     bossFleeTimer: 0,
@@ -427,6 +433,9 @@ function mkState(wpn: WeaponDef, boss: BossDef, gear: GearId[]): GS {
     bossDesperate: false, phaseBanner: null,
     sigTimer: 0,
     mageCircle: 0,
+    bossDmgTakenMult: 1,
+    fx: [],
+    manaShieldTimer: 0,
     god: false,
     griffinState: { mode: 0, timer: 3.0, dive: v(1, 0), shotT: 0 },
   }
@@ -445,14 +454,16 @@ function spawnParticles(g: GS, pos: V2, count: number, color: string, speed = 12
 function dealDmgToPlayer(g: GS, dmg: number, wpn: WeaponDef, gear: GearId[], knockDir?: V2) {
   const p = g.player
   if (g.god) return // God Mode — invincible
+  if (g.manaShieldTimer > 0) return // Mana Shield — blocks ALL damage while up
   if (p.iframeTimer > 0) return
   let fd = dmg
   if (g.rageActive) fd = Math.round(fd * 1.2)
   // weapon-path defense: melee tanky, bow neutral, magic glass cannon (takes extra)
   if (wpn.id === 'sword') fd = Math.round(fd * 0.80)
-  else if (wpn.id === 'staff') fd = Math.round(fd * 1.20)
-  if (gear.includes('web_amulet')) fd = Math.round(fd * 0.65)
-  else if (gear.includes('ember_armor') || gear.includes('feather_boots')) fd = Math.round(fd * 0.75)
+  else if (wpn.id === 'staff') fd = Math.round(fd * 1.05)
+  if (gear.includes('ember_armor')) fd = Math.round(fd * 0.55)       // heavy ember plate — best mitigation (buffed)
+  else if (gear.includes('web_amulet')) fd = Math.round(fd * 0.82)   // webbing — light mitigation (nerfed)
+  // feather: NO damage reduction — its perk is pure speed
   p.hp = Math.max(0, p.hp - fd)
   p.hitFlash = 0.40; p.iframeTimer = 0.5
   g.playerDmgFlash = 0.70
@@ -466,6 +477,10 @@ function dealDmgToPlayer(g: GS, dmg: number, wpn: WeaponDef, gear: GearId[], kno
 
 function spawnZone(g: GS, pos: V2, type: HazardZone['type'], radius: number, dps: number, life: number) {
   g.zones.push({ id: ++g.nextZoneId, pos: { ...pos }, radius, type, dps, life, maxLife: life })
+}
+
+function spawnFx(g: GS, type: Fx['type'], pos: V2, color: string, radius: number, dur: number, rot = 0) {
+  g.fx.push({ id: ++g.nextZoneId, type, pos: { ...pos }, timer: dur, maxTimer: dur, color, radius, rot })
 }
 
 function explodeFireball(g: GS, pos: V2) {
@@ -504,13 +519,14 @@ function dealDmgToBoss(g: GS, baseDmg: number, gear: GearId[]) {
       Sfx.crit()
     }
   }
-  if (gear.includes('web_amulet') && p.webProcCd <= 0 && Math.random() < 0.15) {
-    b.stunTimer = Math.max(b.stunTimer, 2.0)
-    p.webProcCd = 3.0
+  if (gear.includes('web_amulet') && p.webProcCd <= 0 && Math.random() < 0.10) {
+    b.stunTimer = Math.max(b.stunTimer, 1.5)
+    p.webProcCd = 4.0
     g.webProcAnim = { timer: 0.9, pos: { ...b.pos } }
     spawnParticles(g, b.pos, 18, '#8E44AD', 160)
   }
   if (gear.includes('venom_bow') && g.poisonTimer <= 0) g.poisonTimer = 5.0
+  dmg = Math.round(dmg * g.bossDmgTakenMult)
   b.hp = Math.max(0, b.hp - dmg)
   b.hitFlash = 0.12
   Sfx.bossHit()
@@ -560,9 +576,9 @@ function selectBossAttack(bossId: BossId, enraged: boolean, desperate: boolean, 
   }
   if (bossId === 1) {
     // ── LAVA DRAKE — escalating stages ──
-    const pool = d2p < 150 ? ['stomp', 'tail_swipe', 'tail_slam', 'fire_breath', 'fire_line'] : ['fire_breath', 'flame_wave', 'fire_line', 'stomp', 'fireball', 'tail_slam', 'lava_puddle']
-    if (enraged) pool.push('ember_barrage', 'fireball', 'lava_puddle', 'magma_geyser', 'fire_fan')   // stage 2 unlocks eruptions
-    if (desperate) pool.push('magma_geyser', 'fire_fan', 'flame_wave', 'fireball', 'ember_barrage')   // stage 3: relentless fire
+    const pool = d2p < 150 ? ['stomp', 'tail_swipe', 'tail_slam', 'fire_breath', 'fire_line', 'fireball'] : ['fire_breath', 'flame_wave', 'fire_line', 'stomp', 'fireball', 'tail_slam', 'lava_puddle', 'lava_barrage']
+    if (enraged) pool.push('ember_barrage', 'fireball', 'lava_puddle', 'magma_geyser', 'fire_fan', 'lava_barrage')   // stage 2 unlocks eruptions
+    if (desperate) pool.push('magma_geyser', 'fire_fan', 'flame_wave', 'fireball', 'ember_barrage', 'lava_barrage')   // stage 3: relentless fire
     return pool[rndI(0, pool.length - 1)]
   }
   // ── STORM GRIFFIN — escalating stages ──
@@ -577,7 +593,7 @@ function startBossAttack(g: GS, bossId: BossId, type: string) {
   const angle = Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
   const telegraphs: Record<string, number> = {
     venom_spit: 0.95, web_shot: 0.95, web_spray: 0.95, leg_sweep: 1.0, spider_leap: 1.15, toxic_cloud: 0.95, venom_burst: 1.2, summon: 1.05, web_wall: 1.15, spider_charge: 1.0, web_burst: 1.0, venom_geyser: 1.2,
-    fire_breath: 1.2, stomp: 0.95, tail_swipe: 0.95, ember_barrage: 0.95, flame_wave: 1.05, lava_puddle: 0.95, fire_line: 1.5,
+    fire_breath: 1.2, stomp: 0.95, tail_swipe: 0.95, ember_barrage: 0.95, flame_wave: 1.05, lava_puddle: 0.95, fire_line: 1.5, lava_barrage: 1.0,
     fireball: 1.05, tail_slam: 1.0, magma_geyser: 1.2, fire_fan: 1.0, gale_ring: 1.05, thunder_cross: 1.35,
     lightning_strike: 1.05, talon_dive: 1.0, wind_buffet: 0.95, thunderstorm: 1.0, static_field: 0.95, chain_lightning: 1.0, lightning_barrage: 0.95,
     wind_blade: 1.0, dive_bomb: 1.05,
@@ -590,11 +606,11 @@ function startBossAttack(g: GS, bossId: BossId, type: string) {
   else if (type === 'toxic_cloud') { data.dmg = 0; data.count = 3 }
   else if (type === 'venom_burst') { data.dmg = 38; data.radius = 180 }
   else if (type === 'summon') { data.count = g.bossDesperate ? 4 : 3 }
-  else if (type === 'fire_breath') { data.dmg = 18; data.coneAngle = 44 * Math.PI / 180; data.coneRange = 260; data.angle = angle; data.duration = 2.2; data.elapsed = 0 }
-  else if (type === 'stomp') { data.dmg = 28; data.radius = 0; data.duration = 1.2 }
-  else if (type === 'tail_swipe') { data.dmg = 28; data.coneAngle = 270 * Math.PI / 180; data.coneRange = 170; data.angle = angle + Math.PI }
-  else if (type === 'ember_barrage') { data.dmg = 14; data.count = 6; data.projSpeed = 290 }
-  else if (type === 'flame_wave') { data.dmg = 20; data.coneAngle = 55 * Math.PI / 180; data.coneRange = 320; data.angle = angle; data.duration = 1.6; data.elapsed = 0 }
+  else if (type === 'fire_breath') { data.dmg = 23; data.coneAngle = 48 * Math.PI / 180; data.coneRange = 290; data.angle = angle; data.duration = 2.2; data.elapsed = 0 }
+  else if (type === 'stomp') { data.dmg = 34; data.radius = 0; data.duration = 1.2 }
+  else if (type === 'tail_swipe') { data.dmg = 34; data.coneAngle = 270 * Math.PI / 180; data.coneRange = 185; data.angle = angle + Math.PI }
+  else if (type === 'ember_barrage') { data.dmg = 17; data.count = 8; data.projSpeed = 345 }
+  else if (type === 'flame_wave') { data.dmg = 25; data.coneAngle = 58 * Math.PI / 180; data.coneRange = 340; data.angle = angle; data.duration = 1.6; data.elapsed = 0 }
   else if (type === 'lava_puddle') { data.dmg = 0; data.count = 3 }
   else if (type === 'lightning_strike') { data.dmg = 32; data.radius = 75 }
   else if (type === 'talon_dive') { data.dmg = 35; data.angle = angle; data.projSpeed = 440 }
@@ -603,23 +619,24 @@ function startBossAttack(g: GS, bossId: BossId, type: string) {
   else if (type === 'static_field') { data.dmg = 0; data.count = 2 }
   else if (type === 'chain_lightning') { data.dmg = 22; data.count = 6; data.strikeIndex = 0 }
   else if (type === 'web_spray') { data.dmg = 12; data.count = 7; data.projSpeed = 195; data.angle = angle }
-  else if (type === 'fire_line') { data.dmg = 22; data.angle = b.angle + Math.PI / 2 }
+  else if (type === 'fire_line') { data.dmg = 27; data.angle = b.angle + Math.PI / 2 }
   else if (type === 'lightning_barrage') { data.dmg = 30; data.count = 8; data.strikeIndex = 0; data.elapsed = 0 }
-  else if (type === 'fireball') { data.dmg = 22; data.count = g.bossEnraged ? 3 : 2; data.projSpeed = 235; data.angle = angle }
-  else if (type === 'tail_slam') { data.dmg = 34; data.radius = 200; data.targetPos = { ...b.pos } }
+  else if (type === 'fireball') { data.dmg = 28; data.count = g.bossEnraged ? 4 : 3; data.projSpeed = 320; data.angle = angle }
+  else if (type === 'tail_slam') { data.dmg = 42; data.radius = 215; data.targetPos = { ...b.pos } }
   else if (type === 'wind_blade') { data.dmg = 16; data.count = g.bossEnraged ? 6 : 5; data.projSpeed = 330; data.angle = angle }
   else if (type === 'dive_bomb') { data.dmg = 36; data.radius = 130 }
   else if (type === 'web_wall') { data.dmg = 0; data.angle = b.angle + Math.PI / 2 }
   else if (type === 'spider_charge') { data.dmg = 30; data.angle = angle }
-  else if (type === 'magma_geyser') { data.dmg = 26; data.radius = 122; data.targetPos = { ...p.pos } }
-  else if (type === 'fire_fan') { data.dmg = 22; data.count = g.bossEnraged ? 7 : 5; data.projSpeed = 215; data.angle = angle }
+  else if (type === 'magma_geyser') { data.dmg = 32; data.radius = 122; data.targetPos = { ...p.pos } }
+  else if (type === 'fire_fan') { data.dmg = 26; data.count = g.bossEnraged ? 9 : 6; data.projSpeed = 285; data.angle = angle }
   else if (type === 'gale_ring') { data.dmg = 16; data.count = g.bossEnraged ? 14 : 11; data.projSpeed = 250 }
   else if (type === 'thunder_cross') { data.dmg = 24; data.angle = angle }
   else if (type === 'web_burst') { data.dmg = 12; data.count = g.bossEnraged ? 14 : 11; data.projSpeed = 205 }
   else if (type === 'venom_geyser') { data.dmg = 0; data.radius = 120; data.targetPos = { ...p.pos } }
+  else if (type === 'lava_barrage') { data.dmg = 26; data.count = g.bossEnraged ? 12 : 9; data.strikeIndex = 0; data.elapsed = 0 }
   g.bossAttack = { type, telegraphTime: telegraphs[type] ?? 1.0, elapsed: 0, active: false, data }
   // ── telegraph: audio warning + charge-up burst (readability/fairness) ──
-  const BIG_ATTACKS = ['spider_leap', 'venom_burst', 'fire_line', 'flame_wave', 'fire_breath', 'lava_puddle', 'lightning_barrage', 'thunderstorm', 'meteor', 'talon_dive', 'fireball', 'tail_slam', 'dive_bomb', 'spider_charge', 'magma_geyser', 'thunder_cross', 'gale_ring', 'venom_geyser', 'web_burst']
+  const BIG_ATTACKS = ['spider_leap', 'venom_burst', 'fire_line', 'flame_wave', 'fire_breath', 'lava_puddle', 'lightning_barrage', 'lava_barrage', 'thunderstorm', 'meteor', 'talon_dive', 'fireball', 'tail_slam', 'dive_bomb', 'spider_charge', 'magma_geyser', 'thunder_cross', 'gale_ring', 'venom_geyser', 'web_burst']
   if (BIG_ATTACKS.includes(type)) Sfx.warnBig(); else Sfx.warn()
   const chargeCol = bossId === 0 ? '#B370E0' : bossId === 1 ? '#FF7A1A' : '#5fe6ff'
   spawnParticles(g, b.pos, BIG_ATTACKS.includes(type) ? 16 : 9, chargeCol, 70, (telegraphs[type] ?? 1.0) * 0.7)
@@ -848,10 +865,12 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   b.hitFlash = Math.max(0, b.hitFlash - dt)
   b.legPhase += dt * (b.stunTimer > 0 ? 0.5 : g.bossEnraged ? 3.8 : 2.4)
   b.spinePulse += dt * 2.2; b.lightningPhase += dt * 4.5
-  g.screenShake = Math.max(0, g.screenShake - dt * 3); g.nextAttackTimer = Math.max(0, g.nextAttackTimer - dt * (g.bossDesperate ? 1.55 : 1))
+  g.screenShake = Math.max(0, g.screenShake - dt * 3); g.nextAttackTimer = Math.max(0, g.nextAttackTimer - dt * (g.bossDesperate ? 1.55 : 1) * (bossId === 1 ? 1.5 : 1))
   g.playerDmgFlash = Math.max(0, g.playerDmgFlash - dt * 2.8)
   g.tooCloseFlash = Math.max(0, g.tooCloseFlash - dt * 2.0)
   g.mageCircle = Math.max(0, g.mageCircle - dt)
+  g.manaShieldTimer = Math.max(0, g.manaShieldTimer - dt)
+  g.fx = g.fx.filter(f => { f.timer -= dt; return f.timer > 0 })
   if (p.hp > 0 && p.hp / p.maxHp < 0.25) Sfx.heartbeat()   // critical-HP heartbeat (throttled)
   if (g.rageTimer > 0) { g.rageTimer = Math.max(0, g.rageTimer - dt); if (g.rageTimer <= 0) g.rageActive = false }
   if (g.poisonTimer > 0) { g.poisonTimer = Math.max(0, g.poisonTimer - dt); b.hp = Math.max(0, b.hp - 15 * dt) }
@@ -876,9 +895,11 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
         spawnParticles(g, arrow.targetPos, 10, '#5a4a44', 90, 1.5)   // smoke
         for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; spawnParticles(g, v(arrow.targetPos.x + Math.cos(a) * 50, arrow.targetPos.y + Math.sin(a) * 50), 2, '#FF6A1A', 240, 0.7) }
         spawnZone(g, arrow.targetPos, 'fire', 78, 16, 2.8)
+        spawnFx(g, 'shock', arrow.targetPos, '#FF6A1A', 150, 0.55); spawnFx(g, 'nova', arrow.targetPos, '#FFD24A', 110, 0.35)
         g.screenShake = Math.max(g.screenShake, 1.0); Sfx.meteorImpact()
       } else {
         spawnParticles(g, arrow.targetPos, 20, '#F1C40F', 260, 0.75); g.screenShake = Math.max(g.screenShake, 0.4)
+        spawnFx(g, 'shock', arrow.targetPos, '#F1C40F', 80, 0.4); spawnFx(g, 'star', arrow.targetPos, '#F1C40F', 30, 0.3)
       }
       arrow.hit = true; return false
     }
@@ -911,8 +932,10 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
     p.pos.x = clamp(p.pos.x, 20, WW - 20); p.pos.y = clamp(p.pos.y, 20, WH - 20)
     p.iframeTimer = Math.max(p.iframeTimer, g.bullChargeDash.timer)
     if (dist(p.pos, b.pos) < bossDef.size + 22) {
-      dealDmgToBoss(g, 150, gear); g.screenShake = Math.max(g.screenShake, 0.45)
-      spawnParticles(g, b.pos, 20, '#E74C3C', 220); g.bullChargeDash.active = false
+      dealDmgToBoss(g, 150, gear); g.screenShake = Math.max(g.screenShake, 0.6)
+      spawnParticles(g, b.pos, 24, '#E74C3C', 260); spawnParticles(g, b.pos, 10, '#FFD24A', 180)
+      spawnFx(g, 'shock', b.pos, '#E74C3C', 150, 0.5); spawnFx(g, 'nova', b.pos, '#FF8A3A', 100, 0.3)
+      g.bullChargeDash.active = false
     }
     if (g.bullChargeDash.timer <= 0) g.bullChargeDash.active = false
   }
@@ -926,7 +949,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   }
 
   // Player movement
-  const speedMult = (p.slowTimer > 0 ? 0.45 : 1) * (wpn.id === 'staff' ? 1.15 : 1)   // mages get a small kiting bonus
+  const speedMult = (p.slowTimer > 0 ? 0.45 : 1) * (wpn.id === 'staff' ? 1.15 : 1) * (gear.includes('feather_boots') ? 1.22 : 1)   // mages kite a bit; feather armour = pure speed
   const speed = 170 * speedMult
   p.moving = false
   if (!p.dodgeTimer && !g.bullChargeDash.active && !g.whirlwindActive && p.targetPos) {
@@ -977,6 +1000,10 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   const minRange = (isRangedAtk && !tgtMinion) ? bossDef.size + 72 : 0
   let atkCd = wpn.atkCd
   if (gear.includes('spider_fang')) atkCd *= 0.6
+  if (gear.includes('fire_staff')) atkCd *= 0.78   // Fire Staff channels flame faster than the arcane staff
+  // Starter weapons (no attack-gear equipped) hit softer — find an upgrade to ramp up your basic DPS
+  const hasAtkGear = gear.some(gid => GEAR_CATEGORY[gid] === 'attack')
+  const basicDmg = hasAtkGear ? wpn.dmg : Math.round(wpn.dmg * 0.55)
   const flashColor = gear.includes('fire_staff') ? '#FF4500' : gear.includes('venom_bow') ? '#8E44AD' : gear.includes('storm_bow') ? '#7DFFB0' : wpn.color
   if (p.atkTimer <= 0 && !p.dodgeTimer && !g.bullChargeDash.active) {
     if (isRangedAtk && !tgtMinion && dToBoss < minRange && dToBoss <= atkRange) {
@@ -998,13 +1025,15 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
         const isArcane = wpn.id === 'staff' && !isFireStaff
         const projColor = isFireStaff ? '#FF6A1A' : wpn.id === 'staff' ? '#9B59B6' : isVenom ? '#9B59B6' : isStorm ? '#7DFFB0' : '#27AE60'
         const isArrow = wpn.id === 'bow' && !isStorm && !isVenom
-        const projSpeed = wpn.id === 'staff' ? 420 : 440
-        g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * projSpeed, dir.y * projSpeed), dmg: wpn.dmg, radius: isFirebolt ? 7 : isArcane ? 8 : 6, fromBoss: false, life: 4.0, color: projColor, aoe: isStorm ? 40 : undefined, isLightning: isStorm, isVenom, isArrow, isArcane, isFirebolt, trail: [] })
+        const projSpeed = wpn.id === 'staff' ? (isFireStaff ? 500 : 420) : 440
+        // Fire Staff bolts hit harder, fly faster and burst with a splash (vs the plain arcane bolt)
+        const boltDmg = isFirebolt ? Math.round(basicDmg * 1.6) : basicDmg
+        g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * projSpeed, dir.y * projSpeed), dmg: boltDmg, radius: isFirebolt ? 8.5 : isArcane ? 8 : 6, fromBoss: false, life: 4.0, color: projColor, aoe: isStorm ? 40 : isFirebolt ? 52 : undefined, isLightning: isStorm, isVenom, isArrow, isArcane, isFirebolt, trail: [] })
         if (wpn.id === 'staff') g.mageCircle = Math.max(g.mageCircle, 0.4)
         if (isFireStaff) Sfx.firebolt(); else if (wpn.id === 'staff') Sfx.cast(); else Sfx.shot()
       } else {
         // melee: damage is deferred — it only lands when the blade sweeps through the target (see meleeHit)
-        g.meleeHit = { timer: flashDur, maxTimer: flashDur, dmg: wpn.dmg, reach: meleeReach, arc: meleeArc, angle: atkAngle, hit: false, proc: gear.includes('thunder_blade') && (p.gearHitCount % 3) === 2 }
+        g.meleeHit = { timer: flashDur, maxTimer: flashDur, dmg: basicDmg, reach: meleeReach, arc: meleeArc, angle: atkAngle, hit: false, proc: gear.includes('thunder_blade') && (p.gearHitCount % 3) === 2 }
         Sfx.swing()
       }
     }
@@ -1098,10 +1127,10 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
     }
   } else if (bossId === 1 && b.stunTimer <= 0) {
     // Drake: snake locomotion — head slithers toward player with sinusoidal lateral weave
-    const snakeSpeed = (g.bossEnraged ? 178 : 135) * (b.slowTimer > 0 ? 0.28 : 1.0)
+    const snakeSpeed = (g.bossEnraged ? 215 : 166) * (b.slowTimer > 0 ? 0.28 : 1.0)
     const toP = norm(v(p.pos.x - b.pos.x, p.pos.y - b.pos.y))
     const perp = v(-toP.y, toP.x)
-    const wiggle = Math.sin(g.gtime * 1.85) * 0.65
+    const wiggle = Math.sin(g.gtime * 1.85) * 0.5
     const mdx = toP.x + perp.x * wiggle, mdy = toP.y + perp.y * wiggle
     const mlen = Math.sqrt(mdx*mdx + mdy*mdy) || 1
     b.pos.x = clamp(b.pos.x + (mdx/mlen) * snakeSpeed * dt, 90, WW - 90)
@@ -1175,7 +1204,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
     zone.life -= dt; if (zone.life <= 0) return false
     if (dist(p.pos, zone.pos) < zone.radius + 14) {
       if (zone.type === 'web') p.slowTimer = Math.max(p.slowTimer, 1.8)
-      if (p.iframeTimer <= 0 && zone.dps > 0 && !g.god) {
+      if (p.iframeTimer <= 0 && zone.dps > 0 && !g.god && g.manaShieldTimer <= 0) {
         const tick2 = zone.dps * dt; p.hp = Math.max(0, p.hp - tick2); p.hitFlash = Math.max(p.hitFlash, 0.06)
         if (zone.type === 'poison' && Math.random() < dt * 2) g.damageNums.push({ id: ++g.nextDmgId, pos: { x: p.pos.x + rnd(-14, 14), y: p.pos.y - 18 }, val: Math.round(tick2), life: 0.8, isPlayer: true })
         if (p.hp <= 0) killPlayer(g)
@@ -1209,7 +1238,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
       const mHit = g.minions.find(m => m.hp > 0 && dist(proj.pos, m.pos) < proj.radius + 16)
       if (mHit) {
         dealDmgToMinion(g, mHit, proj.dmg)
-        if ((proj.aoe && proj.isLightning) || (proj.isFireball && proj.aoe)) g.minions.forEach(m2 => { if (m2 !== mHit && m2.hp > 0 && dist(m2.pos, proj.pos) < (proj.aoe ?? 0)) dealDmgToMinion(g, m2, 30) })
+        if ((proj.aoe && proj.isLightning) || (proj.isFireball && proj.aoe) || (proj.isFirebolt && proj.aoe)) g.minions.forEach(m2 => { if (m2 !== mHit && m2.hp > 0 && dist(m2.pos, proj.pos) < (proj.aoe ?? 0)) dealDmgToMinion(g, m2, 30) })
         spawnParticles(g, proj.pos, 6, proj.color, 110); return false
       }
     }
@@ -1223,11 +1252,13 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
         spawnParticles(g, proj.pos, 8, '#5a4a44', 70, 1.3)   // smoke
         spawnZone(g, proj.pos, 'fire', 58, 14, 2.4)          // burning ground
         g.screenShake = Math.max(g.screenShake, 0.55); Sfx.explosion()
-        if (dist(b.pos, proj.pos) < proj.aoe) dealDmgToBoss(g, 50, gear)
+        if (dist(b.pos, proj.pos) < proj.aoe) dealDmgToBoss(g, 80, gear)
       } else if (proj.isFirebolt) {
-        // small firebolt burst + ember scatter
-        spawnParticles(g, proj.pos, 10, '#FF6A1A', 180); spawnParticles(g, proj.pos, 5, '#FFD24A', 120); spawnParticles(g, proj.pos, 3, '#FFF7C0', 90, 0.3)
-        g.screenShake = Math.max(g.screenShake, 0.16)
+        // firebolt bursts into embers, splashes nearby foes, and scorches the ground (Fire Staff)
+        spawnParticles(g, proj.pos, 16, '#FF6A1A', 220); spawnParticles(g, proj.pos, 8, '#FFD24A', 150); spawnParticles(g, proj.pos, 4, '#FFF7C0', 100, 0.35)
+        spawnZone(g, proj.pos, 'fire', 54, 16, 2.4)   // scorched ground keeps burning whatever stands here
+        if (proj.aoe) g.minions.forEach(m2 => { if (m2.hp > 0 && dist(m2.pos, proj.pos) < proj.aoe!) dealDmgToMinion(g, m2, Math.round(proj.dmg * 0.6)) })
+        g.screenShake = Math.max(g.screenShake, 0.22); Sfx.firebolt()
       } else {
         spawnParticles(g, proj.pos, 6, proj.color, 100)
       }
@@ -1257,6 +1288,21 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
       if ((d2.elapsed ?? 0) >= ((d2.count ?? 7) * interval + 0.25)) { g.bossAttack = null; g.nextAttackTimer = rnd(2.2, 3.8) / (g.bossEnraged ? 1.6 : 1.0) }
       return
     }
+    if (atk.type === 'lava_barrage' && atk.active) {
+      // Drake: a chain of magma eruptions that re-target the player every beat — must keep moving + leaves a lava trail
+      const d2 = atk.data; d2.elapsed = (d2.elapsed ?? 0) + dt
+      const interval = g.bossEnraged ? 0.2 : 0.24
+      const newIdx = Math.floor((d2.elapsed ?? 0) / interval)
+      if (newIdx > (d2.strikeIndex ?? 0) && newIdx <= (d2.count ?? 8)) {
+        d2.strikeIndex = newIdx
+        const tx = clamp(p.pos.x + rnd(-44, 44), 80, WW - 80), ty = clamp(p.pos.y + rnd(-44, 44), 80, WH - 80)
+        spawnZone(g, v(tx, ty), 'fire', 56, 16, 1.7)
+        if (dist(p.pos, v(tx, ty)) < 62) dealDmgToPlayer(g, d2.dmg ?? 20, wpn, gear, norm(v(p.pos.x - tx, p.pos.y - ty)))
+        spawnParticles(g, v(tx, ty), 14, '#FF6600', 230); g.screenShake = Math.max(g.screenShake, 0.4); Sfx.explosion()
+      }
+      if ((d2.elapsed ?? 0) >= ((d2.count ?? 8) * interval + 0.3)) { g.bossAttack = null; g.nextAttackTimer = rnd(1.8, 3.0) / (g.bossEnraged ? 1.6 : 1.0) }
+      return
+    }
     if (atk.type === 'flame_wave' && atk.active) {
       atk.data.elapsed = (atk.data.elapsed ?? 0) + dt
       const a2 = atk.data.angle ?? 0, hc = (atk.data.coneAngle ?? 0.5) / 2
@@ -1277,7 +1323,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
     }
     if (!atk.active && atk.elapsed >= atk.telegraphTime) {
       atk.active = true
-      if (!['thunderstorm', 'chain_lightning', 'fire_breath', 'flame_wave'].includes(atk.type)) {
+      if (!['thunderstorm', 'chain_lightning', 'fire_breath', 'flame_wave', 'lava_barrage'].includes(atk.type)) {
         resolveBossAttack(g, bossId, wpn, gear); g.bossAttack = null; g.nextAttackTimer = rnd(2.0, 3.4) / (g.bossEnraged ? 1.7 : 1.0)
       }
     }
@@ -1308,6 +1354,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
     g.phaseBanner = { text: 'PHASE 3 — DESPERATE', sub: p3Sub, timer: 3.0 }
     // ── signature phase-3 openers ──
     if (bossId === 0) {
+      g.bossDmgTakenMult = 0.55             // Spider hardens her carapace — far tankier in her final stand
       spawnSpiderlings(g, 4)               // Spider: flood the arena with brood
     } else if (bossId === 1) {
       // Drake: eruption — a ring of lava erupts around her, then a molten wake follows (see below)
@@ -1398,8 +1445,9 @@ function activateAbility(g: GS, idx: number, wpn: WeaponDef, gear: GearId[], abi
 
   if (idx === 0 && gear.includes('fire_staff')) {
     const dir = norm(v(abilityTarget.x - p.pos.x, abilityTarget.y - p.pos.y))
-    g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * 360, dir.y * 360), dmg: 115, radius: 15, fromBoss: false, life: 4.0, color: '#FF4500', aoe: 110, isFireball: true, trail: [] })
+    g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * 420, dir.y * 420), dmg: 240, radius: 16, fromBoss: false, life: 4.0, color: '#FF4500', aoe: 120, isFireball: true, trail: [] })
     spawnParticles(g, p.pos, 18, '#FF6A1A', 200); spawnParticles(g, p.pos, 8, '#FFF7C0', 130, 0.35)
+    spawnFx(g, 'rune', p.pos, '#FF6A1A', 40, 0.5); spawnFx(g, 'star', p.pos, '#FFD24A', 26, 0.26, Math.atan2(dir.y, dir.x))
     Sfx.fireCast(); Sfx.fireball()
     return
   }
@@ -1410,16 +1458,20 @@ function activateAbility(g: GS, idx: number, wpn: WeaponDef, gear: GearId[], abi
       const ps = gear.includes('storm_bow') ? '#5fe0ff' : gear.includes('venom_bow') ? '#9B59B6' : '#F1C40F'
       g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * 560, dir.y * 560), dmg: wpn.dmg * 3, radius: 14, fromBoss: false, life: 4.0, color: ps, isPowerShot: true, trail: [] })
       spawnParticles(g, p.pos, 18, ps, 200)
-      g.attackFlash = { angle: Math.atan2((abilityTarget.y - p.pos.y), (abilityTarget.x - p.pos.x)), timer: 0.4, maxTimer: 0.4, type: 'power_shot', color: ps }
+      const psA = Math.atan2((abilityTarget.y - p.pos.y), (abilityTarget.x - p.pos.x))
+      g.attackFlash = { angle: psA, timer: 0.4, maxTimer: 0.4, type: 'power_shot', color: ps }
+      spawnFx(g, 'star', p.pos, ps, 30, 0.26, psA); g.screenShake = Math.max(g.screenShake, 0.22)
     } else if (idx === 1) { // Trap
       g.slowTraps.push({ id: ++g.nextTrapId, pos: { ...abilityTarget }, life: 20.0, fromPlayer: true })
       if (dist(b.pos, abilityTarget) < BOSS_DEFS[bossId].size + 22) { dealDmgToBoss(g, 110, gear); b.slowTimer = 3.0 }
       spawnParticles(g, abilityTarget, 10, '#8E44AD', 90, 0.65)
+      spawnFx(g, 'rune', { ...abilityTarget }, '#8E44AD', 26, 0.5)
     } else if (idx === 2) { // Shadow Dash
       const dir = p.targetPos ? norm(v(p.targetPos.x - p.pos.x, p.targetPos.y - p.pos.y)) : norm(v(p.pos.x - b.pos.x, p.pos.y - b.pos.y))
       p.dodgeTimer = 0.38; p.dodgeVel = v(dir.x * 540, dir.y * 540); p.iframeTimer = 0.38
       for (let i = 0; i < 6; i++) p.shadowDashTrail.push({ pos: { ...p.pos }, a: 0.7 - i * 0.08 })
       spawnParticles(g, p.pos, 12, wpn.color, 130, 0.4)
+      spawnFx(g, 'nova', p.pos, wpn.color, 42, 0.3)
       g.attackFlash = { angle: Math.atan2(dir.y, dir.x), timer: 0.25, maxTimer: 0.25, type: 'shadow', color: wpn.color }
     } else if (idx === 3) { // Rain of Arrows
       for (let i = 0; i < 3; i++) {
@@ -1429,48 +1481,59 @@ function activateAbility(g: GS, idx: number, wpn: WeaponDef, gear: GearId[], abi
         g.skyArrows.push({ id: ++g.nextProjId, targetPos: v(tx, ty), warnTimer: 1.2 + i * 0.25, hit: false, dmg: Math.round(wpn.dmg * 2.5) })
       }
       spawnParticles(g, p.pos, 10, '#F1C40F', 120, 0.4)
+      spawnFx(g, 'rune', p.pos, '#F1C40F', 34, 0.5); spawnFx(g, 'star', p.pos, '#FFE08A', 26, 0.28)
     }
   } else if (wpn.id === 'sword') {
     if (idx === 0) { // Ground Slam
-      if (dist(p.pos, b.pos) < 140) { dealDmgToBoss(g, 130, gear); g.screenShake = Math.max(g.screenShake, 0.55) }
+      if (dist(p.pos, b.pos) < 140) { dealDmgToBoss(g, 130, gear); g.screenShake = Math.max(g.screenShake, 0.7) }
       g.minions.forEach(m => { if (m.hp > 0 && dist(p.pos, m.pos) < 140) dealDmgToMinion(g, m, 130) })
-      spawnParticles(g, p.pos, 24, '#E74C3C', 220)
+      spawnParticles(g, p.pos, 28, '#E74C3C', 260); spawnParticles(g, p.pos, 12, '#FFD24A', 170)
+      spawnFx(g, 'shock', p.pos, '#E74C3C', 150, 0.5); spawnFx(g, 'nova', p.pos, '#FF8A3A', 95, 0.3)
     } else if (idx === 1) { // Rage
-      g.rageActive = true; g.rageTimer = 8.0; spawnParticles(g, p.pos, 18, '#FF6B35', 170)
+      g.rageActive = true; g.rageTimer = 8.0; spawnParticles(g, p.pos, 22, '#FF6B35', 190)
+      spawnFx(g, 'nova', p.pos, '#FF6B35', 62, 0.4); spawnFx(g, 'shock', p.pos, '#FF3000', 72, 0.45)
     } else if (idx === 2) { // Bull Charge
       const dir = norm(v(abilityTarget.x - p.pos.x, abilityTarget.y - p.pos.y))
       g.bullChargeDash = { active: true, vel: v(dir.x * 640, dir.y * 640), timer: 0.4 }; p.iframeTimer = 0.4
+      spawnFx(g, 'star', p.pos, '#E74C3C', 32, 0.28, Math.atan2(dir.y, dir.x)); spawnParticles(g, p.pos, 12, '#E74C3C', 150)
     } else if (idx === 3) { // Whirlwind
-      g.whirlwindActive = true; g.whirlwindTimer = 3.0; spawnParticles(g, p.pos, 18, '#E74C3C', 170)
+      g.whirlwindActive = true; g.whirlwindTimer = 3.0; spawnParticles(g, p.pos, 22, '#E74C3C', 190)
+      spawnFx(g, 'shock', p.pos, '#E74C3C', 120, 0.42)
     }
   } else { // staff
     if (idx === 0) { // Arcane Bolt
       const dir = norm(v(abilityTarget.x - p.pos.x, abilityTarget.y - p.pos.y))
-      g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * 600, dir.y * 600), dmg: 115, radius: 13, fromBoss: false, life: 4.0, color: '#9B59B6', isArcane: true, trail: [] })
+      g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * 600, dir.y * 600), dmg: 175, radius: 13, fromBoss: false, life: 4.0, color: '#9B59B6', isArcane: true, trail: [] })
       spawnParticles(g, p.pos, 14, '#9B59B6', 180); Sfx.ability()
+      spawnFx(g, 'rune', p.pos, '#9B59B6', 34, 0.45); spawnFx(g, 'star', p.pos, '#CE9EE8', 24, 0.24, Math.atan2(dir.y, dir.x))
       g.attackFlash = { angle: Math.atan2(dir.y, dir.x), timer: 0.35, maxTimer: 0.35, type: 'magic', color: '#9B59B6' }
-    } else if (idx === 1) { // Mana Shield
-      p.iframeTimer = Math.max(p.iframeTimer, 1.5)
-      spawnParticles(g, p.pos, 22, '#9B59B6', 150); Sfx.ability()
+    } else if (idx === 1) { // Mana Shield — blocks ALL incoming damage for its duration
+      g.manaShieldTimer = 2.5
+      p.iframeTimer = Math.max(p.iframeTimer, 2.5)
+      spawnParticles(g, p.pos, 22, '#9B59B6', 150); spawnFx(g, 'rune', p.pos, '#9B59B6', 30, 0.5); Sfx.ability()
       g.screenShake = Math.max(g.screenShake, 0.12)
     } else if (idx === 2) { // Arcane Surge — blink toward cursor and erupt in a nova on arrival
       const dir = norm(v(abilityTarget.x - p.pos.x, abilityTarget.y - p.pos.y))
+      const fire = gear.includes('fire_staff'), col = fire ? '#FF6A1A' : '#9B59B6'
       const blinkDist = Math.min(dist(p.pos, abilityTarget), 300)
+      const origin = { ...p.pos }
+      spawnFx(g, 'nova', origin, col, 48, 0.3); spawnParticles(g, origin, 12, col, 200)   // implosion at the departure point
       for (let i = 0; i < 6; i++) p.shadowDashTrail.push({ pos: { ...p.pos }, a: 0.7 - i * 0.1 })
       p.pos.x = clamp(p.pos.x + dir.x * blinkDist, 20, WW - 20)
       p.pos.y = clamp(p.pos.y + dir.y * blinkDist, 20, WH - 20)
       p.iframeTimer = Math.max(p.iframeTimer, 0.4)
-      const fire = gear.includes('fire_staff'), col = fire ? '#FF6A1A' : '#9B59B6'
-      const novaR = 130, novaDmg = 100
+      const novaR = 130, novaDmg = 165
       if (dist(b.pos, p.pos) < novaR + BOSS_DEFS[bossId].size) dealDmgToBoss(g, novaDmg, gear)
       g.minions.forEach(m => { if (m.hp > 0 && dist(m.pos, p.pos) < novaR) { dealDmgToMinion(g, m, novaDmg); const kd = norm(v(m.pos.x - p.pos.x, m.pos.y - p.pos.y)); m.pos.x += kd.x * 42; m.pos.y += kd.y * 42 } })
       spawnParticles(g, p.pos, 30, col, 340); spawnParticles(g, p.pos, 14, '#FFFFFF', 210)
+      spawnFx(g, 'shock', p.pos, col, novaR, 0.5); spawnFx(g, 'nova', p.pos, fire ? '#FFD24A' : '#CE9EE8', 95, 0.32)
       if (fire) { spawnParticles(g, p.pos, 10, '#FFD24A', 170); spawnZone(g, p.pos, 'fire', 72, 12, 1.8); Sfx.fireCast(); Sfx.explosion() } else { Sfx.ability() }
       g.screenShake = Math.max(g.screenShake, 0.5); g.mageCircle = Math.max(g.mageCircle, 0.5)
       g.attackFlash = { angle: Math.atan2(dir.y, dir.x), timer: 0.3, maxTimer: 0.3, type: 'shadow', color: col }
     } else if (idx === 3) { // Meteor
-      g.skyArrows.push({ id: ++g.nextProjId, targetPos: { ...abilityTarget }, warnTimer: 1.2, hit: false, dmg: 270, kind: 'meteor' })
-      spawnParticles(g, p.pos, 12, gear.includes('fire_staff') ? '#FF6A1A' : '#9B59B6', 130, 0.5); Sfx.meteorCast()
+      g.skyArrows.push({ id: ++g.nextProjId, targetPos: { ...abilityTarget }, warnTimer: 1.2, hit: false, dmg: 400, kind: 'meteor' })
+      spawnParticles(g, p.pos, 12, gear.includes('fire_staff') ? '#FF6A1A' : '#9B59B6', 130, 0.5)
+      spawnFx(g, 'rune', p.pos, gear.includes('fire_staff') ? '#FF6A1A' : '#9B59B6', 42, 0.6); Sfx.meteorCast()
     }
   }
 }
@@ -2187,10 +2250,27 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
   if (p.hitFlash>0) { ctx.shadowColor='#FF0000'; ctx.shadowBlur=24 } else { ctx.shadowColor=armGlow; ctx.shadowBlur=14 }
 
   if (g.whirlwindActive) {
-    const sa = t*11; ctx.save(); ctx.rotate(sa)
-    ctx.strokeStyle='#E74C3C'; ctx.lineWidth=2.5; ctx.globalAlpha=0.6; ctx.setLineDash([10,6])
-    ctx.beginPath(); ctx.arc(0,0,110,0,Math.PI*2); ctx.stroke(); ctx.setLineDash([])
-    for (let i=0;i<3;i++) { const ba=sa+i*(Math.PI*2/3); ctx.globalAlpha=0.5; ctx.strokeStyle='#E74C3C'; ctx.lineWidth=3; ctx.shadowColor='#E74C3C'; ctx.shadowBlur=8; ctx.beginPath(); ctx.moveTo(Math.cos(ba)*16,Math.sin(ba)*16); ctx.lineTo(Math.cos(ba)*38,Math.sin(ba)*38); ctx.stroke() }
+    const sa = t*13; ctx.save(); ctx.globalCompositeOperation='lighter'
+    // outer vortex ring
+    ctx.save(); ctx.rotate(sa)
+    ctx.strokeStyle='#E74C3C'; ctx.lineWidth=2.5; ctx.globalAlpha=0.5; ctx.setLineDash([14,8]); ctx.shadowColor='#E74C3C'; ctx.shadowBlur=10
+    ctx.beginPath(); ctx.arc(0,0,108,0,Math.PI*2); ctx.stroke(); ctx.setLineDash([])
+    ctx.restore()
+    // four sweeping blade arcs with motion-blur ghosts
+    for (let k=0;k<4;k++) {
+      const ba = sa + k*(Math.PI/2)
+      for (let gh=2; gh>=0; gh--) {
+        const a0 = ba - gh*0.32
+        ctx.globalAlpha = (0.55 - gh*0.16)
+        ctx.strokeStyle = gh===0 ? '#FFD7CC' : '#E74C3C'; ctx.lineWidth = 4 - gh
+        ctx.shadowColor='#E74C3C'; ctx.shadowBlur=12
+        ctx.beginPath(); ctx.arc(0,0,72, a0-0.5, a0+0.5); ctx.stroke()
+      }
+      // blade tip glint
+      ctx.globalAlpha=0.8; ctx.fillStyle='#FFE8E0'; ctx.beginPath(); ctx.arc(Math.cos(ba+0.5)*72, Math.sin(ba+0.5)*72, 3, 0, Math.PI*2); ctx.fill()
+    }
+    // inner spin spokes
+    for (let i=0;i<3;i++) { const ba=sa*1.3+i*(Math.PI*2/3); ctx.globalAlpha=0.5; ctx.strokeStyle='#FF8A6A'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(Math.cos(ba)*14,Math.sin(ba)*14); ctx.lineTo(Math.cos(ba)*40,Math.sin(ba)*40); ctx.stroke() }
     ctx.restore()
   }
 
@@ -2247,31 +2327,69 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
       ctx.strokeStyle=W('#6B5436'); ctx.lineWidth=2.4; ctx.beginPath(); ctx.moveTo(-7,-7); ctx.lineTo(7,8); ctx.stroke()
       ctx.fillStyle=W('#caa84a'); ctx.beginPath(); ctx.arc(0,-8.5,2,0,Math.PI*2); ctx.arc(0,8.5,2,0,Math.PI*2); ctx.fill()
     } else if (armour==='ember') {
-      ctx.shadowColor=L.gl; ctx.shadowBlur=7; ctx.fillStyle=W(L.pl)
-      for (const side of [-1,1]){ ctx.beginPath(); ctx.ellipse(2, side*9.8, 5.4, 4.2, side*0.35, 0, Math.PI*2); ctx.fill() }
+      const ff = 0.55 + 0.45*Math.sin(t*9)
+      // heat-glow aura behind the plate
+      ctx.save(); ctx.globalCompositeOperation='lighter'; ctx.globalAlpha=0.18+0.12*ff
+      ctx.fillStyle='#FF6A1A'; ctx.shadowColor='#FF3000'; ctx.shadowBlur=18; ctx.beginPath(); ctx.arc(0,0,15,0,Math.PI*2); ctx.fill(); ctx.restore()
+      // heavy riveted pauldrons with a licking flame on each
+      ctx.shadowColor=L.gl; ctx.shadowBlur=10
+      for (const side of [-1,1]){
+        ctx.fillStyle=W(L.pl); ctx.beginPath(); ctx.ellipse(2, side*10, 6.3, 4.9, side*0.35, 0, Math.PI*2); ctx.fill()
+        ctx.fillStyle=W('#2a0e06'); ctx.beginPath(); ctx.arc(3, side*11, 1, 0, Math.PI*2); ctx.fill()   // rivet
+        ctx.fillStyle=`rgba(255,${140+Math.round(ff*90)},25,0.92)`
+        ctx.beginPath(); ctx.moveTo(0,side*11); ctx.lineTo(-2,side*(13+ff*3.5)); ctx.lineTo(2,side*12.5); ctx.closePath(); ctx.fill()
+      }
       ctx.shadowBlur=0
-      ctx.fillStyle=W(L.plt); ctx.beginPath(); ctx.ellipse(-1,-1,7.6,8.6,0,0,Math.PI*2); ctx.fill()
-      ctx.strokeStyle=L.tr; ctx.lineWidth=1.6; ctx.shadowColor=L.gl; ctx.shadowBlur=6; ctx.beginPath(); ctx.moveTo(-1,-8); ctx.lineTo(-1,6); ctx.moveTo(-6,-2); ctx.lineTo(4,-2); ctx.stroke(); ctx.shadowBlur=0
-      ctx.fillStyle=W(L.pl); ctx.beginPath(); ctx.arc(4.5,0,7.2,Math.PI*0.48,Math.PI*1.52); ctx.fill()
-      const ff=0.6+0.4*Math.sin(t*9); ctx.fillStyle=`rgba(255,${130+Math.round(ff*80)},20,1)`; ctx.shadowColor=L.gl; ctx.shadowBlur=10
-      ctx.beginPath(); ctx.moveTo(3,-1); ctx.lineTo(0,-10-ff*2); ctx.lineTo(2,-3); ctx.lineTo(4,-10-ff*2); ctx.lineTo(5,-1); ctx.closePath(); ctx.fill(); ctx.shadowBlur=0
+      // breastplate + pulsing molten cracks
+      ctx.fillStyle=W(L.plt); ctx.beginPath(); ctx.ellipse(-1,-1,8.0,9.0,0,0,Math.PI*2); ctx.fill()
+      ctx.strokeStyle=`rgba(255,${90+Math.round(ff*100)},10,${0.6+0.4*ff})`; ctx.lineWidth=1.3; ctx.shadowColor=L.gl; ctx.shadowBlur=8
+      ctx.beginPath(); ctx.moveTo(-1,-8); ctx.lineTo(-3,-2); ctx.lineTo(0,1); ctx.lineTo(-2,6); ctx.moveTo(0,1); ctx.lineTo(4,-2); ctx.lineTo(3,-7); ctx.stroke(); ctx.shadowBlur=0
+      // helm + brow flame crest
+      ctx.fillStyle=W(L.pl); ctx.beginPath(); ctx.arc(4.5,0,7.5,Math.PI*0.46,Math.PI*1.54); ctx.fill()
+      ctx.fillStyle=`rgba(255,${150+Math.round(ff*80)},30,1)`; ctx.shadowColor=L.gl; ctx.shadowBlur=12
+      ctx.beginPath(); ctx.moveTo(3,-2); ctx.lineTo(-1,-12-ff*3); ctx.lineTo(2,-4); ctx.lineTo(4,-12-ff*3); ctx.lineTo(6,-2); ctx.closePath(); ctx.fill(); ctx.shadowBlur=0
     } else if (armour==='web') {
-      ctx.fillStyle=W(L.pl)
-      for (const side of [-1,1]){ ctx.beginPath(); ctx.moveTo(-2,side*6); ctx.lineTo(4,side*13); ctx.lineTo(8,side*7); ctx.lineTo(2,side*5); ctx.closePath(); ctx.fill() }
-      ctx.fillStyle=W(L.plt); ctx.beginPath(); ctx.ellipse(-1,-1,7.2,8.2,0,0,Math.PI*2); ctx.fill()
-      ctx.strokeStyle=L.tr; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(-1,-1,7,0,Math.PI*2); ctx.moveTo(-8,-1); ctx.lineTo(6,-1); ctx.moveTo(-1,-8); ctx.lineTo(-1,6); ctx.moveTo(-6,-6); ctx.lineTo(4,4); ctx.moveTo(4,-6); ctx.lineTo(-6,4); ctx.stroke()
-      ctx.fillStyle=W(L.pl); ctx.beginPath(); ctx.arc(4.5,0,7.2,Math.PI*0.48,Math.PI*1.52); ctx.fill()
-      ctx.strokeStyle=W(L.plt); ctx.lineWidth=2; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(5,-4); ctx.lineTo(11,-8); ctx.moveTo(5,4); ctx.lineTo(11,8); ctx.stroke(); ctx.lineCap='butt'
-      ctx.fillStyle='#FF2A3A'; ctx.shadowColor='#FF0000'; ctx.shadowBlur=6; ctx.beginPath(); ctx.arc(7,-2,1.3,0,Math.PI*2); ctx.arc(7,2,1.3,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0
-    } else if (armour==='feather') {
-      ctx.shadowColor=L.gl; ctx.shadowBlur=5
-      for (const side of [-1,1]){ for(let k=0;k<3;k++){ ctx.fillStyle=W(k===0?L.plt:L.pl); ctx.beginPath(); ctx.ellipse(k*2, side*(9+k), 4.4-k*0.7, 2.5, side*0.4, 0, Math.PI*2); ctx.fill() } }
+      const wz = 0.5+0.5*Math.sin(t*6)
+      // jagged spider-leg shoulder spikes
+      ctx.fillStyle=W(L.pl); ctx.shadowColor=L.gl; ctx.shadowBlur=5
+      for (const side of [-1,1]){ ctx.beginPath(); ctx.moveTo(-2,side*5); ctx.lineTo(3,side*15); ctx.lineTo(7,side*9); ctx.lineTo(9.5,side*14); ctx.lineTo(8,side*6); ctx.lineTo(2,side*4); ctx.closePath(); ctx.fill() }
       ctx.shadowBlur=0
+      // chest carapace
+      ctx.fillStyle=W(L.plt); ctx.beginPath(); ctx.ellipse(-1,-1,7.6,8.6,0,0,Math.PI*2); ctx.fill()
+      // radial web net woven over the carapace
+      ctx.strokeStyle=`rgba(220,200,255,${0.5+0.3*wz})`; ctx.lineWidth=0.8; ctx.shadowColor='#C39BD3'; ctx.shadowBlur=4
+      for (let i=0;i<8;i++){ const a=i/8*Math.PI*2; ctx.beginPath(); ctx.moveTo(-1,-1); ctx.lineTo(-1+Math.cos(a)*8,-1+Math.sin(a)*8); ctx.stroke() }
+      for (let r=2.6;r<=7.4;r+=2.4){ ctx.beginPath(); for(let i=0;i<=8;i++){const a=i/8*Math.PI*2,x=-1+Math.cos(a)*r,y=-1+Math.sin(a)*r; if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y)} ctx.stroke() }
+      ctx.shadowBlur=0
+      // fanged helm
+      ctx.fillStyle=W(L.pl); ctx.beginPath(); ctx.arc(4.5,0,7.2,Math.PI*0.48,Math.PI*1.52); ctx.fill()
+      ctx.strokeStyle=W(L.plt); ctx.lineWidth=2; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(5,-4); ctx.lineTo(12,-9); ctx.moveTo(5,4); ctx.lineTo(12,9); ctx.stroke(); ctx.lineCap='butt'
+      // four glowing spider eyes that pulse
+      ctx.fillStyle=`rgba(255,40,58,${0.7+0.3*wz})`; ctx.shadowColor='#FF0000'; ctx.shadowBlur=9
+      ctx.beginPath(); ctx.arc(7,-2.6,1.4,0,Math.PI*2); ctx.arc(7,2.6,1.4,0,Math.PI*2); ctx.arc(9.2,-1.2,1,0,Math.PI*2); ctx.arc(9.2,1.2,1,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0
+    } else if (armour==='feather') {
+      const fl = 0.5+0.5*Math.sin(t*4)
+      // speed streaks trailing the runner when moving
+      if (p.moving){ ctx.strokeStyle='rgba(159,192,255,0.4)'; ctx.lineWidth=1.5; ctx.shadowColor=L.gl; ctx.shadowBlur=6
+        for(let i=0;i<3;i++){ const y=(i-1)*5; ctx.beginPath(); ctx.moveTo(-9-i*3,y); ctx.lineTo(-22-i*7,y); ctx.stroke() } ctx.shadowBlur=0 }
+      // large layered wings flaring from the shoulders (flap with stride)
+      ctx.shadowColor=L.gl; ctx.shadowBlur=8
+      for (const side of [-1,1]){
+        const flap = 1 + (p.moving ? 0.28*Math.abs(Math.sin(wp)) : 0.1*fl)
+        for (let k=0;k<4;k++){
+          ctx.fillStyle=W(k%2===0?L.plt:L.pl)
+          ctx.beginPath(); ctx.ellipse(-1-k*0.6, side*(7+k*2.3), (6.6-k*1.05)*flap, 2.4, side*(0.5+k*0.13), 0, Math.PI*2); ctx.fill()
+        }
+      }
+      ctx.shadowBlur=0
+      // breastplate
       ctx.fillStyle=W(L.plt); ctx.beginPath(); ctx.ellipse(-1,-1,7.2,8.2,0,0,Math.PI*2); ctx.fill()
       ctx.strokeStyle=L.tr; ctx.lineWidth=1.3; ctx.shadowColor=L.gl; ctx.shadowBlur=5; ctx.beginPath(); ctx.moveTo(-1,-8); ctx.lineTo(-1,6); ctx.stroke(); ctx.shadowBlur=0
-      ctx.strokeStyle=W(L.plt); ctx.lineWidth=2; ctx.beginPath(); ctx.arc(4.5,0,7,Math.PI*0.55,Math.PI*1.45); ctx.stroke()
-      ctx.fillStyle=W('#f2f6fb'); for (const side of [-1,1]){ ctx.beginPath(); ctx.moveTo(6,side*5); ctx.lineTo(13,side*4); ctx.lineTo(8,side*8.5); ctx.closePath(); ctx.fill() }
-      ctx.strokeStyle=`rgba(159,192,255,${0.4+0.3*Math.sin(t*3)})`; ctx.lineWidth=1.4; ctx.shadowColor=L.gl; ctx.shadowBlur=8; ctx.beginPath(); ctx.ellipse(5,0,9,5,0,0,Math.PI*2); ctx.stroke(); ctx.shadowBlur=0
+      // winged helm
+      ctx.fillStyle=W(L.pl); ctx.beginPath(); ctx.arc(4.5,0,7,Math.PI*0.52,Math.PI*1.48); ctx.fill()
+      ctx.fillStyle=W('#f2f6fb'); for (const side of [-1,1]){ ctx.beginPath(); ctx.moveTo(6,side*4); ctx.lineTo(14,side*3); ctx.lineTo(8,side*8); ctx.closePath(); ctx.fill() }
+      // ethereal speed aura
+      ctx.strokeStyle=`rgba(159,192,255,${0.35+0.35*fl})`; ctx.lineWidth=1.4; ctx.shadowColor=L.gl; ctx.shadowBlur=10; ctx.beginPath(); ctx.ellipse(2,0,11,6,0,0,Math.PI*2); ctx.stroke(); ctx.shadowBlur=0
     }
   }
 
@@ -2505,18 +2623,21 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
       }
     }
   } else if (wid === 'fire_staff') {
-    // ── FIRE STAFF — gathers fire at the tip while charging, flares on cast ──
+    // ── FIRE STAFF — a living flame churns at the tip, swelling as it charges and erupting on cast ──
+    const cd = (wpn.atkCd || 0.64) * 0.78   // matches the Fire Staff's faster cast cadence
     const fp = 0.6 + 0.4 * Math.sin(t * 8)
-    const draw = clamp(1 - p.atkTimer / 0.82, 0, 1)            // 0 just-cast -> 1 charged
-    const release = clamp((p.atkTimer - 0.66) / 0.16, 0, 1)    // 1 right after a cast
+    const flick = 0.78 + 0.22 * Math.sin(t * 23 + Math.sin(t * 7) * 2)   // fast fire flicker
+    const draw = clamp(1 - p.atkTimer / cd, 0, 1)                 // 0 just-cast -> 1 charged
+    const release = clamp((p.atkTimer - (cd - 0.16)) / 0.16, 0, 1) // 1 right after a cast
+    const ox = 53                                                  // orb centre x
     // ── ornate charred shaft ──
     ctx.shadowColor = '#FF4500'; ctx.shadowBlur = 8
     ctx.strokeStyle = hw ? '#FFF' : '#4A1E00'; ctx.lineWidth = 5; ctx.lineCap = 'round'
     ctx.beginPath(); ctx.moveTo(-3, 0); ctx.lineTo(43, 0); ctx.stroke()
     ctx.strokeStyle = hw ? '#EEE' : '#7A3A10'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(0, -1); ctx.lineTo(42, -1); ctx.stroke()
-    // glowing ember crack running up the wood
-    ctx.strokeStyle = `rgba(255,${90 + Math.round(fp * 80)},0,${0.5 + 0.4 * fp})`; ctx.lineWidth = 1; ctx.shadowColor = '#FF6A1A'; ctx.shadowBlur = 6
-    ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(16, -1.5); ctx.lineTo(22, 0.5); ctx.lineTo(30, -1); ctx.stroke(); ctx.shadowBlur = 8
+    // glowing ember crack running up the wood — brightens with charge
+    ctx.strokeStyle = `rgba(255,${90 + Math.round(fp * 90 + draw * 40)},0,${0.5 + 0.45 * fp})`; ctx.lineWidth = 1.2; ctx.shadowColor = '#FF6A1A'; ctx.shadowBlur = 6 + draw * 6
+    ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(14, -1.5); ctx.lineTo(20, 0.5); ctx.lineTo(27, -1.2); ctx.lineTo(34, 0.4); ctx.stroke(); ctx.shadowBlur = 8
     // leather grip wrap near the base
     ctx.strokeStyle = hw ? '#FFF' : '#2a1606'; ctx.lineWidth = 5.5; ctx.beginPath(); ctx.moveTo(2, 0); ctx.lineTo(16, 0); ctx.stroke()
     ctx.strokeStyle = hw ? '#DDD' : '#160a03'; ctx.lineWidth = 1; for (let i = 0; i < 5; i++) { const gx = 3 + i * 3; ctx.beginPath(); ctx.moveTo(gx, -3); ctx.lineTo(gx + 2, 3); ctx.stroke() }
@@ -2529,24 +2650,47 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
     ctx.beginPath(); ctx.moveTo(43, -2); ctx.quadraticCurveTo(50, -10, 58, -4); ctx.stroke()
     ctx.beginPath(); ctx.moveTo(43, 2); ctx.quadraticCurveTo(50, 10, 58, 4); ctx.stroke()
     ctx.beginPath(); ctx.moveTo(44, 0); ctx.lineTo(49, 0); ctx.stroke(); ctx.lineCap = 'butt'
-    // gathering fire orb — grows with charge, flares on release
-    const orbR = 3 + draw * 5 + release * 4
-    ctx.shadowColor = '#FF6A1A'; ctx.shadowBlur = 18 + draw * 14
-    const og = ctx.createRadialGradient(52, 0, 0, 52, 0, orbR + 5)
-    og.addColorStop(0, '#FFF3B0'); og.addColorStop(0.4, release > 0 ? '#FFD24A' : '#FF8A1A'); og.addColorStop(1, 'rgba(255,60,0,0)')
-    ctx.fillStyle = og; ctx.beginPath(); ctx.arc(52, 0, (orbR + 5) * fp, 0, Math.PI * 2); ctx.fill()
-    ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(52, 0, orbR * 0.42, 0, Math.PI * 2); ctx.fill()
-    // swirling flame wisps (more when charged)
-    const wisps = 3 + Math.round(draw * 3)
-    ctx.strokeStyle = `rgba(255,${120 + Math.round(fp * 80)},20,${0.45 + draw * 0.4})`; ctx.lineWidth = 1.6
-    for (let i = 0; i < wisps; i++) { const a = t * 5 + i * (Math.PI * 2 / wisps), rr = orbR + 4 + Math.sin(t * 7 + i) * 2; ctx.beginPath(); ctx.moveTo(52 + Math.cos(a) * rr, Math.sin(a) * rr); ctx.lineTo(52 + Math.cos(a + 0.5) * (rr + 3), Math.sin(a + 0.5) * (rr + 3)); ctx.stroke() }
-    // release flare
-    if (release > 0) { ctx.save(); ctx.globalAlpha = release; ctx.fillStyle = '#FFE08A'; ctx.shadowColor = '#FF6A1A'; ctx.shadowBlur = 24; ctx.beginPath(); ctx.arc(56, 0, 6 + (1 - release) * 10, 0, Math.PI * 2); ctx.fill(); ctx.restore() }
+    // ── the fire itself (additive, glowing) ──
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'
+    const orbR = (4 + draw * 5.5 + release * 5) * flick
+    // outer heat haze
+    ctx.shadowColor = '#FF3000'; ctx.shadowBlur = 22 + draw * 18 + release * 16
+    const halo = ctx.createRadialGradient(ox, 0, 0, ox, 0, orbR + 13)
+    halo.addColorStop(0, 'rgba(255,200,90,0.55)'); halo.addColorStop(0.5, 'rgba(255,90,10,0.30)'); halo.addColorStop(1, 'rgba(200,30,0,0)')
+    ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(ox, 0, (orbR + 13) * fp, 0, Math.PI * 2); ctx.fill()
+    // leaping flame tongues (teardrop plumes) that lick outward, longer when charged
+    const tongues = 5 + Math.round(draw * 4)
+    for (let i = 0; i < tongues; i++) {
+      const a = t * 4.5 + i * (Math.PI * 2 / tongues) + Math.sin(t * 6 + i) * 0.3
+      const len = orbR * (1.3 + 0.7 * Math.abs(Math.sin(t * 9 + i * 1.7))) + draw * 3
+      const bx = ox + Math.cos(a) * orbR * 0.5, by = Math.sin(a) * orbR * 0.5
+      const tx = ox + Math.cos(a) * (orbR + len), ty = Math.sin(a) * (orbR + len)
+      const pxp = -Math.sin(a) * orbR * 0.32, pyp = Math.cos(a) * orbR * 0.32
+      const tg = ctx.createLinearGradient(bx, by, tx, ty)
+      tg.addColorStop(0, 'rgba(255,225,120,0.9)'); tg.addColorStop(0.6, 'rgba(255,110,20,0.6)'); tg.addColorStop(1, 'rgba(255,40,0,0)')
+      ctx.fillStyle = tg; ctx.beginPath(); ctx.moveTo(bx + pxp, by + pyp); ctx.quadraticCurveTo(ox + Math.cos(a) * orbR, Math.sin(a) * orbR, tx, ty); ctx.quadraticCurveTo(ox + Math.cos(a) * orbR, Math.sin(a) * orbR, bx - pxp, by - pyp); ctx.closePath(); ctx.fill()
+    }
+    // molten core orb
+    const og = ctx.createRadialGradient(ox, 0, 0, ox, 0, orbR + 5)
+    og.addColorStop(0, '#FFFFFF'); og.addColorStop(0.35, '#FFE07A'); og.addColorStop(0.7, release > 0 ? '#FFB02A' : '#FF7A1A'); og.addColorStop(1, 'rgba(255,50,0,0)')
+    ctx.fillStyle = og; ctx.beginPath(); ctx.arc(ox, 0, orbR + 2, 0, Math.PI * 2); ctx.fill()
+    ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(ox, 0, orbR * 0.4, 0, Math.PI * 2); ctx.fill()
+    // rising embers shedding off the flame
+    for (let i = 0; i < 4 + Math.round(draw * 3); i++) {
+      const ph = (t * 1.4 + i * 0.37) % 1
+      const ex = ox + Math.sin(t * 5 + i * 2) * (3 + i), ey = -ph * (12 + draw * 10)
+      ctx.fillStyle = `rgba(255,${160 + Math.round(ph * 80)},40,${(1 - ph) * 0.85})`
+      ctx.beginPath(); ctx.arc(ex, ey, (1 - ph) * 2 + 0.5, 0, Math.PI * 2); ctx.fill()
+    }
+    // cast eruption — a bright burst bloom right after firing
+    if (release > 0) { ctx.shadowColor = '#FFB02A'; ctx.shadowBlur = 30; ctx.globalAlpha = release; ctx.fillStyle = '#FFE8A0'; ctx.beginPath(); ctx.arc(ox + 4, 0, 7 + (1 - release) * 14, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1 }
+    ctx.restore()
   } else if (wid === 'staff') {
     // ── STARTER STAFF — gathers arcane energy at the tip, soft flare on cast (calmer than fire) ──
     const ap = 0.6 + 0.4 * Math.sin(t * 7)
-    const draw = clamp(1 - p.atkTimer / 0.82, 0, 1)
-    const release = clamp((p.atkTimer - 0.66) / 0.16, 0, 1)
+    const cd = wpn.atkCd || 0.64
+    const draw = clamp(1 - p.atkTimer / cd, 0, 1)
+    const release = clamp((p.atkTimer - (cd - 0.16)) / 0.16, 0, 1)
     // ── ornate arcane shaft ──
     ctx.shadowColor = '#9B59B6'; ctx.shadowBlur = 8
     ctx.strokeStyle = hw ? '#FFF' : '#3A1D49'; ctx.lineWidth = 5; ctx.lineCap = 'round'
@@ -2705,7 +2849,7 @@ function renderTelegraph(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t
   const atk = g.bossAttack; if (!atk || atk.active) return
   const progress = atk.elapsed/atk.telegraphTime, pulse = 0.4+0.6*progress, b = g.boss
   const bossDef = BOSS_DEFS[bossId]
-  const BIG = ['spider_leap','venom_burst','fire_line','flame_wave','fire_breath','lava_puddle','lightning_barrage','thunderstorm','talon_dive','fireball','tail_slam','dive_bomb','spider_charge','magma_geyser','thunder_cross','gale_ring','venom_geyser','web_burst'].includes(atk.type)
+  const BIG = ['spider_leap','venom_burst','fire_line','flame_wave','fire_breath','lava_puddle','lightning_barrage','lava_barrage','thunderstorm','talon_dive','fireball','tail_slam','dive_bomb','spider_charge','magma_geyser','thunder_cross','gale_ring','venom_geyser','web_burst'].includes(atk.type)
   const dCol = bossId===0 ? '180,112,224' : bossId===1 ? '255,122,26' : '95,230,255'
   ctx.save()
   // ── boss charge-up aura (every telegraph): pulsing ring that fills as the attack nears ──
@@ -2775,10 +2919,10 @@ function renderTelegraph(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t
     ctx.globalAlpha=0.18*pulse; ctx.strokeStyle='#FFAA00'; ctx.lineWidth=32+progress*20
     ctx.beginPath(); ctx.moveTo(b.pos.x-Math.cos(lineA)*len,b.pos.y-Math.sin(lineA)*len); ctx.lineTo(b.pos.x+Math.cos(lineA)*len,b.pos.y+Math.sin(lineA)*len); ctx.stroke()
     ctx.restore()
-  } else if (atk.type==='lightning_barrage') {
-    ctx.strokeStyle=`rgba(0,220,255,${pulse*0.9})`; ctx.lineWidth=2+progress*2; ctx.shadowColor='#00EEFF'; ctx.shadowBlur=16*pulse
+  } else if (atk.type==='lightning_barrage'||atk.type==='lava_barrage') {
+    ctx.strokeStyle=`rgba(${dCol},${pulse*0.9})`; ctx.lineWidth=2+progress*2; ctx.shadowColor=`rgba(${dCol},1)`; ctx.shadowBlur=16*pulse
     ctx.setLineDash([8,4]); ctx.beginPath(); ctx.arc(b.pos.x,b.pos.y,80*(0.5+0.5*progress),0,Math.PI*2); ctx.stroke(); ctx.setLineDash([])
-    ctx.fillStyle=`rgba(0,200,255,${pulse*0.12})`; ctx.beginPath(); ctx.arc(b.pos.x,b.pos.y,80,0,Math.PI*2); ctx.fill()
+    ctx.fillStyle=`rgba(${dCol},${pulse*0.12})`; ctx.beginPath(); ctx.arc(b.pos.x,b.pos.y,80,0,Math.PI*2); ctx.fill()
   } else if (atk.type==='web_wall') {
     const lineA=atk.data.angle??0, len=760
     ctx.save(); ctx.shadowColor='#8E44AD'; ctx.shadowBlur=16*pulse
@@ -2849,6 +2993,9 @@ function renderSlowTraps(ctx: CanvasRenderingContext2D, g: GS, t: number) {
     if (trap.fromPlayer) {
       ctx.globalAlpha*=0.7
       for (let i=0;i<6;i++) { const a=i/6*Math.PI*2+pulse*0.5; ctx.beginPath(); ctx.moveTo(trap.pos.x+Math.cos(a)*14,trap.pos.y+Math.sin(a)*14); ctx.lineTo(trap.pos.x+Math.cos(a)*22,trap.pos.y+Math.sin(a)*22); ctx.stroke() }
+      // counter-rotating inner rune triangle so the armed trap reads at a glance
+      ctx.save(); ctx.translate(trap.pos.x,trap.pos.y); ctx.rotate(-t*1.6); ctx.globalAlpha=0.6+0.3*pulse; ctx.lineWidth=1.5
+      ctx.beginPath(); for (let i=0;i<3;i++){ const a=i/3*Math.PI*2; const x=Math.cos(a)*11,y=Math.sin(a)*11; if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y) } ctx.closePath(); ctx.stroke(); ctx.restore()
     }
     ctx.restore()
   })
@@ -2861,7 +3008,7 @@ function renderProjectiles(ctx: CanvasRenderingContext2D, g: GS, t: number) {
     if (proj.trail && proj.trail.length > 1) {
       for (let i=1;i<proj.trail.length;i++) {
         const a=(i/proj.trail.length)*0.5
-        ctx.save(); ctx.globalAlpha=a; ctx.strokeStyle=proj.color; ctx.lineWidth=(proj.isPowerShot?8:proj.isFireball?7:3)*(i/proj.trail.length)
+        ctx.save(); ctx.globalAlpha=a; ctx.strokeStyle=proj.color; ctx.lineWidth=(proj.isPowerShot?8:proj.isFireball?7:proj.isFirebolt?5:3)*(i/proj.trail.length)
         ctx.shadowColor=proj.color; ctx.shadowBlur=6
         ctx.beginPath(); ctx.moveTo(proj.trail[i-1].x,proj.trail[i-1].y); ctx.lineTo(proj.trail[i].x,proj.trail[i].y); ctx.stroke(); ctx.restore()
       }
@@ -2873,27 +3020,55 @@ function renderProjectiles(ctx: CanvasRenderingContext2D, g: GS, t: number) {
       ctx.fillStyle=proj.color; ctx.beginPath(); ctx.moveTo(-20,-5); ctx.lineTo(10,-5); ctx.lineTo(10,-10); ctx.lineTo(24,0); ctx.lineTo(10,10); ctx.lineTo(10,5); ctx.lineTo(-20,5); ctx.closePath(); ctx.fill()
       ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=1; ctx.stroke(); ctx.restore()
     } else if (proj.isFireball) {
-      // large rotating-flame fireball with white-hot core
+      // roaring fireball — additive flame ball, swirling petals, comet flame-trail off the tail, white-hot core
+      const ang = Math.atan2(proj.vel.y, proj.vel.x)
       const fr = 0.72 + 0.28 * Math.sin(proj.life * 26)
-      ctx.shadowColor = '#FF3000'; ctx.shadowBlur = 28
-      const fg = ctx.createRadialGradient(proj.pos.x, proj.pos.y, 0, proj.pos.x, proj.pos.y, proj.radius + 9)
-      fg.addColorStop(0, '#FFF7C0'); fg.addColorStop(0.5, '#FF7A1A'); fg.addColorStop(1, 'rgba(200,20,0,0)')
-      ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(proj.pos.x, proj.pos.y, (proj.radius + 9) * fr, 0, Math.PI * 2); ctx.fill()
-      ctx.save(); ctx.translate(proj.pos.x, proj.pos.y); ctx.rotate(proj.life * 6)
-      ctx.fillStyle = 'rgba(255,140,20,0.85)'
-      for (let s = 0; s < 5; s++) { ctx.rotate(Math.PI * 2 / 5); ctx.beginPath(); ctx.ellipse(proj.radius * 0.75, 0, proj.radius * 0.7, proj.radius * 0.34, 0, 0, Math.PI * 2); ctx.fill() }
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'
+      // trailing flame plume streaming opposite the velocity
+      ctx.save(); ctx.translate(proj.pos.x, proj.pos.y); ctx.rotate(ang)
+      const plume = ctx.createLinearGradient(0, 0, -(proj.radius * 4.2), 0)
+      plume.addColorStop(0, 'rgba(255,210,90,0.85)'); plume.addColorStop(0.5, 'rgba(255,90,10,0.45)'); plume.addColorStop(1, 'rgba(200,20,0,0)')
+      ctx.fillStyle = plume; ctx.shadowColor = '#FF3000'; ctx.shadowBlur = 22
+      const wob = Math.sin(proj.life * 30) * proj.radius * 0.3
+      ctx.beginPath(); ctx.moveTo(0, -proj.radius * 0.9); ctx.quadraticCurveTo(-proj.radius * 2.2, wob, -proj.radius * 4.4, 0); ctx.quadraticCurveTo(-proj.radius * 2.2, -wob, 0, proj.radius * 0.9); ctx.closePath(); ctx.fill()
       ctx.restore()
-      ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(proj.pos.x, proj.pos.y, proj.radius * 0.45, 0, Math.PI * 2); ctx.fill()
+      // heat halo
+      ctx.shadowColor = '#FF3000'; ctx.shadowBlur = 30
+      const fg = ctx.createRadialGradient(proj.pos.x, proj.pos.y, 0, proj.pos.x, proj.pos.y, proj.radius + 12)
+      fg.addColorStop(0, '#FFFFFF'); fg.addColorStop(0.4, '#FFB838'); fg.addColorStop(0.75, '#FF5A0A'); fg.addColorStop(1, 'rgba(200,20,0,0)')
+      ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(proj.pos.x, proj.pos.y, (proj.radius + 12) * fr, 0, Math.PI * 2); ctx.fill()
+      // counter-rotating flame petals
+      ctx.save(); ctx.translate(proj.pos.x, proj.pos.y); ctx.rotate(proj.life * 6)
+      ctx.fillStyle = 'rgba(255,150,30,0.8)'
+      for (let s = 0; s < 6; s++) { ctx.rotate(Math.PI * 2 / 6); ctx.beginPath(); ctx.ellipse(proj.radius * 0.8, 0, proj.radius * 0.78, proj.radius * 0.32, 0, 0, Math.PI * 2); ctx.fill() }
+      ctx.rotate(-proj.life * 11); ctx.fillStyle = 'rgba(255,220,120,0.6)'
+      for (let s = 0; s < 5; s++) { ctx.rotate(Math.PI * 2 / 5); ctx.beginPath(); ctx.ellipse(proj.radius * 0.55, 0, proj.radius * 0.5, proj.radius * 0.22, 0, 0, Math.PI * 2); ctx.fill() }
+      ctx.restore()
+      // white-hot core
+      ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(proj.pos.x, proj.pos.y, proj.radius * 0.46 * (0.9 + 0.1 * Math.sin(proj.life * 40)), 0, Math.PI * 2); ctx.fill()
+      ctx.restore()
     } else if (proj.isFirebolt) {
-      // glowing firebolt — flame halo, white-hot core, flickering licks
-      const fr = 0.65 + 0.35 * Math.sin(proj.life * 32)
-      ctx.shadowColor = '#FF4500'; ctx.shadowBlur = 16
-      const fg = ctx.createRadialGradient(proj.pos.x, proj.pos.y, 0, proj.pos.x, proj.pos.y, proj.radius + 5)
-      fg.addColorStop(0, '#FFF3B0'); fg.addColorStop(0.42, '#FF8A1A'); fg.addColorStop(1, 'rgba(255,40,0,0)')
-      ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(proj.pos.x, proj.pos.y, (proj.radius + 5) * fr, 0, Math.PI * 2); ctx.fill()
-      ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(proj.pos.x, proj.pos.y, proj.radius * 0.4, 0, Math.PI * 2); ctx.fill()
-      ctx.fillStyle = 'rgba(255,150,30,0.85)'
-      for (let s = 0; s < 3; s++) { const a = proj.life * 10 + s * 2.1; ctx.beginPath(); ctx.arc(proj.pos.x + Math.cos(a) * proj.radius * 0.7, proj.pos.y + Math.sin(a) * proj.radius * 0.7, 1.7, 0, Math.PI * 2); ctx.fill() }
+      // darting firebolt — additive flame dart with a teardrop body, white-hot core, sparks
+      const ang = Math.atan2(proj.vel.y, proj.vel.x)
+      const fr = 0.7 + 0.3 * Math.sin(proj.life * 34)
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.shadowColor = '#FF4500'; ctx.shadowBlur = 16
+      // teardrop flame body pointing along travel
+      ctx.save(); ctx.translate(proj.pos.x, proj.pos.y); ctx.rotate(ang)
+      const body = ctx.createLinearGradient(proj.radius * 1.4, 0, -proj.radius * 2.6, 0)
+      body.addColorStop(0, 'rgba(255,245,180,0.95)'); body.addColorStop(0.45, 'rgba(255,130,25,0.7)'); body.addColorStop(1, 'rgba(255,40,0,0)')
+      const wob = Math.sin(proj.life * 36) * proj.radius * 0.28
+      ctx.fillStyle = body
+      ctx.beginPath(); ctx.moveTo(proj.radius * 1.5, 0); ctx.quadraticCurveTo(0, proj.radius * 0.9, -proj.radius * 2.6, wob); ctx.quadraticCurveTo(0, -proj.radius * 0.9, proj.radius * 1.5, 0); ctx.closePath(); ctx.fill()
+      ctx.restore()
+      // glowing halo
+      const fg = ctx.createRadialGradient(proj.pos.x, proj.pos.y, 0, proj.pos.x, proj.pos.y, proj.radius + 6)
+      fg.addColorStop(0, '#FFFFFF'); fg.addColorStop(0.4, '#FFC24A'); fg.addColorStop(1, 'rgba(255,40,0,0)')
+      ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(proj.pos.x, proj.pos.y, (proj.radius + 6) * fr, 0, Math.PI * 2); ctx.fill()
+      // white-hot core
+      ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(proj.pos.x, proj.pos.y, proj.radius * 0.42, 0, Math.PI * 2); ctx.fill()
+      // flickering sparks shed around the bolt
+      for (let s = 0; s < 4; s++) { const a = proj.life * 12 + s * 1.7; const rr = proj.radius * (0.8 + 0.25 * Math.sin(proj.life * 20 + s)); ctx.fillStyle = `rgba(255,${180 + s * 15},60,0.85)`; ctx.beginPath(); ctx.arc(proj.pos.x + Math.cos(a) * rr, proj.pos.y + Math.sin(a) * rr, 1.6, 0, Math.PI * 2); ctx.fill() }
+      ctx.restore()
     } else if (proj.isLightning) {
       const a2=Math.atan2(proj.vel.y,proj.vel.x)
       ctx.save(); ctx.translate(proj.pos.x,proj.pos.y); ctx.rotate(a2)
@@ -2996,6 +3171,46 @@ function renderSkyArrows(ctx: CanvasRenderingContext2D, g: GS, t: number) {
       const iy = ty - 80 + prog * 50
       ctx.beginPath(); ctx.moveTo(tx, iy); ctx.lineTo(tx, ty - 50); ctx.stroke()
       ctx.beginPath(); ctx.moveTo(tx - 10, iy + 15); ctx.lineTo(tx, iy); ctx.lineTo(tx + 10, iy + 15); ctx.stroke()
+    }
+    ctx.restore()
+  })
+}
+
+function renderFx(ctx: CanvasRenderingContext2D, g: GS, t: number) {
+  g.fx.forEach(f => {
+    const prog = 1 - f.timer / f.maxTimer       // 0 -> 1
+    const fade = f.timer / f.maxTimer           // 1 -> 0
+    const eo = 1 - Math.pow(1 - prog, 3)        // ease-out expansion
+    ctx.save(); ctx.translate(f.pos.x, f.pos.y); ctx.globalCompositeOperation = 'lighter'
+    if (f.type === 'shock') {
+      const r = f.radius * eo
+      ctx.shadowColor = f.color; ctx.shadowBlur = 18
+      ctx.globalAlpha = fade * 0.9; ctx.strokeStyle = f.color; ctx.lineWidth = 6 * fade + 1.5
+      ctx.beginPath(); ctx.ellipse(0, 0, r, r * 0.42, 0, 0, Math.PI * 2); ctx.stroke()
+      ctx.globalAlpha = fade; ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 2.5 * fade
+      ctx.beginPath(); ctx.ellipse(0, 0, r * 0.7, r * 0.7 * 0.42, 0, 0, Math.PI * 2); ctx.stroke()
+      ctx.globalAlpha = fade * 0.55; ctx.strokeStyle = f.color; ctx.lineWidth = 2
+      for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; ctx.beginPath(); ctx.moveTo(Math.cos(a) * r * 0.5, Math.sin(a) * r * 0.5 * 0.42); ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r * 0.42); ctx.stroke() }
+    } else if (f.type === 'nova') {
+      const r = f.radius * (0.3 + 0.7 * eo)
+      ctx.globalAlpha = fade
+      const gr = ctx.createRadialGradient(0, 0, 0, 0, 0, r)
+      gr.addColorStop(0, '#FFFFFF'); gr.addColorStop(0.4, f.color); gr.addColorStop(1, 'rgba(0,0,0,0)')
+      ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill()
+    } else if (f.type === 'star') {
+      ctx.rotate(f.rot); ctx.globalAlpha = fade; ctx.shadowColor = f.color; ctx.shadowBlur = 16
+      const reach = f.radius * (0.6 + 0.8 * eo)
+      ctx.strokeStyle = f.color; ctx.lineWidth = 2.5 * fade + 1
+      for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; const len = i % 2 === 0 ? reach : reach * 0.5; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * len, Math.sin(a) * len); ctx.stroke() }
+      ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(0, 0, 3 * fade + 1, 0, Math.PI * 2); ctx.fill()
+    } else if (f.type === 'rune') {
+      ctx.globalAlpha = fade * 0.95; ctx.shadowColor = f.color; ctx.shadowBlur = 12; ctx.rotate(prog * 2.2 + t * 0.5)
+      const r = f.radius * (0.7 + 0.4 * eo)
+      ctx.strokeStyle = f.color; ctx.lineWidth = 2
+      ctx.beginPath(); ctx.ellipse(0, 0, r, r * 0.5, 0, 0, Math.PI * 2); ctx.stroke()
+      ctx.beginPath(); ctx.ellipse(0, 0, r * 0.66, r * 0.33, 0, 0, Math.PI * 2); ctx.stroke()
+      ctx.lineWidth = 1.5
+      for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; ctx.beginPath(); ctx.moveTo(Math.cos(a) * r * 0.66, Math.sin(a) * r * 0.33); ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r * 0.5); ctx.stroke() }
     }
     ctx.restore()
   })
@@ -3200,7 +3415,21 @@ function render(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, bossId: Bo
       ctx.beginPath(); ctx.moveTo(ex,ey); ctx.lineTo(ex-Math.cos(aa-0.4)*22,ey-Math.sin(aa-0.4)*22); ctx.moveTo(ex,ey); ctx.lineTo(ex-Math.cos(aa+0.4)*22,ey-Math.sin(aa+0.4)*22); ctx.stroke()
       ctx.restore()
     }
-    renderBoss(ctx,g,bossId,t); renderMinions(ctx,g,t); renderPlayer(ctx,g,wpn,gear,t); renderDamageNumbers(ctx,g)
+    renderBoss(ctx,g,bossId,t); renderMinions(ctx,g,t); renderPlayer(ctx,g,wpn,gear,t)
+    renderFx(ctx,g,t)
+    if (g.manaShieldTimer > 0) {
+      const p = g.player, sp = 0.6 + 0.4 * Math.sin(t * 10), a = Math.min(1, g.manaShieldTimer * 2)
+      ctx.save(); ctx.translate(p.pos.x, p.pos.y); ctx.globalCompositeOperation = 'lighter'
+      ctx.shadowColor = '#9B59B6'; ctx.shadowBlur = 16
+      const gr = ctx.createRadialGradient(0, 0, 8, 0, 0, 30)
+      gr.addColorStop(0, 'rgba(155,89,182,0)'); gr.addColorStop(0.7, 'rgba(155,89,182,0.12)'); gr.addColorStop(1, `rgba(206,158,232,${0.5 * sp})`)
+      ctx.globalAlpha = a; ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(0, 0, 28, 0, Math.PI * 2); ctx.fill()
+      ctx.globalAlpha = a * 0.85; ctx.strokeStyle = '#CE9EE8'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, 28, 0, Math.PI * 2); ctx.stroke()
+      ctx.globalAlpha = a * 0.35; ctx.lineWidth = 1
+      for (let i = 0; i < 6; i++) { const aa = t * 0.6 + i / 6 * Math.PI * 2; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(aa) * 28, Math.sin(aa) * 28); ctx.stroke() }
+      ctx.restore()
+    }
+    renderDamageNumbers(ctx,g)
     if (g.tooCloseFlash > 0) {
       const p = g.player, a = Math.min(1, g.tooCloseFlash * 1.6)
       ctx.save(); ctx.globalAlpha = a
