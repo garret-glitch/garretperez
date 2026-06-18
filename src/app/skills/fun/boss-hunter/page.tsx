@@ -152,12 +152,27 @@ const Sfx = (() => {
     T.battle_final = band(172, [A2, A2, F2, E2], [[A4, C5, E5, A5], [A4, E5, C5, A5], [F4, A4, C5, F5], [E4, G4, B4, E5]], { heavy: true, lv: 0.14, snare: true, mel: finalMel, melType: 'sawtooth', melVol: 0.16, melDur: 0.22 })
     // PREP — anticipatory pre-fight loop on the hunt-select screen
     T.prep = band(104, [A2, F2, D3, E3], [[A4, E5, C5, E5], [F4, C5, A4, C5], [D4, A4, F4, A4], [E4, B4, G4, B4]], { lt: 'sine', lv: 0.1 })
-    // MENU — slow ominous Am-F drone
-    { const secBass = [A2, F2], secArp = [[A4, E5, C5, E5], [F4, C5, A4, C5]]
-      const bass: (number | null)[] = [], lead: (number | null)[] = [], pad: (number | null)[] = []
-      for (let s = 0; s < 16; s++) { const sec = Math.floor(s / 8), b = s % 8
-        bass.push(b === 0 ? secBass[sec] : null); lead.push(b % 2 === 0 ? secArp[sec][(b / 2) % 4] : null); pad.push(b === 0 ? secBass[sec] * 1.5 : null) }
-      T.menu = { stepDur: 60 / 76 / 2, len: 16, voices: [{ steps: bass, type: 'triangle', vol: 0.2, dur: 3.2 }, { steps: lead, type: 'sine', vol: 0.1, dur: 0.95 }, { steps: pad, type: 'sawtooth', vol: 0.045, dur: 3.2 }], kick: new Array(16).fill(0), hat: new Array(16).fill(0) } }
+    // MENU — "Hunter's Rest": warm cinematic minor title theme (Am–F–C–G), melodic hook over a shimmer arp
+    { const roots = [A2, F2, C3, G2]
+      const arps = [[A4, C5, E5, C5], [F4, A4, C5, A4], [C5, E5, G5, E5], [G4, B4, D5, B4]]
+      const melo: (number | null)[][] = [
+        [A4, null, null, null, C5, null, B4, null],
+        [A4, null, null, null, G4, null, A4, null],
+        [C5, null, null, null, E5, null, D5, null],
+        [B4, null, null, null, D5, null, G4, B4]]
+      const len = 32
+      const bass: (number | null)[] = [], pad: (number | null)[] = [], arp: (number | null)[] = [], lead: (number | null)[] = []
+      for (let s = 0; s < len; s++) { const sec = Math.floor(s / 8), b = s % 8
+        bass.push((b === 0 || b === 4) ? roots[sec] : null)
+        pad.push(b === 0 ? roots[sec] * 2 : null)
+        arp.push(b % 2 === 1 ? arps[sec][((b - 1) / 2) % 4] : null)   // soft shimmer on the offbeats
+        lead.push(melo[sec][b]) }
+      T.menu = { stepDur: 60 / 82 / 2, len, voices: [
+        { steps: pad, type: 'sawtooth', vol: 0.05, dur: 3.4 },
+        { steps: bass, type: 'triangle', vol: 0.2, dur: 1.6 },
+        { steps: arp, type: 'sine', vol: 0.07, dur: 0.5 },
+        { steps: lead, type: 'triangle', vol: 0.14, dur: 1.1 },
+      ], kick: new Array(len).fill(0), hat: new Array(len).fill(0) } }
     // VICTORY — bright C-major fanfare loop
     { const arp = [C4, E4, G4, C5, E5, G5, E5, C5], bassN = [C3, C3, G2, G2, A3, A3, F2, G2]
       const bass: (number | null)[] = [], lead: (number | null)[] = [], kick: number[] = [], hat: number[] = []
