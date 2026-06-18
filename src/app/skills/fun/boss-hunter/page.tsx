@@ -703,12 +703,12 @@ function startBossAttack(g: GS, bossId: BossId, type: string) {
     wind_blade: 1.0, dive_bomb: 1.05,
   }
   const data: AttackData = { targetPos: { ...p.pos }, angle, dmg: 0 }
-  if (type === 'venom_spit') { data.dmg = 15; data.count = 3; data.projSpeed = 260 }
-  else if (type === 'web_shot') { data.dmg = 12; data.projSpeed = 160 }
-  else if (type === 'leg_sweep') { data.dmg = 22; data.coneAngle = Math.PI; data.coneRange = 160; data.angle = angle }
-  else if (type === 'spider_leap') { data.dmg = 36; data.radius = 130 }
+  if (type === 'venom_spit') { data.dmg = 13; data.count = 3; data.projSpeed = 260 }
+  else if (type === 'web_shot') { data.dmg = 10; data.projSpeed = 160 }
+  else if (type === 'leg_sweep') { data.dmg = 20; data.coneAngle = Math.PI; data.coneRange = 160; data.angle = angle }
+  else if (type === 'spider_leap') { data.dmg = 30; data.radius = 130 }
   else if (type === 'toxic_cloud') { data.dmg = 0; data.count = 3 }
-  else if (type === 'venom_burst') { data.dmg = 38; data.radius = 180 }
+  else if (type === 'venom_burst') { data.dmg = 32; data.radius = 180 }
   else if (type === 'summon') { data.count = g.bossDesperate ? 4 : 3 }
   else if (type === 'fire_breath') { data.dmg = 23; data.coneAngle = 48 * Math.PI / 180; data.coneRange = 290; data.angle = angle; data.duration = 2.2; data.elapsed = 0 }
   else if (type === 'stomp') { data.dmg = 34; data.radius = 0; data.duration = 1.2 }
@@ -722,7 +722,7 @@ function startBossAttack(g: GS, bossId: BossId, type: string) {
   else if (type === 'thunderstorm') { data.dmg = 25; data.count = 8; data.strikeIndex = 0 }
   else if (type === 'static_field') { data.dmg = 0; data.count = 2 }
   else if (type === 'chain_lightning') { data.dmg = 22; data.count = 6; data.strikeIndex = 0 }
-  else if (type === 'web_spray') { data.dmg = 12; data.count = 7; data.projSpeed = 195; data.angle = angle }
+  else if (type === 'web_spray') { data.dmg = 11; data.count = 7; data.projSpeed = 195; data.angle = angle }
   else if (type === 'fire_line') { data.dmg = 27; data.angle = b.angle + Math.PI / 2 }
   else if (type === 'lightning_barrage') { data.dmg = 30; data.count = 8; data.strikeIndex = 0; data.elapsed = 0 }
   else if (type === 'fireball') { data.dmg = 28; data.count = g.bossEnraged ? 4 : 3; data.projSpeed = 320; data.angle = angle }
@@ -730,12 +730,12 @@ function startBossAttack(g: GS, bossId: BossId, type: string) {
   else if (type === 'wind_blade') { data.dmg = 16; data.count = g.bossEnraged ? 6 : 5; data.projSpeed = 330; data.angle = angle }
   else if (type === 'dive_bomb') { data.dmg = 36; data.radius = 130 }
   else if (type === 'web_wall') { data.dmg = 0; data.angle = b.angle + Math.PI / 2 }
-  else if (type === 'spider_charge') { data.dmg = 30; data.angle = angle }
+  else if (type === 'spider_charge') { data.dmg = 26; data.angle = angle }
   else if (type === 'magma_geyser') { data.dmg = 32; data.radius = 122; data.targetPos = { ...p.pos } }
   else if (type === 'fire_fan') { data.dmg = 26; data.count = g.bossEnraged ? 9 : 6; data.projSpeed = 285; data.angle = angle }
   else if (type === 'gale_ring') { data.dmg = 16; data.count = g.bossEnraged ? 14 : 11; data.projSpeed = 250 }
   else if (type === 'thunder_cross') { data.dmg = 24; data.angle = angle }
-  else if (type === 'web_burst') { data.dmg = 12; data.count = g.bossEnraged ? 14 : 11; data.projSpeed = 205 }
+  else if (type === 'web_burst') { data.dmg = 11; data.count = g.bossEnraged ? 14 : 11; data.projSpeed = 205 }
   else if (type === 'venom_geyser') { data.dmg = 0; data.radius = 120; data.targetPos = { ...p.pos } }
   else if (type === 'lava_barrage') { data.dmg = 26; data.count = g.bossEnraged ? 12 : 9; data.strikeIndex = 0; data.elapsed = 0 }
   g.bossAttack = { type, telegraphTime: telegraphs[type] ?? 1.0, elapsed: 0, active: false, data }
@@ -970,7 +970,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   b.hitFlash = Math.max(0, b.hitFlash - dt)
   b.legPhase += dt * (b.stunTimer > 0 ? 0.5 : g.bossEnraged ? 3.8 : 2.4)
   b.spinePulse += dt * 2.2; b.lightningPhase += dt * 4.5
-  g.screenShake = Math.max(0, g.screenShake - dt * 3); g.nextAttackTimer = Math.max(0, g.nextAttackTimer - dt * (g.bossDesperate ? 1.55 : 1) * (bossId === 1 ? 1.5 : 1))
+  g.screenShake = Math.max(0, g.screenShake - dt * 3); g.nextAttackTimer = Math.max(0, g.nextAttackTimer - dt * (g.bossDesperate ? (bossId === 0 ? 1.4 : 1.55) : 1) * (bossId === 1 ? 1.5 : 1))
   g.playerDmgFlash = Math.max(0, g.playerDmgFlash - dt * 2.8)
   g.tooCloseFlash = Math.max(0, g.tooCloseFlash - dt * 2.0)
   g.mageCircle = Math.max(0, g.mageCircle - dt)
@@ -1306,7 +1306,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
         m.pos.y = clamp(m.pos.y + (mvy / ml) * mspeed * dt, 20, WH - 20)
       }
       if (dist(m.pos, p.pos) < 26 && m.atkCd <= 0 && p.iframeTimer <= 0) {
-        dealDmgToPlayer(g, g.bossEnraged ? 12 : 9, wpn, gear, toP); m.atkCd = 1.1; spawnParticles(g, m.pos, 5, '#8E44AD', 120)
+        dealDmgToPlayer(g, g.bossEnraged ? 10 : 8, wpn, gear, toP); m.atkCd = 1.1; spawnParticles(g, m.pos, 5, '#8E44AD', 120)
       }
       return true
     })
