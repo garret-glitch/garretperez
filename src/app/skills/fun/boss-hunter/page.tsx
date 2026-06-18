@@ -381,35 +381,35 @@ interface BossState {
 const WEAPON_DEFS: WeaponDef[] = [
   {
     id: 'sword', name: 'Starter Sword', icon: '⚔️', color: '#E74C3C', element: 'fire',
-    dmg: 55, range: 100, atkCd: 0.72,
+    dmg: 48, range: 100, atkCd: 0.66,
     desc: 'Aggressive melee fighter. Close the distance and unleash devastating slams, rages, and charges.',
     abilities: [
       { key: 'Q', name: 'Ground Slam', desc: 'Shockwave — 130 dmg AOE, 130px radius', cd: 6 },
       { key: 'W', name: 'Rage', desc: '+60% damage for 8s', cd: 18 },
       { key: 'E', name: 'Bull Charge', desc: 'Rush toward cursor — 150 dmg on boss impact', cd: 9 },
-      { key: 'R', name: 'Whirlwind', desc: 'Spin 3s — 65 dmg/s within 100px', cd: 25 },
+      { key: 'R', name: 'Whirlwind', desc: 'Spin 3s — 70 dmg/s within 100px', cd: 25 },
     ],
   },
   {
     id: 'bow', name: 'Starter Bow', icon: '🏹', color: '#2ECC71', element: 'lightning',
-    dmg: 28, range: 480, atkCd: 0.44,
+    dmg: 35, range: 480, atkCd: 0.46,
     desc: 'Precision long-range archer. Rain death from afar with power shots, traps, and sky arrows.',
     abilities: [
-      { key: 'Q', name: 'Power Shot', desc: 'Massive gold arrow — 3× dmg, stuns boss 0.6s', cd: 5 },
-      { key: 'W', name: 'Trap', desc: 'Snap trap at cursor — 110 dmg + 3s slow on trigger', cd: 10 },
+      { key: 'Q', name: 'Power Shot', desc: 'Massive gold arrow — 120 dmg, stuns boss 0.6s', cd: 5 },
+      { key: 'W', name: 'Trap', desc: 'Snap trap at cursor — 130 dmg + 3s slow on trigger', cd: 10 },
       { key: 'E', name: 'Shadow Dash', desc: 'Dash in move direction with full invulnerability', cd: 7 },
-      { key: 'R', name: 'Rain of Arrows', desc: '3 massive arrows fall from the sky at cursor', cd: 20 },
+      { key: 'R', name: 'Rain of Arrows', desc: '3 sky arrows — 80 dmg each at cursor', cd: 20 },
     ],
   },
   {
     id: 'staff', name: 'Starter Staff', icon: '🔮', color: '#9B59B6', element: 'arcane',
-    dmg: 38, range: 540, atkCd: 0.64,
+    dmg: 36, range: 540, atkCd: 0.62,
     desc: 'Arcane artillery. Longest range in the game with rapid, hard-hitting bolts and devastating spells. Master positioning to dominate.',
     abilities: [
-      { key: 'Q', name: 'Arcane Bolt', desc: 'Fast arcane missile — 175 dmg toward cursor', cd: 5 },
+      { key: 'Q', name: 'Arcane Bolt', desc: 'Fast arcane missile — 185 dmg toward cursor', cd: 5 },
       { key: 'W', name: 'Mana Shield', desc: '2.5s bubble — blocks ALL incoming damage', cd: 14 },
-      { key: 'E', name: 'Arcane Surge', desc: 'Blink toward cursor and erupt — 165 dmg nova on arrival', cd: 8 },
-      { key: 'R', name: 'Meteor', desc: 'Giant meteor — 400 dmg in 110px AOE at cursor', cd: 22 },
+      { key: 'E', name: 'Arcane Surge', desc: 'Blink toward cursor and erupt — 175 dmg nova on arrival', cd: 8 },
+      { key: 'R', name: 'Meteor', desc: 'Giant meteor — 430 dmg in 110px AOE at cursor', cd: 22 },
     ],
   },
 ]
@@ -419,33 +419,33 @@ const BOSS_DEFS: BossDef[] = [
   {
     id: 0, name: 'Spider Queen', color: '#8E44AD', icon: '🕷️', element: 'poison',
     lore: 'Ancient arachnid empress of the deep caverns. Her venom melts armor. Her webs trap the bravest hunters.',
-    hp: 4200, size: 90, enrageAt: 0.40,
+    hp: 4300, size: 90, enrageAt: 0.40,
     rewards: ['spider_fang', 'venom_bow', 'web_amulet'], arenaType: 'spider',
   },
   {
     id: 1, name: 'Lava Drake', color: '#E67E22', icon: '🐉', element: 'fire',
     lore: 'Born in the molten core. Ancient and enormous. Her fire melts stone. Her claws split mountains.',
-    hp: 8200, size: 115, enrageAt: 0.38,
+    hp: 8400, size: 115, enrageAt: 0.38,
     rewards: ['drake_sword', 'fire_staff', 'ember_armor'], arenaType: 'drake',
   },
   {
     id: 2, name: 'Storm Griffin', color: '#F1C40F', icon: '🦅', element: 'lightning',
     lore: 'Skyborn predator. Commands the storms. Every wingbeat calls lightning from dark thunderheads.',
-    hp: 9500, size: 100, enrageAt: 0.30,
+    hp: 10200, size: 100, enrageAt: 0.30,
     rewards: ['thunder_blade', 'storm_bow', 'feather_boots'], arenaType: 'griffin',
   },
 ]
 
 /* ═══ GEAR DEFINITIONS ═══ */
 const GEAR_DEFS: Record<GearId, GearDef> = {
-  spider_fang:   { id: 'spider_fang',   name: 'Spider Fang Daggers', icon: '🗡️', desc: 'Dual daggers — attack 40% faster, unique dagger animations' },
-  venom_bow:     { id: 'venom_bow',     name: 'Venom Bow',           icon: '🏹', desc: 'Purple poison bow — arrows inflict 15 dmg/s for 5s' },
+  spider_fang:   { id: 'spider_fang',   name: 'Spider Fang Daggers', icon: '🗡️', desc: 'Dual daggers — attack ~50% faster (Spider-tier upgrade)' },
+  venom_bow:     { id: 'venom_bow',     name: 'Venom Bow',           icon: '🏹', desc: '+12% damage and arrows inflict 32 dmg/s poison for 5s (Spider-tier upgrade)' },
   web_amulet:    { id: 'web_amulet',    name: 'Web Armour',          icon: '🕸️', desc: 'Webbed plating — reduces incoming damage by 18%, plus 10% chance on hit to web-stun the boss 1.5s' },
-  drake_sword:   { id: 'drake_sword',   name: 'Drake Greatsword',    icon: '⚔️', desc: '+35% damage. 15% chance to stun boss on hit' },
-  fire_staff:    { id: 'fire_staff',    name: 'Fire Staff',          icon: '🔥', desc: 'Casts 22% faster. Basics become splashing firebolts (+60% dmg, scorch the ground). Q hurls a Fireball — 120px AOE, 240 dmg' },
+  drake_sword:   { id: 'drake_sword',   name: 'Drake Greatsword',    icon: '⚔️', desc: '+88% damage, 15% chance to stun boss on hit (Drake-tier upgrade)' },
+  fire_staff:    { id: 'fire_staff',    name: 'Fire Staff',          icon: '🔥', desc: 'Casts 20% faster. Basics become splashing firebolts (+75% dmg, scorch the ground). Q hurls a Fireball — 120px AOE, 270 dmg (Drake-tier upgrade)' },
   ember_armor:   { id: 'ember_armor',   name: 'Ember Armour',        icon: '🛡️', desc: 'Heavy ember plate — reduces all incoming damage by 45% and grants +30 max HP' },
-  thunder_blade: { id: 'thunder_blade', name: 'Thunder Blade',       icon: '⚡', desc: 'Every 3rd hit unleashes a lightning strike (+80 bonus dmg)' },
-  storm_bow:     { id: 'storm_bow',     name: 'Storm Bow',           icon: '🌩️', desc: 'Arrows are lightning bolts — AOE on impact (40px, 30 dmg)' },
+  thunder_blade: { id: 'thunder_blade', name: 'Thunder Blade',       icon: '⚡', desc: '+34% damage; every 3rd hit calls a lightning strike (+150 bonus dmg) (Griffin-tier upgrade)' },
+  storm_bow:     { id: 'storm_bow',     name: 'Storm Bow',           icon: '🌩️', desc: '+34% damage; arrows are lightning bolts — 50 dmg AOE on impact (Griffin-tier upgrade)' },
   feather_boots: { id: 'feather_boots', name: 'Feather Armour',      icon: '🪶', desc: 'Feather-light — +22% move speed. No damage reduction.' },
 }
 const GEAR_CATEGORY: Record<GearId, 'attack' | 'defense'> = {
@@ -610,16 +610,14 @@ function killPlayer(g: GS) {
 function dealDmgToBoss(g: GS, baseDmg: number, gear: GearId[]) {
   const b = g.boss, p = g.player
   let dmg = baseDmg
-  if (gear.includes('drake_sword')) {
-    dmg = Math.round(dmg * 1.35)
-    if (Math.random() < 0.15) b.stunTimer = Math.max(b.stunTimer, 1.5)
-  }
+  // drake_sword's damage bonus lives in the basic-hit multiplier now; here it only stuns
+  if (gear.includes('drake_sword') && Math.random() < 0.15) b.stunTimer = Math.max(b.stunTimer, 1.5)
   if (g.rageActive) dmg = Math.round(dmg * 1.6)
   if (gear.includes('thunder_blade')) {
     p.gearHitCount++
     g.chainResetTimer = CHAIN_HIT_RESET
     if (p.gearHitCount % 3 === 0) {
-      dmg += 80
+      dmg += 150
       spawnParticles(g, b.pos, 14, '#F1C40F', 260)
       g.screenShake = Math.max(g.screenShake, 0.45)
       Sfx.crit()
@@ -980,7 +978,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   g.fx = g.fx.filter(f => { f.timer -= dt; return f.timer > 0 })
   if (p.hp > 0 && p.hp / p.maxHp < 0.25) Sfx.heartbeat()   // critical-HP heartbeat (throttled)
   if (g.rageTimer > 0) { g.rageTimer = Math.max(0, g.rageTimer - dt); if (g.rageTimer <= 0) g.rageActive = false }
-  if (g.poisonTimer > 0) { g.poisonTimer = Math.max(0, g.poisonTimer - dt); b.hp = Math.max(0, b.hp - 15 * dt) }
+  if (g.poisonTimer > 0) { g.poisonTimer = Math.max(0, g.poisonTimer - dt); b.hp = Math.max(0, b.hp - 32 * dt) }
   if (g.chainResetTimer > 0) { g.chainResetTimer = Math.max(0, g.chainResetTimer - dt); if (g.chainResetTimer <= 0) g.chainHits = 0 }
   if (g.bossFleeTimer > 0) g.bossFleeTimer = Math.max(0, g.bossFleeTimer - dt)
   if (g.webProcAnim) { g.webProcAnim.timer -= dt; if (g.webProcAnim.timer <= 0) g.webProcAnim = null }
@@ -1053,7 +1051,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
     g.whirlwindTimer -= dt; p.iframeTimer = Math.max(p.iframeTimer, 0.1)
     Sfx.whirl()   // looping swish (throttled internally)
     if (g.whirlwindTimer <= 0) { g.whirlwindActive = false }
-    else { if (dist(p.pos, b.pos) < 110) { b.hp = Math.max(0, b.hp - 65 * dt); spawnParticles(g, b.pos, 2, '#E74C3C', 100) }
+    else { if (dist(p.pos, b.pos) < 110) { b.hp = Math.max(0, b.hp - 70 * dt); spawnParticles(g, b.pos, 2, '#E74C3C', 100) }
       g.minions.forEach(m => { if (m.hp > 0 && dist(p.pos, m.pos) < 110) { m.hp = Math.max(0, m.hp - 90 * dt); if (m.hp <= 0) { spawnParticles(g, m.pos, 12, '#8E44AD', 170); Sfx.minionDeath() } } }) }
   }
 
@@ -1108,11 +1106,17 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   // ranged weapons cannot fire at point-blank — must keep a gap beyond the boss body (not vs small minions)
   const minRange = (isRangedAtk && !tgtMinion) ? bossDef.size + 72 : 0
   let atkCd = wpn.atkCd
-  if (gear.includes('spider_fang')) atkCd *= 0.6
-  if (gear.includes('fire_staff')) atkCd *= 0.78   // Fire Staff channels flame faster than the arcane staff
-  // Starter weapons (no attack-gear equipped) hit softer — find an upgrade to ramp up your basic DPS
-  const hasAtkGear = gear.some(gid => GEAR_CATEGORY[gid] === 'attack')
-  const basicDmg = hasAtkGear ? wpn.dmg : Math.round(wpn.dmg * 0.55)
+  if (gear.includes('spider_fang')) atkCd *= 0.66   // Spider Fang — fast dual daggers
+  if (gear.includes('fire_staff')) atkCd *= 0.80    // Fire Staff channels flame faster than the arcane staff
+  // ── weapon-tier basic-damage multiplier (the backbone of progression: Starter < Spider < Drake < Griffin) ──
+  // Starter = base weapon dmg (1.0). Each upgrade weapon scales its basic hit by its tier multiplier.
+  // (fire_staff scales via its firebolt boltDmg below; spider_fang scales via attack speed above.)
+  const gearDmgMult = gear.includes('drake_sword') ? 1.88
+    : gear.includes('thunder_blade') ? 1.34
+    : gear.includes('storm_bow') ? 1.34
+    : gear.includes('venom_bow') ? 1.12
+    : 1.0
+  const basicDmg = Math.round(wpn.dmg * gearDmgMult)
   const flashColor = gear.includes('fire_staff') ? '#FF4500' : gear.includes('venom_bow') ? '#8E44AD' : gear.includes('storm_bow') ? '#7DFFB0' : wpn.color
   if (p.atkTimer <= 0 && !p.dodgeTimer && !g.bullChargeDash.active) {
     if (isRangedAtk && !tgtMinion && dToBoss < minRange && dToBoss <= atkRange) {
@@ -1136,7 +1140,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
         const isArrow = wpn.id === 'bow' && !isStorm && !isVenom
         const projSpeed = wpn.id === 'staff' ? (isFireStaff ? 500 : 420) : 440
         // Fire Staff bolts hit harder, fly faster and burst with a splash (vs the plain arcane bolt)
-        const boltDmg = isFirebolt ? Math.round(basicDmg * 1.6) : basicDmg
+        const boltDmg = isFirebolt ? Math.round(basicDmg * 1.75) : basicDmg
         g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * projSpeed, dir.y * projSpeed), dmg: boltDmg, radius: isFirebolt ? 8.5 : isArcane ? 8 : 6, fromBoss: false, life: 4.0, color: projColor, aoe: isStorm ? 40 : isFirebolt ? 52 : undefined, isLightning: isStorm, isVenom, isArrow, isArcane, isFirebolt, trail: [] })
         if (wpn.id === 'staff') g.mageCircle = Math.max(g.mageCircle, 0.4)
         if (isFireStaff) Sfx.firebolt(); else if (wpn.id === 'staff') Sfx.cast(); else Sfx.shot()
@@ -1354,7 +1358,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
     if (!proj.fromBoss && dist(proj.pos, b.pos) < proj.radius + bossDef.size) {
       dealDmgToBoss(g, proj.dmg, gear)
       if (proj.isPowerShot) { b.stunTimer = Math.max(b.stunTimer, 0.7); spawnParticles(g, proj.pos, 22, proj.color, 280); g.screenShake = Math.max(g.screenShake, 0.5) }
-      if (proj.aoe && proj.isLightning) { spawnParticles(g, proj.pos, 14, '#7DFFB0', 180); g.screenShake = Math.max(g.screenShake, 0.22); Sfx.zap(); if (dist(b.pos, proj.pos) < proj.aoe) dealDmgToBoss(g, 30, gear) }
+      if (proj.aoe && proj.isLightning) { spawnParticles(g, proj.pos, 14, '#7DFFB0', 180); g.screenShake = Math.max(g.screenShake, 0.22); Sfx.zap(); if (dist(b.pos, proj.pos) < proj.aoe) dealDmgToBoss(g, 50, gear) }
       if (proj.isFireball && proj.aoe) {
         // big explosion + smoke + burning ground
         spawnParticles(g, proj.pos, 26, '#FF4500', 300); spawnParticles(g, proj.pos, 14, '#FFD24A', 190); spawnParticles(g, proj.pos, 7, '#FFF7C0', 120, 0.4)
@@ -1555,7 +1559,7 @@ function activateAbility(g: GS, idx: number, wpn: WeaponDef, gear: GearId[], abi
 
   if (idx === 0 && gear.includes('fire_staff')) {
     const dir = norm(v(abilityTarget.x - p.pos.x, abilityTarget.y - p.pos.y))
-    g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * 420, dir.y * 420), dmg: 240, radius: 16, fromBoss: false, life: 4.0, color: '#FF4500', aoe: 120, isFireball: true, trail: [] })
+    g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * 420, dir.y * 420), dmg: 270, radius: 16, fromBoss: false, life: 4.0, color: '#FF4500', aoe: 120, isFireball: true, trail: [] })
     spawnParticles(g, p.pos, 18, '#FF6A1A', 200); spawnParticles(g, p.pos, 8, '#FFF7C0', 130, 0.35)
     spawnFx(g, 'rune', p.pos, '#FF6A1A', 40, 0.5); spawnFx(g, 'star', p.pos, '#FFD24A', 26, 0.26, Math.atan2(dir.y, dir.x))
     Sfx.fireCast(); Sfx.fireball()
@@ -1566,7 +1570,7 @@ function activateAbility(g: GS, idx: number, wpn: WeaponDef, gear: GearId[], abi
     if (idx === 0) { // Power Shot
       const dir = norm(v(abilityTarget.x - p.pos.x, abilityTarget.y - p.pos.y))
       const ps = gear.includes('storm_bow') ? '#5fe0ff' : gear.includes('venom_bow') ? '#9B59B6' : '#F1C40F'
-      g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * 560, dir.y * 560), dmg: wpn.dmg * 3, radius: 14, fromBoss: false, life: 4.0, color: ps, isPowerShot: true, trail: [] })
+      g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * 560, dir.y * 560), dmg: 120, radius: 14, fromBoss: false, life: 4.0, color: ps, isPowerShot: true, trail: [] })
       spawnParticles(g, p.pos, 18, ps, 200)
       const psA = Math.atan2((abilityTarget.y - p.pos.y), (abilityTarget.x - p.pos.x))
       g.attackFlash = { angle: psA, timer: 0.4, maxTimer: 0.4, type: 'power_shot', color: ps }
@@ -1574,7 +1578,7 @@ function activateAbility(g: GS, idx: number, wpn: WeaponDef, gear: GearId[], abi
       Sfx.powerShot()
     } else if (idx === 1) { // Trap
       g.slowTraps.push({ id: ++g.nextTrapId, pos: { ...abilityTarget }, life: 20.0, fromPlayer: true })
-      if (dist(b.pos, abilityTarget) < BOSS_DEFS[bossId].size + 22) { dealDmgToBoss(g, 110, gear); b.slowTimer = 3.0 }
+      if (dist(b.pos, abilityTarget) < BOSS_DEFS[bossId].size + 22) { dealDmgToBoss(g, 130, gear); b.slowTimer = 3.0 }
       spawnParticles(g, abilityTarget, 10, '#8E44AD', 90, 0.65)
       spawnFx(g, 'rune', { ...abilityTarget }, '#8E44AD', 26, 0.5)
       Sfx.trapSet()
@@ -1591,7 +1595,7 @@ function activateAbility(g: GS, idx: number, wpn: WeaponDef, gear: GearId[], abi
         const perp = Math.atan2(b.pos.y - p.pos.y, b.pos.x - p.pos.x) + Math.PI / 2
         const tx = clamp(abilityTarget.x + Math.cos(perp) * (i - 1) * 100, 50, WW - 50)
         const ty = clamp(abilityTarget.y + Math.sin(perp) * (i - 1) * 100, 50, WH - 50)
-        g.skyArrows.push({ id: ++g.nextProjId, targetPos: v(tx, ty), warnTimer: 1.2 + i * 0.25, hit: false, dmg: Math.round(wpn.dmg * 2.5) })
+        g.skyArrows.push({ id: ++g.nextProjId, targetPos: v(tx, ty), warnTimer: 1.2 + i * 0.25, hit: false, dmg: 80 })
       }
       spawnParticles(g, p.pos, 10, '#F1C40F', 120, 0.4)
       spawnFx(g, 'rune', p.pos, '#F1C40F', 34, 0.5); spawnFx(g, 'star', p.pos, '#FFE08A', 26, 0.28)
@@ -1621,7 +1625,7 @@ function activateAbility(g: GS, idx: number, wpn: WeaponDef, gear: GearId[], abi
   } else { // staff
     if (idx === 0) { // Arcane Bolt
       const dir = norm(v(abilityTarget.x - p.pos.x, abilityTarget.y - p.pos.y))
-      g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * 600, dir.y * 600), dmg: 175, radius: 13, fromBoss: false, life: 4.0, color: '#9B59B6', isArcane: true, trail: [] })
+      g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * 600, dir.y * 600), dmg: 185, radius: 13, fromBoss: false, life: 4.0, color: '#9B59B6', isArcane: true, trail: [] })
       spawnParticles(g, p.pos, 14, '#9B59B6', 180); Sfx.arcaneBolt()
       spawnFx(g, 'rune', p.pos, '#9B59B6', 34, 0.45); spawnFx(g, 'star', p.pos, '#CE9EE8', 24, 0.24, Math.atan2(dir.y, dir.x))
       g.attackFlash = { angle: Math.atan2(dir.y, dir.x), timer: 0.35, maxTimer: 0.35, type: 'magic', color: '#9B59B6' }
@@ -1640,7 +1644,7 @@ function activateAbility(g: GS, idx: number, wpn: WeaponDef, gear: GearId[], abi
       p.pos.x = clamp(p.pos.x + dir.x * blinkDist, 20, WW - 20)
       p.pos.y = clamp(p.pos.y + dir.y * blinkDist, 20, WH - 20)
       p.iframeTimer = Math.max(p.iframeTimer, 0.4)
-      const novaR = 130, novaDmg = 165
+      const novaR = 130, novaDmg = 175
       if (dist(b.pos, p.pos) < novaR + BOSS_DEFS[bossId].size) dealDmgToBoss(g, novaDmg, gear)
       g.minions.forEach(m => { if (m.hp > 0 && dist(m.pos, p.pos) < novaR) { dealDmgToMinion(g, m, novaDmg); const kd = norm(v(m.pos.x - p.pos.x, m.pos.y - p.pos.y)); m.pos.x += kd.x * 42; m.pos.y += kd.y * 42 } })
       spawnParticles(g, p.pos, 30, col, 340); spawnParticles(g, p.pos, 14, '#FFFFFF', 210)
@@ -1649,7 +1653,7 @@ function activateAbility(g: GS, idx: number, wpn: WeaponDef, gear: GearId[], abi
       g.screenShake = Math.max(g.screenShake, 0.5); g.mageCircle = Math.max(g.mageCircle, 0.5)
       g.attackFlash = { angle: Math.atan2(dir.y, dir.x), timer: 0.3, maxTimer: 0.3, type: 'shadow', color: col }
     } else if (idx === 3) { // Meteor
-      g.skyArrows.push({ id: ++g.nextProjId, targetPos: { ...abilityTarget }, warnTimer: 1.2, hit: false, dmg: 400, kind: 'meteor' })
+      g.skyArrows.push({ id: ++g.nextProjId, targetPos: { ...abilityTarget }, warnTimer: 1.2, hit: false, dmg: 430, kind: 'meteor' })
       spawnParticles(g, p.pos, 12, gear.includes('fire_staff') ? '#FF6A1A' : '#9B59B6', 130, 0.5)
       spawnFx(g, 'rune', p.pos, gear.includes('fire_staff') ? '#FF6A1A' : '#9B59B6', 42, 0.6); Sfx.meteorCast()
     }
