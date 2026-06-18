@@ -85,29 +85,73 @@ const Sfx = (() => {
     const g = c.createGain(); g.gain.setValueAtTime(vol, time); g.gain.exponentialRampToValueAtTime(0.001, time + 0.04)
     src.connect(f); f.connect(g); g.connect(dest); src.start(time); src.stop(time + 0.06)
   }
-  const D2=73.42, E2=82.41, F2=87.31, G2=98, A2=110, Bb2=116.54, C3=130.81, D3=146.83, E3=164.81, G3=196, A3=220, Bb3=233.08, B3=246.94, C4=261.63, Cs4=277.18, D4=293.66, E4=329.63, F4=349.23, G4=392, A4=440, B4=493.88, C5=523.25, D5=587.33, E5=659.25, F5=698.46, Fs5=739.99, G5=783.99, A5=880
+  function msnare(c: AudioContext, time: number, dest: AudioNode, vol: number) {
+    const n = Math.max(1, Math.floor(c.sampleRate * 0.09)); const buf = c.createBuffer(1, n, c.sampleRate)
+    const d = buf.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1
+    const src = c.createBufferSource(); src.buffer = buf; const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1900; f.Q.value = 0.8
+    const g = c.createGain(); g.gain.setValueAtTime(vol, time); g.gain.exponentialRampToValueAtTime(0.001, time + 0.09)
+    src.connect(f); f.connect(g); g.connect(dest); src.start(time); src.stop(time + 0.1)
+    const o = c.createOscillator(); o.type = 'triangle'; o.frequency.setValueAtTime(190, time)
+    const og = c.createGain(); og.gain.setValueAtTime(vol * 0.5, time); og.gain.exponentialRampToValueAtTime(0.001, time + 0.06)
+    o.connect(og); og.connect(dest); o.start(time); o.stop(time + 0.08)
+  }
+  const D2=73.42, E2=82.41, F2=87.31, G2=98, A2=110, Bb2=116.54, B2=123.47, C3=130.81, D3=146.83, E3=164.81, G3=196, A3=220, Bb3=233.08, B3=246.94, C4=261.63, Cs4=277.18, D4=293.66, E4=329.63, F4=349.23, G4=392, A4=440, As4=466.16, B4=493.88, C5=523.25, Cs5=554.37, D5=587.33, E5=659.25, F5=698.46, Fs5=739.99, G5=783.99, A5=880
   type Voice = { steps: (number | null)[]; type: OscillatorType; vol: number; dur: number }
-  type Trk = { stepDur: number; len: number; voices: Voice[]; kick: number[]; hat: number[] }
+  type Trk = { stepDur: number; len: number; voices: Voice[]; kick: number[]; hat: number[]; snare?: number[] }
   const TRACKS: Record<string, Trk> = (() => {
     const T: Record<string, Trk> = {}
     // generic battle-band builder: section roots + per-section arp, 8 steps/section
-    const band = (bpm: number, roots: number[], arps: number[][], o?: { bt?: OscillatorType; lt?: OscillatorType; lv?: number; heavy?: boolean }): Trk => {
+    const band = (bpm: number, roots: number[], arps: number[][], o?: { bt?: OscillatorType; lt?: OscillatorType; lv?: number; heavy?: boolean; mel?: (number | null)[][]; melType?: OscillatorType; melVol?: number; melDur?: number; snare?: boolean }): Trk => {
       const len = roots.length * 8
-      const bass: (number | null)[] = [], lead: (number | null)[] = [], pad: (number | null)[] = [], kick: number[] = [], hat: number[] = []
+      const bass: (number | null)[] = [], lead: (number | null)[] = [], pad: (number | null)[] = [], mel: (number | null)[] = [], kick: number[] = [], hat: number[] = [], snare: number[] = []
       for (let s = 0; s < len; s++) { const sec = Math.floor(s / 8), b = s % 8, ar = arps[sec]
         bass.push(b % 2 === 0 ? roots[sec] : (b === 5 ? roots[sec] : null)); lead.push(ar[b % ar.length]); pad.push(b === 0 ? roots[sec] * 2 : null)
-        kick.push(o?.heavy ? ((b % 2 === 0) ? 1 : 0) : ((b === 0 || b === 4) ? 1 : 0)); hat.push(b % 2 === 1 ? 1 : 0) }
-      return { stepDur: 60 / bpm / 2, len, voices: [{ steps: bass, type: o?.bt ?? 'sawtooth', vol: 0.26, dur: 0.2 }, { steps: lead, type: o?.lt ?? 'square', vol: o?.lv ?? 0.12, dur: 0.17 }, { steps: pad, type: 'triangle', vol: 0.1, dur: 1.7 }], kick, hat }
+        mel.push(o?.mel ? (o.mel[sec]?.[b] ?? null) : null)
+        kick.push(o?.heavy ? ((b % 2 === 0) ? 1 : 0) : ((b === 0 || b === 4) ? 1 : 0)); hat.push(b % 2 === 1 ? 1 : 0); snare.push((b === 2 || b === 6) ? 1 : 0) }
+      const voices: Voice[] = [{ steps: bass, type: o?.bt ?? 'sawtooth', vol: 0.26, dur: 0.2 }, { steps: lead, type: o?.lt ?? 'square', vol: o?.lv ?? 0.12, dur: 0.17 }, { steps: pad, type: 'triangle', vol: 0.1, dur: 1.7 }]
+      if (o?.mel) voices.push({ steps: mel, type: o.melType ?? 'square', vol: o.melVol ?? 0.14, dur: o.melDur ?? 0.34 })
+      return { stepDur: 60 / bpm / 2, len, voices, kick, hat, snare: o?.snare ? snare : undefined }
     }
     T.battle = band(144, [A2, F2, C3, G2], [[A4, C5, E5, C5], [F4, A4, C5, A4], [C5, E5, G5, E5], [G4, B3, D5, B3]])
-    // SPIDER — eerie crawling D-minor
-    T.battle_spider = band(126, [D2, Bb2, G2, A2], [[D4, F4, A4, F4], [Bb3, D4, F4, D4], [G3, Bb3, D4, Bb3], [A3, Cs4, E4, Cs4]], { lt: 'triangle', lv: 0.13 })
-    // DRAKE — heavy pounding A-minor
-    T.battle_drake = band(132, [A2, A2, F2, G2], [[A4, C5, E5, C5], [A4, E5, C5, E5], [F4, A4, C5, A4], [G4, B3, D5, B3]], { bt: 'sawtooth', heavy: true })
-    // GRIFFIN — fast electric E-minor
-    T.battle_griffin = band(158, [E3, C3, G2, D3], [[E5, G5, B4, G5], [C5, E5, G5, E5], [G4, B4, D5, B4], [D5, Fs5, A4, Fs5]], { lt: 'square', lv: 0.13 })
-    // FINAL PHASE — frantic, double-time
-    T.battle_final = band(170, [A2, A2, F2, E2], [[A4, C5, E5, A5], [A4, E5, C5, A5], [F4, A4, C5, F5], [E4, G4, B4, E5]], { heavy: true, lv: 0.14 })
+
+    // ════ SPIDER — "Lair of the Weaver": eerie crawling D-minor, haunting lead ════
+    const spiderRoots = [D2, Bb2, G2, A2, D2, Bb2, A2, A2]
+    const spiderArp = [[D4, F4, A4, F4], [Bb3, D4, F4, D4], [G3, Bb3, D4, Bb3], [A3, Cs4, E4, Cs4], [D4, F4, A4, F4], [Bb3, D4, F4, D4], [A3, Cs4, E4, Cs4], [A3, E4, Cs4, E4]]
+    const spiderMel: (number | null)[][] = [
+      [D5, null, F5, null, E5, null, D5, null], [C5, null, D5, null, As4, null, null, null],
+      [As4, null, D5, null, C5, null, As4, null], [A4, null, C5, null, B4, null, Cs5, null],
+      [F5, null, E5, null, F5, null, A5, null], [G5, null, F5, null, E5, null, D5, null],
+      [Cs5, null, E5, null, A4, null, Cs5, null], [A4, null, Cs5, null, E5, null, A5, null]]
+    T.battle_spider = band(124, spiderRoots, spiderArp, { lt: 'triangle', lv: 0.12, mel: spiderMel, melType: 'sine', melVol: 0.12, melDur: 0.42 })
+    T.battle_spider_rage = band(148, spiderRoots, spiderArp, { lt: 'sawtooth', lv: 0.15, heavy: true, snare: true, mel: spiderMel, melType: 'triangle', melVol: 0.16, melDur: 0.3 })
+
+    // ════ DRAKE — "Molten Wyrm": heavy pounding A-minor, brass-menace lead ════
+    const drakeRoots = [A2, A2, F2, G2, A2, A2, E2, E2]
+    const drakeArp = [[A4, C5, E5, C5], [A4, E5, C5, E5], [F4, A4, C5, A4], [G4, B3, D5, B3], [A4, C5, E5, C5], [A4, E5, C5, E5], [E4, G4, B4, G4], [E4, B4, G4, B4]]
+    const drakeMel: (number | null)[][] = [
+      [A4, null, A4, C5, null, A4, null, E4], [A4, null, C5, null, E5, null, C5, null],
+      [F4, null, A4, null, C5, null, A4, null], [G4, null, B4, null, D5, null, G4, null],
+      [A4, C5, E5, null, A5, null, E5, null], [A5, null, G5, null, E5, null, C5, null],
+      [E4, null, G4, null, B4, null, E5, null], [E5, null, D5, null, C5, null, B4, null]]
+    T.battle_drake = band(130, drakeRoots, drakeArp, { bt: 'sawtooth', heavy: true, mel: drakeMel, melType: 'square', melVol: 0.13, melDur: 0.3 })
+    T.battle_drake_rage = band(152, drakeRoots, drakeArp, { bt: 'sawtooth', heavy: true, snare: true, mel: drakeMel, melType: 'sawtooth', melVol: 0.16, melDur: 0.26 })
+
+    // ════ GRIFFIN — "Tempest's Wing": fast electric E-minor, soaring lead ════
+    const griffinRoots = [E3, C3, G2, D3, E3, A2, B2, B2]
+    const griffinArp = [[E5, G5, B4, G5], [C5, E5, G5, E5], [G4, B4, D5, B4], [D5, Fs5, A4, Fs5], [E5, G5, B4, G5], [A4, C5, E5, C5], [B4, D5, Fs5, D5], [B4, Fs5, D5, Fs5]]
+    const griffinMel: (number | null)[][] = [
+      [E5, G5, B4, null, E5, null, G5, null], [C5, E5, G5, null, C5, null, E5, null],
+      [G4, B4, D5, null, G5, null, D5, null], [D5, Fs5, A5, null, Fs5, null, D5, null],
+      [E5, null, G5, B4, null, E5, null, B4], [A4, C5, E5, null, A5, null, E5, null],
+      [B4, D5, Fs5, null, B4, null, Fs5, null], [Fs5, null, E5, null, D5, null, B4, null]]
+    T.battle_griffin = band(156, griffinRoots, griffinArp, { lt: 'square', lv: 0.13, mel: griffinMel, melType: 'square', melVol: 0.12, melDur: 0.22 })
+    T.battle_griffin_rage = band(178, griffinRoots, griffinArp, { lt: 'square', lv: 0.15, heavy: true, snare: true, mel: griffinMel, melType: 'square', melVol: 0.15, melDur: 0.2 })
+
+    // FINAL PHASE — frantic, double-time, full kit
+    const finalMel: (number | null)[][] = [[A4, C5, E5, A5, null, E5, null, C5], [A5, null, E5, null, C5, null, A4, null], [F4, A4, C5, F5, null, C5, null, A4], [E4, G4, B4, E5, null, B4, null, G4]]
+    T.battle_final = band(172, [A2, A2, F2, E2], [[A4, C5, E5, A5], [A4, E5, C5, A5], [F4, A4, C5, F5], [E4, G4, B4, E5]], { heavy: true, lv: 0.14, snare: true, mel: finalMel, melType: 'sawtooth', melVol: 0.16, melDur: 0.22 })
+    // PREP — anticipatory pre-fight loop on the hunt-select screen
+    T.prep = band(104, [A2, F2, D3, E3], [[A4, E5, C5, E5], [F4, C5, A4, C5], [D4, A4, F4, A4], [E4, B4, G4, B4]], { lt: 'sine', lv: 0.1 })
     // MENU — slow ominous Am-F drone
     { const secBass = [A2, F2], secArp = [[A4, E5, C5, E5], [F4, C5, A4, C5]]
       const bass: (number | null)[] = [], lead: (number | null)[] = [], pad: (number | null)[] = []
@@ -128,6 +172,7 @@ const Sfx = (() => {
     if (!musicGain || !ctx) return
     for (const v of tr.voices) { const f = v.steps[s]; if (f) mnote(ctx, f, time, v.dur, v.type, v.vol, musicGain) }
     if (tr.kick[s]) mkick(ctx, time, musicGain, 0.55); if (tr.hat[s]) mhat(ctx, time, musicGain, 0.16)
+    if (tr.snare && tr.snare[s]) msnare(ctx, time, musicGain, 0.28)
   }
   function schedule() {
     const c = ctx; if (!c || !musicGain || !curTrack) return
@@ -180,6 +225,31 @@ const Sfx = (() => {
     ability() { const c = ok('abil', 40); if (!c) return; blip(c, 520, 0.2, 'sine', 0.2, 980); blip(c, 780, 0.2, 'triangle', 0.12, 1400) },
     victory() { const c = ok('vic', 300); if (!c) return;[523, 659, 784, 1047].forEach((f, i) => blip(c, f, 0.22, 'triangle', 0.22, undefined, i * 0.12)) },
     loot() { const c = ok('loot', 120); if (!c) return; blip(c, 880, 0.1, 'triangle', 0.18, 1320); blip(c, 1320, 0.12, 'sine', 0.14, undefined, 0.08) },
+    // ── ability-specific SFX ──
+    slam() { const c = ok('slam', 60); if (!c) return; blip(c, 90, 0.34, 'sawtooth', 0.3, 40); noise(c, 0.3, 0.34, 'lowpass', 800, 1, 120); blip(c, 60, 0.4, 'sine', 0.22, 30, 0.02) },
+    rage() { const c = ok('rage', 200); if (!c) return; blip(c, 110, 0.5, 'sawtooth', 0.28, 330); blip(c, 165, 0.5, 'square', 0.16, 495, 0.05); noise(c, 0.4, 0.16, 'bandpass', 700, 0.7, 1800) },
+    charge() { const c = ok('charge', 80); if (!c) return; noise(c, 0.3, 0.32, 'bandpass', 600, 0.8, 2600); blip(c, 180, 0.26, 'sawtooth', 0.16, 420) },
+    chargeHit() { const c = ok('chit', 60); if (!c) return; blip(c, 120, 0.3, 'square', 0.3, 50); noise(c, 0.22, 0.34, 'lowpass', 1100, 1, 200); blip(c, 70, 0.34, 'sine', 0.2, 36, 0.02) },
+    whirl() { const c = ok('whirl', 150); if (!c) return; noise(c, 0.28, 0.22, 'bandpass', 1200, 1.1, 520) },
+    powerShot() { const c = ok('pshot', 80); if (!c) return; blip(c, 700, 0.16, 'sawtooth', 0.26, 180); blip(c, 1200, 0.14, 'square', 0.14, 400, 0.02); noise(c, 0.1, 0.3, 'highpass', 2600) },
+    trapSet() { const c = ok('tset', 90); if (!c) return; blip(c, 420, 0.07, 'square', 0.16, 240); blip(c, 300, 0.06, 'square', 0.12, 180, 0.05) },
+    trapSnap() { const c = ok('tsnap', 80); if (!c) return; blip(c, 600, 0.06, 'square', 0.2, 160); noise(c, 0.14, 0.26, 'bandpass', 1400, 1.4, 500); blip(c, 220, 0.2, 'sawtooth', 0.14, 500, 0.04) },
+    rainArrows() { const c = ok('rain', 150); if (!c) return; noise(c, 0.5, 0.24, 'bandpass', 1600, 0.6, 700); for (let i = 0; i < 4; i++) blip(c, 900, 0.08, 'triangle', 0.1, 300, i * 0.08) },
+    arcaneBolt() { const c = ok('abolt', 50); if (!c) return; blip(c, 700, 0.2, 'sine', 0.2, 1500); blip(c, 1050, 0.2, 'triangle', 0.12, 2100, 0.02); noise(c, 0.1, 0.14, 'highpass', 3000) },
+    shieldUp() { const c = ok('shup', 120); if (!c) return; blip(c, 300, 0.4, 'sine', 0.18, 760); blip(c, 600, 0.5, 'triangle', 0.1, 900); blip(c, 900, 0.3, 'sine', 0.08, 1200, 0.06) },
+    shieldHit() { const c = ok('shit', 50); if (!c) return; blip(c, 1200, 0.1, 'sine', 0.18, 700); blip(c, 1800, 0.08, 'triangle', 0.1, 1100) },
+    blink() { const c = ok('blink', 60); if (!c) return; blip(c, 1200, 0.12, 'sine', 0.16, 300); blip(c, 300, 0.12, 'sine', 0.14, 1200, 0.02); noise(c, 0.1, 0.16, 'bandpass', 2000, 1.5, 600) },
+    // ── elemental / ambient SFX ──
+    thunder() { const c = ok('thndr', 70); if (!c) return; noise(c, 0.3, 0.32, 'lowpass', 1200, 0.8, 200); blip(c, 200, 0.18, 'sawtooth', 0.2, 1400); blip(c, 80, 0.4, 'sine', 0.2, 40, 0.04) },
+    zap() { const c = ok('zap', 40); if (!c) return; blip(c, 1400, 0.07, 'sawtooth', 0.16, 600); noise(c, 0.05, 0.18, 'highpass', 4000) },
+    webShot() { const c = ok('webs', 50); if (!c) return; blip(c, 360, 0.12, 'triangle', 0.14, 140); noise(c, 0.1, 0.18, 'bandpass', 1100, 1.2, 400) },
+    poisonHit() { const c = ok('pois', 220); if (!c) return; blip(c, 180, 0.18, 'sine', 0.12, 110); noise(c, 0.2, 0.1, 'bandpass', 600, 1.6, 300) },
+    lavaBubble() { const c = ok('lava', 300); if (!c) return; blip(c, 90, 0.22, 'sine', 0.14, 150); noise(c, 0.16, 0.07, 'lowpass', 500, 1, 200) },
+    wingFlap() { const c = ok('wing', 200); if (!c) return; noise(c, 0.22, 0.2, 'lowpass', 700, 0.8, 300); blip(c, 140, 0.16, 'sine', 0.09, 90) },
+    emberSizzle() { const c = ok('ember', 90); if (!c) return; noise(c, 0.2, 0.18, 'bandpass', 2400, 0.8, 800) },
+    // ── UI / progression ──
+    unlock() { const c = ok('unlock', 200); if (!c) return;[523, 659, 784, 1047].forEach((f, i) => blip(c, f, 0.14, 'triangle', 0.16, undefined, i * 0.07)) },
+    uiHover() { const c = ok('hover', 50); if (!c) return; blip(c, 520, 0.04, 'sine', 0.07, 700) },
   }
 })()
 
@@ -454,7 +524,7 @@ function spawnParticles(g: GS, pos: V2, count: number, color: string, speed = 12
 function dealDmgToPlayer(g: GS, dmg: number, wpn: WeaponDef, gear: GearId[], knockDir?: V2) {
   const p = g.player
   if (g.god) return // God Mode — invincible
-  if (g.manaShieldTimer > 0) return // Mana Shield — blocks ALL damage while up
+  if (g.manaShieldTimer > 0) { Sfx.shieldHit(); return } // Mana Shield — blocks ALL damage while up
   if (p.iframeTimer > 0) return
   let fd = dmg
   if (g.rageActive) fd = Math.round(fd * 1.2)
@@ -469,7 +539,7 @@ function dealDmgToPlayer(g: GS, dmg: number, wpn: WeaponDef, gear: GearId[], kno
   g.playerDmgFlash = 0.70
   if (knockDir && wpn.id !== 'sword') p.knockbackVel = v(knockDir.x * 160, knockDir.y * 160)
   spawnParticles(g, p.pos, 8, '#FF4444', 110)
-  Sfx.hurt()
+  Sfx.hurt(); if (gear.includes('ember_armor')) Sfx.emberSizzle()
   g.screenShake = Math.max(g.screenShake, 0.32)
   g.damageNums.push({ id: ++g.nextDmgId, pos: { x: p.pos.x + rnd(-20, 20), y: p.pos.y - 20 }, val: Math.round(fd), life: 1.2, isPlayer: true })
   if (p.hp <= 0) killPlayer(g)
@@ -658,6 +728,7 @@ function resolveBossAttack(g: GS, bossId: BossId, wpn: WeaponDef, gear: GearId[]
     }
   } else if (type === 'web_shot') {
     g.projectiles.push({ id: ++g.nextProjId, pos: { ...b.pos }, vel: v(toPlayer.x * (d.projSpeed ?? 160), toPlayer.y * (d.projSpeed ?? 160)), dmg: d.dmg ?? 16, radius: 11, fromBoss: true, life: 6.0, color: '#8E44AD' })
+    Sfx.webShot()
   } else if (type === 'fireball') {
     // Drake: slow aimed fireballs that explode into a lingering fire pool on impact
     const count = d.count ?? 2, baseA = d.angle ?? Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
@@ -801,7 +872,7 @@ function resolveBossAttack(g: GS, bossId: BossId, wpn: WeaponDef, gear: GearId[]
       const a = baseAngle + (i - (count - 1) / 2) * 0.38
       g.projectiles.push({ id: ++g.nextProjId, pos: { ...b.pos }, vel: v(Math.cos(a) * (d.projSpeed ?? 195), Math.sin(a) * (d.projSpeed ?? 195)), dmg: d.dmg ?? 12, radius: 12, fromBoss: true, life: 5.5, color: '#8E44AD', isWeb: true })
     }
-    spawnParticles(g, b.pos, 14, '#8E44AD', 160)
+    spawnParticles(g, b.pos, 14, '#8E44AD', 160); Sfx.webShot()
   } else if (type === 'fire_line') {
     const lineAngle = d.angle ?? 0, lineLen = 820
     const lineCount = 18
@@ -935,6 +1006,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
       dealDmgToBoss(g, 150, gear); g.screenShake = Math.max(g.screenShake, 0.6)
       spawnParticles(g, b.pos, 24, '#E74C3C', 260); spawnParticles(g, b.pos, 10, '#FFD24A', 180)
       spawnFx(g, 'shock', b.pos, '#E74C3C', 150, 0.5); spawnFx(g, 'nova', b.pos, '#FF8A3A', 100, 0.3)
+      Sfx.chargeHit()
       g.bullChargeDash.active = false
     }
     if (g.bullChargeDash.timer <= 0) g.bullChargeDash.active = false
@@ -943,6 +1015,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   // Whirlwind
   if (g.whirlwindActive) {
     g.whirlwindTimer -= dt; p.iframeTimer = Math.max(p.iframeTimer, 0.1)
+    Sfx.whirl()   // looping swish (throttled internally)
     if (g.whirlwindTimer <= 0) { g.whirlwindActive = false }
     else { if (dist(p.pos, b.pos) < 110) { b.hp = Math.max(0, b.hp - 65 * dt); spawnParticles(g, b.pos, 2, '#E74C3C', 100) }
       g.minions.forEach(m => { if (m.hp > 0 && dist(p.pos, m.pos) < 110) { m.hp = Math.max(0, m.hp - 90 * dt); if (m.hp <= 0) { spawnParticles(g, m.pos, 12, '#8E44AD', 170); Sfx.minionDeath() } } }) }
@@ -1092,7 +1165,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
       const away = norm(v(b.pos.x - p.pos.x, b.pos.y - p.pos.y))
       b.pos.x = clamp(b.pos.x + away.x * 60 * dt, 80, WW - 80)
       b.pos.y = clamp(b.pos.y + away.y * 60 * dt - 32 * dt, 80, WH - 80)
-      if (gs.timer <= 0) { gs.mode = 2; gs.timer = g.bossEnraged ? 0.72 : 0.85; Sfx.gust(); g.screenShake = Math.max(g.screenShake, 0.22) }
+      if (gs.timer <= 0) { gs.mode = 2; gs.timer = g.bossEnraged ? 0.72 : 0.85; Sfx.gust(); Sfx.wingFlap(); g.screenShake = Math.max(g.screenShake, 0.22) }
     } else if (gs.mode === 3) {
       // HOVER & BARRAGE — nearly stationary, rains aimed lightning bolts at the player
       const toC = v(g.bossFlightCenter.x - b.pos.x, g.bossFlightCenter.y - b.pos.y)
@@ -1217,7 +1290,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   g.slowTraps = g.slowTraps.filter(trap => {
     trap.life -= dt; if (trap.life <= 0) return false
     if (!trap.fromPlayer && dist(p.pos, trap.pos) < 30) p.slowTimer = 3.0
-    if (trap.fromPlayer && dist(b.pos, trap.pos) < bossDef.size + 18) { b.slowTimer = 3.0; spawnParticles(g, trap.pos, 10, '#8E44AD', 110); return false }
+    if (trap.fromPlayer && dist(b.pos, trap.pos) < bossDef.size + 18) { b.slowTimer = 3.0; spawnParticles(g, trap.pos, 10, '#8E44AD', 110); Sfx.trapSnap(); return false }
     return true
   })
 
@@ -1245,7 +1318,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
     if (!proj.fromBoss && dist(proj.pos, b.pos) < proj.radius + bossDef.size) {
       dealDmgToBoss(g, proj.dmg, gear)
       if (proj.isPowerShot) { b.stunTimer = Math.max(b.stunTimer, 0.7); spawnParticles(g, proj.pos, 22, proj.color, 280); g.screenShake = Math.max(g.screenShake, 0.5) }
-      if (proj.aoe && proj.isLightning) { spawnParticles(g, proj.pos, 14, '#7DFFB0', 180); g.screenShake = Math.max(g.screenShake, 0.22); if (dist(b.pos, proj.pos) < proj.aoe) dealDmgToBoss(g, 30, gear) }
+      if (proj.aoe && proj.isLightning) { spawnParticles(g, proj.pos, 14, '#7DFFB0', 180); g.screenShake = Math.max(g.screenShake, 0.22); Sfx.zap(); if (dist(b.pos, proj.pos) < proj.aoe) dealDmgToBoss(g, 30, gear) }
       if (proj.isFireball && proj.aoe) {
         // big explosion + smoke + burning ground
         spawnParticles(g, proj.pos, 26, '#FF4500', 300); spawnParticles(g, proj.pos, 14, '#FFD24A', 190); spawnParticles(g, proj.pos, 7, '#FFF7C0', 120, 0.4)
@@ -1407,6 +1480,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
       const side = Math.random() > 0.5 ? 1 : -1
       const cols = ['#FF6600','#FF4500','#E67E22','#FFAA00','#FF2200','#FF7700']
       g.lavaParticles.push({ id: ++g.nextPartId, pos: v(b.pos.x + rnd(-bossDef.size*0.9, bossDef.size*0.9), b.pos.y + rnd(-bossDef.size*0.3, bossDef.size*0.55)), vel: v(rnd(-28, 28) + side * rnd(8, 36), rnd(-95, -28)), life: rnd(0.5, 1.5), maxLife: 1.5, color: cols[Math.floor(Math.random()*cols.length)], size: rnd(2.5, 7) })
+      Sfx.lavaBubble()   // ambient molten blub (throttled internally)
     }
     g.lavaParticles = g.lavaParticles.filter(pt => { pt.life -= dt; pt.pos.x += pt.vel.x * dt; pt.pos.y += pt.vel.y * dt; return pt.life > 0 })
     // Tail whip — player takes damage if they touch the tail tip
@@ -1461,17 +1535,20 @@ function activateAbility(g: GS, idx: number, wpn: WeaponDef, gear: GearId[], abi
       const psA = Math.atan2((abilityTarget.y - p.pos.y), (abilityTarget.x - p.pos.x))
       g.attackFlash = { angle: psA, timer: 0.4, maxTimer: 0.4, type: 'power_shot', color: ps }
       spawnFx(g, 'star', p.pos, ps, 30, 0.26, psA); g.screenShake = Math.max(g.screenShake, 0.22)
+      Sfx.powerShot()
     } else if (idx === 1) { // Trap
       g.slowTraps.push({ id: ++g.nextTrapId, pos: { ...abilityTarget }, life: 20.0, fromPlayer: true })
       if (dist(b.pos, abilityTarget) < BOSS_DEFS[bossId].size + 22) { dealDmgToBoss(g, 110, gear); b.slowTimer = 3.0 }
       spawnParticles(g, abilityTarget, 10, '#8E44AD', 90, 0.65)
       spawnFx(g, 'rune', { ...abilityTarget }, '#8E44AD', 26, 0.5)
+      Sfx.trapSet()
     } else if (idx === 2) { // Shadow Dash
       const dir = p.targetPos ? norm(v(p.targetPos.x - p.pos.x, p.targetPos.y - p.pos.y)) : norm(v(p.pos.x - b.pos.x, p.pos.y - b.pos.y))
       p.dodgeTimer = 0.38; p.dodgeVel = v(dir.x * 540, dir.y * 540); p.iframeTimer = 0.38
       for (let i = 0; i < 6; i++) p.shadowDashTrail.push({ pos: { ...p.pos }, a: 0.7 - i * 0.08 })
       spawnParticles(g, p.pos, 12, wpn.color, 130, 0.4)
       spawnFx(g, 'nova', p.pos, wpn.color, 42, 0.3)
+      Sfx.dodge()
       g.attackFlash = { angle: Math.atan2(dir.y, dir.x), timer: 0.25, maxTimer: 0.25, type: 'shadow', color: wpn.color }
     } else if (idx === 3) { // Rain of Arrows
       for (let i = 0; i < 3; i++) {
@@ -1482,6 +1559,7 @@ function activateAbility(g: GS, idx: number, wpn: WeaponDef, gear: GearId[], abi
       }
       spawnParticles(g, p.pos, 10, '#F1C40F', 120, 0.4)
       spawnFx(g, 'rune', p.pos, '#F1C40F', 34, 0.5); spawnFx(g, 'star', p.pos, '#FFE08A', 26, 0.28)
+      Sfx.rainArrows()
     }
   } else if (wpn.id === 'sword') {
     if (idx === 0) { // Ground Slam
@@ -1489,35 +1567,39 @@ function activateAbility(g: GS, idx: number, wpn: WeaponDef, gear: GearId[], abi
       g.minions.forEach(m => { if (m.hp > 0 && dist(p.pos, m.pos) < 140) dealDmgToMinion(g, m, 130) })
       spawnParticles(g, p.pos, 28, '#E74C3C', 260); spawnParticles(g, p.pos, 12, '#FFD24A', 170)
       spawnFx(g, 'shock', p.pos, '#E74C3C', 150, 0.5); spawnFx(g, 'nova', p.pos, '#FF8A3A', 95, 0.3)
+      Sfx.slam()
     } else if (idx === 1) { // Rage
       g.rageActive = true; g.rageTimer = 8.0; spawnParticles(g, p.pos, 22, '#FF6B35', 190)
       spawnFx(g, 'nova', p.pos, '#FF6B35', 62, 0.4); spawnFx(g, 'shock', p.pos, '#FF3000', 72, 0.45)
+      Sfx.rage()
     } else if (idx === 2) { // Bull Charge
       const dir = norm(v(abilityTarget.x - p.pos.x, abilityTarget.y - p.pos.y))
       g.bullChargeDash = { active: true, vel: v(dir.x * 640, dir.y * 640), timer: 0.4 }; p.iframeTimer = 0.4
       spawnFx(g, 'star', p.pos, '#E74C3C', 32, 0.28, Math.atan2(dir.y, dir.x)); spawnParticles(g, p.pos, 12, '#E74C3C', 150)
+      Sfx.charge()
     } else if (idx === 3) { // Whirlwind
       g.whirlwindActive = true; g.whirlwindTimer = 3.0; spawnParticles(g, p.pos, 22, '#E74C3C', 190)
       spawnFx(g, 'shock', p.pos, '#E74C3C', 120, 0.42)
+      Sfx.whirl()
     }
   } else { // staff
     if (idx === 0) { // Arcane Bolt
       const dir = norm(v(abilityTarget.x - p.pos.x, abilityTarget.y - p.pos.y))
       g.projectiles.push({ id: ++g.nextProjId, pos: { ...p.pos }, vel: v(dir.x * 600, dir.y * 600), dmg: 175, radius: 13, fromBoss: false, life: 4.0, color: '#9B59B6', isArcane: true, trail: [] })
-      spawnParticles(g, p.pos, 14, '#9B59B6', 180); Sfx.ability()
+      spawnParticles(g, p.pos, 14, '#9B59B6', 180); Sfx.arcaneBolt()
       spawnFx(g, 'rune', p.pos, '#9B59B6', 34, 0.45); spawnFx(g, 'star', p.pos, '#CE9EE8', 24, 0.24, Math.atan2(dir.y, dir.x))
       g.attackFlash = { angle: Math.atan2(dir.y, dir.x), timer: 0.35, maxTimer: 0.35, type: 'magic', color: '#9B59B6' }
     } else if (idx === 1) { // Mana Shield — blocks ALL incoming damage for its duration
       g.manaShieldTimer = 2.5
       p.iframeTimer = Math.max(p.iframeTimer, 2.5)
-      spawnParticles(g, p.pos, 22, '#9B59B6', 150); spawnFx(g, 'rune', p.pos, '#9B59B6', 30, 0.5); Sfx.ability()
+      spawnParticles(g, p.pos, 22, '#9B59B6', 150); spawnFx(g, 'rune', p.pos, '#9B59B6', 30, 0.5); Sfx.shieldUp()
       g.screenShake = Math.max(g.screenShake, 0.12)
     } else if (idx === 2) { // Arcane Surge — blink toward cursor and erupt in a nova on arrival
       const dir = norm(v(abilityTarget.x - p.pos.x, abilityTarget.y - p.pos.y))
       const fire = gear.includes('fire_staff'), col = fire ? '#FF6A1A' : '#9B59B6'
       const blinkDist = Math.min(dist(p.pos, abilityTarget), 300)
       const origin = { ...p.pos }
-      spawnFx(g, 'nova', origin, col, 48, 0.3); spawnParticles(g, origin, 12, col, 200)   // implosion at the departure point
+      spawnFx(g, 'nova', origin, col, 48, 0.3); spawnParticles(g, origin, 12, col, 200); Sfx.blink()   // implosion at the departure point
       for (let i = 0; i < 6; i++) p.shadowDashTrail.push({ pos: { ...p.pos }, a: 0.7 - i * 0.1 })
       p.pos.x = clamp(p.pos.x + dir.x * blinkDist, 20, WW - 20)
       p.pos.y = clamp(p.pos.y + dir.y * blinkDist, 20, WH - 20)
@@ -3698,6 +3780,7 @@ export default function BossHunter() {
   // ── background music keyed to the current screen / boss ──
   useEffect(() => {
     const track = screen === 'playing' ? `battle_${(['spider','drake','griffin'] as const)[selBoss]}`
+      : screen === 'hunt_select' ? 'prep'
       : screen === 'victory' ? 'victory' : screen === 'defeat' ? 'defeat' : 'menu'
     Sfx.playMusic(track)
   }, [screen, selBoss])
@@ -3799,7 +3882,13 @@ export default function BossHunter() {
       g.god = godRef.current
       tick(g, dt, wpn, selBoss, gear, mouseWorldRef.current, new Set(), mouseWorldRef.current, pending)
 
-      if (g.bossDesperate && g.phase === 'playing') Sfx.playMusic('battle_final')   // frantic phase-3 theme
+      if (g.phase === 'playing') {
+        // music escalates with the fight: per-boss theme → per-boss enrage → shared frantic finale
+        const bn = (['spider', 'drake', 'griffin'] as const)[selBoss]
+        if (g.bossDesperate) Sfx.playMusic('battle_final')
+        else if (g.bossEnraged) Sfx.playMusic(`battle_${bn}_rage`)
+        else Sfx.playMusic(`battle_${bn}`)
+      }
 
       if (g.phase === 'victory') {
         const killMs = Math.round(g.gtime * 1000)
