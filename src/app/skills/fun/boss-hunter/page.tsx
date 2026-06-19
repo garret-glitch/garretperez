@@ -3752,7 +3752,8 @@ export default function BossHunter() {
     }
   }, [screen, fitCanvas])
 
-  // ── cinematic menu backdrop: a looming, animated game boss in a glowing cavern ──
+  // ── menu backdrop: a single STATIC poster of a looming boss in a glowing cavern ──
+  // (rendered once + on resize, not animated per-frame — keeps the menu lag-free)
   useEffect(() => {
     if (screen !== 'menu') return
     const canvas = menuCanvasRef.current; if (!canvas) return
@@ -3764,23 +3765,21 @@ export default function BossHunter() {
     const T = bossId === 0 ? { g0: 'rgba(120,45,170,0.5)', g1: 'rgba(45,12,75,0.5)', rune: '#b370e0', emb: '155,89,182' }
           : bossId === 1 ? { g0: 'rgba(185,55,0,0.55)', g1: 'rgba(85,18,0,0.5)', rune: '#ff8a1a', emb: '255,95,26' }
           :                { g0: 'rgba(40,135,215,0.46)', g1: 'rgba(18,40,95,0.5)', rune: '#5fe6ff', emb: '122,160,255' }
-    const embers = Array.from({ length: 46 }, () => ({ x: Math.random(), y: Math.random(), s: 0.6 + Math.random() * 1.6, sp: 0.03 + Math.random() * 0.06, fl: Math.random() * 6.28 }))
-    let raf = 0, lastT = performance.now()
-    const fit = () => { canvas.width = canvas.clientWidth || window.innerWidth; canvas.height = canvas.clientHeight || window.innerHeight }
-    fit(); window.addEventListener('resize', fit)
-    const loop = (now: number) => {
-      const dt = Math.min((now - lastT) / 1000, 0.05); lastT = now
-      g.gtime += dt; g.boss.legPhase += dt * 3.0; g.boss.spinePulse += dt * 2.2; g.boss.lightningPhase += dt * 4.5
-      const t = g.gtime, w = canvas.width, h = canvas.height, cx = w * 0.5, cy = h * 0.42
-      ctx.clearRect(0, 0, w, h)
+    const embers = Array.from({ length: 46 }, () => ({ x: Math.random(), y: Math.random(), s: 0.6 + Math.random() * 1.6, fl: Math.random() * 6.28 }))
+    // frozen at a pleasant pose
+    const t = 1.4
+    g.gtime = t; g.boss.legPhase = t * 3.0; g.boss.spinePulse = t * 2.2; g.boss.lightningPhase = t * 4.5
+    const draw = () => {
+      const w = canvas.width = canvas.clientWidth || window.innerWidth
+      const h = canvas.height = canvas.clientHeight || window.innerHeight
+      const cx = w * 0.5, cy = h * 0.42
       ctx.fillStyle = '#05030a'; ctx.fillRect(0, 0, w, h)
       const gr = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.min(w, h) * 0.9)
       gr.addColorStop(0, T.g0); gr.addColorStop(0.5, T.g1); gr.addColorStop(1, 'rgba(0,0,0,0)')
       ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h)
-      // rising embers (behind boss)
+      // embers (static spread)
       ctx.shadowColor = `rgb(${T.emb})`; ctx.shadowBlur = 6
-      embers.forEach(e => { e.y -= e.sp * dt; if (e.y < -0.02) { e.y = 1.02; e.x = Math.random() }
-        ctx.fillStyle = `rgba(${T.emb},${0.35 + 0.4 * Math.sin(t * 4 + e.fl)})`
+      embers.forEach(e => { ctx.fillStyle = `rgba(${T.emb},${0.35 + 0.4 * Math.sin(t * 4 + e.fl)})`
         ctx.beginPath(); ctx.arc(e.x * w, e.y * h, e.s, 0, Math.PI * 2); ctx.fill() })
       ctx.shadowBlur = 0
       // boss (loom)
@@ -3804,10 +3803,9 @@ export default function BossHunter() {
       const vg = ctx.createRadialGradient(cx, h * 0.5, h * 0.18, cx, h * 0.5, Math.max(w, h) * 0.72)
       vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.88)')
       ctx.fillStyle = vg; ctx.fillRect(0, 0, w, h)
-      raf = requestAnimationFrame(loop)
     }
-    raf = requestAnimationFrame(loop)
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', fit) }
+    draw(); window.addEventListener('resize', draw)
+    return () => window.removeEventListener('resize', draw)
   }, [screen])
 
   // ── unlock audio on first interaction (browser autoplay policy) ──
