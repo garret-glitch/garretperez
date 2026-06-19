@@ -440,7 +440,7 @@ const BOSS_DEFS: BossDef[] = [
 const GEAR_DEFS: Record<GearId, GearDef> = {
   spider_fang:   { id: 'spider_fang',   name: 'Spider Fang Daggers', icon: '🗡️', desc: 'Dual daggers — attack ~50% faster (Spider-tier upgrade)' },
   venom_bow:     { id: 'venom_bow',     name: 'Venom Bow',           icon: '🏹', desc: '+12% damage and arrows inflict 32 dmg/s poison for 5s (Spider-tier upgrade)' },
-  web_amulet:    { id: 'web_amulet',    name: 'Web Armour',          icon: '🕸️', desc: 'Webbed plating — reduces incoming damage by 18%, plus 10% chance on hit to web-stun the boss 1.5s' },
+  web_amulet:    { id: 'web_amulet',    name: 'Web Armour',          icon: '🕸️', desc: 'Webbed plating — reduces incoming damage by 22%, plus 10% chance on hit to web-stun the boss 1.5s' },
   drake_sword:   { id: 'drake_sword',   name: 'Drake Greatsword',    icon: '⚔️', desc: '+88% damage, 15% chance to stun boss on hit (Drake-tier upgrade)' },
   fire_staff:    { id: 'fire_staff',    name: 'Fire Staff',          icon: '🔥', desc: 'Casts 20% faster. Basics become splashing firebolts (+75% dmg, scorch the ground). Q hurls a Fireball — 120px AOE, 270 dmg (Drake-tier upgrade)' },
   ember_armor:   { id: 'ember_armor',   name: 'Ember Armour',        icon: '🛡️', desc: 'Heavy ember plate — reduces all incoming damage by 45% and grants +30 max HP' },
@@ -568,7 +568,7 @@ function dealDmgToPlayer(g: GS, dmg: number, wpn: WeaponDef, gear: GearId[], kno
   if (wpn.id === 'sword') fd = Math.round(fd * 0.80)
   else if (wpn.id === 'staff') fd = Math.round(fd * 1.05)
   if (gear.includes('ember_armor')) fd = Math.round(fd * 0.55)       // heavy ember plate — best mitigation (buffed)
-  else if (gear.includes('web_amulet')) fd = Math.round(fd * 0.82)   // webbing — light mitigation (nerfed)
+  else if (gear.includes('web_amulet')) fd = Math.round(fd * 0.78)   // webbing — light mitigation
   // feather: NO damage reduction — its perk is pure speed
   p.hp = Math.max(0, p.hp - fd)
   p.hitFlash = 0.40; p.iframeTimer = 0.5
@@ -710,11 +710,11 @@ function startBossAttack(g: GS, bossId: BossId, type: string) {
   else if (type === 'toxic_cloud') { data.dmg = 0; data.count = 3 }
   else if (type === 'venom_burst') { data.dmg = 32; data.radius = 180 }
   else if (type === 'summon') { data.count = g.bossDesperate ? 4 : 3 }
-  else if (type === 'fire_breath') { data.dmg = 23; data.coneAngle = 48 * Math.PI / 180; data.coneRange = 290; data.angle = angle; data.duration = 2.2; data.elapsed = 0 }
-  else if (type === 'stomp') { data.dmg = 34; data.radius = 0; data.duration = 1.2 }
-  else if (type === 'tail_swipe') { data.dmg = 34; data.coneAngle = 270 * Math.PI / 180; data.coneRange = 185; data.angle = angle + Math.PI }
-  else if (type === 'ember_barrage') { data.dmg = 17; data.count = 8; data.projSpeed = 345 }
-  else if (type === 'flame_wave') { data.dmg = 25; data.coneAngle = 58 * Math.PI / 180; data.coneRange = 340; data.angle = angle; data.duration = 1.6; data.elapsed = 0 }
+  else if (type === 'fire_breath') { data.dmg = 20; data.coneAngle = 48 * Math.PI / 180; data.coneRange = 290; data.angle = angle; data.duration = 2.2; data.elapsed = 0 }
+  else if (type === 'stomp') { data.dmg = 29; data.radius = 0; data.duration = 1.2 }
+  else if (type === 'tail_swipe') { data.dmg = 29; data.coneAngle = 270 * Math.PI / 180; data.coneRange = 185; data.angle = angle + Math.PI }
+  else if (type === 'ember_barrage') { data.dmg = 15; data.count = 8; data.projSpeed = 345 }
+  else if (type === 'flame_wave') { data.dmg = 21; data.coneAngle = 58 * Math.PI / 180; data.coneRange = 340; data.angle = angle; data.duration = 1.6; data.elapsed = 0 }
   else if (type === 'lava_puddle') { data.dmg = 0; data.count = 3 }
   else if (type === 'lightning_strike') { data.dmg = 32; data.radius = 75 }
   else if (type === 'talon_dive') { data.dmg = 35; data.angle = angle; data.projSpeed = 440 }
@@ -723,21 +723,21 @@ function startBossAttack(g: GS, bossId: BossId, type: string) {
   else if (type === 'static_field') { data.dmg = 0; data.count = 2 }
   else if (type === 'chain_lightning') { data.dmg = 22; data.count = 6; data.strikeIndex = 0 }
   else if (type === 'web_spray') { data.dmg = 11; data.count = 7; data.projSpeed = 195; data.angle = angle }
-  else if (type === 'fire_line') { data.dmg = 27; data.angle = b.angle + Math.PI / 2 }
+  else if (type === 'fire_line') { data.dmg = 23; data.angle = b.angle + Math.PI / 2 }
   else if (type === 'lightning_barrage') { data.dmg = 30; data.count = 8; data.strikeIndex = 0; data.elapsed = 0 }
-  else if (type === 'fireball') { data.dmg = 28; data.count = g.bossEnraged ? 4 : 3; data.projSpeed = 320; data.angle = angle }
-  else if (type === 'tail_slam') { data.dmg = 42; data.radius = 215; data.targetPos = { ...b.pos } }
+  else if (type === 'fireball') { data.dmg = 24; data.count = g.bossEnraged ? 4 : 3; data.projSpeed = 320; data.angle = angle }
+  else if (type === 'tail_slam') { data.dmg = 36; data.radius = 215; data.targetPos = { ...b.pos } }
   else if (type === 'wind_blade') { data.dmg = 16; data.count = g.bossEnraged ? 6 : 5; data.projSpeed = 330; data.angle = angle }
   else if (type === 'dive_bomb') { data.dmg = 36; data.radius = 130 }
   else if (type === 'web_wall') { data.dmg = 0; data.angle = b.angle + Math.PI / 2 }
   else if (type === 'spider_charge') { data.dmg = 26; data.angle = angle }
-  else if (type === 'magma_geyser') { data.dmg = 32; data.radius = 122; data.targetPos = { ...p.pos } }
-  else if (type === 'fire_fan') { data.dmg = 26; data.count = g.bossEnraged ? 9 : 6; data.projSpeed = 285; data.angle = angle }
+  else if (type === 'magma_geyser') { data.dmg = 27; data.radius = 122; data.targetPos = { ...p.pos } }
+  else if (type === 'fire_fan') { data.dmg = 22; data.count = g.bossEnraged ? 9 : 6; data.projSpeed = 285; data.angle = angle }
   else if (type === 'gale_ring') { data.dmg = 16; data.count = g.bossEnraged ? 14 : 11; data.projSpeed = 250 }
   else if (type === 'thunder_cross') { data.dmg = 24; data.angle = angle }
   else if (type === 'web_burst') { data.dmg = 11; data.count = g.bossEnraged ? 14 : 11; data.projSpeed = 205 }
   else if (type === 'venom_geyser') { data.dmg = 0; data.radius = 120; data.targetPos = { ...p.pos } }
-  else if (type === 'lava_barrage') { data.dmg = 26; data.count = g.bossEnraged ? 12 : 9; data.strikeIndex = 0; data.elapsed = 0 }
+  else if (type === 'lava_barrage') { data.dmg = 22; data.count = g.bossEnraged ? 12 : 9; data.strikeIndex = 0; data.elapsed = 0 }
   g.bossAttack = { type, telegraphTime: telegraphs[type] ?? 1.0, elapsed: 0, active: false, data }
   // ── telegraph: audio warning + charge-up burst (readability/fairness) ──
   const BIG_ATTACKS = ['spider_leap', 'venom_burst', 'fire_line', 'flame_wave', 'fire_breath', 'lava_puddle', 'lightning_barrage', 'lava_barrage', 'thunderstorm', 'meteor', 'talon_dive', 'fireball', 'tail_slam', 'dive_bomb', 'spider_charge', 'magma_geyser', 'thunder_cross', 'gale_ring', 'venom_geyser', 'web_burst']
@@ -970,7 +970,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   b.hitFlash = Math.max(0, b.hitFlash - dt)
   b.legPhase += dt * (b.stunTimer > 0 ? 0.5 : g.bossEnraged ? 3.8 : 2.4)
   b.spinePulse += dt * 2.2; b.lightningPhase += dt * 4.5
-  g.screenShake = Math.max(0, g.screenShake - dt * 3); g.nextAttackTimer = Math.max(0, g.nextAttackTimer - dt * (g.bossDesperate ? (bossId === 0 ? 1.4 : 1.55) : 1) * (bossId === 1 ? 1.5 : 1))
+  g.screenShake = Math.max(0, g.screenShake - dt * 3); g.nextAttackTimer = Math.max(0, g.nextAttackTimer - dt * (g.bossDesperate ? (bossId === 0 ? 1.4 : bossId === 1 ? 1.5 : 1.55) : 1) * (bossId === 1 ? 1.2 : 1))
   g.playerDmgFlash = Math.max(0, g.playerDmgFlash - dt * 2.8)
   g.tooCloseFlash = Math.max(0, g.tooCloseFlash - dt * 2.0)
   g.mageCircle = Math.max(0, g.mageCircle - dt)
@@ -1543,7 +1543,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
         }
       }
       if (dist(p.pos, v(tailX, tailY)) < 50) {
-        dealDmgToPlayer(g, 14, wpn, gear, norm(v(p.pos.x - tailX, p.pos.y - tailY)))
+        dealDmgToPlayer(g, 10, wpn, gear, norm(v(p.pos.x - tailX, p.pos.y - tailY)))
         g.tailWhipCd = 1.1
         spawnParticles(g, v(tailX, tailY), 6, '#FF6600', 110)
       }
