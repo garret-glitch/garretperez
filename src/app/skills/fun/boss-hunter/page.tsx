@@ -3890,6 +3890,131 @@ function BossLeaderboard({ boss, refreshKey = 0, highlightRank }: { boss: number
   )
 }
 
+/* ═══ PREPARE-SCREEN VECTOR ART — hand-drawn inline SVG (crisp & scalable, no emoji) ═══ */
+function prepIcon(size: number, color: string, body: JSX.Element): JSX.Element {
+  return <svg width={size} height={size} viewBox="0 0 100 100" style={{ display: 'block', filter: `drop-shadow(0 0 7px ${color}bb)` }}>{body}</svg>
+}
+function bossSvg(bossId: number, color: string, size: number): JSX.Element {
+  if (bossId === 0) return prepIcon(size, color, <g>
+    <g fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M50 46 L30 34 L16 40" /><path d="M50 50 L28 50 L12 55" /><path d="M50 55 L30 62 L16 72" /><path d="M50 60 L33 70 L21 82" />
+      <path d="M50 46 L70 34 L84 40" /><path d="M50 50 L72 50 L88 55" /><path d="M50 55 L70 62 L84 72" /><path d="M50 60 L67 70 L79 82" />
+    </g>
+    <ellipse cx="50" cy="60" rx="16" ry="20" fill={color} fillOpacity="0.25" stroke={color} strokeWidth="2.5" />
+    <ellipse cx="50" cy="39" rx="11" ry="10" fill={color} fillOpacity="0.3" stroke={color} strokeWidth="2.5" />
+    <path d="M46 47 L44 55 M54 47 L56 55" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+    <g fill="#ff4757"><circle cx="45.5" cy="37" r="2" /><circle cx="54.5" cy="37" r="2" /><circle cx="42" cy="41" r="1.5" /><circle cx="58" cy="41" r="1.5" /></g>
+  </g>)
+  if (bossId === 1) return prepIcon(size, color, <g strokeLinejoin="round">
+    <path d="M46 30 Q34 12 22 8 Q40 18 50 34 Z" fill={color} fillOpacity="0.55" stroke={color} strokeWidth="2" />
+    <path d="M28 42 Q40 28 58 38 L86 50 L83 56 L58 58 L36 60 Q26 54 28 42 Z" fill={color} fillOpacity="0.28" stroke={color} strokeWidth="2.5" />
+    <path d="M44 60 L80 56 L70 70 L46 67 Z" fill={color} fillOpacity="0.18" stroke={color} strokeWidth="2.5" />
+    <path d="M58 58 l3 6 l3 -6 z M66 57 l3 6 l3 -6 z" fill="#f0ead6" />
+    <circle cx="44" cy="47" r="4" fill="#fff" /><circle cx="44" cy="47" r="2.2" fill={color} />
+    <circle cx="82" cy="52" r="2" fill={color} />
+  </g>)
+  return prepIcon(size, color, <g strokeLinejoin="round">
+    <path d="M50 52 Q24 30 8 44 Q24 44 34 54 Q16 52 12 66 Q34 58 50 60 Z" fill={color} fillOpacity="0.22" stroke={color} strokeWidth="2" />
+    <path d="M50 52 Q76 30 92 44 Q76 44 66 54 Q84 52 88 66 Q66 58 50 60 Z" fill={color} fillOpacity="0.22" stroke={color} strokeWidth="2" />
+    <path d="M44 58 L42 82 L58 82 L56 58 Z" fill={color} fillOpacity="0.2" stroke={color} strokeWidth="2" />
+    <path d="M44 34 L40 22 M50 32 L50 20 M56 34 L60 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+    <circle cx="50" cy="44" r="10" fill={color} fillOpacity="0.3" stroke={color} strokeWidth="2.5" />
+    <path d="M59 41 L72 45 L59 49 Z" fill="#dcad3c" stroke="#7d5811" strokeWidth="1" />
+    <circle cx="52" cy="42" r="2" fill="#fff" />
+  </g>)
+}
+function weaponSvg(id: string, color: string, size: number): JSX.Element {
+  const steel = '#d6deea', steelMid = '#9aa3b2'
+  if (id === 'spider_fang') return prepIcon(size, color, <g>
+    {[-1, 1].map(s => (
+      <g key={s} transform={`rotate(${s * 30} 50 50)`}>
+        <path d="M50 12 L55 26 L52 60 L48 60 L45 26 Z" fill="#e6d2f5" stroke={color} strokeWidth="1.6" strokeLinejoin="round" />
+        <rect x="43" y="60" width="14" height="4" rx="1" fill={color} />
+        <rect x="47" y="64" width="6" height="12" rx="1" fill="#3a2a4a" />
+      </g>
+    ))}
+  </g>)
+  if (id === 'drake_sword') return prepIcon(size, color, <g strokeLinejoin="round">
+    <path d="M50 8 L61 24 L57 60 L43 60 L39 24 Z" fill="#f0c674" stroke={color} strokeWidth="2" />
+    <line x1="50" y1="20" x2="50" y2="56" stroke="#b07a20" strokeWidth="2" />
+    <path d="M26 60 L74 60 L66 69 L34 69 Z" fill={color} />
+    <rect x="45" y="69" width="10" height="19" fill="#3a2410" />
+    <circle cx="50" cy="90" r="5.5" fill={color} />
+  </g>)
+  if (id === 'thunder_blade') return prepIcon(size, color, <g strokeLinejoin="round">
+    <path d="M50 12 L57 26 L54 62 L46 62 L43 26 Z" fill="#fbeaa0" stroke={color} strokeWidth="2" />
+    <path d="M50 22 L45 34 L53 40 L46 52 L51 58" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
+    <rect x="35" y="62" width="30" height="6" rx="2" fill={color} />
+    <rect x="46" y="68" width="8" height="16" fill="#2a2008" />
+    <circle cx="50" cy="87" r="5" fill={color} />
+  </g>)
+  if (id === 'sword') return prepIcon(size, color, <g strokeLinejoin="round">
+    <path d="M50 12 L56 24 L54 64 L46 64 L44 24 Z" fill={steel} stroke={steelMid} strokeWidth="2" />
+    <line x1="50" y1="22" x2="50" y2="60" stroke="#aab3c2" strokeWidth="1.5" />
+    <rect x="35" y="64" width="30" height="6" rx="2" fill={color} />
+    <rect x="46" y="70" width="8" height="16" fill="#5a3a1a" />
+    <circle cx="50" cy="89" r="5" fill={color} />
+  </g>)
+  if (id === 'venom_bow') return prepIcon(size, color, <g fill="none" strokeLinecap="round">
+    <path d="M64 12 Q88 50 64 88" stroke="#6A2C84" strokeWidth="5" />
+    <path d="M64 12 L52 50 L64 88" stroke="#aad24a" strokeWidth="1.6" />
+    <path d="M70 22 L80 18 M73 40 L84 38 M73 60 L84 62 M70 78 L80 82" stroke={color} strokeWidth="2" />
+    <line x1="18" y1="50" x2="58" y2="50" stroke={color} strokeWidth="2.5" />
+    <path d="M18 50 L26 45 L26 55 Z" fill="#9ACD00" stroke="none" />
+    <circle cx="64" cy="91" r="3" fill="#9ACD00" stroke="none" />
+  </g>)
+  if (id === 'storm_bow') return prepIcon(size, color, <g fill="none" strokeLinecap="round">
+    <path d="M64 12 Q88 50 64 88" stroke={color} strokeWidth="5" />
+    <path d="M64 12 L56 32 L62 42 L54 58 L64 88" stroke="#cffaff" strokeWidth="1.8" />
+    <path d="M16 50 L34 50 L28 46 L42 50 L28 54 L34 50 L58 50" stroke="#fff" strokeWidth="2" />
+    <path d="M16 50 L24 45 M16 50 L24 55" stroke={color} strokeWidth="2" />
+  </g>)
+  if (id === 'bow') return prepIcon(size, color, <g fill="none" strokeLinecap="round">
+    <path d="M64 12 Q86 50 64 88" stroke="#8B5A2B" strokeWidth="5" />
+    <path d="M64 12 Q58 16 60 22 M64 88 Q58 84 60 78" stroke={color} strokeWidth="3" />
+    <path d="M64 12 L54 50 L64 88" stroke="#d2e8d2" strokeWidth="1.5" />
+    <line x1="18" y1="50" x2="58" y2="50" stroke="#caa472" strokeWidth="2.5" />
+    <path d="M18 50 L26 45 L26 55 Z" fill={color} stroke="none" />
+    <path d="M54 50 L60 46 M54 50 L60 54" stroke={color} strokeWidth="1.8" />
+  </g>)
+  if (id === 'fire_staff') return prepIcon(size, color, <g>
+    <line x1="50" y1="92" x2="50" y2="34" stroke="#4A1E00" strokeWidth="5" strokeLinecap="round" />
+    <line x1="45" y1="50" x2="55" y2="50" stroke="#C8881E" strokeWidth="3" />
+    <line x1="45" y1="66" x2="55" y2="66" stroke="#C8881E" strokeWidth="3" />
+    <path d="M50 34 Q40 26 45 14 Q47 21 52 16 Q49 7 58 4 Q52 16 60 18 Q63 28 50 34 Z" fill={color} stroke="#FFB02A" strokeWidth="1.5" strokeLinejoin="round" />
+    <circle cx="51" cy="20" r="3" fill="#fff" />
+  </g>)
+  return prepIcon(size, color, <g>
+    <line x1="50" y1="92" x2="50" y2="32" stroke="#3A1D49" strokeWidth="5" strokeLinecap="round" />
+    <line x1="45" y1="50" x2="55" y2="50" stroke="#B0A8C0" strokeWidth="3" />
+    <path d="M43 30 Q41 20 50 17 M57 30 Q59 20 50 17" fill="none" stroke="#9E86B8" strokeWidth="2.5" />
+    <circle cx="50" cy="22" r="9" fill={color} fillOpacity="0.5" stroke={color} strokeWidth="2" />
+    <circle cx="50" cy="22" r="3.5" fill="#fff" />
+  </g>)
+}
+function armourSvg(id: GearId | null, size: number): JSX.Element {
+  const c = id === 'web_amulet' ? '#9B59B6' : id === 'ember_armor' ? '#FF6A1A' : id === 'feather_boots' ? '#9fc0ff' : '#5a6470'
+  if (id === 'web_amulet') return prepIcon(size, c, <g fill="none" stroke={c} strokeWidth="1.4" strokeLinejoin="round">
+    <circle cx="50" cy="50" r="30" fill={c} fillOpacity="0.16" strokeWidth="3" />
+    {[0, 1, 2, 3, 4, 5, 6, 7].map(i => { const a = i / 8 * Math.PI * 2; return <line key={i} x1="50" y1="50" x2={50 + Math.cos(a) * 30} y2={50 + Math.sin(a) * 30} /> })}
+    {[12, 21, 30].map(r => <polygon key={r} fill="none" points={[0, 1, 2, 3, 4, 5, 6, 7].map(i => { const a = i / 8 * Math.PI * 2; return `${50 + Math.cos(a) * r},${50 + Math.sin(a) * r}` }).join(' ')} />)}
+  </g>)
+  if (id === 'ember_armor') return prepIcon(size, c, <g strokeLinejoin="round">
+    <path d="M28 30 Q50 23 72 30 L69 60 Q50 80 31 60 Z" fill={c} fillOpacity="0.2" stroke={c} strokeWidth="3" />
+    <path d="M50 38 Q43 48 48 58 Q50 51 52 56 Q57 47 50 38 Z" fill={c} stroke="#FFD24A" strokeWidth="1.2" />
+    <circle cx="36" cy="36" r="2" fill={c} /><circle cx="64" cy="36" r="2" fill={c} />
+  </g>)
+  if (id === 'feather_boots') return prepIcon(size, c, <g strokeLinejoin="round">
+    <path d="M38 82 Q44 40 72 16 Q60 46 44 78 Z" fill={c} fillOpacity="0.22" stroke={c} strokeWidth="2.5" />
+    <line x1="44" y1="76" x2="68" y2="22" stroke={c} strokeWidth="1.4" />
+    {[0, 1, 2, 3].map(i => <line key={i} x1={47 + i * 5} y1={70 - i * 12} x2={57 + i * 5} y2={64 - i * 12} stroke={c} strokeWidth="1.2" />)}
+  </g>)
+  return prepIcon(size, c, <g strokeLinejoin="round">
+    <path d="M50 16 L78 26 L74 56 Q60 78 50 84 Q40 78 26 56 L22 26 Z" fill={c} fillOpacity="0.18" stroke={c} strokeWidth="2.5" />
+    <line x1="50" y1="24" x2="50" y2="78" stroke={c} strokeWidth="1.4" />
+  </g>)
+}
+
 /* ═══ REACT COMPONENT ═══ */
 export default function BossHunter() {
   const [screen, setScreen] = useState<'menu'|'hunt_select'|'playing'|'victory'|'defeat'>('menu')
@@ -4299,9 +4424,9 @@ export default function BossHunter() {
         <div style={{fontSize:9,color}}>{val}</div>
       </div>
     )
-    const pedestal = (icon: string, color: string, size: number, dim?: boolean) => (
-      <div style={{width:92,height:92,margin:'2px auto 10px',display:'flex',alignItems:'center',justifyContent:'center',borderRadius:'50%',background:`radial-gradient(circle, ${color}26 0%, transparent 68%)`,opacity:dim?0.35:1}}>
-        <div style={{fontSize:size,lineHeight:1,filter:`drop-shadow(0 0 18px ${color})`}}>{icon}</div>
+    const pedestalNode = (node: JSX.Element, color: string, dim?: boolean) => (
+      <div style={{width:96,height:96,margin:'2px auto 10px',display:'flex',alignItems:'center',justifyContent:'center',borderRadius:'50%',background:`radial-gradient(circle, ${color}26 0%, transparent 68%)`,opacity:dim?0.5:1}}>
+        {node}
       </div>
     )
     const cardShell = (label: string, color: string, prevFn: ()=>void, nextFn: ()=>void, animKey: string|number, dTotal: number, dActive: number, inner: JSX.Element) => (
@@ -4355,7 +4480,7 @@ export default function BossHunter() {
 
           {cardShell('TARGET', selB.color, prevBoss, nextBoss, selBoss, 3, selBoss,
             <div style={{padding:'16px 16px 4px',textAlign:'center',background:`radial-gradient(ellipse at 50% 0%, ${selB.color}1c 0%, transparent 62%)`}}>
-              {pedestal(selB.icon, selB.color, 56)}
+              {pedestalNode(bossSvg(selBoss, selB.color, 64), selB.color)}
               <div style={{fontSize:11,color:selB.color,marginBottom:8,letterSpacing:1}}>{selB.name.toUpperCase()}</div>
               <div style={{marginBottom:11}}>{chip(selB.element.toUpperCase(), selB.color)} <span style={{fontSize:6,color:'#605848',marginLeft:5}}>{arenaNames[selBoss]}</span></div>
               <div style={{fontSize:7,color:'#7a6f58',lineHeight:1.9,marginBottom:13,minHeight:42}}>{selB.lore.slice(0,76)}&hellip;</div>
@@ -4368,7 +4493,7 @@ export default function BossHunter() {
 
           {cardShell('WEAPON', selLW.color, prevWeapon, nextWeapon, selLW.id, availWeapons.length, selWIdx,
             <div style={{padding:'16px 16px 4px',textAlign:'center',background:`radial-gradient(ellipse at 50% 0%, ${selLW.color}1c 0%, transparent 62%)`}}>
-              {pedestal(selLW.icon, selLW.color, 50)}
+              {pedestalNode(weaponSvg(selLW.id, selLW.color, 60), selLW.color)}
               <div style={{fontSize:10,color:selLW.color,marginBottom:8,letterSpacing:1}}>{selLW.name.toUpperCase()}</div>
               <div style={{marginBottom:10}}>{chip(selWBase.element.toUpperCase(), selLW.color)} {selLW.gear ? chip('UPGRADE','#C89B3C') : chip('STARTER','#605848')}</div>
               <div style={{display:'flex',gap:8,justifyContent:'center',marginBottom:11}}>
@@ -4389,14 +4514,14 @@ export default function BossHunter() {
           {cardShell('ARMOUR', curArmour ? armColor : '#2a2c34', prevArmour, nextArmour, curArmour??'none', armourOptions.length, armourIdx,
             ag ? (
               <div style={{padding:'16px 16px 4px',textAlign:'center',background:`radial-gradient(ellipse at 50% 0%, ${armColor}1c 0%, transparent 62%)`}}>
-                {pedestal(ag.icon, armColor, 46)}
+                {pedestalNode(armourSvg(curArmour, 58), armColor)}
                 <div style={{fontSize:9,color:'#E8E6E0',marginBottom:8}}>{ag.name}</div>
                 <div style={{marginBottom:11}}>{chip('ARMOUR', armColor)}</div>
                 <div style={{fontSize:7,color:'#7a6f58',lineHeight:1.9,minHeight:66}}>{ag.desc}</div>
               </div>
             ) : (
               <div style={{padding:'18px 16px 4px',textAlign:'center'}}>
-                {pedestal('🛡️', '#5a6470', 44, true)}
+                {pedestalNode(armourSvg(null, 54), '#5a6470', true)}
                 <div style={{fontSize:8,color:'#5a5040',marginBottom:8}}>NO ARMOUR</div>
                 <div style={{marginBottom:11}}>{chip('UNARMED','#605848')}</div>
                 <div style={{fontSize:6,color:'#3a3020',lineHeight:1.9,minHeight:66}}>{armourOptions.length<=1 ? 'Defeat a boss to unlock protective gear.' : 'Navigate ‹ › to equip unlocked armour.'}</div>
@@ -4409,11 +4534,11 @@ export default function BossHunter() {
           {/* assembled loadout vs quarry */}
           <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:12,margin:'20px 0 4px',flexWrap:'wrap'}}>
             <span style={{fontSize:7,color:'#605848',letterSpacing:2}}>LOADOUT</span>
-            <span style={{fontSize:20,filter:`drop-shadow(0 0 8px ${selLW.color})`}}>{selLW.icon}</span>
+            {weaponSvg(selLW.id, selLW.color, 28)}
             <span style={{fontSize:9,color:'#3a3628'}}>+</span>
-            <span style={{fontSize:20,opacity:curArmour?1:0.28,filter:curArmour?`drop-shadow(0 0 8px ${armColor})`:'none'}}>{curArmour?GEAR_DEFS[curArmour].icon:'🛡️'}</span>
+            <span style={{display:'inline-flex',opacity:curArmour?1:0.32}}>{armourSvg(curArmour, 26)}</span>
             <span style={{fontSize:8,color:'#605848',margin:'0 4px',letterSpacing:1}}>VS</span>
-            <span style={{fontSize:20,filter:`drop-shadow(0 0 8px ${selB.color})`}}>{selB.icon}</span>
+            {bossSvg(selBoss, selB.color, 28)}
           </div>
 
           {/* fastest-kill board for the selected boss */}
