@@ -2662,22 +2662,44 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
     ctx.restore()
 
     ctx.save(); ctx.translate(0, -lift); ctx.rotate(b.angle)
-    // ── WINGS — membrane lerps from folded (tucked back) to a vast spread ──
-    const fold = [[-0.1,0.18],[-0.45,0.16],[-0.78,0.14],[-0.98,0.22],[-0.82,0.32],[-0.46,0.34],[-0.15,0.28]]
-    const open = [[-0.05,0.22],[0.18,0.72],[0.02,1.32],[-0.5,1.72],[-1.05,1.3],[-1.12,0.72],[-0.5,0.36]]
+    // ── WINGS — true bat/dragon wings: arm → wrist → finger digits with a scalloped membrane ──
     const drawWing = (side: number) => {
-      ctx.save(); ctx.translate(-sz * 0.06, side * sz * 0.12)
-      const fl = flap * 0.05 * spread
-      const P: number[][] = []
-      for (let i = 0; i < 7; i++) { const [fx, fy] = fold[i], [ox, oy] = open[i]; P.push([(fx + (ox - fx) * spread) * sz, (fy + (oy - fy) * spread + (i >= 2 && i <= 4 ? fl : 0)) * sz * side]) }
+      ctx.save(); ctx.translate(sz * 0.2, side * sz * 0.1)   // attach high on the body, at the shoulder
+      const Lp = (a: number, b: number) => a + (b - a) * spread
+      const wob = flap * 0.06 * spread
+      const pt = (fx: number, fy: number, ox: number, oy: number, w = 0): number[] => [Lp(fx, ox) * sz, (Lp(fy, oy) + w * wob) * sz * side]
+      const S = [0, 0]
+      const W = pt(-0.4, 0.18, 0.06, 0.6, 0.3)     // wrist (where the digits fan out)
+      const T1 = pt(-0.96, 0.2, 0.12, 1.78, 1.0)   // wingtip (long leading finger)
+      const T2 = pt(-0.86, 0.26, -0.34, 1.52, 0.85)
+      const T3 = pt(-0.72, 0.3, -0.76, 1.14, 0.6)
+      const T4 = pt(-0.52, 0.32, -1.04, 0.74, 0.4) // rear digit
+      const R = pt(-0.2, 0.26, -0.5, 0.32)         // trailing membrane root on the body
+      const scallop = (a: number[], b: number[]) => { const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2; ctx.quadraticCurveTo(mx + (W[0] - mx) * 0.34, my + (W[1] - my) * 0.34, b[0], b[1]) }
+      // membrane with a sagging, scalloped trailing edge
       ctx.fillStyle = cMem; ctx.shadowColor = cGlow; ctx.shadowBlur = enr ? 16 : 9
-      ctx.beginPath(); ctx.moveTo(0, 0); for (const p of P) ctx.lineTo(p[0], p[1]); ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0
+      ctx.beginPath(); ctx.moveTo(S[0], S[1]); ctx.lineTo(W[0], W[1]); ctx.lineTo(T1[0], T1[1])
+      scallop(T1, T2); scallop(T2, T3); scallop(T3, T4); ctx.lineTo(R[0], R[1]); ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0
+      // membrane creases (wrist → each scallop valley)
+      ctx.strokeStyle = 'rgba(190,233,247,0.16)'; ctx.lineWidth = 1
+      for (const [a, b] of [[T1, T2], [T2, T3], [T3, T4]]) { const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2; ctx.beginPath(); ctx.moveTo(W[0], W[1]); ctx.lineTo(mx + (W[0] - mx) * 0.34, my + (W[1] - my) * 0.34); ctx.stroke() }
+      // finger bones + arm bone
+      ctx.strokeStyle = cMid; ctx.lineCap = 'round'
+      ctx.lineWidth = sz * 0.045; ctx.beginPath(); ctx.moveTo(S[0], S[1]); ctx.lineTo(W[0], W[1]); ctx.stroke()
+      ctx.lineWidth = sz * 0.03
+      for (const Tn of [T1, T2, T3, T4]) { ctx.beginPath(); ctx.moveTo(W[0], W[1]); ctx.lineTo(Tn[0], Tn[1]); ctx.stroke() }
+      ctx.lineCap = 'butt'
+      // glowing leading edge
       ctx.strokeStyle = spread > 0.3 ? cMemEdge : cEdge; ctx.lineWidth = 2.5; ctx.shadowColor = cGlow; ctx.shadowBlur = enr ? 12 : 6
-      ctx.beginPath(); ctx.moveTo(0, 0); for (let i = 0; i < 4; i++) ctx.lineTo(P[i][0], P[i][1]); ctx.stroke(); ctx.shadowBlur = 0
-      ctx.strokeStyle = cMid; ctx.lineWidth = sz * 0.028
-      for (const i of [1, 2, 3, 4, 5]) { ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(P[i][0] * 0.97, P[i][1] * 0.97); ctx.stroke() }
-      if (spread > 0.3) { const tp = P[3]; ctx.globalAlpha = spread; ctx.fillStyle = cIce; ctx.shadowColor = cGlow; ctx.shadowBlur = 10
-        ctx.beginPath(); ctx.moveTo(tp[0] + sz * 0.06, tp[1]); ctx.lineTo(tp[0], tp[1] - side * sz * 0.08); ctx.lineTo(tp[0] - sz * 0.06, tp[1]); ctx.lineTo(tp[0], tp[1] + side * sz * 0.08); ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0; ctx.globalAlpha = 1 }
+      ctx.beginPath(); ctx.moveTo(S[0], S[1]); ctx.lineTo(W[0], W[1]); ctx.lineTo(T1[0], T1[1]); ctx.stroke(); ctx.shadowBlur = 0
+      // wrist claw + ice wingtip when open
+      if (spread > 0.25) {
+        ctx.globalAlpha = spread; ctx.fillStyle = cHorn
+        const cw = sz * 0.09; ctx.beginPath(); ctx.moveTo(W[0], W[1]); ctx.lineTo(W[0] + cw, W[1] + side * cw * 0.15); ctx.lineTo(W[0] + cw * 0.35, W[1] - side * cw * 0.35); ctx.closePath(); ctx.fill()
+        ctx.fillStyle = cIce; ctx.shadowColor = cGlow; ctx.shadowBlur = 10
+        ctx.beginPath(); ctx.moveTo(T1[0] + sz * 0.05, T1[1]); ctx.lineTo(T1[0], T1[1] - side * sz * 0.07); ctx.lineTo(T1[0] - sz * 0.05, T1[1]); ctx.lineTo(T1[0], T1[1] + side * sz * 0.07); ctx.closePath(); ctx.fill()
+        ctx.shadowBlur = 0; ctx.globalAlpha = 1
+      }
       ctx.restore()
     }
     drawWing(-1); drawWing(1)
