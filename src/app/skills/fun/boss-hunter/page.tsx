@@ -4275,127 +4275,157 @@ export default function BossHunter() {
 
     const arenaNames = ['Spider Lair','Lava Cavern','Storm Peak']
 
+    const armColor = '#3aa0e0'
+    const ag = curArmour ? GEAR_DEFS[curArmour] : null
+
     const navBtn = (onClick: ()=>void, label: string) => (
-      <button onClick={onClick} style={{background:'#1a1a28',border:'1px solid #2a2820',color:'#A09880',width:30,height:30,borderRadius:'50%',fontSize:15,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,lineHeight:1}}>
+      <button onClick={onClick} className="bh-nav" style={{background:'#14141e',border:'1px solid #2f2c22',color:'#C8B98A',width:34,height:34,borderRadius:'50%',fontSize:17,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,lineHeight:1}}>
         {label}
       </button>
     )
-
     const dots = (total: number, active: number, color: string) => (
-      <div style={{display:'flex',gap:6,justifyContent:'center',marginTop:10}}>
+      <div style={{display:'flex',gap:6,justifyContent:'center',padding:'2px 0 12px'}}>
         {Array.from({length:total},(_,i)=>(
-          <div key={i} style={{width:i===active?12:6,height:6,borderRadius:3,background:i===active?color:'#2a2820',transition:'all 0.2s'}}/>
+          <div key={i} style={{width:i===active?14:6,height:6,borderRadius:3,background:i===active?color:'#2a2820',boxShadow:i===active?`0 0 8px ${color}`:'none',transition:'all 0.2s'}}/>
         ))}
+      </div>
+    )
+    const chip = (text: string, color: string) => (
+      <span style={{display:'inline-block',padding:'3px 9px',borderRadius:10,background:`${color}1f`,border:`1px solid ${color}66`,color,fontSize:6,letterSpacing:1,verticalAlign:'middle'}}>{text}</span>
+    )
+    const statBlock = (label: string, val: string, color: string) => (
+      <div style={{background:'#0b0b12',border:'1px solid #1e1c18',borderRadius:8,padding:'7px 12px',minWidth:62}}>
+        <div style={{fontSize:5,color:'#605848',letterSpacing:1,marginBottom:4}}>{label}</div>
+        <div style={{fontSize:9,color}}>{val}</div>
+      </div>
+    )
+    const pedestal = (icon: string, color: string, size: number, dim?: boolean) => (
+      <div style={{width:92,height:92,margin:'2px auto 10px',display:'flex',alignItems:'center',justifyContent:'center',borderRadius:'50%',background:`radial-gradient(circle, ${color}26 0%, transparent 68%)`,opacity:dim?0.35:1}}>
+        <div style={{fontSize:size,lineHeight:1,filter:`drop-shadow(0 0 18px ${color})`}}>{icon}</div>
+      </div>
+    )
+    const cardShell = (label: string, color: string, prevFn: ()=>void, nextFn: ()=>void, animKey: string|number, dTotal: number, dActive: number, inner: JSX.Element) => (
+      <div style={{flex:'1 1 0',minWidth:248}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:9}}>
+          <span style={{flex:1,height:1,background:'linear-gradient(90deg,transparent,#2a2820)'}}/>
+          <span style={{fontSize:7,color:'#8a7a55',letterSpacing:3}}>◆ {label}</span>
+          <span style={{flex:1,height:1,background:'linear-gradient(90deg,#2a2820,transparent)'}}/>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
+          {navBtn(prevFn,'‹')}
+          <div key={animKey} className="bh-prep-card bh-card-anim" style={{flex:1,position:'relative',background:'linear-gradient(180deg,#101019,#09090f)',border:`1px solid ${color}66`,borderRadius:14,overflow:'hidden',boxShadow:`0 0 26px ${color}26, inset 0 1px 0 rgba(255,255,255,0.04)`}}>
+            <div style={{height:3,background:`linear-gradient(90deg,transparent,${color},transparent)`}}/>
+            {inner}
+            {dots(dTotal, dActive, color)}
+          </div>
+          {navBtn(nextFn,'›')}
+        </div>
       </div>
     )
 
     return (
-      <div style={{position:'fixed',inset:0,zIndex:9999,background:'#080814',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'"Press Start 2P",monospace',padding:'24px',overflowY:'auto'}}>
+      <div style={{position:'fixed',inset:0,zIndex:9999,background:'#070710',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'"Press Start 2P",monospace',padding:'24px',overflowY:'auto'}}>
         <style>{`
-          @keyframes bh-card-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-          .bh-card-anim{animation:bh-card-in 0.18s ease}
+          @keyframes bh-card-in{from{opacity:0;transform:translateY(10px) scale(0.98)}to{opacity:1;transform:none}}
+          @keyframes bh-start-glow{0%,100%{box-shadow:0 0 18px #C89B3C66,0 4px 16px rgba(0,0,0,0.6)}50%{box-shadow:0 0 42px #C89B3Ccc,0 4px 28px rgba(0,0,0,0.9)}}
+          .bh-card-anim{animation:bh-card-in 0.22s ease}
+          .bh-prep-card{transition:transform 0.15s ease,box-shadow 0.2s ease}
+          .bh-prep-card:hover{transform:translateY(-3px)}
+          .bh-nav{transition:all 0.14s ease}
+          .bh-nav:hover{background:#26263a;color:#fff;border-color:#5a523a;transform:scale(1.1)}
+          .bh-start{animation:bh-start-glow 2s ease-in-out infinite;transition:transform 0.12s ease}
+          .bh-start:hover{transform:scale(1.04)}
+          .bh-back:hover{background:#22222e;color:#E8E6E0}
         `}</style>
-        <div style={{maxWidth:1100,width:'100%',padding:'0 12px',textAlign:'center'}}>
 
-          <div style={{fontSize:13,color:'#C89B3C',marginBottom:4}}>PREPARE YOUR HUNT</div>
-          <div style={{fontSize:7,color:'#605848',marginBottom:20}}>Choose your quarry, arm yourself, and descend</div>
+        {/* atmospheric layers keyed to the chosen quarry */}
+        <div style={{position:'fixed',inset:0,pointerEvents:'none',background:`radial-gradient(ellipse at 50% 32%, ${selB.color}22 0%, transparent 58%)`,transition:'background 0.4s'}}/>
+        <div style={{position:'fixed',inset:0,pointerEvents:'none',background:'linear-gradient(to bottom,transparent 49%,rgba(200,155,60,0.025) 50%,transparent 51%)',backgroundSize:'100% 4px'}}/>
+        <div style={{position:'fixed',inset:0,pointerEvents:'none',background:'radial-gradient(ellipse at 50% 50%, transparent 52%, rgba(0,0,0,0.65) 100%)'}}/>
+
+        <div style={{position:'relative',zIndex:2,maxWidth:1120,width:'100%',padding:'0 12px',textAlign:'center'}}>
+
+          <div style={{marginBottom:22}}>
+            <div style={{fontSize:7,color:'#8a7a55',letterSpacing:4,marginBottom:10}}>◆ GARRET&apos;S WORLD ◆</div>
+            <div style={{fontSize:'clamp(15px,3vw,22px)',color:'#C89B3C',letterSpacing:3,textShadow:'0 0 26px #C89B3C66'}}>PREPARE YOUR HUNT</div>
+            <div style={{fontSize:7,color:'#605848',marginTop:9}}>Choose your quarry, arm yourself, and descend</div>
+          </div>
 
           <div style={{display:'flex',gap:14,alignItems:'stretch',justifyContent:'center',flexWrap:'wrap'}}>
 
-          {/* ── TARGET ── */}
-          <div style={{flex:'1 1 0',minWidth:240}}>
-            <div style={{fontSize:7,color:'#605848',letterSpacing:2,marginBottom:8,textAlign:'left'}}>◆ TARGET</div>
-            <div style={{display:'flex',alignItems:'center',gap:6}}>
-              {navBtn(prevBoss,'‹')}
-              <div key={selBoss} className="bh-card-anim" style={{flex:1,background:'#0d0d14',border:`1px solid ${selB.color}44`,borderRadius:12,overflow:'hidden'}}>
-                <div style={{background:`radial-gradient(ellipse at 50% 80%, ${selB.color}30 0%, transparent 70%)`,padding:'20px 16px 12px',textAlign:'center'}}>
-                  <div style={{fontSize:72,lineHeight:1,marginBottom:8,filter:`drop-shadow(0 0 24px ${selB.color})`}}>{selB.icon}</div>
-                  <div style={{fontSize:10,color:selB.color,marginBottom:4,letterSpacing:1}}>{selB.name.toUpperCase()}</div>
-                  <div style={{fontSize:7,color:'#605848',marginBottom:10}}>{arenaNames[selBoss]} &bull; <span style={{color:selB.color}}>{selB.element}</span></div>
-                  <div style={{fontSize:7,color:'#3a3020',lineHeight:1.8,marginBottom:10,fontFamily:'"Press Start 2P",monospace'}}>{selB.lore.slice(0,72)}&hellip;</div>
-                  <div style={{display:'flex',gap:16,justifyContent:'center'}}>
-                    <div style={{fontSize:7,color:'#605848'}}>HP <span style={{color:'#E74C3C'}}>{selB.hp.toLocaleString()}</span></div>
-                    <div style={{fontSize:7,color:'#605848'}}>LOOT <span style={{color:'#C89B3C'}}>{selB.rewards.filter(r=>unlockedGear.includes(r)).length}/{selB.rewards.length}</span></div>
-                  </div>
-                </div>
-                {dots(3, selBoss, selB.color)}
-                <div style={{height:12}}/>
+          {cardShell('TARGET', selB.color, prevBoss, nextBoss, selBoss, 3, selBoss,
+            <div style={{padding:'16px 16px 4px',textAlign:'center',background:`radial-gradient(ellipse at 50% 0%, ${selB.color}1c 0%, transparent 62%)`}}>
+              {pedestal(selB.icon, selB.color, 56)}
+              <div style={{fontSize:11,color:selB.color,marginBottom:8,letterSpacing:1}}>{selB.name.toUpperCase()}</div>
+              <div style={{marginBottom:11}}>{chip(selB.element.toUpperCase(), selB.color)} <span style={{fontSize:6,color:'#605848',marginLeft:5}}>{arenaNames[selBoss]}</span></div>
+              <div style={{fontSize:7,color:'#7a6f58',lineHeight:1.9,marginBottom:13,minHeight:42}}>{selB.lore.slice(0,76)}&hellip;</div>
+              <div style={{display:'flex',gap:10,justifyContent:'center'}}>
+                {statBlock('HP', selB.hp.toLocaleString(), '#E74C3C')}
+                {statBlock('LOOT', `${selB.rewards.filter(r=>unlockedGear.includes(r)).length}/${selB.rewards.length}`, '#C89B3C')}
               </div>
-              {navBtn(nextBoss,'›')}
             </div>
-          </div>
+          )}
 
-          {/* ── WEAPON ── */}
-          <div style={{flex:'1 1 0',minWidth:240}}>
-            <div style={{fontSize:7,color:'#605848',letterSpacing:2,marginBottom:8,textAlign:'left'}}>◆ WEAPON</div>
-            <div style={{display:'flex',alignItems:'center',gap:6}}>
-              {navBtn(prevWeapon,'‹')}
-              <div key={selLW.id} className="bh-card-anim" style={{flex:1,background:'#0d0d14',border:`1px solid ${selLW.color}44`,borderRadius:12,overflow:'hidden'}}>
-                <div style={{background:`radial-gradient(ellipse at 50% 80%, ${selLW.color}28 0%, transparent 70%)`,padding:'20px 16px 12px',textAlign:'center'}}>
-                  <div style={{fontSize:64,lineHeight:1,marginBottom:8,filter:`drop-shadow(0 0 20px ${selLW.color})`}}>{selLW.icon}</div>
-                  <div style={{fontSize:10,color:selLW.color,marginBottom:4,letterSpacing:1}}>{selLW.name.toUpperCase()}</div>
-                  <div style={{fontSize:7,color:'#605848',marginBottom:10}}>{selWBase.element.toUpperCase()} &bull; DMG <span style={{color:'#C89B3C'}}>{selWBase.dmg}</span> &bull; RANGE <span style={{color:'#C89B3C'}}>{selWBase.range}</span></div>
-                  <div style={{fontSize:7,color:'#3a3020',lineHeight:1.8,marginBottom:10}}>{selLW.sub}{selLW.gear?'':' (starter)'}</div>
-                  <div style={{display:'flex',gap:8,justifyContent:'center',flexWrap:'wrap'}}>
-                    {selWBase.abilities.map((ab,i)=>(
-                      <div key={i} style={{fontSize:6,color:'#605848'}}><span style={{color:selLW.color}}>[{['Q','W','E','R'][i]}]</span> {ab.name}</div>
-                    ))}
-                  </div>
-                </div>
-                {dots(availWeapons.length, selWIdx, selLW.color)}
-                <div style={{height:12}}/>
+          {cardShell('WEAPON', selLW.color, prevWeapon, nextWeapon, selLW.id, availWeapons.length, selWIdx,
+            <div style={{padding:'16px 16px 4px',textAlign:'center',background:`radial-gradient(ellipse at 50% 0%, ${selLW.color}1c 0%, transparent 62%)`}}>
+              {pedestal(selLW.icon, selLW.color, 50)}
+              <div style={{fontSize:10,color:selLW.color,marginBottom:8,letterSpacing:1}}>{selLW.name.toUpperCase()}</div>
+              <div style={{marginBottom:10}}>{chip(selWBase.element.toUpperCase(), selLW.color)} {selLW.gear ? chip('UPGRADE','#C89B3C') : chip('STARTER','#605848')}</div>
+              <div style={{display:'flex',gap:8,justifyContent:'center',marginBottom:11}}>
+                {statBlock('DMG', String(selWBase.dmg), '#C89B3C')}
+                {statBlock('RANGE', String(selWBase.range), '#C89B3C')}
               </div>
-              {navBtn(nextWeapon,'›')}
-            </div>
-          </div>
-
-          {/* ── ARMOUR ── */}
-          <div style={{flex:'1 1 0',minWidth:240}}>
-            <div style={{fontSize:7,color:'#605848',letterSpacing:2,marginBottom:8,textAlign:'left'}}>◆ ARMOUR</div>
-            <div style={{display:'flex',alignItems:'center',gap:6}}>
-              {navBtn(prevArmour,'‹')}
-              <div key={curArmour??'none'} className="bh-card-anim" style={{flex:1,background:'#0d0d14',border:`1px solid ${curArmour?'#3498DB44':'#1e1c18'}`,borderRadius:12,overflow:'hidden'}}>
-                {curArmour ? (() => {
-                  const g = GEAR_DEFS[curArmour]
-                  const gc = '#3498DB'
-                  return (
-                    <div style={{background:`radial-gradient(ellipse at 50% 80%, ${gc}22 0%, transparent 70%)`,padding:'20px 16px 12px',textAlign:'center'}}>
-                      <div style={{fontSize:56,lineHeight:1,marginBottom:8,filter:`drop-shadow(0 0 16px ${gc})`}}>{g.icon}</div>
-                      <div style={{fontSize:9,color:'#E8E6E0',marginBottom:4}}>{g.name}</div>
-                      <div style={{fontSize:6,color:gc,marginBottom:8,letterSpacing:1}}>ARMOUR</div>
-                      <div style={{fontSize:7,color:'#3a3020',lineHeight:1.8}}>{g.desc}</div>
-                    </div>
-                  )
-                })() : (
-                  <div style={{padding:'24px 16px',textAlign:'center'}}>
-                    <div style={{fontSize:40,marginBottom:8,opacity:0.2}}>🛡️</div>
-                    <div style={{fontSize:8,color:'#3a3020',marginBottom:4}}>NO ARMOUR</div>
-                    {armourOptions.length<=1
-                      ? <div style={{fontSize:6,color:'#2a2820'}}>defeat a boss to unlock</div>
-                      : <div style={{fontSize:6,color:'#2a2820'}}>navigate to equip</div>
-                    }
+              <div style={{display:'inline-block',textAlign:'left'}}>
+                {selWBase.abilities.map((ab,i)=>(
+                  <div key={i} style={{display:'flex',alignItems:'center',gap:7,fontSize:6,color:'#9a8f70',marginBottom:5}}>
+                    <span style={{display:'inline-flex',width:15,height:15,alignItems:'center',justifyContent:'center',borderRadius:3,background:`${selLW.color}22`,border:`1px solid ${selLW.color}66`,color:selLW.color,flexShrink:0}}>{['Q','W','E','R'][i]}</span>
+                    {ab.name}
                   </div>
-                )}
-                {dots(armourOptions.length, armourIdx, '#3498DB')}
-                <div style={{height:12}}/>
+                ))}
               </div>
-              {navBtn(nextArmour,'›')}
             </div>
-          </div>
+          )}
+
+          {cardShell('ARMOUR', curArmour ? armColor : '#2a2c34', prevArmour, nextArmour, curArmour??'none', armourOptions.length, armourIdx,
+            ag ? (
+              <div style={{padding:'16px 16px 4px',textAlign:'center',background:`radial-gradient(ellipse at 50% 0%, ${armColor}1c 0%, transparent 62%)`}}>
+                {pedestal(ag.icon, armColor, 46)}
+                <div style={{fontSize:9,color:'#E8E6E0',marginBottom:8}}>{ag.name}</div>
+                <div style={{marginBottom:11}}>{chip('ARMOUR', armColor)}</div>
+                <div style={{fontSize:7,color:'#7a6f58',lineHeight:1.9,minHeight:66}}>{ag.desc}</div>
+              </div>
+            ) : (
+              <div style={{padding:'18px 16px 4px',textAlign:'center'}}>
+                {pedestal('🛡️', '#5a6470', 44, true)}
+                <div style={{fontSize:8,color:'#5a5040',marginBottom:8}}>NO ARMOUR</div>
+                <div style={{marginBottom:11}}>{chip('UNARMED','#605848')}</div>
+                <div style={{fontSize:6,color:'#3a3020',lineHeight:1.9,minHeight:66}}>{armourOptions.length<=1 ? 'Defeat a boss to unlock protective gear.' : 'Navigate ‹ › to equip unlocked armour.'}</div>
+              </div>
+            )
+          )}
 
           </div>
 
-          <div style={{borderTop:'1px solid #1e1c18',margin:'20px 0'}}/>
+          {/* assembled loadout vs quarry */}
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:12,margin:'20px 0 4px',flexWrap:'wrap'}}>
+            <span style={{fontSize:7,color:'#605848',letterSpacing:2}}>LOADOUT</span>
+            <span style={{fontSize:20,filter:`drop-shadow(0 0 8px ${selLW.color})`}}>{selLW.icon}</span>
+            <span style={{fontSize:9,color:'#3a3628'}}>+</span>
+            <span style={{fontSize:20,opacity:curArmour?1:0.28,filter:curArmour?`drop-shadow(0 0 8px ${armColor})`:'none'}}>{curArmour?GEAR_DEFS[curArmour].icon:'🛡️'}</span>
+            <span style={{fontSize:8,color:'#605848',margin:'0 4px',letterSpacing:1}}>VS</span>
+            <span style={{fontSize:20,filter:`drop-shadow(0 0 8px ${selB.color})`}}>{selB.icon}</span>
+          </div>
 
           {/* fastest-kill board for the selected boss */}
-          <div style={{maxWidth:360,margin:'0 auto 18px'}}>
+          <div style={{maxWidth:380,margin:'16px auto 18px',background:'rgba(9,9,16,0.6)',border:'1px solid #1e1c18',borderRadius:10,padding:'12px 14px'}}>
+            <div style={{fontSize:7,color:'#8a7a55',letterSpacing:2,marginBottom:9}}>⚡ FASTEST KILLS &mdash; {selB.name.toUpperCase()}</div>
             <BossLeaderboard boss={selBoss} />
           </div>
 
           <div style={{display:'flex',gap:12,justifyContent:'center'}}>
-            <button onClick={()=>setScreen('menu')} style={{background:'#1a1a28',border:'1px solid #2a2820',color:'#A09880',padding:'10px 24px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>BACK</button>
-            <button onClick={beginHunt} style={{background:'linear-gradient(135deg,#C89B3C,#8B6914)',border:'none',color:'#0d0d14',padding:'10px 32px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit',letterSpacing:1}}>
-              ▶ START HUNT
+            <button onClick={()=>setScreen('menu')} className="bh-back" style={{background:'#14141e',border:'1px solid #2a2820',color:'#A09880',padding:'12px 26px',borderRadius:8,fontSize:9,cursor:'pointer',fontFamily:'inherit',transition:'all 0.14s ease'}}>‹ BACK</button>
+            <button onClick={beginHunt} className="bh-start" style={{background:'linear-gradient(135deg,#E2B44C,#8B6914)',border:'1px solid #C89B3C',color:'#0d0d14',padding:'12px 40px',borderRadius:8,fontSize:10,cursor:'pointer',fontFamily:'inherit',letterSpacing:2}}>
+              ▶&nbsp;START HUNT
             </button>
           </div>
 
