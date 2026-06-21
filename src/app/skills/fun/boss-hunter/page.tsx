@@ -1524,17 +1524,26 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
     }
     const speed = (g.bossEnraged ? 170 : 125) * (b.slowTimer > 0 ? 0.4 : 1)
     if (g.wyrmFlying) {
-      // aerial: orbit the player at range, hard to reach with melee
-      g.bossFlightAngle += (g.bossEnraged ? 0.7 : 0.5) * dt
-      const r = 300, cx2 = clamp(p.pos.x, 320, WW - 320), cy2 = clamp(p.pos.y, 320, WH - 320)
+      // aerial: roam wide sweeping arcs around the arena rather than diving straight at the hunter
+      g.bossFlightAngle += (g.bossEnraged ? 0.62 : 0.42) * dt
+      // the orbit centre drifts between the hunter and the arena heart, wandering slowly so it never just sits on you
+      const cx2 = clamp(p.pos.x * 0.6 + WW / 2 * 0.4 + Math.cos(g.gtime * 0.16) * WW * 0.12, 340, WW - 340)
+      const cy2 = clamp(p.pos.y * 0.6 + WH / 2 * 0.4 + Math.sin(g.gtime * 0.21) * WH * 0.12, 280, WH - 280)
+      const r = 320 + Math.sin(g.gtime * 0.5) * 55
       const tx = cx2 + Math.cos(g.bossFlightAngle) * r, ty = cy2 + Math.sin(g.bossFlightAngle) * r * 0.7
-      b.pos.x = clamp(b.pos.x + (tx - b.pos.x) * Math.min(1, dt * 1.7), 80, WW - 80)
-      b.pos.y = clamp(b.pos.y + (ty - b.pos.y) * Math.min(1, dt * 1.7), 80, WH - 80)
+      b.pos.x = clamp(b.pos.x + (tx - b.pos.x) * Math.min(1, dt * 1.1), 80, WW - 80)
+      b.pos.y = clamp(b.pos.y + (ty - b.pos.y) * Math.min(1, dt * 1.1), 80, WH - 80)
     } else {
-      // grounded: stalk toward the player so melee can connect
+      // grounded: it doesn't hound you — it circles and keeps a loose distance, so YOU must close in to land melee
       const d2p = dist(b.pos, p.pos)
-      if (d2p > 150) { const dir = norm(v(p.pos.x - b.pos.x, p.pos.y - b.pos.y)); b.pos.x = clamp(b.pos.x + dir.x * speed * dt, 90, WW - 90); b.pos.y = clamp(b.pos.y + dir.y * speed * dt, 90, WH - 90) }
-      else if (d2p < 110) { const away = norm(v(b.pos.x - p.pos.x, b.pos.y - p.pos.y)); b.pos.x = clamp(b.pos.x + away.x * speed * 0.5 * dt, 90, WW - 90); b.pos.y = clamp(b.pos.y + away.y * speed * 0.5 * dt, 90, WH - 90) }
+      const toP = norm(v(p.pos.x - b.pos.x, p.pos.y - b.pos.y))
+      const strafeSign = Math.sin(g.gtime * 0.45) >= 0 ? 1 : -1
+      let mvx = -toP.y * strafeSign * 0.9, mvy = toP.x * strafeSign * 0.9     // circle the hunter
+      if (d2p > 380) { mvx += toP.x * 0.7; mvy += toP.y * 0.7 }               // amble back only if it has drifted far off
+      else if (d2p < 150) { mvx -= toP.x * 1.2; mvy -= toP.y * 1.2 }          // ease away when the hunter presses in
+      const ml = Math.hypot(mvx, mvy) || 1, gspeed = speed * 0.62            // well under the hunter's pace, so it's catchable
+      b.pos.x = clamp(b.pos.x + mvx / ml * gspeed * dt, 90, WW - 90)
+      b.pos.y = clamp(b.pos.y + mvy / ml * gspeed * dt, 90, WH - 90)
     }
   }
   if (bossId !== 1) b.angle = Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
