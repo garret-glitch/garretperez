@@ -2633,8 +2633,15 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
     // ── FROST WYRM ── a colossal winged frost-dragon. Wings SPREAD = airborne (ranged-only); FOLDED = grounded (melee-only).
     const sz = bossDef.size, enr = g.bossEnraged
     const spread = clamp(g.wyrmWing, 0, 1)
-    const flap = Math.sin(t * 3.2), breath = Math.sin(t * 1.6) * sz * 0.02
-    const lift = spread * (24 + flap * 8)
+    const flap = Math.sin(t * 3.2)
+    const breatheCy = 0.5 + 0.5 * Math.sin(t * 1.45)        // lung cycle 0..1
+    const breath = (breatheCy - 0.5) * sz * 0.04            // body heave (±)
+    const idleBob = Math.sin(t * 1.45) * sz * 0.02          // gentle whole-body bob
+    const headNod = Math.sin(t * 1.2) * sz * 0.03           // head dips & rises
+    const headTurn = Math.sin(t * 0.6) * 0.07               // slow side-to-side scan
+    const brScale = 1 + breatheCy * 0.02                    // subtle breathing swell
+    const blink = (t % 3.4) < 0.13 ? 0.12 : 1               // occasional eye blink
+    const lift = spread * (24 + flap * 9) + idleBob * 0.6
     const cDark = hitW ? '#FFF' : (enr ? '#14455f' : '#19384a')
     const cMid  = hitW ? '#FFF' : (enr ? '#347fa6' : '#2c5e78')
     const cLite = hitW ? '#FFF' : (enr ? '#a9e6ff' : '#7ec4e2')
@@ -2661,21 +2668,21 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
       ctx.fillStyle = `rgba(205,238,255,${(1 - ph) * 0.5})`; ctx.beginPath(); ctx.arc(Math.cos(a) * rr, -lift + Math.sin(a) * rr * 0.55 - ph * sz * 0.35, (1 - ph) * 2.4 + 0.5, 0, Math.PI * 2); ctx.fill() }
     ctx.restore()
 
-    ctx.save(); ctx.translate(0, -lift); ctx.rotate(b.angle)
+    ctx.save(); ctx.translate(0, -lift); ctx.rotate(b.angle); ctx.scale(brScale, brScale)
     // ── WINGS — true bat/dragon wings: arm → wrist → finger digits with a scalloped membrane ──
     const drawWing = (side: number) => {
       ctx.save(); ctx.translate(sz * 0.2, side * sz * 0.1)   // attach high on the body, at the shoulder
       const Lp = (a: number, b: number) => a + (b - a) * spread
-      const wob = flap * 0.06 * spread
+      const wob = flap * 0.07 * spread + Math.sin(t * 1.1 + side * 0.6) * 0.012   // beats when open, subtle flutter when folded
       const pt = (fx: number, fy: number, ox: number, oy: number, w = 0): number[] => [Lp(fx, ox) * sz, (Lp(fy, oy) + w * wob) * sz * side]
       const S = [0, 0]
-      const W = pt(-0.4, 0.18, 0.06, 0.6, 0.3)     // wrist (where the digits fan out)
-      const T1 = pt(-0.96, 0.2, 0.12, 1.78, 1.0)   // wingtip (long leading finger)
-      const T2 = pt(-0.86, 0.26, -0.34, 1.52, 0.85)
-      const T3 = pt(-0.72, 0.3, -0.76, 1.14, 0.6)
-      const T4 = pt(-0.52, 0.32, -1.04, 0.74, 0.4) // rear digit
-      const R = pt(-0.2, 0.26, -0.5, 0.32)         // trailing membrane root on the body
-      const scallop = (a: number[], b: number[]) => { const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2; ctx.quadraticCurveTo(mx + (W[0] - mx) * 0.34, my + (W[1] - my) * 0.34, b[0], b[1]) }
+      const W = pt(-0.4, 0.18, 0.04, 0.78, 0.3)    // wrist (where the digits fan out)
+      const T1 = pt(-0.96, 0.2, 0.2, 2.45, 1.0)    // wingtip (long leading finger)
+      const T2 = pt(-0.86, 0.26, -0.48, 2.1, 0.85)
+      const T3 = pt(-0.72, 0.3, -1.06, 1.6, 0.6)
+      const T4 = pt(-0.52, 0.32, -1.46, 1.02, 0.4) // rear digit
+      const R = pt(-0.2, 0.26, -0.66, 0.42)        // trailing membrane root on the body
+      const scallop = (a: number[], b: number[]) => { const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2; ctx.quadraticCurveTo(mx + (W[0] - mx) * 0.26, my + (W[1] - my) * 0.26, b[0], b[1]) }
       // membrane with a sagging, scalloped trailing edge
       ctx.fillStyle = cMem; ctx.shadowColor = cGlow; ctx.shadowBlur = enr ? 16 : 9
       ctx.beginPath(); ctx.moveTo(S[0], S[1]); ctx.lineTo(W[0], W[1]); ctx.lineTo(T1[0], T1[1])
@@ -2738,7 +2745,8 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
     // ── legs (recede a touch when airborne) ──
     ctx.globalAlpha = 1 - spread * 0.45; ctx.lineCap = 'round'
     for (const lx of [sz * 0.28, -sz * 0.24]) for (const side of [-1, 1]) {
-      const hipX = lx, hipY = side * sz * 0.3, kneeX = lx + (lx > 0 ? sz * 0.1 : -sz * 0.12), kneeY = side * sz * 0.5, footX = kneeX + (lx > 0 ? sz * 0.14 : -sz * 0.05), footY = side * sz * 0.63
+      const shift = Math.sin(t * 1.4 + lx * 0.05 + side) * sz * 0.012   // idle weight shift
+      const hipX = lx, hipY = side * sz * 0.3, kneeX = lx + (lx > 0 ? sz * 0.1 : -sz * 0.12), kneeY = side * sz * 0.5, footX = kneeX + (lx > 0 ? sz * 0.14 : -sz * 0.05) + shift, footY = side * sz * 0.63 + shift
       ctx.strokeStyle = cDark; ctx.lineWidth = sz * 0.13; ctx.beginPath(); ctx.moveTo(hipX, hipY); ctx.lineTo(kneeX, kneeY); ctx.lineTo(footX, footY); ctx.stroke()
       ctx.strokeStyle = cHorn; ctx.lineWidth = 2.5
       for (const c of [-1, 0, 1]) { ctx.beginPath(); ctx.moveTo(footX, footY); ctx.lineTo(footX + (lx > 0 ? sz * 0.07 : -sz * 0.04) + c * sz * 0.035, footY + side * sz * 0.1); ctx.stroke() }
@@ -2760,7 +2768,8 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
     ctx.strokeStyle = cMid; ctx.lineWidth = sz * 0.32; ctx.lineCap = 'round'
     ctx.beginPath(); ctx.moveTo(sz * 0.38, 0); ctx.quadraticCurveTo(sz * 0.6, breath * 0.5, sz * 0.82, 0); ctx.stroke(); ctx.lineCap = 'butt'
 
-    // ── MASSIVE HEAD (fierce top-down skull) ──
+    // ── MASSIVE HEAD (fierce top-down skull) — nods & scans for life ──
+    ctx.save(); ctx.translate(sz * 0.82, headNod); ctx.rotate(headTurn); ctx.translate(-sz * 0.82, 0)
     // 1) frozen CROWN — a fan of ice horns swept back over the skull (drawn first, behind it)
     // two great curved horns sweeping back, plus a small central frill
     for (const side of [-1, 1]) {
@@ -2807,9 +2816,9 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
       ctx.save(); ctx.translate(sz * 0.99, side * sz * 0.1); ctx.rotate(side * -0.5)
       const eg = ctx.createRadialGradient(0, 0, 0, 0, 0, sz * 0.09); eg.addColorStop(0, '#FFFFFF'); eg.addColorStop(0.4, enr ? '#bdf3ff' : '#9fe8ff'); eg.addColorStop(1, enr ? '#1788bd' : '#27607f')
       ctx.shadowColor = cGlow; ctx.shadowBlur = 20 * ep; ctx.fillStyle = hitW ? '#FFF' : eg
-      ctx.beginPath(); ctx.ellipse(0, 0, sz * 0.09, sz * 0.045, 0, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0
-      ctx.fillStyle = '#06121a'; ctx.beginPath(); ctx.ellipse(0, 0, sz * 0.016, sz * 0.036, 0, 0, Math.PI * 2); ctx.fill()
-      ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.arc(-sz * 0.022, -sz * 0.014, sz * 0.013, 0, Math.PI * 2); ctx.fill()
+      ctx.beginPath(); ctx.ellipse(0, 0, sz * 0.09, sz * 0.045 * blink, 0, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0
+      ctx.fillStyle = '#06121a'; ctx.beginPath(); ctx.ellipse(0, 0, sz * 0.016, sz * 0.036 * blink, 0, 0, Math.PI * 2); ctx.fill()
+      if (blink > 0.5) { ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.arc(-sz * 0.022, -sz * 0.014, sz * 0.013, 0, Math.PI * 2); ctx.fill() }
       ctx.restore()
     }
     // 6) nostrils + drifting frost vapor
@@ -2825,6 +2834,7 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
     for (const side of [-1, 1]) { ctx.beginPath(); ctx.moveTo(sz * 1.31, side * sz * 0.05); ctx.lineTo(sz * 1.42, side * sz * 0.018); ctx.lineTo(sz * 1.34, side * sz * 0.004); ctx.closePath(); ctx.fill() }
     { const fb = 0.5 + 0.5 * Math.sin(t * 5); ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.shadowColor = cGlow; ctx.shadowBlur = 18
       ctx.fillStyle = `rgba(159,232,255,${0.5 + 0.4 * fb})`; ctx.beginPath(); ctx.arc(sz * 1.4, 0, sz * 0.07 * (0.7 + fb * 0.5), 0, Math.PI * 2); ctx.fill(); ctx.restore() }
+    ctx.restore()   // end head nod/scan
     ctx.restore()   // end rotate + lift
     // ── orbiting ice shards (enraged) ──
     if (enr) { ctx.save(); ctx.shadowColor = cGlow; ctx.shadowBlur = 12
