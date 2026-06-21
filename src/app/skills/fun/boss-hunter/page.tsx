@@ -2837,9 +2837,10 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
     ctx.globalAlpha = 1
     // ── BODY — built from overlapping lobes (chest, belly, haunch) for an organic, non-round bulk ──
     const lobes = [
-      { x: sz * 0.22,  y: breath,            rx: sz * 0.5,  ry: sz * 0.42 },  // chest (front)
-      { x: -sz * 0.16, y: breath + sz * 0.03, rx: sz * 0.46, ry: sz * 0.45 }, // belly (mid)
-      { x: -sz * 0.5,  y: breath,            rx: sz * 0.34, ry: sz * 0.33 },  // haunch (rear)
+      { x: sz * 0.2,   y: breath,             rx: sz * 0.44, ry: sz * 0.4 },   // chest/shoulders — broadest, most muscular
+      { x: -sz * 0.12, y: breath + sz * 0.02, rx: sz * 0.46, ry: sz * 0.32 },  // ribcage, slimming
+      { x: -sz * 0.42, y: breath,             rx: sz * 0.36, ry: sz * 0.24 },  // hips, tapering down into the tail
+      { x: -sz * 0.66, y: breath,             rx: sz * 0.22, ry: sz * 0.17 },  // tail-root wedge for a smooth flow into the tail
     ]
     // dark silhouette outline (union of lobes)
     ctx.fillStyle = cDark
@@ -2866,12 +2867,14 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
     for (let i = 0; i < 7; i++) { const x = -sz * 0.62 + i * sz * 0.17, h = sz * (0.17 + 0.05 * Math.sin(i * 1.5))
       ctx.beginPath(); ctx.moveTo(x - sz * 0.05, -sz * 0.02); ctx.lineTo(x, -h); ctx.lineTo(x + sz * 0.05, -sz * 0.02); ctx.closePath(); ctx.fill() }
     ctx.shadowBlur = 0
-    // ── NECK — long, slender, arched column sweeping up from the chest to the head ──
+    // ── NECK — long arched column that flares from the chest and tapers to a slim head ──
+    const headFwd = sz * 0.13   // push the head out so the neck reads long & serpentine
     {
-      const nSEG = 14
+      const nSEG = 16
       const sway = Math.sin(t * 1.3) * sz * 0.012
-      const neckAt = (u: number) => ({ x: sz * (0.26 + u * 0.58), y: breath * 0.4 * (1 - u) - Math.sin(u * Math.PI) * sz * 0.14 + sway * u })
-      const neckW = (u: number) => sz * (0.19 - u * 0.095)   // slender, tapering toward the head
+      const neckEndX = sz * 0.8 + headFwd
+      const neckAt = (u: number) => ({ x: sz * 0.06 + u * (neckEndX - sz * 0.06), y: breath * 0.4 * (1 - u) - Math.sin(u * Math.PI) * sz * 0.18 + sway * u })
+      const neckW = (u: number) => sz * (0.095 + 0.235 * Math.pow(1 - u, 1.5))   // thick flare at the chest, slimming to the head
       const band = (pad: number) => { ctx.beginPath()
         for (let i = 0; i <= nSEG; i++) { const u = i / nSEG, p = neckAt(u), w = neckW(u) + pad; if (i === 0) ctx.moveTo(p.x, p.y - w); else ctx.lineTo(p.x, p.y - w) }
         for (let i = nSEG; i >= 0; i--) { const u = i / nSEG, p = neckAt(u), w = neckW(u) + pad; ctx.lineTo(p.x, p.y + w) }
@@ -2885,9 +2888,9 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
       ctx.save(); band(0); ctx.clip(); ctx.globalAlpha = 0.4; ctx.fillStyle = cLite
       ctx.beginPath(); for (let i = 0; i <= nSEG; i++) { const u = i / nSEG, p = neckAt(u), w = neckW(u); if (i === 0) ctx.moveTo(p.x, p.y + w * 0.2); else ctx.lineTo(p.x, p.y + w * 0.2) }
       for (let i = nSEG; i >= 0; i--) { const u = i / nSEG, p = neckAt(u), w = neckW(u); ctx.lineTo(p.x, p.y + w) } ctx.closePath(); ctx.fill(); ctx.restore()
-      // plated scale divisions bowing toward the head
-      ctx.strokeStyle = 'rgba(18,40,55,0.45)'; ctx.lineWidth = 1.3
-      for (let i = 1; i < nSEG; i++) { const u = i / nSEG, p = neckAt(u), w = neckW(u) * 0.9
+      // a few plated scale divisions bowing toward the head (sparse, for a smooth neck)
+      ctx.strokeStyle = 'rgba(18,40,55,0.4)'; ctx.lineWidth = 1.2
+      for (let i = 2; i < nSEG; i += 3) { const u = i / nSEG, p = neckAt(u), w = neckW(u) * 0.88
         ctx.beginPath(); ctx.moveTo(p.x, p.y - w); ctx.quadraticCurveTo(p.x + w * 0.5, p.y, p.x, p.y + w); ctx.stroke() }
       // glowing dorsal spine line
       ctx.strokeStyle = cEdge; ctx.lineWidth = 1.8; ctx.globalAlpha = 0.4; ctx.shadowColor = cGlow; ctx.shadowBlur = 6
@@ -2901,7 +2904,7 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
     }
 
     // ── MASSIVE HEAD (fierce top-down skull) — nods & scans for life ──
-    ctx.save(); ctx.translate(sz * 0.82, headNod); ctx.rotate(headTurn); ctx.translate(-sz * 0.82, 0)
+    ctx.save(); ctx.translate(sz * 0.82 + headFwd, headNod); ctx.rotate(headTurn); ctx.translate(-sz * 0.82, 0)
     // 1) frozen CROWN — a fan of ice horns swept back over the skull (drawn first, behind it)
     // two great curved horns sweeping back, plus a small central frill
     for (const side of [-1, 1]) {
