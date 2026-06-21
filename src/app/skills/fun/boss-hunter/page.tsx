@@ -1166,6 +1166,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   p.dodgeCd = Math.max(0, p.dodgeCd - dt); p.hitFlash = Math.max(0, p.hitFlash - dt)
   p.slowTimer = Math.max(0, p.slowTimer - dt); p.webProcCd = Math.max(0, p.webProcCd - dt)
   if (gear.includes('wyrm_scale')) p.slowTimer = 0   // frost plate — immune to slows
+  if (p.slowTimer > 0 && Math.random() < dt * 14) g.particles.push({ id: ++_pid, pos: v(p.pos.x + rnd(-14, 14), p.pos.y + rnd(-12, 8)), vel: v(rnd(-8, 8), rnd(-28, -8)), life: rnd(0.5, 1.0), maxLife: 1.0, color: '#bfe9f7', size: rnd(1.4, 2.8) })
   b.stunTimer = Math.max(0, b.stunTimer - dt); b.slowTimer = Math.max(0, b.slowTimer - dt)
   b.hitFlash = Math.max(0, b.hitFlash - dt)
   b.legPhase += dt * (b.stunTimer > 0 ? 0.5 : g.bossEnraged ? 3.8 : 2.4)
@@ -1569,7 +1570,11 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
       if (zone.type === 'web' || zone.type === 'ice') p.slowTimer = Math.max(p.slowTimer, 1.8)
       if (p.iframeTimer <= 0 && zone.dps > 0 && !g.god && g.manaShieldTimer <= 0) {
         const tick2 = zone.dps * dt; p.hp = Math.max(0, p.hp - tick2); p.hitFlash = Math.max(p.hitFlash, 0.06)
-        if (zone.type === 'poison' && Math.random() < dt * 2) g.damageNums.push({ id: ++g.nextDmgId, pos: { x: p.pos.x + rnd(-14, 14), y: p.pos.y - 18 }, val: Math.round(tick2), life: 0.8, maxLife: 0.8, isPlayer: true, vx: rnd(-8, 8) })
+        // a steady wisp of status particles rising off the hunter, themed to the hazard
+        const zc = zone.type === 'poison' ? '#3BE07A' : zone.type === 'fire' ? '#FF6A1A' : zone.type === 'lightning' ? '#7fe9ff' : zone.type === 'ice' ? '#bfe9f7' : '#b06be0'
+        if (Math.random() < dt * 24) g.particles.push({ id: ++_pid, pos: v(p.pos.x + rnd(-12, 12), p.pos.y + rnd(-6, 10)), vel: v(rnd(-12, 12), rnd(-52, -26)), life: rnd(0.5, 0.95), maxLife: 0.95, color: zc, size: rnd(1.6, 3.2) })
+        // chip numbers for every hazard type (not just poison) so all DOT reads clearly
+        if (Math.random() < dt * 3) g.damageNums.push({ id: ++g.nextDmgId, pos: { x: p.pos.x + rnd(-14, 14), y: p.pos.y - 18 }, val: Math.max(1, Math.round(zone.dps * 0.34)), life: 0.7, maxLife: 0.7, isPlayer: true, vx: rnd(-8, 8) })
         if (p.hp <= 0) killPlayer(g)
       }
     }
@@ -3050,6 +3055,41 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
   const facing = g.bullChargeDash.active ? Math.atan2(g.bullChargeDash.vel.y, g.bullChargeDash.vel.x) : p.facing
   const wid = getWeaponId(wpn, gear)
   const th = weaponTheme(wid)
+
+  // ── status-effect auras — make every debuff (DOT hazard / slow) visible on the hunter ──
+  {
+    // damaging hazard the hunter is standing in
+    let dz: HazardZone['type'] | null = null
+    for (const z of g.zones) { if (z.dps > 0 && dist(p.pos, z.pos) < z.radius + 14) { dz = z.type; break } }
+    if (dz) {
+      const rgb = dz === 'poison' ? '59,224,122' : dz === 'fire' ? '255,106,26' : dz === 'lightning' ? '127,233,255' : dz === 'ice' ? '191,233,247' : '176,107,224'
+      ctx.save(); ctx.translate(p.pos.x, p.pos.y); ctx.globalCompositeOperation = 'lighter'
+      const pul = 0.5 + 0.5 * Math.sin(t * 9)
+      const ag = ctx.createRadialGradient(0, 0, 4, 0, 0, 30); ag.addColorStop(0, `rgba(${rgb},${0.4 + pul * 0.28})`); ag.addColorStop(0.6, `rgba(${rgb},${0.16 + pul * 0.12})`); ag.addColorStop(1, `rgba(${rgb},0)`)
+      ctx.fillStyle = ag; ctx.beginPath(); ctx.arc(0, 0, 30, 0, Math.PI * 2); ctx.fill()
+      // rising motes / bubbles (smooth, driven by t)
+      ctx.shadowColor = `rgb(${rgb})`; ctx.shadowBlur = 8; ctx.fillStyle = `rgb(${rgb})`
+      for (let i = 0; i < 8; i++) { const ph = (t * 1.3 + i * 0.27) % 1, a2 = i * 2.39 + t * 1.7
+        ctx.globalAlpha = (1 - ph) * 0.85; ctx.beginPath(); ctx.arc(Math.cos(a2) * 14 * (0.4 + ph), 11 - ph * 32, (1 - ph) * 3 + 0.7, 0, Math.PI * 2); ctx.fill() }
+      ctx.restore()
+    }
+    if (p.slowTimer > 0) {
+      ctx.save(); ctx.translate(p.pos.x, p.pos.y)
+      const a = Math.min(1, p.slowTimer * 1.6), pul = 0.5 + 0.5 * Math.sin(t * 5)
+      // frost envelope glow
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = a * 0.5
+      const fg = ctx.createRadialGradient(0, 0, 3, 0, 0, 26); fg.addColorStop(0, `rgba(159,232,255,${0.3 + pul * 0.18})`); fg.addColorStop(1, 'rgba(127,212,255,0)')
+      ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(0, 0, 26, 0, Math.PI * 2); ctx.fill(); ctx.restore()
+      // chill ring underfoot
+      ctx.globalAlpha = a * (0.55 + 0.35 * pul); ctx.strokeStyle = '#bfeaff'; ctx.lineWidth = 2.4; ctx.shadowColor = '#7fd4ff'; ctx.shadowBlur = 12
+      ctx.beginPath(); ctx.ellipse(0, 7, 18 + pul * 2, 9 + pul, 0, 0, Math.PI * 2); ctx.stroke()
+      // ice crystals orbiting the hunter
+      ctx.globalAlpha = a; ctx.fillStyle = '#eafaff'; ctx.shadowBlur = 8
+      for (let i = 0; i < 5; i++) { const aa = t * 1.4 + i * (Math.PI * 2 / 5), x = Math.cos(aa) * 20, y = Math.sin(aa) * 13
+        ctx.beginPath(); ctx.moveTo(x, y - 3.4); ctx.lineTo(x + 2.6, y); ctx.lineTo(x, y + 3.4); ctx.lineTo(x - 2.6, y); ctx.closePath(); ctx.fill() }
+      ctx.restore()
+    }
+  }
 
   // ── mage casting circle (a glowing rune ring under the caster) ──
   if (g.mageCircle > 0) {
