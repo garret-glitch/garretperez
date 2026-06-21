@@ -380,8 +380,12 @@ interface GS {
   comboQueue: string[]       // queued follow-up attacks for multi-hit boss combos
   dmgGate: 'both' | 'melee' | 'ranged'   // Frost Wyrm: which damage type can hurt the boss right now
   wyrmFlying: boolean        // Frost Wyrm aerial (ranged-only) vs grounded (melee-only) stance
-  wyrmPhaseTimer: number     // countdown to the next ground/flight swap
+  wyrmPhaseTimer: number     // minimum time to hold a stance before it can swap
+  wyrmStagger: number        // damage dealt in the current stance; fills to force a stance swap
+  wyrmStaggerMax: number     // stance-swap damage threshold (you MUST hurt it in this stance to flip it)
   immuneFxCd: number         // throttle for "IMMUNE" deflect feedback
+  activeSlot: number         // dual-weapon loadout: 0 = melee, 1 = ranged (set by the component each frame)
+  altWeapon: { name: string; color: string; melee: boolean } | null   // the stowed weapon, for the HUD swap indicator
 }
 interface PlayerState {
   pos: V2; vel: V2; targetPos: V2 | null
@@ -580,7 +584,8 @@ function mkState(wpn: WeaponDef, boss: BossDef, gear: GearId[]): GS {
     introTimer: 2.6,
     comboQueue: [],
     dmgGate: boss.id === 3 ? 'melee' : 'both',   // Wyrm opens grounded (melee-only); others always take all damage
-    wyrmFlying: false, wyrmPhaseTimer: 8.0, immuneFxCd: 0,
+    wyrmFlying: false, wyrmPhaseTimer: 2.5, wyrmStagger: 0, wyrmStaggerMax: boss.id === 3 ? boss.hp * 0.15 : 0, immuneFxCd: 0,
+    activeSlot: 0, altWeapon: null,
     griffinState: { mode: 0, timer: 3.0, dive: v(1, 0), shotT: 0 },
   }
 }
@@ -691,6 +696,7 @@ function dealDmgToBoss(g: GS, baseDmg: number, gear: GearId[], src: 'melee' | 'r
   dmg = Math.round(dmg * g.bossDmgTakenMult)
   if (baseDmg >= 110) crit = true   // heavy ability strikes register as crits
   b.hp = Math.max(0, b.hp - dmg)
+  if (g.dmgGate !== 'both') g.wyrmStagger += dmg   // Wyrm: hurting it in this stance forces it to swap
   b.hitFlash = crit ? 0.18 : 0.12
   Sfx.bossHit()
   // ── combo meter: every connected hit extends the chain ──
@@ -1453,16 +1459,17 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   } else if (bossId === 3 && b.stunTimer <= 0) {
     // ── FROST WYRM — alternates grounded (melee-only) and airborne (ranged-only) stances ──
     if (!g.bossDesperate) {
-      g.wyrmPhaseTimer -= dt
-      if (g.wyrmPhaseTimer <= 0) {
+      // stance only swaps once you've hurt it ENOUGH in the current stance — so you must wield both
+      g.wyrmPhaseTimer -= dt   // minimum hold time, prevents instant whiplash on burst
+      if (g.wyrmStagger >= g.wyrmStaggerMax && g.wyrmPhaseTimer <= 0) {
         g.wyrmFlying = !g.wyrmFlying
         g.dmgGate = g.wyrmFlying ? 'ranged' : 'melee'
-        g.wyrmPhaseTimer = 7.5 / (g.bossEnraged ? 1.4 : 1)
+        g.wyrmStagger = 0; g.wyrmPhaseTimer = 2.5
         g.bossAttack = null; g.comboQueue = []; g.nextAttackTimer = 0.5
         g.screenShake = Math.max(g.screenShake, 0.6); Sfx.roar()
         g.phaseBanner = g.wyrmFlying
-          ? { text: 'THE WYRM TAKES FLIGHT', sub: 'Its scales turn all arrows aside — wait for it to land... or it is ranged-vulnerable aloft!', timer: 2.4 }
-          : { text: 'THE WYRM LANDS', sub: 'Grounded — close in with melee!', timer: 2.4 }
+          ? { text: 'THE WYRM TAKES FLIGHT', sub: 'Switch to ranged (TAB) — only spells & arrows reach it now!', timer: 2.6 }
+          : { text: 'THE WYRM LANDS', sub: 'Switch to melee (TAB) — close in and strike!', timer: 2.6 }
         spawnParticles(g, b.pos, 30, '#cfe9ff', 320)
       }
     }
@@ -3956,8 +3963,14 @@ function renderHUD(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, bossDef
     const gp=0.55+0.45*Math.sin(t*5)
     ctx.font='9px "Press Start 2P",monospace'; ctx.textAlign='center'
     ctx.fillStyle=`rgba(159,232,255,${gp})`; ctx.shadowColor='#7fd4ff'; ctx.shadowBlur=10
-    ctx.fillText(g.dmgGate==='melee'?'⚔ MELEE ONLY — RANGED DEFLECTED':'✷ RANGED ONLY — MELEE CANNOT REACH', CW/2, barY+barH+28)
+    ctx.fillText(g.dmgGate==='melee'?'⚔ MELEE ONLY — RANGED DEFLECTED':'✷ RANGED ONLY — MELEE CANNOT REACH', CW/2, barY+barH+27)
     ctx.shadowBlur=0
+    // stance-break meter: fill it (with the right weapon) to force the Wyrm to swap stance
+    const sf=clamp(g.wyrmStagger/(g.wyrmStaggerMax||1),0,1), sbw=190, sbx=CW/2-sbw/2, sby=barY+barH+33
+    ctx.fillStyle='rgba(4,4,14,0.7)'; ctx.fillRect(sbx,sby,sbw,5)
+    ctx.fillStyle='#9fe8ff'; ctx.fillRect(sbx,sby,sbw*sf,5)
+    ctx.strokeStyle='rgba(159,232,255,0.5)'; ctx.lineWidth=1; ctx.strokeRect(sbx,sby,sbw,5)
+    ctx.font='6px "Press Start 2P",monospace'; ctx.fillStyle='rgba(159,232,255,0.7)'; ctx.fillText('STANCE BREAK', CW/2, sby+13)
   }
   ctx.font='7px "Press Start 2P",monospace'; ctx.fillStyle='rgba(200,155,60,0.5)'; ctx.textAlign='center'
   ctx.fillText(`${Math.ceil(b.hp).toLocaleString()} / ${b.maxHp.toLocaleString()}`,CW/2,barY+barH+14)
@@ -3989,6 +4002,21 @@ function renderHUD(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, bossDef
   if (ph<0.25) { const lp=0.5+0.5*Math.sin(t*9); ctx.fillStyle=`rgba(255,40,40,${lp*0.3})`; ctx.fillRect(pBX,pBY,pBW*ph,pBH) }   // low-HP danger pulse
   ctx.fillStyle='rgba(255,255,255,0.14)'; ctx.fillRect(pBX,pBY,pBW*ph,pBH*0.4)
   ctx.font='8px "Press Start 2P",monospace'; ctx.fillStyle='#A09880'; ctx.fillText(`${Math.ceil(p.hp)} / ${p.maxHp}`,pBX,pBY+pBH+12)
+  // ── dual-weapon swap indicator (shows the stowed weapon) ──
+  if (g.altWeapon) {
+    ctx.font='7px "Press Start 2P",monospace'; ctx.textAlign='left'
+    ctx.fillStyle='rgba(180,170,150,0.65)'; ctx.fillText('TAB ⇄', pBX, pBY+pBH+26)
+    ctx.fillStyle=g.altWeapon.color; ctx.fillText(g.altWeapon.name.toUpperCase(), pBX+42, pBY+pBH+26)
+    // "wrong stance" prompt — flashes when your active weapon can't hurt the boss (Frost Wyrm)
+    const mismatch = (g.dmgGate==='melee' && g.activeSlot!==0) || (g.dmgGate==='ranged' && g.activeSlot===0)
+    if (mismatch) {
+      const sp=0.5+0.5*Math.sin(t*8)
+      ctx.font='10px "Press Start 2P",monospace'; ctx.textAlign='center'
+      ctx.fillStyle=`rgba(255,220,120,${0.55+0.45*sp})`; ctx.shadowColor='#FFD24A'; ctx.shadowBlur=12
+      ctx.fillText('⇄ SWAP WEAPON! (TAB)', CW/2, barY+barH+58); ctx.shadowBlur=0
+    }
+    ctx.textAlign='left'
+  }
 
   const dCX=pBX+pBW+46, dBW=68, dBH=28, dBY=pBY-1
   const canD=p.dodgeChargeMode?p.featherCharges>0:p.dodgeCd<=0
@@ -4441,10 +4469,12 @@ function armourSvg(id: GearId | null, size: number): JSX.Element {
 /* ═══ REACT COMPONENT ═══ */
 export default function BossHunter() {
   const [screen, setScreen] = useState<'menu'|'hunt_select'|'playing'|'victory'|'defeat'>('menu')
-  const [selWeapon, setSelWeapon] = useState<string>('bow')   // loadout weapon id (base or unlocked reward)
+  const [selMelee, setSelMelee] = useState<string>('sword')    // equipped melee loadout id
+  const [selRanged, setSelRanged] = useState<string>('bow')    // equipped ranged loadout id
   const [selBoss, setSelBoss] = useState<BossId>(0)
   const [unlockedGear, setUnlockedGear] = useState<GearId[]>([])
   const [selArmour, setSelArmour] = useState<GearId | null>(null)
+  const activeSlotRef = useRef(0)   // 0 = melee, 1 = ranged (swapped live with Tab)
 
   // Admins start with every weapon and armour unlocked
   const { data: session } = useSession()
@@ -4476,14 +4506,30 @@ export default function BossHunter() {
 
   const getWpn = useCallback((wid: WeaponId) => WEAPON_DEFS.find(w => w.id === wid)!, [])
 
-  const startGame = useCallback((weaponId: WeaponId, bossId: BossId, gear: GearId[]) => {
-    const wpn = getWpn(weaponId)
-    const bossDef = BOSS_DEFS[bossId]
-    gsRef.current = mkState(wpn, bossDef, gear)
+  // the equipped pair: a melee weapon (slot 0) + a ranged weapon (slot 1), sharing the armour
+  const loadoutPair = useCallback(() => {
+    const ml = LOADOUT_WEAPONS.find(w => w.id === selMelee) ?? LOADOUT_WEAPONS[0]
+    const rl = LOADOUT_WEAPONS.find(w => w.id === selRanged) ?? LOADOUT_WEAPONS[1]
+    return {
+      ml, rl,
+      meleeWpn: getWpn(ml.base), rangedWpn: getWpn(rl.base),
+      meleeGear: [ml.gear, selArmour].filter(Boolean) as GearId[],
+      rangedGear: [rl.gear, selArmour].filter(Boolean) as GearId[],
+    }
+  }, [selMelee, selRanged, selArmour, getWpn])
+
+  const startGame = useCallback(() => {
+    const { meleeWpn, meleeGear } = loadoutPair()
+    const g = mkState(meleeWpn, BOSS_DEFS[selBoss], meleeGear)
+    // dual-wield HP is fixed (defense still varies by the active weapon path); +30 from ember plate
+    const baseHp = 165 + (selArmour === 'ember_armor' ? 30 : 0)
+    g.player.hp = g.player.maxHp = baseHp
+    gsRef.current = g
+    activeSlotRef.current = 0
     submittedRunRef.current = false
     Sfx.resume(); Sfx.roar()
     setScreen('playing')
-  }, [getWpn])
+  }, [loadoutPair, selBoss, selArmour])
 
   const toggleFullscreen = useCallback(() => {
     const el = playWrapRef.current as (HTMLDivElement & { webkitRequestFullscreen?: () => void }) | null
@@ -4619,17 +4665,18 @@ export default function BossHunter() {
 
   const beginHunt = useCallback(() => {
     Sfx.resume(); Sfx.uiClick()
-    const lw = LOADOUT_WEAPONS.find(w => w.id === selWeapon) ?? LOADOUT_WEAPONS[1]
-    startGame(lw.base, selBoss, [lw.gear, selArmour].filter(Boolean) as GearId[])
-  }, [selWeapon, selBoss, selArmour, startGame])
+    startGame()
+  }, [startGame])
 
   useEffect(() => {
     if (screen !== 'playing') return
     const canvas = canvasRef.current; if (!canvas) return
     const ctx = canvas.getContext('2d'); if (!ctx) return
-    const lw = LOADOUT_WEAPONS.find(w => w.id === selWeapon) ?? LOADOUT_WEAPONS[1]
-    const wpn = getWpn(lw.base)
-    const gear: GearId[] = [lw.gear, selArmour].filter(Boolean) as GearId[]
+    const { ml, rl, meleeWpn, rangedWpn, meleeGear, rangedGear } = loadoutPair()
+    // the live-active weapon (slot 0 = melee, slot 1 = ranged) — swapped with Tab
+    const active = () => activeSlotRef.current === 0
+      ? { wpn: meleeWpn, gear: meleeGear }
+      : { wpn: rangedWpn, gear: rangedGear }
 
     const triggerDodge = () => {
       const g = gsRef.current; if (!g) return
@@ -4658,6 +4705,14 @@ export default function BossHunter() {
       if (e.repeat) return
       const g = gsRef.current; if (!g || g.phase !== 'playing') return
       if (e.code === 'Space') { e.preventDefault(); triggerDodge() }
+      if (e.code === 'Tab' || e.code === 'KeyF') {   // swap melee ⇄ ranged
+        e.preventDefault()
+        activeSlotRef.current = activeSlotRef.current === 0 ? 1 : 0
+        g.player.atkTimer = Math.max(g.player.atkTimer, 0.3)   // brief swap recovery
+        g.meleeHit = null; g.attackFlash = null
+        spawnParticles(g, g.player.pos, 10, activeSlotRef.current === 0 ? '#E74C3C' : '#5fe0ff', 150, 0.4)
+        Sfx.dodge()
+      }
       if (e.code === 'KeyQ') pendingAbilityRef.current = 0
       if (e.code === 'KeyW') pendingAbilityRef.current = 1
       if (e.code === 'KeyE') pendingAbilityRef.current = 2
@@ -4693,10 +4748,16 @@ export default function BossHunter() {
       const g = gsRef.current
       if (!g) { rafRef.current = requestAnimationFrame(loop); return }
 
+      // resolve the live-active weapon + expose the stowed one for the HUD swap indicator
+      const a = active()
+      g.activeSlot = activeSlotRef.current
+      const inactive = activeSlotRef.current === 0 ? rl : ml
+      g.altWeapon = { name: inactive.name, color: inactive.color, melee: activeSlotRef.current === 1 }
+
       // ── hitstop: briefly freeze the simulation on heavy impacts (still renders) ──
       if (g.hitstop > 0 && (g.phase === 'playing' || g.phase === 'dying' || g.phase === 'player_dying')) {
         g.hitstop = Math.max(0, g.hitstop - dt)
-        render(ctx, g, wpn, selBoss, gear, g.gtime)
+        render(ctx, g, a.wpn, selBoss, a.gear, g.gtime)
         rafRef.current = requestAnimationFrame(loop)
         return
       }
@@ -4706,7 +4767,7 @@ export default function BossHunter() {
       pendingDodgeRef.current = false
 
       g.god = godRef.current
-      tick(g, dt, wpn, selBoss, gear, mouseWorldRef.current, new Set(), mouseWorldRef.current, pending)
+      tick(g, dt, a.wpn, selBoss, a.gear, mouseWorldRef.current, new Set(), mouseWorldRef.current, pending)
 
       if (g.phase === 'playing') {
         // music escalates with the fight: per-boss theme → per-boss enrage → shared frantic finale
@@ -4743,7 +4804,7 @@ export default function BossHunter() {
         setScreen('defeat'); return
       }
 
-      render(ctx, g, wpn, selBoss, gear, g.gtime)
+      render(ctx, g, a.wpn, selBoss, a.gear, g.gtime)
       rafRef.current = requestAnimationFrame(loop)
     }
     rafRef.current = requestAnimationFrame(loop)
@@ -4754,7 +4815,7 @@ export default function BossHunter() {
       canvas.removeEventListener('mousemove', handleMouseMove)
       canvas.removeEventListener('click', handleClick)
     }
-  }, [screen, selWeapon, selBoss, selArmour, unlockedGear, getWpn])
+  }, [screen, selMelee, selRanged, selBoss, selArmour, unlockedGear, getWpn, loadoutPair])
 
   // ─── MENU ───
   if (screen === 'menu') return (
@@ -4788,14 +4849,14 @@ export default function BossHunter() {
           ▶&nbsp;BEGIN HUNT
         </button>
         <div style={{display:'flex',gap:18,justifyContent:'center',flexWrap:'wrap',marginTop:22}}>
-          {([['🖱️','Move'],['SPACE','Dodge'],['Q W E R','Abilities'],['💀','Loot']] as [string,string][]).map(([k,v],i)=>(
+          {([['🖱️','Move'],['SPACE','Dodge'],['Q W E R','Abilities'],['TAB','Swap Weapon'],['💀','Loot']] as [string,string][]).map(([k,v],i)=>(
             <div key={i} style={{fontSize:7,color:'#8a7a78',textShadow:'0 0 8px #000'}}><span style={{color:'#caa84a'}}>{k}</span>&nbsp;{v}</div>
           ))}
         </div>
         {unlockedGear.length > 0 && (
           <div style={{fontSize:7,color:'#6a5a58',marginTop:16,textShadow:'0 0 8px #000'}}>
             GEAR COLLECTED: <span style={{color:'#C89B3C'}}>{unlockedGear.length}</span>
-            <span style={{color:'#8a7a78'}}> &bull; LOADOUT: {(LOADOUT_WEAPONS.find(w=>w.id===selWeapon)??LOADOUT_WEAPONS[1]).icon}{selArmour?' '+GEAR_DEFS[selArmour].icon:''}</span>
+            <span style={{color:'#8a7a78'}}> &bull; LOADOUT: {(LOADOUT_WEAPONS.find(w=>w.id===selMelee)??LOADOUT_WEAPONS[0]).icon}{(LOADOUT_WEAPONS.find(w=>w.id===selRanged)??LOADOUT_WEAPONS[1]).icon}{selArmour?' '+GEAR_DEFS[selArmour].icon:''}</span>
           </div>
         )}
       </div>
@@ -4805,15 +4866,40 @@ export default function BossHunter() {
   // ─── PREPARE YOUR HUNT (carousel cards) ───
   if (screen === 'hunt_select') {
     const availWeapons = LOADOUT_WEAPONS.filter(w => !w.unlock || unlockedGear.includes(w.unlock))
-    let selWIdx = availWeapons.findIndex(w => w.id === selWeapon); if (selWIdx < 0) selWIdx = 0
-    const selLW = availWeapons[selWIdx]
-    const selWBase = WEAPON_DEFS.find(w => w.id === selLW.base)!
+    const availMelee = availWeapons.filter(w => w.base === 'sword')
+    const availRanged = availWeapons.filter(w => w.base !== 'sword')
+    let selMIdx = availMelee.findIndex(w => w.id === selMelee); if (selMIdx < 0) selMIdx = 0
+    let selRIdx = availRanged.findIndex(w => w.id === selRanged); if (selRIdx < 0) selRIdx = 0
+    const selML = availMelee[selMIdx], selRL = availRanged[selRIdx]
+    const selMBase = WEAPON_DEFS.find(w => w.id === selML.base)!, selRBase = WEAPON_DEFS.find(w => w.id === selRL.base)!
     const selB = BOSS_DEFS[selBoss]
 
     const prevBoss = () => setSelBoss(((selBoss - 1 + 4) % 4) as BossId)
     const nextBoss = () => setSelBoss(((selBoss + 1) % 4) as BossId)
-    const prevWeapon = () => setSelWeapon(availWeapons[(selWIdx - 1 + availWeapons.length) % availWeapons.length].id)
-    const nextWeapon = () => setSelWeapon(availWeapons[(selWIdx + 1) % availWeapons.length].id)
+    const prevMelee = () => setSelMelee(availMelee[(selMIdx - 1 + availMelee.length) % availMelee.length].id)
+    const nextMelee = () => setSelMelee(availMelee[(selMIdx + 1) % availMelee.length].id)
+    const prevRanged = () => setSelRanged(availRanged[(selRIdx - 1 + availRanged.length) % availRanged.length].id)
+    const nextRanged = () => setSelRanged(availRanged[(selRIdx + 1) % availRanged.length].id)
+    // shared weapon-card body builder
+    const weaponCardBody = (lw: typeof selML, base: WeaponDef, color: string) => (
+      <div style={{padding:'14px 14px 4px',textAlign:'center',background:`radial-gradient(ellipse at 50% 0%, ${color}1c 0%, transparent 62%)`}}>
+        {pedestalNode(weaponSvg(lw.id, color, 54), color)}
+        <div style={{fontSize:9,color,marginBottom:7,letterSpacing:1}}>{lw.name.toUpperCase()}</div>
+        <div style={{marginBottom:9}}>{chip(base.element.toUpperCase(), color)} {lw.gear ? chip('UPGRADE','#C89B3C') : chip('STARTER','#605848')}</div>
+        <div style={{display:'flex',gap:8,justifyContent:'center',marginBottom:9}}>
+          {statBlock('DMG', String(base.dmg), '#C89B3C')}
+          {statBlock('RANGE', String(base.range), '#C89B3C')}
+        </div>
+        <div style={{display:'inline-block',textAlign:'left'}}>
+          {base.abilities.map((ab,i)=>(
+            <div key={i} style={{display:'flex',alignItems:'center',gap:7,fontSize:6,color:'#9a8f70',marginBottom:4}}>
+              <span style={{display:'inline-flex',width:14,height:14,alignItems:'center',justifyContent:'center',borderRadius:3,background:`${color}22`,border:`1px solid ${color}66`,color,flexShrink:0}}>{['Q','W','E','R'][i]}</span>
+              {ab.name}
+            </div>
+          ))}
+        </div>
+      </div>
+    )
 
     const armourOptions: Array<GearId | null> = [null, ...unlockedGear.filter(g => GEAR_CATEGORY[g] === 'defense')]
     const armourIdx = Math.max(0, armourOptions.indexOf(selArmour))
@@ -4914,25 +5000,9 @@ export default function BossHunter() {
             </div>
           )}
 
-          {cardShell('WEAPON', selLW.color, prevWeapon, nextWeapon, selLW.id, availWeapons.length, selWIdx,
-            <div style={{padding:'16px 16px 4px',textAlign:'center',background:`radial-gradient(ellipse at 50% 0%, ${selLW.color}1c 0%, transparent 62%)`}}>
-              {pedestalNode(weaponSvg(selLW.id, selLW.color, 60), selLW.color)}
-              <div style={{fontSize:10,color:selLW.color,marginBottom:8,letterSpacing:1}}>{selLW.name.toUpperCase()}</div>
-              <div style={{marginBottom:10}}>{chip(selWBase.element.toUpperCase(), selLW.color)} {selLW.gear ? chip('UPGRADE','#C89B3C') : chip('STARTER','#605848')}</div>
-              <div style={{display:'flex',gap:8,justifyContent:'center',marginBottom:11}}>
-                {statBlock('DMG', String(selWBase.dmg), '#C89B3C')}
-                {statBlock('RANGE', String(selWBase.range), '#C89B3C')}
-              </div>
-              <div style={{display:'inline-block',textAlign:'left'}}>
-                {selWBase.abilities.map((ab,i)=>(
-                  <div key={i} style={{display:'flex',alignItems:'center',gap:7,fontSize:6,color:'#9a8f70',marginBottom:5}}>
-                    <span style={{display:'inline-flex',width:15,height:15,alignItems:'center',justifyContent:'center',borderRadius:3,background:`${selLW.color}22`,border:`1px solid ${selLW.color}66`,color:selLW.color,flexShrink:0}}>{['Q','W','E','R'][i]}</span>
-                    {ab.name}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {cardShell('⚔ MELEE', selML.color, prevMelee, nextMelee, selML.id, availMelee.length, selMIdx, weaponCardBody(selML, selMBase, selML.color))}
+
+          {cardShell('✷ RANGED', selRL.color, prevRanged, nextRanged, selRL.id, availRanged.length, selRIdx, weaponCardBody(selRL, selRBase, selRL.color))}
 
           {cardShell('ARMOUR', curArmour ? armColor : '#2a2c34', prevArmour, nextArmour, curArmour??'none', armourOptions.length, armourIdx,
             ag ? (
@@ -4955,14 +5025,17 @@ export default function BossHunter() {
           </div>
 
           {/* assembled loadout vs quarry */}
-          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:12,margin:'20px 0 4px',flexWrap:'wrap'}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:10,margin:'20px 0 2px',flexWrap:'wrap'}}>
             <span style={{fontSize:7,color:'#605848',letterSpacing:2}}>LOADOUT</span>
-            {weaponSvg(selLW.id, selLW.color, 28)}
+            {weaponSvg(selML.id, selML.color, 26)}
             <span style={{fontSize:9,color:'#3a3628'}}>+</span>
-            <span style={{display:'inline-flex',opacity:curArmour?1:0.32}}>{armourSvg(curArmour, 26)}</span>
+            {weaponSvg(selRL.id, selRL.color, 26)}
+            <span style={{fontSize:9,color:'#3a3628'}}>+</span>
+            <span style={{display:'inline-flex',opacity:curArmour?1:0.32}}>{armourSvg(curArmour, 24)}</span>
             <span style={{fontSize:8,color:'#605848',margin:'0 4px',letterSpacing:1}}>VS</span>
-            {bossSvg(selBoss, selB.color, 28)}
+            {bossSvg(selBoss, selB.color, 26)}
           </div>
+          <div style={{fontSize:6,color:'#605848',textAlign:'center',marginBottom:2,letterSpacing:1}}>In battle: <span style={{color:'#C8B98A'}}>TAB</span> swaps melee ⇄ ranged{selBoss===3?<span style={{color:'#9fe8ff'}}> — the Frost Wyrm demands it!</span>:''}</div>
 
           {/* fastest-kill board for the selected boss */}
           <div style={{maxWidth:380,margin:'16px auto 18px',background:'rgba(9,9,16,0.6)',border:'1px solid #1e1c18',borderRadius:10,padding:'12px 14px'}}>
