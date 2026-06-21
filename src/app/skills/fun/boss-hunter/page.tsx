@@ -2917,7 +2917,7 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
       const nSEG = 16
       const sway = Math.sin(t * 1.3) * sz * 0.012
       const neckEndX = sz * 0.8 + headFwd
-      const neckAt = (u: number) => ({ x: sz * 0.06 + u * (neckEndX - sz * 0.06), y: breath * 0.4 * (1 - u) - Math.sin(u * Math.PI) * sz * 0.18 + sway * u })
+      const neckAt = (u: number) => ({ x: sz * 0.06 + u * (neckEndX - sz * 0.06), y: breath * 0.4 * (1 - u) + sway * u })
       const neckW = (u: number) => sz * (0.075 + 0.165 * Math.pow(1 - u, 1.4))   // slim, gently flaring at the chest
       const band = (pad: number) => { ctx.beginPath()
         for (let i = 0; i <= nSEG; i++) { const u = i / nSEG, p = neckAt(u), w = neckW(u) + pad; if (i === 0) ctx.moveTo(p.x, p.y - w); else ctx.lineTo(p.x, p.y - w) }
