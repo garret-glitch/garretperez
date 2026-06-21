@@ -351,7 +351,7 @@ interface GS {
   meleeHit: { timer: number; maxTimer: number; dmg: number; reach: number; arc: number; angle: number; hit: boolean; proc: boolean } | null
   lavaParticles: Particle[]; skyArrows: SkyArrow[]; envObjects: EnvObject[]
   nextProjId: number; nextDmgId: number; nextPartId: number; nextTrapId: number; nextZoneId: number
-  gtime: number; bossEnraged: boolean; poisonTimer: number; playerDmgFlash: number; tooCloseFlash: number
+  gtime: number; bossEnraged: boolean; poisonTimer: number; playerDmgFlash: number; tooCloseFlash: number; hpBarFlash: number
   chainHits: number; chainResetTimer: number
   rageActive: boolean; rageTimer: number
   bullChargeDash: { active: boolean; vel: V2; timer: number }
@@ -559,7 +559,7 @@ function mkState(wpn: WeaponDef, boss: BossDef, gear: GearId[]): GS {
     attackFlash: null, screenShake: 0, bossDeathAnim: 0, playerDeathAnim: 0, meleeHit: null,
     lavaParticles: [], skyArrows: [], envObjects: generateEnvObjects(boss.id),
     nextProjId: 0, nextDmgId: 0, nextPartId: 0, nextTrapId: 0, nextZoneId: 0,
-    gtime: 0, bossEnraged: false, poisonTimer: 0, playerDmgFlash: 0, tooCloseFlash: 0,
+    gtime: 0, bossEnraged: false, poisonTimer: 0, playerDmgFlash: 0, tooCloseFlash: 0, hpBarFlash: 0,
     chainHits: 0, chainResetTimer: 0,
     rageActive: false, rageTimer: 0,
     bullChargeDash: { active: false, vel: v(0, 0), timer: 0 },
@@ -619,13 +619,14 @@ function dealDmgToPlayer(g: GS, dmg: number, wpn: WeaponDef, gear: GearId[], kno
   else if (gear.includes('web_amulet')) fd = Math.round(fd * 0.78)   // webbing — light mitigation
   // feather: NO damage reduction — its perk is pure speed
   p.hp = Math.max(0, p.hp - fd)
-  p.hitFlash = 0.40; p.iframeTimer = 0.5
-  g.playerDmgFlash = 0.70
+  p.hitFlash = 0.45; p.iframeTimer = 0.5
+  g.playerDmgFlash = 0.9
+  g.hpBarFlash = 0.6   // flashes the player HP bar so the hit is unmistakable
   if (knockDir && wpn.id !== 'sword') p.knockbackVel = v(knockDir.x * 160, knockDir.y * 160)
-  spawnParticles(g, p.pos, 8, '#FF4444', 110)
+  spawnParticles(g, p.pos, 16, '#FF4444', 160)
   Sfx.hurt(); if (gear.includes('ember_armor')) Sfx.emberSizzle()
-  g.screenShake = Math.max(g.screenShake, 0.32)
-  if (fd >= 22) g.hitstop = Math.max(g.hitstop, 0.05)   // a heavy blow lands with weight
+  g.screenShake = Math.max(g.screenShake, 0.5)
+  g.hitstop = Math.max(g.hitstop, fd >= 22 ? 0.07 : 0.035)   // a beat of freeze sells every hit
   g.combo = 0   // taking a hit breaks the player's offensive chain
   g.damageNums.push({ id: ++g.nextDmgId, pos: { x: p.pos.x + rnd(-20, 20), y: p.pos.y - 20 }, val: Math.round(fd), life: 1.2, maxLife: 1.2, isPlayer: true, vx: rnd(-14, 14) })
   if (p.hp <= 0) killPlayer(g)
@@ -1167,6 +1168,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   b.spinePulse += dt * 2.2; b.lightningPhase += dt * 4.5
   g.screenShake = Math.max(0, g.screenShake - dt * 3); g.nextAttackTimer = Math.max(0, g.nextAttackTimer - dt)
   g.playerDmgFlash = Math.max(0, g.playerDmgFlash - dt * 2.8)
+  g.hpBarFlash = Math.max(0, g.hpBarFlash - dt * 2.2)
   g.tooCloseFlash = Math.max(0, g.tooCloseFlash - dt * 2.0)
   g.mageCircle = Math.max(0, g.mageCircle - dt)
   g.manaShieldTimer = Math.max(0, g.manaShieldTimer - dt)
@@ -4149,7 +4151,7 @@ function renderDamageNumbers(ctx: CanvasRenderingContext2D, g: GS) {
       ctx.restore(); return
     }
     const txt = (dn.isPlayer ? '-' : '') + dn.val
-    const sz = dn.isPlayer ? 16 : dn.crit ? 22 : 14
+    const sz = dn.isPlayer ? 22 : dn.crit ? 22 : 14
     const col = dn.isPlayer ? '#FF3B3B' : dn.crit ? '#FFD24A' : '#FFFFFF'
     const glow = dn.isPlayer ? '#FF0000' : dn.crit ? '#FF8A1A' : '#C89B3C'
     ctx.save(); ctx.globalAlpha = alpha
@@ -4157,10 +4159,12 @@ function renderDamageNumbers(ctx: CanvasRenderingContext2D, g: GS) {
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
     ctx.font = `${sz}px "Press Start 2P",monospace`
     // black outline keeps numbers legible over bright effects
-    ctx.lineWidth = dn.crit ? 4.5 : 3; ctx.strokeStyle = 'rgba(0,0,0,0.9)'; ctx.lineJoin = 'round'
+    ctx.lineWidth = dn.crit || dn.isPlayer ? 4.5 : 3; ctx.strokeStyle = 'rgba(0,0,0,0.9)'; ctx.lineJoin = 'round'
     ctx.strokeText(txt, 0, 0)
-    ctx.shadowColor = glow; ctx.shadowBlur = dn.crit ? 18 : dn.isPlayer ? 14 : 7
+    ctx.shadowColor = glow; ctx.shadowBlur = dn.crit ? 18 : dn.isPlayer ? 18 : 7
     ctx.fillStyle = col; ctx.fillText(txt, 0, 0)
+    // player hits get a red down-arrow so they read instantly as damage taken
+    if (dn.isPlayer) { ctx.font = '12px "Press Start 2P",monospace'; ctx.fillStyle = '#FF7777'; ctx.fillText('▼', sz * 0.62, -sz * 0.32) }
     // crit gets a little "!" flourish
     if (dn.crit) { ctx.font = '11px "Press Start 2P",monospace'; ctx.fillStyle = '#FFF7C0'; ctx.fillText('!', sz * 0.7, -sz * 0.34) }
     ctx.restore()
@@ -4322,7 +4326,16 @@ function renderHUD(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, bossDef
   ctx.fillStyle=ph>0.5?'#27AE60':ph>0.25?'#F39C12':'#E74C3C'; ctx.fillRect(pBX,pBY,pBW*ph,pBH)
   if (ph<0.25) { const lp=0.5+0.5*Math.sin(t*9); ctx.fillStyle=`rgba(255,40,40,${lp*0.3})`; ctx.fillRect(pBX,pBY,pBW*ph,pBH) }   // low-HP danger pulse
   ctx.fillStyle='rgba(255,255,255,0.14)'; ctx.fillRect(pBX,pBY,pBW*ph,pBH*0.4)
-  ctx.font='8px "Press Start 2P",monospace'; ctx.fillStyle='#A09880'; ctx.fillText(`${Math.ceil(p.hp)} / ${p.maxHp}`,pBX,pBY+pBH+12)
+  // ── on-hit HP-bar flash: bright red wash + glowing border so a hit is impossible to miss ──
+  if (g.hpBarFlash > 0) {
+    const f = clamp(g.hpBarFlash / 0.6, 0, 1)
+    ctx.save()
+    ctx.fillStyle = `rgba(255,30,30,${f * 0.55})`; ctx.fillRect(pBX, pBY, pBW, pBH)
+    ctx.strokeStyle = `rgba(255,60,60,${0.4 + 0.6 * f})`; ctx.lineWidth = 2.5; ctx.shadowColor = '#FF0000'; ctx.shadowBlur = 16 * f
+    ctx.strokeRect(pBX - 2, pBY - 2, pBW + 4, pBH + 4)
+    ctx.restore()
+  }
+  ctx.font='8px "Press Start 2P",monospace'; ctx.fillStyle = g.hpBarFlash > 0.05 ? '#FF6666' : '#A09880'; ctx.fillText(`${Math.ceil(p.hp)} / ${p.maxHp}`,pBX,pBY+pBH+12)
   // ── dual-weapon swap indicator (shows the stowed weapon) ──
   if (g.altWeapon) {
     ctx.font='7px "Press Start 2P",monospace'; ctx.textAlign='left'
@@ -4540,11 +4553,15 @@ function render(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, bossId: Bo
     if (prog > 0.82) { ctx.fillStyle = `rgba(0,0,0,${(prog-0.82)/0.18})`; ctx.fillRect(0,0,CW,CH) }   // fade to black handoff
   }
   if (g.playerDmgFlash > 0) {
-    const a = g.playerDmgFlash * 0.55
-    const vgn = ctx.createRadialGradient(CW/2, CH/2, CH*0.08, CW/2, CH/2, CH*0.85)
+    const a = Math.min(0.85, g.playerDmgFlash * 0.75)
+    const vgn = ctx.createRadialGradient(CW/2, CH/2, CH*0.05, CW/2, CH/2, CH*0.82)
     vgn.addColorStop(0, 'rgba(220,0,0,0)')
-    vgn.addColorStop(1, `rgba(220,0,0,${a})`)
+    vgn.addColorStop(0.55, `rgba(225,10,10,${a*0.45})`)
+    vgn.addColorStop(1, `rgba(225,10,10,${a})`)
     ctx.fillStyle = vgn; ctx.fillRect(0, 0, CW, CH)
+    // punchy full-screen flash on the frame of impact, then it falls off fast
+    const impact = Math.max(0, g.playerDmgFlash - 0.5)
+    if (impact > 0) { ctx.fillStyle = `rgba(255,70,70,${impact * 0.7})`; ctx.fillRect(0, 0, CW, CH) }
   }
   if (g.phaseBanner) {
     const pb = g.phaseBanner, a = Math.min(1, pb.timer / 0.5)
