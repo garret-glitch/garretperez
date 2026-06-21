@@ -2677,13 +2677,38 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
       ctx.restore()
     }
     drawWing(-1); drawWing(1)
-    // ── tail (long, frozen spiked fin) ──
-    ctx.strokeStyle = cMid; ctx.lineWidth = sz * 0.2; ctx.lineCap = 'round'
-    const wag = Math.sin(t * 1.8)
-    ctx.beginPath(); ctx.moveTo(-sz * 0.55, 0); ctx.quadraticCurveTo(-sz * 1.1, wag * sz * 0.2, -sz * 1.65, wag * sz * 0.34); ctx.stroke(); ctx.lineCap = 'butt'
-    { const tx = -sz * 1.65, ty = wag * sz * 0.34; ctx.fillStyle = cIce; ctx.shadowColor = cGlow; ctx.shadowBlur = 10
-      for (const o of [-1, 0, 1]) { ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx - sz * 0.16, ty + o * sz * 0.16 - (o === 0 ? sz * 0.16 : 0)); ctx.lineTo(tx - sz * 0.24, ty + o * sz * 0.22); ctx.closePath(); ctx.fill() }
-      ctx.shadowBlur = 0 }
+    // ── TAIL — thick serpentine length down to a spinning frozen morningstar ──
+    {
+      const tailAt = (u: number) => ({ x: -sz * (0.5 + u * 1.42), y: Math.sin(t * 1.8 - u * 1.7) * sz * 0.42 * u })
+      const wOf = (u: number) => sz * (0.22 * (1 - u) + 0.035)
+      const SEG = 16
+      // dark outline pass
+      ctx.fillStyle = cDark
+      for (let i = 0; i <= SEG; i++) { const u = i / SEG, p = tailAt(u); ctx.beginPath(); ctx.arc(p.x, p.y, wOf(u) + 2.5, 0, Math.PI * 2); ctx.fill() }
+      // body pass (lighter near the base, darker toward the tip)
+      for (let i = 0; i <= SEG; i++) { const u = i / SEG, p = tailAt(u); ctx.fillStyle = u < 0.45 ? cMid : cDark; ctx.beginPath(); ctx.arc(p.x, p.y, wOf(u), 0, Math.PI * 2); ctx.fill() }
+      // glowing dorsal crack down the spine
+      ctx.strokeStyle = cEdge; ctx.lineWidth = 2; ctx.globalAlpha = 0.45; ctx.shadowColor = cGlow; ctx.shadowBlur = 6
+      ctx.beginPath(); for (let i = 0; i <= SEG; i++) { const p = tailAt(i / SEG); if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y) } ctx.stroke()
+      ctx.globalAlpha = 1; ctx.shadowBlur = 0
+      // a ridge of ice spikes riding the tail
+      ctx.fillStyle = cIce; ctx.shadowColor = cGlow; ctx.shadowBlur = 6
+      for (let i = 3; i <= 14; i += 2) { const u = i / SEG, p = tailAt(u), p2 = tailAt(u + 0.05), ang = Math.atan2(p2.y - p.y, p2.x - p.x), w = wOf(u)
+        const px = Math.cos(ang - Math.PI / 2), py = Math.sin(ang - Math.PI / 2)
+        ctx.beginPath(); ctx.moveTo(p.x - px * w * 0.5, p.y - py * w * 0.5); ctx.lineTo(p.x + px * (w + sz * 0.15), p.y + py * (w + sz * 0.15)); ctx.lineTo(p.x + Math.cos(ang) * w * 1.4, p.y + Math.sin(ang) * w * 1.4); ctx.closePath(); ctx.fill() }
+      ctx.shadowBlur = 0
+      // ── frozen morningstar at the tip ──
+      const tip = tailAt(1), spin = t * 0.7
+      ctx.save(); ctx.translate(tip.x, tip.y); ctx.shadowColor = cGlow; ctx.shadowBlur = enr ? 24 : 15
+      ctx.fillStyle = cIce
+      for (let i = 0; i < 8; i++) { const a = spin + i / 8 * Math.PI * 2, len = sz * (0.36 + (i % 2) * 0.12), wd = sz * 0.06
+        const bx1 = Math.cos(a + Math.PI / 2) * wd, by1 = Math.sin(a + Math.PI / 2) * wd, bx2 = Math.cos(a - Math.PI / 2) * wd, by2 = Math.sin(a - Math.PI / 2) * wd
+        ctx.beginPath(); ctx.moveTo(Math.cos(a) * len, Math.sin(a) * len); ctx.lineTo(bx1, by1); ctx.lineTo(bx2, by2); ctx.closePath(); ctx.fill() }
+      const cg = ctx.createRadialGradient(0, 0, 0, 0, 0, sz * 0.15); cg.addColorStop(0, '#FFFFFF'); cg.addColorStop(0.5, cMemEdge); cg.addColorStop(1, cMid)
+      ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(0, 0, sz * 0.14, 0, Math.PI * 2); ctx.fill()
+      ctx.globalAlpha = 0.5 + 0.4 * Math.sin(t * 5); ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(0, 0, sz * 0.055, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1
+      ctx.shadowBlur = 0; ctx.restore()
+    }
     // ── legs (recede a touch when airborne) ──
     ctx.globalAlpha = 1 - spread * 0.45; ctx.lineCap = 'round'
     for (const lx of [sz * 0.28, -sz * 0.24]) for (const side of [-1, 1]) {
@@ -2705,31 +2730,75 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
     ctx.fillStyle = cIce; ctx.shadowColor = cGlow; ctx.shadowBlur = 8
     for (let i = 0; i < 6; i++) { const x = -sz * 0.42 + i * sz * 0.17, h = sz * (0.18 + 0.06 * Math.sin(i * 1.5)); ctx.beginPath(); ctx.moveTo(x - sz * 0.05, -sz * 0.04); ctx.lineTo(x, -h); ctx.lineTo(x + sz * 0.05, -sz * 0.04); ctx.closePath(); ctx.fill() }
     ctx.shadowBlur = 0
-    // ── neck + massive head ──
-    ctx.strokeStyle = cMid; ctx.lineWidth = sz * 0.3; ctx.lineCap = 'round'
-    ctx.beginPath(); ctx.moveTo(sz * 0.4, 0); ctx.quadraticCurveTo(sz * 0.62, 0, sz * 0.78, 0); ctx.stroke(); ctx.lineCap = 'butt'
-    const headG = ctx.createRadialGradient(sz * 0.9, -sz * 0.05, 0, sz * 0.92, 0, sz * 0.4); headG.addColorStop(0, cLite); headG.addColorStop(1, cMid)
-    ctx.fillStyle = headG; ctx.beginPath(); ctx.ellipse(sz * 0.9, 0, sz * 0.3, sz * 0.23, 0, 0, Math.PI * 2); ctx.fill()
-    ctx.fillStyle = cMid; ctx.beginPath(); ctx.moveTo(sz * 1.05, -sz * 0.13); ctx.lineTo(sz * 1.32, -sz * 0.05); ctx.lineTo(sz * 1.32, sz * 0.03); ctx.lineTo(sz * 1.05, sz * 0.1); ctx.closePath(); ctx.fill()
-    ctx.fillStyle = cDark; ctx.beginPath(); ctx.moveTo(sz * 1.06, sz * 0.07); ctx.lineTo(sz * 1.3, sz * 0.06); ctx.lineTo(sz * 1.1, sz * 0.2); ctx.closePath(); ctx.fill()
-    ctx.fillStyle = cHorn
-    for (let i = 0; i < 4; i++) { const tx = sz * (1.1 + i * 0.05); ctx.beginPath(); ctx.moveTo(tx, sz * 0.06); ctx.lineTo(tx + sz * 0.02, sz * 0.12); ctx.lineTo(tx + sz * 0.04, sz * 0.06); ctx.closePath(); ctx.fill() }
-    // head frill of ice spikes
-    ctx.fillStyle = cIce; ctx.shadowColor = cGlow; ctx.shadowBlur = 8
-    for (const side of [-1, 1]) for (let i = 0; i < 3; i++) { const bx = sz * 0.78, by = side * sz * 0.16; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx - sz * 0.12 - i * sz * 0.04, by + side * sz * (0.06 + i * 0.08)); ctx.lineTo(bx - sz * 0.05, by + side * sz * 0.02); ctx.closePath(); ctx.fill() }
-    ctx.shadowBlur = 0
-    // two big swept horns per side
-    ctx.fillStyle = cHorn
+    // ── neck ──
+    ctx.strokeStyle = cMid; ctx.lineWidth = sz * 0.32; ctx.lineCap = 'round'
+    ctx.beginPath(); ctx.moveTo(sz * 0.38, 0); ctx.quadraticCurveTo(sz * 0.6, breath * 0.5, sz * 0.82, 0); ctx.stroke(); ctx.lineCap = 'butt'
+
+    // ── MASSIVE HEAD (fierce top-down skull) ──
+    // 1) frozen CROWN — a fan of ice horns swept back over the skull (drawn first, behind it)
+    // two great curved horns sweeping back, plus a small central frill
     for (const side of [-1, 1]) {
-      ctx.beginPath(); ctx.moveTo(sz * 0.82, side * sz * 0.16); ctx.quadraticCurveTo(sz * 0.55, side * sz * 0.5, sz * 0.3, side * sz * 0.46); ctx.quadraticCurveTo(sz * 0.6, side * sz * 0.3, sz * 0.88, side * sz * 0.08); ctx.closePath(); ctx.fill()
-      ctx.beginPath(); ctx.moveTo(sz * 0.86, side * sz * 0.1); ctx.quadraticCurveTo(sz * 0.66, side * sz * 0.34, sz * 0.46, side * sz * 0.34); ctx.quadraticCurveTo(sz * 0.68, side * sz * 0.2, sz * 0.9, side * sz * 0.04); ctx.closePath(); ctx.fill()
+      const bx = sz * 0.84, by = side * sz * 0.12
+      const hg = ctx.createLinearGradient(bx, by, sz * 0.26, side * sz * 0.42); hg.addColorStop(0, cMid); hg.addColorStop(0.55, cHorn); hg.addColorStop(1, cIce)
+      ctx.fillStyle = hitW ? '#FFF' : hg; ctx.shadowColor = cGlow; ctx.shadowBlur = enr ? 12 : 8
+      ctx.beginPath()
+      ctx.moveTo(bx, by - side * sz * 0.055)
+      ctx.quadraticCurveTo(sz * 0.55, side * sz * 0.3, sz * 0.26, side * sz * 0.42)   // outer edge to the swept tip
+      ctx.quadraticCurveTo(sz * 0.5, side * sz * 0.32, sz * 0.62, side * sz * 0.2)     // tip back down the inner edge
+      ctx.quadraticCurveTo(sz * 0.72, side * sz * 0.12, bx, by + side * sz * 0.055)
+      ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0
+      // ridge notches along the horn
+      ctx.strokeStyle = 'rgba(30,70,95,0.5)'; ctx.lineWidth = 1.5
+      for (const u of [0.42, 0.68]) { const rx = bx + (sz * 0.3 - bx) * u, ry = by + (side * sz * 0.4 - by) * u; ctx.beginPath(); ctx.moveTo(rx, ry - side * sz * 0.035); ctx.lineTo(rx + sz * 0.035, ry + side * sz * 0.02); ctx.stroke() }
     }
-    // eyes (socket + glowing pupil)
+    // small central frill spikes between the horns
+    ctx.fillStyle = cIce; ctx.shadowColor = cGlow; ctx.shadowBlur = 6
+    for (let i = -1; i <= 1; i++) { const bx = sz * 0.84, by = i * sz * 0.055; ctx.beginPath(); ctx.moveTo(bx, by - sz * 0.028); ctx.lineTo(bx - sz * (0.2 - Math.abs(i) * 0.06), by + i * sz * 0.05); ctx.lineTo(bx, by + sz * 0.028); ctx.closePath(); ctx.fill() }
+    ctx.shadowBlur = 0
+    // 2) skull — arrowhead wedge, wide cheeks tapering to a pointed snout
+    const headG = ctx.createRadialGradient(sz * 1.0, -sz * 0.06, 0, sz * 0.98, 0, sz * 0.46); headG.addColorStop(0, cLite); headG.addColorStop(0.7, cMid); headG.addColorStop(1, cDark)
+    ctx.fillStyle = headG
+    ctx.beginPath(); ctx.moveTo(sz * 1.46, 0)
+    ctx.quadraticCurveTo(sz * 1.2, -sz * 0.1, sz * 1.0, -sz * 0.17)
+    ctx.quadraticCurveTo(sz * 0.82, -sz * 0.2, sz * 0.78, -sz * 0.05)
+    ctx.lineTo(sz * 0.78, sz * 0.05)
+    ctx.quadraticCurveTo(sz * 0.82, sz * 0.2, sz * 1.0, sz * 0.17)
+    ctx.quadraticCurveTo(sz * 1.2, sz * 0.1, sz * 1.46, 0)
+    ctx.closePath(); ctx.fill()
+    // cheek ice spikes (jaw frill)
+    ctx.fillStyle = cIce; ctx.shadowColor = cGlow; ctx.shadowBlur = 6
+    for (const side of [-1, 1]) for (let i = 0; i < 2; i++) { const bx = sz * (1.02 + i * 0.1), by = side * sz * (0.15 - i * 0.04); ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx - sz * 0.05, by + side * sz * 0.08); ctx.lineTo(bx + sz * 0.03, by + side * sz * 0.02); ctx.closePath(); ctx.fill() }
+    ctx.shadowBlur = 0
+    // 3) fierce brow ridges over the eyes
+    ctx.fillStyle = cDark
+    for (const side of [-1, 1]) { ctx.beginPath(); ctx.moveTo(sz * 0.86, side * sz * 0.03); ctx.lineTo(sz * 1.02, side * sz * 0.05); ctx.lineTo(sz * 1.05, side * sz * 0.19); ctx.lineTo(sz * 0.9, side * sz * 0.16); ctx.closePath(); ctx.fill() }
+    // 4) glowing frost rune on the brow
+    { const rp = 0.5 + 0.5 * Math.sin(t * 3); ctx.save(); ctx.globalAlpha = 0.4 + 0.4 * rp; ctx.strokeStyle = cEdge; ctx.lineWidth = 1.5; ctx.shadowColor = cGlow; ctx.shadowBlur = 8
+      ctx.translate(sz * 0.9, 0); ctx.beginPath(); ctx.moveTo(0, -sz * 0.055); ctx.lineTo(sz * 0.035, 0); ctx.lineTo(0, sz * 0.055); ctx.lineTo(-sz * 0.035, 0); ctx.closePath(); ctx.stroke(); ctx.restore() }
+    // 5) fierce angled glowing slit-eyes
     const ep = 0.6 + 0.4 * Math.sin(t * 4)
-    for (const side of [-1, 1]) { ctx.fillStyle = cDark; ctx.beginPath(); ctx.ellipse(sz * 0.92, side * sz * 0.09, sz * 0.06, sz * 0.05, 0, 0, Math.PI * 2); ctx.fill()
-      ctx.shadowColor = cGlow; ctx.shadowBlur = 20 * ep; ctx.fillStyle = enr ? '#e6fbff' : '#9fe8ff'; ctx.beginPath(); ctx.arc(sz * 0.93, side * sz * 0.09, sz * 0.032, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0 }
-    // frost breath glow at the maw
-    { const fb = 0.5 + 0.5 * Math.sin(t * 6); ctx.fillStyle = `rgba(159,232,255,${0.4 + 0.3 * fb})`; ctx.shadowColor = cGlow; ctx.shadowBlur = 16; ctx.beginPath(); ctx.arc(sz * 1.32, sz * 0.02, sz * 0.09 * (0.7 + fb * 0.5), 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0 }
+    for (const side of [-1, 1]) {
+      ctx.save(); ctx.translate(sz * 0.99, side * sz * 0.1); ctx.rotate(side * -0.5)
+      const eg = ctx.createRadialGradient(0, 0, 0, 0, 0, sz * 0.09); eg.addColorStop(0, '#FFFFFF'); eg.addColorStop(0.4, enr ? '#bdf3ff' : '#9fe8ff'); eg.addColorStop(1, enr ? '#1788bd' : '#27607f')
+      ctx.shadowColor = cGlow; ctx.shadowBlur = 20 * ep; ctx.fillStyle = hitW ? '#FFF' : eg
+      ctx.beginPath(); ctx.ellipse(0, 0, sz * 0.09, sz * 0.045, 0, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0
+      ctx.fillStyle = '#06121a'; ctx.beginPath(); ctx.ellipse(0, 0, sz * 0.016, sz * 0.036, 0, 0, Math.PI * 2); ctx.fill()
+      ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.arc(-sz * 0.022, -sz * 0.014, sz * 0.013, 0, Math.PI * 2); ctx.fill()
+      ctx.restore()
+    }
+    // 6) nostrils + drifting frost vapor
+    ctx.fillStyle = cDark
+    for (const side of [-1, 1]) { ctx.beginPath(); ctx.ellipse(sz * 1.3, side * sz * 0.05, sz * 0.022, sz * 0.013, 0.3 * side, 0, Math.PI * 2); ctx.fill() }
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'
+    for (const side of [-1, 1]) for (let i = 0; i < 3; i++) { const ph = (t * 0.7 + i * 0.33 + side * 0.12) % 1; const vx = sz * 1.32 + ph * sz * 0.28, vy = side * sz * 0.05 + Math.sin(ph * 6 + side) * sz * 0.02
+      ctx.fillStyle = `rgba(205,240,255,${(1 - ph) * 0.4})`; ctx.beginPath(); ctx.arc(vx, vy, (1 - ph) * sz * 0.045 + 1, 0, Math.PI * 2); ctx.fill() }
+    ctx.restore()
+    // 7) open maw, fangs + frost-breath charge glow
+    ctx.fillStyle = '#0a1a24'; ctx.beginPath(); ctx.moveTo(sz * 1.3, -sz * 0.06); ctx.lineTo(sz * 1.46, 0); ctx.lineTo(sz * 1.3, sz * 0.06); ctx.closePath(); ctx.fill()
+    ctx.fillStyle = cHorn
+    for (const side of [-1, 1]) { ctx.beginPath(); ctx.moveTo(sz * 1.31, side * sz * 0.05); ctx.lineTo(sz * 1.42, side * sz * 0.018); ctx.lineTo(sz * 1.34, side * sz * 0.004); ctx.closePath(); ctx.fill() }
+    { const fb = 0.5 + 0.5 * Math.sin(t * 5); ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.shadowColor = cGlow; ctx.shadowBlur = 18
+      ctx.fillStyle = `rgba(159,232,255,${0.5 + 0.4 * fb})`; ctx.beginPath(); ctx.arc(sz * 1.4, 0, sz * 0.07 * (0.7 + fb * 0.5), 0, Math.PI * 2); ctx.fill(); ctx.restore() }
     ctx.restore()   // end rotate + lift
     // ── orbiting ice shards (enraged) ──
     if (enr) { ctx.save(); ctx.shadowColor = cGlow; ctx.shadowBlur = 12
