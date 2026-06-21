@@ -383,6 +383,7 @@ interface GS {
   wyrmPhaseTimer: number     // minimum time to hold a stance before it can swap
   wyrmStagger: number        // damage dealt in the current stance; fills to force a stance swap
   wyrmStaggerMax: number     // stance-swap damage threshold (you MUST hurt it in this stance to flip it)
+  wyrmWing: number           // 0 = wings folded (grounded/melee) → 1 = wings spread (airborne/ranged)
   immuneFxCd: number         // throttle for "IMMUNE" deflect feedback
   activeSlot: number         // dual-weapon loadout: 0 = melee, 1 = ranged (set by the component each frame)
   altWeapon: { name: string; color: string; melee: boolean } | null   // the stowed weapon, for the HUD swap indicator
@@ -463,7 +464,7 @@ const BOSS_DEFS: BossDef[] = [
   {
     id: 3, name: 'Frost Wyrm', color: '#7fd4ff', icon: '🐲', element: 'ice',
     lore: 'An eternal frost-dragon of the frozen peaks. Grounded, its scales turn every arrow; aloft, no blade can reach it. Strike when it shows its weakness.',
-    hp: 5200, size: 110, enrageAt: 0.42,
+    hp: 5200, size: 128, enrageAt: 0.42,
     rewards: ['wyrm_scale'], arenaType: 'wyrm',
   },
 ]
@@ -584,7 +585,7 @@ function mkState(wpn: WeaponDef, boss: BossDef, gear: GearId[]): GS {
     introTimer: 2.6,
     comboQueue: [],
     dmgGate: boss.id === 3 ? 'melee' : 'both',   // Wyrm opens grounded (melee-only); others always take all damage
-    wyrmFlying: false, wyrmPhaseTimer: 2.5, wyrmStagger: 0, wyrmStaggerMax: boss.id === 3 ? boss.hp * 0.15 : 0, immuneFxCd: 0,
+    wyrmFlying: false, wyrmPhaseTimer: 2.5, wyrmStagger: 0, wyrmStaggerMax: boss.id === 3 ? boss.hp * 0.15 : 0, wyrmWing: 0, immuneFxCd: 0,
     activeSlot: 0, altWeapon: null,
     griffinState: { mode: 0, timer: 3.0, dive: v(1, 0), shotT: 0 },
   }
@@ -1130,6 +1131,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   g.mageCircle = Math.max(0, g.mageCircle - dt)
   g.manaShieldTimer = Math.max(0, g.manaShieldTimer - dt)
   g.immuneFxCd = Math.max(0, g.immuneFxCd - dt)
+  if (bossId === 3) g.wyrmWing += ((g.wyrmFlying ? 1 : 0) - g.wyrmWing) * Math.min(1, dt * 3.2)   // unfurl/fold wings on stance change
   g.fx = g.fx.filter(f => { f.timer -= dt; return f.timer > 0 })
   if (p.hp > 0 && p.hp / p.maxHp < 0.25) Sfx.heartbeat()   // critical-HP heartbeat (throttled)
   if (g.rageTimer > 0) { g.rageTimer = Math.max(0, g.rageTimer - dt); if (g.rageTimer <= 0) g.rageActive = false }
@@ -2624,85 +2626,121 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
       bolt(Math.cos(a) * sz * 1.05, Math.sin(a) * sz * 1.05, Math.cos(a + 0.4) * sz * 1.5, Math.sin(a + 0.4) * sz * 1.5, 4, sz * 0.08, 'rgba(100,230,255,0.6)', 1.6)
     }
   } else {
-    // ── FROST WYRM ── winged western frost-dragon; flies (ranged-only) or grounds (melee-only)
-    const sz = bossDef.size, enr = g.bossEnraged, flying = g.wyrmFlying
-    const flap = Math.sin(t * (flying ? 5.0 : 2.2))
-    const lift = flying ? 20 + flap * 6 : 0
-    const cDark = hitW ? '#FFF' : (enr ? '#1f5a78' : '#234a5e')
-    const cMid = hitW ? '#FFF' : (enr ? '#3a86b0' : '#356f8a')
-    const cLite = hitW ? '#FFF' : (enr ? '#ade4ff' : '#8fd0ec')
-    const cMem = enr ? 'rgba(120,230,255,0.45)' : 'rgba(150,210,240,0.34)'
+    // ── FROST WYRM ── a colossal winged frost-dragon. Wings SPREAD = airborne (ranged-only); FOLDED = grounded (melee-only).
+    const sz = bossDef.size, enr = g.bossEnraged
+    const spread = clamp(g.wyrmWing, 0, 1)
+    const flap = Math.sin(t * 3.2), breath = Math.sin(t * 1.6) * sz * 0.02
+    const lift = spread * (24 + flap * 8)
+    const cDark = hitW ? '#FFF' : (enr ? '#14455f' : '#19384a')
+    const cMid  = hitW ? '#FFF' : (enr ? '#347fa6' : '#2c5e78')
+    const cLite = hitW ? '#FFF' : (enr ? '#a9e6ff' : '#7ec4e2')
+    const cMem  = enr ? 'rgba(110,225,255,0.40)' : 'rgba(150,210,240,0.30)'
+    const cMemEdge = enr ? '#bdf0ff' : '#dff3ff'
     const cEdge = enr ? '#9fe8ff' : '#cfeeff'
     const cGlow = enr ? '#00d6ff' : '#7fd4ff'
-    const cHorn = hitW ? '#FFF' : '#e3f1f9'
-    // ground shadow (shrinks + detaches when aloft)
-    ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(0, sz * 0.5 + (flying ? 18 : 6), sz * (flying ? 0.72 : 0.95), sz * (flying ? 0.22 : 0.34), 0, 0, Math.PI * 2); ctx.fill(); ctx.restore()
-    // cold backlight
-    ctx.shadowColor = cGlow; ctx.shadowBlur = enr ? 40 : 24
-    { const ar = sz * 1.7, bg = ctx.createRadialGradient(0, -lift, sz * 0.3, 0, -lift, ar); bg.addColorStop(0, enr ? 'rgba(0,200,255,0.18)' : 'rgba(120,200,255,0.10)'); bg.addColorStop(1, 'rgba(40,60,90,0)'); ctx.fillStyle = bg; ctx.beginPath(); ctx.arc(0, -lift, ar, 0, Math.PI * 2); ctx.fill() }
+    const cHorn = hitW ? '#FFF' : '#eaf6fc'
+    const cIce  = hitW ? '#FFF' : '#bfe9f7'
+    // ── ground frost ring + shadow (unrotated) ──
+    ctx.save(); ctx.globalAlpha = 0.45 - spread * 0.3; ctx.strokeStyle = cGlow; ctx.lineWidth = 2; ctx.shadowColor = cGlow; ctx.shadowBlur = 10
+    ctx.beginPath(); ctx.ellipse(0, sz * 0.55 + 8, sz * 1.2, sz * 0.46, 0, 0, Math.PI * 2); ctx.stroke()
+    ctx.globalAlpha = 0.22 - spread * 0.16; ctx.lineWidth = 1.2
+    for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; ctx.beginPath(); ctx.moveTo(Math.cos(a) * sz * 0.45, sz * 0.55 + 8 + Math.sin(a) * sz * 0.18); ctx.lineTo(Math.cos(a) * sz * 1.15, sz * 0.55 + 8 + Math.sin(a) * sz * 0.44); ctx.stroke() }
+    ctx.restore()
+    ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.30)'; ctx.beginPath(); ctx.ellipse(0, sz * 0.55 + 8, sz * (0.95 - spread * 0.25), sz * (0.34 - spread * 0.13), 0, 0, Math.PI * 2); ctx.fill(); ctx.restore()
+    // ── vast cold aura ──
+    ctx.shadowColor = cGlow; ctx.shadowBlur = enr ? 50 : 30
+    { const ar = sz * (2.0 + spread * 0.5), bg = ctx.createRadialGradient(0, -lift, sz * 0.4, 0, -lift, ar); bg.addColorStop(0, enr ? 'rgba(0,200,255,0.20)' : 'rgba(120,200,255,0.11)'); bg.addColorStop(1, 'rgba(30,50,90,0)'); ctx.fillStyle = bg; ctx.beginPath(); ctx.arc(0, -lift, ar, 0, Math.PI * 2); ctx.fill() }
     ctx.shadowBlur = 0
+    // ── drifting frost mist / snow ──
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'
+    for (let i = 0; i < 18; i++) { const ph = (t * 0.22 + i * 0.39) % 1, a = i * 2.39 + t * 0.3, rr = sz * (0.5 + ph * 1.5)
+      ctx.fillStyle = `rgba(205,238,255,${(1 - ph) * 0.5})`; ctx.beginPath(); ctx.arc(Math.cos(a) * rr, -lift + Math.sin(a) * rr * 0.55 - ph * sz * 0.35, (1 - ph) * 2.4 + 0.5, 0, Math.PI * 2); ctx.fill() }
+    ctx.restore()
+
     ctx.save(); ctx.translate(0, -lift); ctx.rotate(b.angle)
-    // ── wings (behind) ──
+    // ── WINGS — membrane lerps from folded (tucked back) to a vast spread ──
+    const fold = [[-0.1,0.18],[-0.45,0.16],[-0.78,0.14],[-0.98,0.22],[-0.82,0.32],[-0.46,0.34],[-0.15,0.28]]
+    const open = [[-0.05,0.22],[0.18,0.72],[0.02,1.32],[-0.5,1.72],[-1.05,1.3],[-1.12,0.72],[-0.5,0.36]]
     const drawWing = (side: number) => {
-      ctx.save(); ctx.translate(-sz * 0.05, side * sz * 0.18)
-      const f = 0.5 + 0.5 * flap; ctx.rotate(side * (0.32 - f * 0.42))
-      ctx.fillStyle = cMem; ctx.strokeStyle = cEdge; ctx.lineWidth = 2; ctx.shadowColor = cGlow; ctx.shadowBlur = enr ? 14 : 8
-      ctx.beginPath(); ctx.moveTo(0, 0)
-      ctx.quadraticCurveTo(-sz * 0.5, side * sz * 0.5, -sz * 1.15, side * sz * 1.0)
-      ctx.quadraticCurveTo(-sz * 0.75, side * sz * 0.74, -sz * 0.5, side * sz * 0.9)
-      ctx.quadraticCurveTo(-sz * 0.45, side * sz * 0.6, -sz * 0.25, side * sz * 0.78)
-      ctx.quadraticCurveTo(-sz * 0.2, side * sz * 0.45, 0, 0)
-      ctx.closePath(); ctx.fill(); ctx.stroke()
-      ctx.strokeStyle = cMid; ctx.lineWidth = 2.5; ctx.shadowBlur = 0
-      for (const e of [0.55, 0.8, 1.0]) { ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-sz * 1.12 * e, side * sz * 0.98 * e); ctx.stroke() }
+      ctx.save(); ctx.translate(-sz * 0.06, side * sz * 0.12)
+      const fl = flap * 0.05 * spread
+      const P: number[][] = []
+      for (let i = 0; i < 7; i++) { const [fx, fy] = fold[i], [ox, oy] = open[i]; P.push([(fx + (ox - fx) * spread) * sz, (fy + (oy - fy) * spread + (i >= 2 && i <= 4 ? fl : 0)) * sz * side]) }
+      ctx.fillStyle = cMem; ctx.shadowColor = cGlow; ctx.shadowBlur = enr ? 16 : 9
+      ctx.beginPath(); ctx.moveTo(0, 0); for (const p of P) ctx.lineTo(p[0], p[1]); ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0
+      ctx.strokeStyle = spread > 0.3 ? cMemEdge : cEdge; ctx.lineWidth = 2.5; ctx.shadowColor = cGlow; ctx.shadowBlur = enr ? 12 : 6
+      ctx.beginPath(); ctx.moveTo(0, 0); for (let i = 0; i < 4; i++) ctx.lineTo(P[i][0], P[i][1]); ctx.stroke(); ctx.shadowBlur = 0
+      ctx.strokeStyle = cMid; ctx.lineWidth = sz * 0.028
+      for (const i of [1, 2, 3, 4, 5]) { ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(P[i][0] * 0.97, P[i][1] * 0.97); ctx.stroke() }
+      if (spread > 0.3) { const tp = P[3]; ctx.globalAlpha = spread; ctx.fillStyle = cIce; ctx.shadowColor = cGlow; ctx.shadowBlur = 10
+        ctx.beginPath(); ctx.moveTo(tp[0] + sz * 0.06, tp[1]); ctx.lineTo(tp[0], tp[1] - side * sz * 0.08); ctx.lineTo(tp[0] - sz * 0.06, tp[1]); ctx.lineTo(tp[0], tp[1] + side * sz * 0.08); ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0; ctx.globalAlpha = 1 }
       ctx.restore()
     }
-    drawWing(-1); drawWing(1); ctx.shadowBlur = 0
-    // ── tail ──
-    ctx.strokeStyle = cMid; ctx.lineWidth = sz * 0.18; ctx.lineCap = 'round'
-    ctx.beginPath(); ctx.moveTo(-sz * 0.5, 0); ctx.quadraticCurveTo(-sz * 1.0, Math.sin(t * 2) * sz * 0.22, -sz * 1.5, Math.sin(t * 2.3) * sz * 0.3); ctx.stroke()
-    { const tx = -sz * 1.5 + Math.sin(t * 2.3) * 0, ty = Math.sin(t * 2.3) * sz * 0.3; ctx.fillStyle = cHorn; ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx - sz * 0.16, ty - sz * 0.12); ctx.lineTo(tx - sz * 0.06, ty); ctx.lineTo(tx - sz * 0.16, ty + sz * 0.12); ctx.closePath(); ctx.fill() }
-    ctx.lineCap = 'butt'
-    // ── legs ──
-    ctx.lineCap = 'round'
-    for (const lx of [sz * 0.22, -sz * 0.22]) for (const side of [-1, 1]) {
-      const fx2 = lx + (lx > 0 ? sz * 0.12 : -sz * 0.12), fy2 = side * sz * 0.5
-      ctx.strokeStyle = cDark; ctx.lineWidth = sz * 0.12; ctx.beginPath(); ctx.moveTo(lx, side * sz * 0.2); ctx.lineTo(fx2, fy2); ctx.stroke()
-      ctx.strokeStyle = cHorn; ctx.lineWidth = 2
-      for (const c of [-1, 0, 1]) { ctx.beginPath(); ctx.moveTo(fx2, fy2); ctx.lineTo(fx2 + c * sz * 0.05, fy2 + side * sz * 0.09); ctx.stroke() }
+    drawWing(-1); drawWing(1)
+    // ── tail (long, frozen spiked fin) ──
+    ctx.strokeStyle = cMid; ctx.lineWidth = sz * 0.2; ctx.lineCap = 'round'
+    const wag = Math.sin(t * 1.8)
+    ctx.beginPath(); ctx.moveTo(-sz * 0.55, 0); ctx.quadraticCurveTo(-sz * 1.1, wag * sz * 0.2, -sz * 1.65, wag * sz * 0.34); ctx.stroke(); ctx.lineCap = 'butt'
+    { const tx = -sz * 1.65, ty = wag * sz * 0.34; ctx.fillStyle = cIce; ctx.shadowColor = cGlow; ctx.shadowBlur = 10
+      for (const o of [-1, 0, 1]) { ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx - sz * 0.16, ty + o * sz * 0.16 - (o === 0 ? sz * 0.16 : 0)); ctx.lineTo(tx - sz * 0.24, ty + o * sz * 0.22); ctx.closePath(); ctx.fill() }
+      ctx.shadowBlur = 0 }
+    // ── legs (recede a touch when airborne) ──
+    ctx.globalAlpha = 1 - spread * 0.45; ctx.lineCap = 'round'
+    for (const lx of [sz * 0.28, -sz * 0.24]) for (const side of [-1, 1]) {
+      const hipX = lx, hipY = side * sz * 0.3, kneeX = lx + (lx > 0 ? sz * 0.1 : -sz * 0.12), kneeY = side * sz * 0.5, footX = kneeX + (lx > 0 ? sz * 0.14 : -sz * 0.05), footY = side * sz * 0.63
+      ctx.strokeStyle = cDark; ctx.lineWidth = sz * 0.13; ctx.beginPath(); ctx.moveTo(hipX, hipY); ctx.lineTo(kneeX, kneeY); ctx.lineTo(footX, footY); ctx.stroke()
+      ctx.strokeStyle = cHorn; ctx.lineWidth = 2.5
+      for (const c of [-1, 0, 1]) { ctx.beginPath(); ctx.moveTo(footX, footY); ctx.lineTo(footX + (lx > 0 ? sz * 0.07 : -sz * 0.04) + c * sz * 0.035, footY + side * sz * 0.1); ctx.stroke() }
     }
-    ctx.lineCap = 'butt'
+    ctx.globalAlpha = 1; ctx.lineCap = 'butt'
     // ── body ──
-    const bodyG = ctx.createLinearGradient(sz * 0.5, -sz * 0.3, -sz * 0.5, sz * 0.3)
-    bodyG.addColorStop(0, cMid); bodyG.addColorStop(1, cDark)
-    ctx.fillStyle = bodyG; ctx.beginPath(); ctx.ellipse(-sz * 0.05, 0, sz * 0.62, sz * 0.43, 0, 0, Math.PI * 2); ctx.fill()
-    ctx.globalAlpha = 0.5; ctx.fillStyle = cLite; ctx.beginPath(); ctx.ellipse(0, sz * 0.1, sz * 0.4, sz * 0.24, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1
-    // dorsal frost crystals
-    ctx.fillStyle = cHorn
-    for (let i = 0; i < 5; i++) { const x = -sz * 0.4 + i * sz * 0.2; ctx.beginPath(); ctx.moveTo(x, -sz * 0.08); ctx.lineTo(x + sz * 0.05, -sz * 0.26); ctx.lineTo(x + sz * 0.1, -sz * 0.08); ctx.closePath(); ctx.fill() }
-    // ── neck + head (forward) ──
-    ctx.strokeStyle = cMid; ctx.lineWidth = sz * 0.26; ctx.lineCap = 'round'
-    ctx.beginPath(); ctx.moveTo(sz * 0.4, 0); ctx.lineTo(sz * 0.72, 0); ctx.stroke(); ctx.lineCap = 'butt'
-    ctx.fillStyle = cMid; ctx.beginPath(); ctx.ellipse(sz * 0.84, 0, sz * 0.26, sz * 0.2, 0, 0, Math.PI * 2); ctx.fill()
-    ctx.beginPath(); ctx.moveTo(sz * 0.98, -sz * 0.11); ctx.lineTo(sz * 1.2, -sz * 0.045); ctx.lineTo(sz * 1.2, sz * 0.045); ctx.lineTo(sz * 0.98, sz * 0.11); ctx.closePath(); ctx.fill()
-    ctx.fillStyle = cDark; ctx.beginPath(); ctx.moveTo(sz * 1.0, sz * 0.06); ctx.lineTo(sz * 1.18, sz * 0.05); ctx.lineTo(sz * 1.02, sz * 0.17); ctx.closePath(); ctx.fill()
-    // swept-back horns
-    ctx.fillStyle = cHorn
-    for (const side of [-1, 1]) { ctx.beginPath(); ctx.moveTo(sz * 0.74, side * sz * 0.14); ctx.quadraticCurveTo(sz * 0.52, side * sz * 0.36, sz * 0.34, side * sz * 0.32); ctx.quadraticCurveTo(sz * 0.58, side * sz * 0.22, sz * 0.8, side * sz * 0.08); ctx.closePath(); ctx.fill() }
-    // glowing eyes
-    const ep = 0.6 + 0.4 * Math.sin(t * 4)
-    ctx.shadowColor = cGlow; ctx.shadowBlur = 18 * ep
-    ctx.fillStyle = enr ? '#d6f6ff' : '#9fe8ff'
-    for (const side of [-1, 1]) { ctx.beginPath(); ctx.arc(sz * 0.84, side * sz * 0.08, sz * 0.05, 0, Math.PI * 2); ctx.fill() }
+    const bodyG = ctx.createLinearGradient(sz * 0.5, -sz * 0.34, -sz * 0.5, sz * 0.34); bodyG.addColorStop(0, cMid); bodyG.addColorStop(1, cDark)
+    ctx.fillStyle = bodyG; ctx.beginPath(); ctx.ellipse(-sz * 0.06, breath, sz * 0.66, sz * 0.46, 0, 0, Math.PI * 2); ctx.fill()
+    ctx.globalAlpha = 0.5; ctx.fillStyle = cLite; ctx.beginPath(); ctx.ellipse(0, sz * 0.12, sz * 0.42, sz * 0.26, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1
+    ctx.strokeStyle = 'rgba(18,40,55,0.4)'; ctx.lineWidth = 1.4
+    for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.ellipse(i * sz * 0.13, sz * 0.12, sz * 0.07, sz * 0.16, 0, Math.PI * 0.12, Math.PI * 0.88); ctx.stroke() }
+    if (!hitW) { ctx.strokeStyle = 'rgba(185,233,247,0.16)'; ctx.lineWidth = 1.2
+      for (let r = 0; r < 3; r++) for (let cI = -2; cI <= 2; cI++) { const bx = -sz * 0.05 + cI * sz * 0.16, by = -sz * 0.06 - r * sz * 0.12; if (Math.hypot(bx * 0.9, by) > sz * 0.5) continue; ctx.beginPath(); ctx.arc(bx, by, sz * 0.08, Math.PI * 1.12, Math.PI * 1.88); ctx.stroke() } }
+    // dorsal ice spikes
+    ctx.fillStyle = cIce; ctx.shadowColor = cGlow; ctx.shadowBlur = 8
+    for (let i = 0; i < 6; i++) { const x = -sz * 0.42 + i * sz * 0.17, h = sz * (0.18 + 0.06 * Math.sin(i * 1.5)); ctx.beginPath(); ctx.moveTo(x - sz * 0.05, -sz * 0.04); ctx.lineTo(x, -h); ctx.lineTo(x + sz * 0.05, -sz * 0.04); ctx.closePath(); ctx.fill() }
     ctx.shadowBlur = 0
+    // ── neck + massive head ──
+    ctx.strokeStyle = cMid; ctx.lineWidth = sz * 0.3; ctx.lineCap = 'round'
+    ctx.beginPath(); ctx.moveTo(sz * 0.4, 0); ctx.quadraticCurveTo(sz * 0.62, 0, sz * 0.78, 0); ctx.stroke(); ctx.lineCap = 'butt'
+    const headG = ctx.createRadialGradient(sz * 0.9, -sz * 0.05, 0, sz * 0.92, 0, sz * 0.4); headG.addColorStop(0, cLite); headG.addColorStop(1, cMid)
+    ctx.fillStyle = headG; ctx.beginPath(); ctx.ellipse(sz * 0.9, 0, sz * 0.3, sz * 0.23, 0, 0, Math.PI * 2); ctx.fill()
+    ctx.fillStyle = cMid; ctx.beginPath(); ctx.moveTo(sz * 1.05, -sz * 0.13); ctx.lineTo(sz * 1.32, -sz * 0.05); ctx.lineTo(sz * 1.32, sz * 0.03); ctx.lineTo(sz * 1.05, sz * 0.1); ctx.closePath(); ctx.fill()
+    ctx.fillStyle = cDark; ctx.beginPath(); ctx.moveTo(sz * 1.06, sz * 0.07); ctx.lineTo(sz * 1.3, sz * 0.06); ctx.lineTo(sz * 1.1, sz * 0.2); ctx.closePath(); ctx.fill()
+    ctx.fillStyle = cHorn
+    for (let i = 0; i < 4; i++) { const tx = sz * (1.1 + i * 0.05); ctx.beginPath(); ctx.moveTo(tx, sz * 0.06); ctx.lineTo(tx + sz * 0.02, sz * 0.12); ctx.lineTo(tx + sz * 0.04, sz * 0.06); ctx.closePath(); ctx.fill() }
+    // head frill of ice spikes
+    ctx.fillStyle = cIce; ctx.shadowColor = cGlow; ctx.shadowBlur = 8
+    for (const side of [-1, 1]) for (let i = 0; i < 3; i++) { const bx = sz * 0.78, by = side * sz * 0.16; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx - sz * 0.12 - i * sz * 0.04, by + side * sz * (0.06 + i * 0.08)); ctx.lineTo(bx - sz * 0.05, by + side * sz * 0.02); ctx.closePath(); ctx.fill() }
+    ctx.shadowBlur = 0
+    // two big swept horns per side
+    ctx.fillStyle = cHorn
+    for (const side of [-1, 1]) {
+      ctx.beginPath(); ctx.moveTo(sz * 0.82, side * sz * 0.16); ctx.quadraticCurveTo(sz * 0.55, side * sz * 0.5, sz * 0.3, side * sz * 0.46); ctx.quadraticCurveTo(sz * 0.6, side * sz * 0.3, sz * 0.88, side * sz * 0.08); ctx.closePath(); ctx.fill()
+      ctx.beginPath(); ctx.moveTo(sz * 0.86, side * sz * 0.1); ctx.quadraticCurveTo(sz * 0.66, side * sz * 0.34, sz * 0.46, side * sz * 0.34); ctx.quadraticCurveTo(sz * 0.68, side * sz * 0.2, sz * 0.9, side * sz * 0.04); ctx.closePath(); ctx.fill()
+    }
+    // eyes (socket + glowing pupil)
+    const ep = 0.6 + 0.4 * Math.sin(t * 4)
+    for (const side of [-1, 1]) { ctx.fillStyle = cDark; ctx.beginPath(); ctx.ellipse(sz * 0.92, side * sz * 0.09, sz * 0.06, sz * 0.05, 0, 0, Math.PI * 2); ctx.fill()
+      ctx.shadowColor = cGlow; ctx.shadowBlur = 20 * ep; ctx.fillStyle = enr ? '#e6fbff' : '#9fe8ff'; ctx.beginPath(); ctx.arc(sz * 0.93, side * sz * 0.09, sz * 0.032, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0 }
     // frost breath glow at the maw
-    { const fb = 0.5 + 0.5 * Math.sin(t * 6); ctx.fillStyle = `rgba(159,232,255,${0.4 + 0.3 * fb})`; ctx.shadowColor = cGlow; ctx.shadowBlur = 14; ctx.beginPath(); ctx.arc(sz * 1.2, 0, sz * 0.08 * (0.7 + fb * 0.5), 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0 }
+    { const fb = 0.5 + 0.5 * Math.sin(t * 6); ctx.fillStyle = `rgba(159,232,255,${0.4 + 0.3 * fb})`; ctx.shadowColor = cGlow; ctx.shadowBlur = 16; ctx.beginPath(); ctx.arc(sz * 1.32, sz * 0.02, sz * 0.09 * (0.7 + fb * 0.5), 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0 }
     ctx.restore()   // end rotate + lift
+    // ── orbiting ice shards (enraged) ──
+    if (enr) { ctx.save(); ctx.shadowColor = cGlow; ctx.shadowBlur = 12
+      for (let i = 0; i < 6; i++) { const a = t * 1.6 + i * (Math.PI / 3), rr = sz * (1.35 + 0.1 * Math.sin(t * 3 + i)), x = Math.cos(a) * rr, y = -lift + Math.sin(a) * rr * 0.6
+        ctx.fillStyle = cIce; ctx.beginPath(); ctx.moveTo(x, y - 7); ctx.lineTo(x + 4.5, y); ctx.lineTo(x, y + 7); ctx.lineTo(x - 4.5, y); ctx.closePath(); ctx.fill() }
+      ctx.restore() }
     // ── damage-gate shimmer: hardened scales (ranged-immune) shown as a deflecting aura ──
     if (g.dmgGate === 'melee') {
       const sp = 0.5 + 0.5 * Math.sin(t * 4); ctx.save(); ctx.globalAlpha = 0.28 + 0.22 * sp
       ctx.strokeStyle = cEdge; ctx.lineWidth = 2.5; ctx.shadowColor = cGlow; ctx.shadowBlur = 12
-      ctx.beginPath(); ctx.arc(0, -lift, sz * 1.08 + sp * 4, 0, Math.PI * 2); ctx.stroke(); ctx.restore()
+      ctx.beginPath(); ctx.arc(0, -lift, sz * 1.05 + sp * 5, 0, Math.PI * 2); ctx.stroke(); ctx.restore()
     }
     ctx.shadowBlur = 0
   }
