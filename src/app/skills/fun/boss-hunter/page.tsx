@@ -5000,6 +5000,7 @@ export default function BossHunter() {
             <div style={{fontSize:7,color:'#8a7a55',letterSpacing:4,marginBottom:10}}>◆ GARRET&apos;S WORLD ◆</div>
             <div style={{fontSize:'clamp(15px,3vw,22px)',color:'#C89B3C',letterSpacing:3,textShadow:'0 0 26px #C89B3C66'}}>PREPARE YOUR HUNT</div>
             <div style={{fontSize:7,color:'#605848',marginTop:9}}>Choose your quarry, arm yourself, and descend</div>
+            {dual && <div style={{fontSize:8,color:'#9fe8ff',marginTop:8,letterSpacing:1,textShadow:'0 0 12px #7fd4ff66'}}>❄ This hunt requires TWO weapons — a <span style={{color:'#E74C3C'}}>MELEE</span> and a <span style={{color:'#5fe0ff'}}>RANGED</span> — swap with TAB mid-fight</div>}
           </div>
 
           <div style={{display:'flex',gap:14,alignItems:'stretch',justifyContent:'center',flexWrap:'wrap'}}>
