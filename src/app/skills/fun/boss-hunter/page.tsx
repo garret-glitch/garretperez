@@ -2783,98 +2783,120 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
       ctx.globalAlpha = 0.5 + 0.4 * Math.sin(t * 5); ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(0, 0, sz * 0.055, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1
       ctx.shadowBlur = 0; ctx.restore()
     }
-    // ── LIMBS — four powerful clawed legs (forelimbs reach forward, hind legs plant back); recede when airborne ──
-    ctx.globalAlpha = 1 - spread * 0.45
+    // ── LIMBS — four legs in an animated diagonal-trot gait (stride + foot pick-up + knee bend); recede when airborne ──
+    const baseAlpha = 1 - spread * 0.45
+    ctx.globalAlpha = baseAlpha
     const drawLimb = (lx: number, dir: number) => {
+      const isFront = dir > 0
       for (const side of [-1, 1]) {
-        const shift = Math.sin(t * 1.5 + lx * 0.04 + side * 1.3) * sz * 0.02   // idle weight shift
-        const hipX = lx, hipY = side * sz * 0.3
-        const elbowX = lx + dir * sz * 0.17, elbowY = side * sz * 0.54
-        const footX = elbowX + dir * sz * 0.13 + shift, footY = side * sz * 0.72 + side * shift
+        // diagonal gait — front-left strides with back-right, front-right with back-left
+        const diag = (isFront === (side < 0)) ? 0 : Math.PI
+        const gait = t * 2.4 + diag
+        const stride = Math.sin(gait)               // −1 push back … +1 reach forward
+        const lift = Math.max(0, Math.cos(gait))    // 0 planted … 1 foot lifted
+        const hipX = lx, hipY = side * sz * 0.27
+        // foot traces a stepping path: strides fore/aft and pulls inward as it lifts
+        const footX = lx + dir * (sz * 0.3 + stride * sz * 0.13)
+        const footY = side * (sz * 0.5 - lift * sz * 0.11)
+        // knee/elbow: midway, kicked outward, rises a touch on lift
+        const elbowX = hipX + (footX - hipX) * 0.5 + dir * sz * 0.05
+        const elbowY = side * (sz * 0.4) - side * lift * sz * 0.05
         ctx.lineCap = 'round'
         // dark outline — beefy upper arm, slimmer forearm
-        ctx.strokeStyle = cDark; ctx.lineWidth = sz * 0.22
+        ctx.strokeStyle = cDark; ctx.lineWidth = sz * 0.2
         ctx.beginPath(); ctx.moveTo(hipX, hipY); ctx.lineTo(elbowX, elbowY); ctx.stroke()
-        ctx.lineWidth = sz * 0.155; ctx.beginPath(); ctx.moveTo(elbowX, elbowY); ctx.lineTo(footX, footY); ctx.stroke()
+        ctx.lineWidth = sz * 0.14; ctx.beginPath(); ctx.moveTo(elbowX, elbowY); ctx.lineTo(footX, footY); ctx.stroke()
         // muscle colour
-        ctx.strokeStyle = cMid; ctx.lineWidth = sz * 0.16
+        ctx.strokeStyle = cMid; ctx.lineWidth = sz * 0.145
         ctx.beginPath(); ctx.moveTo(hipX, hipY); ctx.lineTo(elbowX, elbowY); ctx.stroke()
-        ctx.lineWidth = sz * 0.1; ctx.beginPath(); ctx.moveTo(elbowX, elbowY); ctx.lineTo(footX, footY); ctx.stroke()
+        ctx.lineWidth = sz * 0.09; ctx.beginPath(); ctx.moveTo(elbowX, elbowY); ctx.lineTo(footX, footY); ctx.stroke()
         // sheen running down the upper arm
-        ctx.strokeStyle = cLite; ctx.globalAlpha = (1 - spread * 0.45) * 0.4; ctx.lineWidth = sz * 0.05
-        ctx.beginPath(); ctx.moveTo(hipX, hipY); ctx.lineTo(elbowX, elbowY); ctx.stroke(); ctx.globalAlpha = 1 - spread * 0.45
-        // shoulder joint knob + shaded inner edge
-        ctx.fillStyle = cMid; ctx.beginPath(); ctx.arc(hipX, hipY, sz * 0.135, 0, Math.PI * 2); ctx.fill()
-        ctx.fillStyle = cDark; ctx.globalAlpha = (1 - spread * 0.45) * 0.45; ctx.beginPath(); ctx.arc(hipX + dir * sz * 0.04, hipY + side * sz * 0.04, sz * 0.06, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1 - spread * 0.45
+        ctx.strokeStyle = cLite; ctx.globalAlpha = baseAlpha * 0.4; ctx.lineWidth = sz * 0.045
+        ctx.beginPath(); ctx.moveTo(hipX, hipY); ctx.lineTo(elbowX, elbowY); ctx.stroke(); ctx.globalAlpha = baseAlpha
+        // shoulder joint knob
+        ctx.fillStyle = cMid; ctx.beginPath(); ctx.arc(hipX, hipY, sz * 0.12, 0, Math.PI * 2); ctx.fill()
         // dark foot pad
-        ctx.fillStyle = cDark; ctx.beginPath(); ctx.arc(footX, footY, sz * 0.085, 0, Math.PI * 2); ctx.fill()
+        ctx.fillStyle = cDark; ctx.beginPath(); ctx.ellipse(footX, footY, sz * 0.085, sz * 0.07, 0, 0, Math.PI * 2); ctx.fill()
         ctx.lineCap = 'butt'
-        // three forward-splayed ice talons
+        // three curved ice talons fanning outward & forward
         ctx.shadowColor = cGlow; ctx.shadowBlur = 6
+        const baseAng = Math.atan2(side, dir)
         for (const c of [-1, 0, 1]) {
-          const baseX = footX + c * sz * 0.045, baseY = footY + side * sz * 0.02
-          const tipX = footX + dir * sz * 0.17 + c * sz * 0.06, tipY = footY + side * sz * 0.12
-          const tg = ctx.createLinearGradient(baseX, baseY, tipX, tipY); tg.addColorStop(0, cMid); tg.addColorStop(1, cHorn)
+          const ang = baseAng + c * 0.42 * side
+          const tx = footX + Math.cos(ang) * sz * 0.17, ty = footY + Math.sin(ang) * sz * 0.17
+          const nx = Math.cos(ang + Math.PI / 2), ny = Math.sin(ang + Math.PI / 2)
+          const tg = ctx.createLinearGradient(footX, footY, tx, ty); tg.addColorStop(0, cMid); tg.addColorStop(1, cHorn)
           ctx.fillStyle = hitW ? '#FFF' : tg
-          ctx.beginPath(); ctx.moveTo(baseX - sz * 0.03, baseY); ctx.lineTo(tipX, tipY); ctx.lineTo(baseX + sz * 0.03, baseY + side * sz * 0.025); ctx.closePath(); ctx.fill()
+          ctx.beginPath(); ctx.moveTo(footX + nx * sz * 0.028, footY + ny * sz * 0.028); ctx.lineTo(tx, ty); ctx.lineTo(footX - nx * sz * 0.028, footY - ny * sz * 0.028); ctx.closePath(); ctx.fill()
         }
         ctx.shadowBlur = 0
       }
     }
-    drawLimb(-sz * 0.28, -1)   // hind legs (drawn first, behind)
-    drawLimb(sz * 0.32, 1)     // forelimbs reach forward
+    drawLimb(-sz * 0.3, -1)   // hind legs (drawn first, behind)
+    drawLimb(sz * 0.34, 1)    // forelimbs
     ctx.globalAlpha = 1
-    // ── body ──
-    // dark silhouette outline beneath the hide
-    ctx.fillStyle = cDark; ctx.beginPath(); ctx.ellipse(-sz * 0.06, breath, sz * 0.66 + 3, sz * 0.46 + 3, 0, 0, Math.PI * 2); ctx.fill()
-    const bodyG = ctx.createLinearGradient(sz * 0.5, -sz * 0.34, -sz * 0.5, sz * 0.34); bodyG.addColorStop(0, cMid); bodyG.addColorStop(1, cDark)
-    ctx.fillStyle = bodyG; ctx.beginPath(); ctx.ellipse(-sz * 0.06, breath, sz * 0.66, sz * 0.46, 0, 0, Math.PI * 2); ctx.fill()
-    ctx.globalAlpha = 0.5; ctx.fillStyle = cLite; ctx.beginPath(); ctx.ellipse(0, sz * 0.12, sz * 0.42, sz * 0.26, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1
+    // ── BODY — built from overlapping lobes (chest, belly, haunch) for an organic, non-round bulk ──
+    const lobes = [
+      { x: sz * 0.22,  y: breath,            rx: sz * 0.5,  ry: sz * 0.42 },  // chest (front)
+      { x: -sz * 0.16, y: breath + sz * 0.03, rx: sz * 0.46, ry: sz * 0.45 }, // belly (mid)
+      { x: -sz * 0.5,  y: breath,            rx: sz * 0.34, ry: sz * 0.33 },  // haunch (rear)
+    ]
+    // dark silhouette outline (union of lobes)
+    ctx.fillStyle = cDark
+    for (const L of lobes) { ctx.beginPath(); ctx.ellipse(L.x, L.y, L.rx + 3, L.ry + 3, 0, 0, Math.PI * 2); ctx.fill() }
+    // shaded fill per lobe — top lit, underside dark, so the masses read as distinct
+    for (const L of lobes) { const lg = ctx.createRadialGradient(L.x + sz * 0.04, L.y - L.ry * 0.45, 0, L.x, L.y, L.rx)
+      lg.addColorStop(0, cLite); lg.addColorStop(0.45, cMid); lg.addColorStop(1, cDark)
+      ctx.fillStyle = lg; ctx.beginPath(); ctx.ellipse(L.x, L.y, L.rx, L.ry, 0, 0, Math.PI * 2); ctx.fill() }
+    // belly highlight along the underside
+    ctx.globalAlpha = 0.4; ctx.fillStyle = cLite; ctx.beginPath(); ctx.ellipse(-sz * 0.06, breath + sz * 0.15, sz * 0.62, sz * 0.18, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1
     // muscular shoulder humps where the wings & forelimbs root
-    for (const side of [-1, 1]) { const sg = ctx.createRadialGradient(sz * 0.22, side * sz * 0.18, 0, sz * 0.24, side * sz * 0.26, sz * 0.27); sg.addColorStop(0, cMid); sg.addColorStop(1, cDark)
-      ctx.fillStyle = sg; ctx.beginPath(); ctx.ellipse(sz * 0.24, side * sz * 0.24, sz * 0.23, sz * 0.17, side * 0.35, 0, Math.PI * 2); ctx.fill() }
+    for (const side of [-1, 1]) { const sg = ctx.createRadialGradient(sz * 0.26, side * sz * 0.14, 0, sz * 0.28, side * sz * 0.22, sz * 0.26); sg.addColorStop(0, cMid); sg.addColorStop(1, cDark)
+      ctx.fillStyle = sg; ctx.beginPath(); ctx.ellipse(sz * 0.28, side * sz * 0.2, sz * 0.22, sz * 0.16, side * 0.4, 0, Math.PI * 2); ctx.fill() }
     // glowing frozen heart pulsing in the chest
     { const cp = 0.5 + 0.5 * Math.sin(t * 2.2); ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.shadowColor = cGlow; ctx.shadowBlur = 16 + cp * 12
-      const cg2 = ctx.createRadialGradient(sz * 0.08, breath, 0, sz * 0.08, breath, sz * 0.22); cg2.addColorStop(0, `rgba(225,247,255,${0.45 + cp * 0.3})`); cg2.addColorStop(0.5, `rgba(120,210,255,${0.25 + cp * 0.18})`); cg2.addColorStop(1, 'rgba(40,90,140,0)')
-      ctx.fillStyle = cg2; ctx.beginPath(); ctx.arc(sz * 0.08, breath, sz * 0.22, 0, Math.PI * 2); ctx.fill(); ctx.restore() }
-    ctx.strokeStyle = 'rgba(18,40,55,0.4)'; ctx.lineWidth = 1.4
-    for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.ellipse(i * sz * 0.13, sz * 0.12, sz * 0.07, sz * 0.16, 0, Math.PI * 0.12, Math.PI * 0.88); ctx.stroke() }
+      const cg2 = ctx.createRadialGradient(sz * 0.18, breath, 0, sz * 0.18, breath, sz * 0.22); cg2.addColorStop(0, `rgba(225,247,255,${0.45 + cp * 0.3})`); cg2.addColorStop(0.5, `rgba(120,210,255,${0.25 + cp * 0.18})`); cg2.addColorStop(1, 'rgba(40,90,140,0)')
+      ctx.fillStyle = cg2; ctx.beginPath(); ctx.arc(sz * 0.18, breath, sz * 0.22, 0, Math.PI * 2); ctx.fill(); ctx.restore() }
+    // frost-scale plating across the back
     if (!hitW) { ctx.strokeStyle = 'rgba(185,233,247,0.16)'; ctx.lineWidth = 1.2
-      for (let r = 0; r < 3; r++) for (let cI = -2; cI <= 2; cI++) { const bx = -sz * 0.05 + cI * sz * 0.16, by = -sz * 0.06 - r * sz * 0.12; if (Math.hypot(bx * 0.9, by) > sz * 0.5) continue; ctx.beginPath(); ctx.arc(bx, by, sz * 0.08, Math.PI * 1.12, Math.PI * 1.88); ctx.stroke() } }
-    // dorsal ice spikes
+      for (let r = 0; r < 3; r++) for (let cI = -3; cI <= 3; cI++) { const bx = -sz * 0.1 + cI * sz * 0.16, by = -sz * 0.04 - r * sz * 0.12
+        if (Math.hypot(bx * 0.8, by) > sz * 0.58) continue; ctx.beginPath(); ctx.arc(bx, by, sz * 0.08, Math.PI * 1.12, Math.PI * 1.88); ctx.stroke() } }
+    // dorsal ice spikes running the length of the spine
     ctx.fillStyle = cIce; ctx.shadowColor = cGlow; ctx.shadowBlur = 8
-    for (let i = 0; i < 6; i++) { const x = -sz * 0.42 + i * sz * 0.17, h = sz * (0.18 + 0.06 * Math.sin(i * 1.5)); ctx.beginPath(); ctx.moveTo(x - sz * 0.05, -sz * 0.04); ctx.lineTo(x, -h); ctx.lineTo(x + sz * 0.05, -sz * 0.04); ctx.closePath(); ctx.fill() }
+    for (let i = 0; i < 7; i++) { const x = -sz * 0.62 + i * sz * 0.17, h = sz * (0.17 + 0.05 * Math.sin(i * 1.5))
+      ctx.beginPath(); ctx.moveTo(x - sz * 0.05, -sz * 0.02); ctx.lineTo(x, -h); ctx.lineTo(x + sz * 0.05, -sz * 0.02); ctx.closePath(); ctx.fill() }
     ctx.shadowBlur = 0
-    // ── NECK — thick muscular column with plated scales, dorsal spikes & a glowing spine ──
+    // ── NECK — long, slender, arched column sweeping up from the chest to the head ──
     {
-      const nSEG = 10
-      const neckAt = (u: number) => ({ x: sz * (0.3 + u * 0.52), y: breath * 0.5 * (1 - u) + Math.sin(t * 1.3) * sz * 0.014 * u })
-      const neckW = (u: number) => sz * (0.32 - u * 0.11)
+      const nSEG = 14
+      const sway = Math.sin(t * 1.3) * sz * 0.012
+      const neckAt = (u: number) => ({ x: sz * (0.26 + u * 0.58), y: breath * 0.4 * (1 - u) - Math.sin(u * Math.PI) * sz * 0.14 + sway * u })
+      const neckW = (u: number) => sz * (0.19 - u * 0.095)   // slender, tapering toward the head
       const band = (pad: number) => { ctx.beginPath()
         for (let i = 0; i <= nSEG; i++) { const u = i / nSEG, p = neckAt(u), w = neckW(u) + pad; if (i === 0) ctx.moveTo(p.x, p.y - w); else ctx.lineTo(p.x, p.y - w) }
         for (let i = nSEG; i >= 0; i--) { const u = i / nSEG, p = neckAt(u), w = neckW(u) + pad; ctx.lineTo(p.x, p.y + w) }
         ctx.closePath() }
       // dark outline
-      ctx.fillStyle = cDark; band(3); ctx.fill()
-      // muscle gradient (back darker, belly lighter)
-      const ng = ctx.createLinearGradient(0, -sz * 0.3, 0, sz * 0.3); ng.addColorStop(0, cDark); ng.addColorStop(0.45, cMid); ng.addColorStop(1, cDark)
+      ctx.fillStyle = cDark; band(2.5); ctx.fill()
+      // muscle gradient
+      const ng = ctx.createLinearGradient(0, -sz * 0.32, 0, sz * 0.18); ng.addColorStop(0, cLite); ng.addColorStop(0.5, cMid); ng.addColorStop(1, cDark)
       ctx.fillStyle = ng; band(0); ctx.fill()
       // lighter throat underside
-      ctx.save(); band(0); ctx.clip(); ctx.globalAlpha = 0.45; ctx.fillStyle = cLite
-      ctx.beginPath(); for (let i = 0; i <= nSEG; i++) { const u = i / nSEG, p = neckAt(u), w = neckW(u); if (i === 0) ctx.moveTo(p.x, p.y + w * 0.15); else ctx.lineTo(p.x, p.y + w * 0.15) }
+      ctx.save(); band(0); ctx.clip(); ctx.globalAlpha = 0.4; ctx.fillStyle = cLite
+      ctx.beginPath(); for (let i = 0; i <= nSEG; i++) { const u = i / nSEG, p = neckAt(u), w = neckW(u); if (i === 0) ctx.moveTo(p.x, p.y + w * 0.2); else ctx.lineTo(p.x, p.y + w * 0.2) }
       for (let i = nSEG; i >= 0; i--) { const u = i / nSEG, p = neckAt(u), w = neckW(u); ctx.lineTo(p.x, p.y + w) } ctx.closePath(); ctx.fill(); ctx.restore()
       // plated scale divisions bowing toward the head
-      ctx.strokeStyle = 'rgba(18,40,55,0.45)'; ctx.lineWidth = 1.6
-      for (let i = 1; i < nSEG; i++) { const u = i / nSEG, p = neckAt(u), w = neckW(u) * 0.92
-        ctx.beginPath(); ctx.moveTo(p.x, p.y - w); ctx.quadraticCurveTo(p.x + w * 0.55, p.y, p.x, p.y + w); ctx.stroke() }
+      ctx.strokeStyle = 'rgba(18,40,55,0.45)'; ctx.lineWidth = 1.3
+      for (let i = 1; i < nSEG; i++) { const u = i / nSEG, p = neckAt(u), w = neckW(u) * 0.9
+        ctx.beginPath(); ctx.moveTo(p.x, p.y - w); ctx.quadraticCurveTo(p.x + w * 0.5, p.y, p.x, p.y + w); ctx.stroke() }
       // glowing dorsal spine line
-      ctx.strokeStyle = cEdge; ctx.lineWidth = 2; ctx.globalAlpha = 0.4; ctx.shadowColor = cGlow; ctx.shadowBlur = 6
-      ctx.beginPath(); for (let i = 0; i <= nSEG; i++) { const u = i / nSEG, p = neckAt(u), w = neckW(u); const x = p.x, y = p.y - w * 0.45; if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y) } ctx.stroke()
+      ctx.strokeStyle = cEdge; ctx.lineWidth = 1.8; ctx.globalAlpha = 0.4; ctx.shadowColor = cGlow; ctx.shadowBlur = 6
+      ctx.beginPath(); for (let i = 0; i <= nSEG; i++) { const u = i / nSEG, p = neckAt(u), w = neckW(u); const x = p.x, y = p.y - w * 0.4; if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y) } ctx.stroke()
       ctx.globalAlpha = 1; ctx.shadowBlur = 0
-      // dorsal ice spikes marching up the nape toward the crown
-      ctx.fillStyle = cIce; ctx.shadowColor = cGlow; ctx.shadowBlur = 8
-      for (let i = 1; i <= nSEG - 1; i += 2) { const u = i / nSEG, p = neckAt(u), w = neckW(u), h = sz * (0.17 - u * 0.05)
-        ctx.beginPath(); ctx.moveTo(p.x - sz * 0.045, p.y - w * 0.85); ctx.lineTo(p.x - sz * 0.02, p.y - w - h); ctx.lineTo(p.x + sz * 0.045, p.y - w * 0.85); ctx.closePath(); ctx.fill() }
+      // delicate dorsal spikes along the crest of the neck
+      ctx.fillStyle = cIce; ctx.shadowColor = cGlow; ctx.shadowBlur = 6
+      for (let i = 2; i <= nSEG - 1; i += 2) { const u = i / nSEG, p = neckAt(u), w = neckW(u), h = sz * (0.1 - u * 0.04)
+        ctx.beginPath(); ctx.moveTo(p.x - sz * 0.03, p.y - w * 0.85); ctx.lineTo(p.x - sz * 0.01, p.y - w - h); ctx.lineTo(p.x + sz * 0.03, p.y - w * 0.85); ctx.closePath(); ctx.fill() }
       ctx.shadowBlur = 0
     }
 
@@ -2938,12 +2960,10 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
     for (const side of [-1, 1]) for (let i = 0; i < 3; i++) { const ph = (t * 0.7 + i * 0.33 + side * 0.12) % 1; const vx = sz * 1.32 + ph * sz * 0.28, vy = side * sz * 0.05 + Math.sin(ph * 6 + side) * sz * 0.02
       ctx.fillStyle = `rgba(205,240,255,${(1 - ph) * 0.4})`; ctx.beginPath(); ctx.arc(vx, vy, (1 - ph) * sz * 0.045 + 1, 0, Math.PI * 2); ctx.fill() }
     ctx.restore()
-    // 7) open maw, fangs + frost-breath charge glow
+    // 7) open maw + fangs
     ctx.fillStyle = '#0a1a24'; ctx.beginPath(); ctx.moveTo(sz * 1.3, -sz * 0.06); ctx.lineTo(sz * 1.46, 0); ctx.lineTo(sz * 1.3, sz * 0.06); ctx.closePath(); ctx.fill()
     ctx.fillStyle = cHorn
     for (const side of [-1, 1]) { ctx.beginPath(); ctx.moveTo(sz * 1.31, side * sz * 0.05); ctx.lineTo(sz * 1.42, side * sz * 0.018); ctx.lineTo(sz * 1.34, side * sz * 0.004); ctx.closePath(); ctx.fill() }
-    { const fb = 0.5 + 0.5 * Math.sin(t * 5); ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.shadowColor = cGlow; ctx.shadowBlur = 18
-      ctx.fillStyle = `rgba(159,232,255,${0.5 + 0.4 * fb})`; ctx.beginPath(); ctx.arc(sz * 1.4, 0, sz * 0.07 * (0.7 + fb * 0.5), 0, Math.PI * 2); ctx.fill(); ctx.restore() }
     ctx.restore()   // end head nod/scan
     ctx.restore()   // end rotate + lift
     // ── orbiting ice shards (enraged) ──
