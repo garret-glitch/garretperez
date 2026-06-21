@@ -2650,10 +2650,27 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
     bolt(wl.x, wl.y, hx + sz * 0.2, 0, 6, sz * 0.1, `rgba(150,225,255,${arcA})`, enr ? 2.4 : 1.5)
     bolt(wr.x, wr.y, hx + sz * 0.2, 0, 6, sz * 0.1, `rgba(150,225,255,${arcA})`, enr ? 2.4 : 1.5)
     if (enr) {
-      bolt(wl.x, wl.y, wr.x, wr.y, 9, sz * 0.18, 'rgba(120,240,255,0.7)', 2.0)   // arc across the back
-      bolt(wl.x, wl.y, wl.x - sz * 0.3, wl.y + sz * 0.4, 5, sz * 0.12, `rgba(${cViolet === '#b388ff' ? '179,136,255' : '157,134,224'},0.7)`, 1.6)
-      bolt(wr.x, wr.y, wr.x + sz * 0.3, wr.y + sz * 0.4, 5, sz * 0.12, 'rgba(179,136,255,0.7)', 1.6)
+      const vio = cViolet === '#b388ff' ? '179,136,255' : '157,134,224'
+      bolt(wl.x, wl.y, wl.x - sz * 0.3, wl.y + sz * 0.4, 5, sz * 0.12, `rgba(${vio},0.75)`, 1.6)
+      bolt(wr.x, wr.y, wr.x + sz * 0.3, wr.y + sz * 0.4, 5, sz * 0.12, `rgba(${vio},0.75)`, 1.6)
     }
+    // ── extra storm crackle — leaps along the wing primaries + spits from the chest core (both phases, flickering with the charge pulse) ──
+    const wingPt = (side: number, frac: number) => {
+      const shX = -sz * 0.05, shY = side * sz * 0.28
+      const ang = side * (Math.PI / 2 - 0.66 + frac * 1.62) + side * flap * 0.20
+      const len = sz * (1.45 + frac * 1.45) * (0.90 + Math.max(0, flap) * 0.14)
+      return { x: shX + Math.cos(ang) * len, y: shY + Math.sin(ang) * len }
+    }
+    if (charge > 0.35 || enr) for (const side of [-1, 1]) {
+      const a = wingPt(side, 0.25), bpt = wingPt(side, 0.62), c = wingPt(side, 1.0)
+      const col = enr ? 'rgba(140,245,255,0.75)' : `rgba(175,210,255,${0.3 + charge * 0.35})`
+      bolt(a.x, a.y, bpt.x, bpt.y, 5, sz * 0.1, col, enr ? 1.9 : 1.3)
+      bolt(bpt.x, bpt.y, c.x, c.y, 6, sz * 0.13, col, enr ? 1.9 : 1.3)
+    }
+    { const n = enr ? 4 : 2; for (let i = 0; i < n; i++) { const a = t * 5.5 + i * (Math.PI * 2 / n), cxp = sz * 0.22
+        bolt(cxp + Math.cos(a) * sz * 0.14, Math.sin(a) * sz * 0.14, cxp + Math.cos(a + 0.6) * sz * 0.4, Math.sin(a + 0.6) * sz * 0.4, 4, sz * 0.07, enr ? 'rgba(120,240,255,0.6)' : `rgba(160,195,255,${0.35 + charge * 0.25})`, 1.3) } }
+    // a charged bolt arcing wingtip-to-wingtip across the back (subtle in normal, bright when enraged)
+    bolt(wl.x, wl.y, wr.x, wr.y, enr ? 11 : 8, sz * (enr ? 0.2 : 0.13), `rgba(150,235,255,${enr ? 0.82 : 0.3 + charge * 0.25})`, enr ? 2.3 : 1.5)
     ctx.restore()   // end rotated frame
 
     // ── orbiting storm sparks + halo (unrotated) ──
@@ -2666,9 +2683,23 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
       ctx.beginPath(); ctx.arc(Math.cos(sa) * sr, Math.sin(sa) * sr, enr ? 4.5 : 3, 0, Math.PI * 2); ctx.fill()
     }
     ctx.shadowBlur = 0
-    if (enr) for (let i = 0; i < 6; i++) {
-      const a = t * 4 + i * (Math.PI / 3)
-      bolt(Math.cos(a) * sz * 1.05, Math.sin(a) * sz * 1.05, Math.cos(a + 0.4) * sz * 1.5, Math.sin(a + 0.4) * sz * 1.5, 4, sz * 0.08, 'rgba(100,230,255,0.6)', 1.6)
+    { const nb = enr ? 7 : 3
+      for (let i = 0; i < nb; i++) { const a = t * 4 + i * (Math.PI * 2 / nb)
+        bolt(Math.cos(a) * sz * 1.05, Math.sin(a) * sz * 1.05, Math.cos(a + 0.4) * sz * 1.5, Math.sin(a + 0.4) * sz * 1.5, 4, sz * 0.08, enr ? 'rgba(100,230,255,0.6)' : `rgba(150,190,255,${0.32 + charge * 0.2})`, 1.6) } }
+    // ── periodic sky-lightning strike crashing down onto the griffin ──
+    { const period = enr ? 1.5 : 2.8, ph = (t % period) / period, flash = ph < 0.12 ? 1 - ph / 0.12 : 0
+      if (flash > 0) {
+        const seed = Math.floor(t / period), rx = (((seed * 9301 + 49297) % 233280) / 233280 - 0.5) * sz * 0.7, ix = rx * 0.35
+        ctx.globalAlpha = flash
+        bolt(rx, -sz * 3.4, ix, -sz * 0.1, 10, sz * 0.24, 'rgba(190,245,255,0.95)', 3.4)
+        bolt(rx, -sz * 3.4, ix, -sz * 0.1, 10, sz * 0.24, 'rgba(255,255,255,0.85)', 1.5)
+        bolt(rx * 0.7, -sz * 1.7, rx * 0.7 - sz * 0.5, -sz * 1.1, 4, sz * 0.12, 'rgba(170,235,255,0.8)', 1.8)
+        ctx.save(); ctx.globalCompositeOperation = 'lighter'
+        const ig = ctx.createRadialGradient(ix, -sz * 0.1, 0, ix, -sz * 0.1, sz * 0.95)
+        ig.addColorStop(0, `rgba(205,245,255,${0.55 * flash})`); ig.addColorStop(1, 'rgba(120,200,255,0)')
+        ctx.fillStyle = ig; ctx.beginPath(); ctx.arc(ix, -sz * 0.1, sz * 0.95, 0, Math.PI * 2); ctx.fill(); ctx.restore()
+        ctx.globalAlpha = 1
+      }
     }
   } else {
     // ── FROST WYRM ── a colossal winged frost-dragon. Wings SPREAD = airborne (ranged-only); FOLDED = grounded (melee-only).
