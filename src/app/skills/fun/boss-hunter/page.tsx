@@ -384,6 +384,8 @@ interface GS {
   wyrmStagger: number        // damage dealt in the current stance; fills to force a stance swap
   wyrmStaggerMax: number     // stance-swap damage threshold (you MUST hurt it in this stance to flip it)
   wyrmWing: number           // 0 = wings folded (grounded/melee) → 1 = wings spread (airborne/ranged)
+  zoom: number               // camera zoom (<1 = zoomed out for a grander scale, e.g. the Frost Wyrm)
+  playerScale: number        // render scale of the hunter (smaller vs a colossal boss)
   immuneFxCd: number         // throttle for "IMMUNE" deflect feedback
   activeSlot: number         // dual-weapon loadout: 0 = melee, 1 = ranged (set by the component each frame)
   altWeapon: { name: string; color: string; melee: boolean } | null   // the stowed weapon, for the HUD swap indicator
@@ -464,7 +466,7 @@ const BOSS_DEFS: BossDef[] = [
   {
     id: 3, name: 'Frost Wyrm', color: '#7fd4ff', icon: '🐲', element: 'ice',
     lore: 'An eternal frost-dragon of the frozen peaks. Grounded, its scales turn every arrow; aloft, no blade can reach it. Strike when it shows its weakness.',
-    hp: 5200, size: 128, enrageAt: 0.42,
+    hp: 5200, size: 150, enrageAt: 0.42,
     rewards: ['wyrm_scale'], arenaType: 'wyrm',
   },
 ]
@@ -585,7 +587,8 @@ function mkState(wpn: WeaponDef, boss: BossDef, gear: GearId[]): GS {
     introTimer: 2.6,
     comboQueue: [],
     dmgGate: boss.id === 3 ? 'melee' : 'both',   // Wyrm opens grounded (melee-only); others always take all damage
-    wyrmFlying: false, wyrmPhaseTimer: 2.5, wyrmStagger: 0, wyrmStaggerMax: boss.id === 3 ? boss.hp * 0.15 : 0, wyrmWing: 0, immuneFxCd: 0,
+    wyrmFlying: false, wyrmPhaseTimer: 2.5, wyrmStagger: 0, wyrmStaggerMax: boss.id === 3 ? boss.hp * 0.15 : 0, wyrmWing: 0,
+    zoom: boss.id === 3 ? 0.78 : 1.0, playerScale: boss.id === 3 ? 0.82 : 1.0, immuneFxCd: 0,
     activeSlot: 0, altWeapon: null,
     griffinState: { mode: 0, timer: 3.0, dive: v(1, 0), shotT: 0 },
   }
@@ -1112,7 +1115,8 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   g.gtime += dt
 
   // Camera smooth follow
-  const tcx = clamp(p.pos.x - CW / 2, 0, WW - CW), tcy = clamp(p.pos.y - CH / 2, 0, WH - CH)
+  const viewW = CW / g.zoom, viewH = CH / g.zoom   // zoom < 1 shows more of the arena
+  const tcx = clamp(p.pos.x - viewW / 2, 0, Math.max(0, WW - viewW)), tcy = clamp(p.pos.y - viewH / 2, 0, Math.max(0, WH - viewH))
   g.camX += (tcx - g.camX) * Math.min(1, dt * 8)
   g.camY += (tcy - g.camY) * Math.min(1, dt * 8)
 
@@ -2888,6 +2892,7 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
   }
 
   ctx.save(); ctx.translate(p.pos.x, p.pos.y)
+  if (g.playerScale !== 1) ctx.scale(g.playerScale, g.playerScale)   // a smaller hunter vs a colossal boss
   // the character's whole look is driven by armour (4 looks: basic + 3)
   const armour = gear.includes('ember_armor')?'ember':gear.includes('web_amulet')?'web':gear.includes('feather_boots')?'feather':gear.includes('wyrm_scale')?'frost':'basic'
   const armGlow = armour==='ember'?'#FF6A1A':armour==='web'?'#9B59B6':armour==='feather'?'#9fc0ff':armour==='frost'?'#7fd4ff':'#caa84a'
@@ -4254,7 +4259,7 @@ function render(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, bossId: Bo
   ctx.save()
   if (g.screenShake>0.05) ctx.translate(rnd(-g.screenShake*8,g.screenShake*8),rnd(-g.screenShake*8,g.screenShake*8))
   const bossDef=BOSS_DEFS[bossId]
-  ctx.save(); ctx.translate(-g.camX,-g.camY)
+  ctx.save(); ctx.scale(g.zoom, g.zoom); ctx.translate(-g.camX,-g.camY)
   renderArena(ctx,bossDef.arenaType,t,g)
   renderEnvObjects(ctx,g,bossDef.arenaType,t)
   if (g.phase==='dying') {
@@ -4842,7 +4847,7 @@ export default function BossHunter() {
       const sx = (e.clientX - rect.left) * (CW / rect.width)
       const sy = (e.clientY - rect.top) * (CH / rect.height)
       const g = gsRef.current
-      mouseWorldRef.current = g ? { x: sx + g.camX, y: sy + g.camY } : { x: sx, y: sy }
+      mouseWorldRef.current = g ? { x: sx / g.zoom + g.camX, y: sy / g.zoom + g.camY } : { x: sx, y: sy }
     }
 
     const handleClick = (e: MouseEvent) => {
@@ -4851,7 +4856,7 @@ export default function BossHunter() {
       const rect = canvas.getBoundingClientRect()
       const sx = (e.clientX - rect.left) * (CW / rect.width)
       const sy = (e.clientY - rect.top) * (CH / rect.height)
-      g.player.targetPos = { x: sx + g.camX, y: sy + g.camY }
+      g.player.targetPos = { x: sx / g.zoom + g.camX, y: sy / g.zoom + g.camY }
     }
 
     const onKeyDown = (e: KeyboardEvent) => handleKey(e, true)
