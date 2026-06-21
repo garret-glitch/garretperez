@@ -4546,6 +4546,26 @@ function renderPlayerDeath(ctx: CanvasRenderingContext2D, g: GS, t: number) {
   ctx.restore()
 }
 
+// ── ambient falling snow (screen-space overlay) for the Frost Wyrm fight ──
+function renderSnow(ctx: CanvasRenderingContext2D, t: number) {
+  const N = 120
+  ctx.save()
+  for (let i = 0; i < N; i++) {
+    const depth = (i % 4) / 3                       // 0 (far) .. 1 (near)
+    const speed = (28 + (i * 13 % 42)) * (0.7 + depth * 0.9)
+    const amp = 8 + (i * 7 % 20)
+    const baseX = (i * 137.5) % CW
+    const size = 1 + depth * 2.4
+    const y = ((t * speed + i * 53.3) % (CH + 30)) - 15
+    const x = ((baseX + Math.sin(t * 0.6 + i * 1.7) * amp) % CW + CW) % CW
+    ctx.globalAlpha = 0.22 + depth * 0.55
+    ctx.fillStyle = '#eafaff'
+    ctx.shadowColor = '#bfeaff'; ctx.shadowBlur = depth > 0.66 ? 5 : 0
+    ctx.beginPath(); ctx.arc(x, y, size, 0, Math.PI * 2); ctx.fill()
+  }
+  ctx.restore()
+}
+
 function render(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, bossId: BossId, gear: GearId[], t: number) {
   ctx.save()
   if (g.screenShake>0.05) ctx.translate(rnd(-g.screenShake*8,g.screenShake*8),rnd(-g.screenShake*8,g.screenShake*8))
@@ -4600,6 +4620,7 @@ function render(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, bossId: Bo
     }
   }
   ctx.restore()
+  if (bossId === 3 && (g.phase === 'playing' || g.phase === 'player_dying' || g.phase === 'dying')) renderSnow(ctx, t)
   if (g.phase==='playing') renderHUD(ctx,g,wpn,bossDef,gear,t)
   // ── cinematic death sequence overlay ──
   if (g.phase==='player_dying') {
