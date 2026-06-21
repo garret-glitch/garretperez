@@ -148,6 +148,17 @@ const Sfx = (() => {
     T.battle_griffin = band(156, griffinRoots, griffinArp, { lt: 'square', lv: 0.13, mel: griffinMel, melType: 'square', melVol: 0.12, melDur: 0.22 })
     T.battle_griffin_rage = band(178, griffinRoots, griffinArp, { lt: 'square', lv: 0.15, heavy: true, snare: true, mel: griffinMel, melType: 'square', melVol: 0.15, melDur: 0.2 })
 
+    // ════ FROST WYRM — "Glacial Hymn": cold, vast D-minor with a crystalline bell lead ════
+    const wyrmRoots = [D2, A2, Bb2, F2, D2, A2, G2, A2]
+    const wyrmArp = [[D4, A4, F4, A4], [A3, E4, Cs4, E4], [Bb3, F4, D4, F4], [F4, C5, A4, C5], [D4, A4, F4, A4], [A3, E4, Cs4, E4], [G3, D4, Bb3, D4], [A3, E4, Cs4, E4]]
+    const wyrmMel: (number | null)[][] = [
+      [D5, null, A4, null, F5, null, E5, null], [E5, null, Cs5, null, A4, null, null, null],
+      [F5, null, D5, null, As4, null, D5, null], [A5, null, F5, null, C5, null, A4, null],
+      [D5, null, F5, null, A5, null, F5, null], [E5, null, A5, null, Cs5, null, E5, null],
+      [D5, null, As4, null, G4, null, As4, null], [Cs5, null, E5, null, A4, null, Cs5, null]]
+    T.battle_wyrm = band(122, wyrmRoots, wyrmArp, { lt: 'sine', lv: 0.11, mel: wyrmMel, melType: 'triangle', melVol: 0.13, melDur: 0.5 })
+    T.battle_wyrm_rage = band(150, wyrmRoots, wyrmArp, { bt: 'sawtooth', lt: 'triangle', lv: 0.14, heavy: true, snare: true, mel: wyrmMel, melType: 'square', melVol: 0.16, melDur: 0.3 })
+
     // FINAL PHASE — frantic, double-time, full kit
     const finalMel: (number | null)[][] = [[A4, C5, E5, A5, null, E5, null, C5], [A5, null, E5, null, C5, null, A4, null], [F4, A4, C5, F5, null, C5, null, A4], [E4, G4, B4, E5, null, B4, null, G4]]
     T.battle_final = band(172, [A2, A2, F2, E2], [[A4, C5, E5, A5], [A4, E5, C5, A5], [F4, A4, C5, F5], [E4, G4, B4, E5]], { heavy: true, lv: 0.14, snare: true, mel: finalMel, melType: 'sawtooth', melVol: 0.16, melDur: 0.22 })
@@ -292,8 +303,8 @@ const Sfx = (() => {
 
 /* ═══ TYPES ═══ */
 type WeaponId = 'sword' | 'bow' | 'staff'
-type BossId = 0 | 1 | 2
-type GearId = 'spider_fang' | 'venom_bow' | 'web_amulet' | 'drake_sword' | 'fire_staff' | 'ember_armor' | 'thunder_blade' | 'storm_bow' | 'feather_boots'
+type BossId = 0 | 1 | 2 | 3
+type GearId = 'spider_fang' | 'venom_bow' | 'web_amulet' | 'drake_sword' | 'fire_staff' | 'ember_armor' | 'thunder_blade' | 'storm_bow' | 'feather_boots' | 'wyrm_scale'
 
 interface WeaponDef {
   id: WeaponId; name: string; icon: string; color: string
@@ -304,16 +315,16 @@ interface WeaponDef {
 interface AbilityDef { key: string; name: string; desc: string; cd: number; icon: string }
 interface BossDef {
   id: BossId; name: string; color: string; icon: string
-  element: 'poison' | 'fire' | 'lightning'; lore: string
+  element: 'poison' | 'fire' | 'lightning' | 'ice'; lore: string
   hp: number; size: number; enrageAt: number
-  rewards: GearId[]; arenaType: 'spider' | 'drake' | 'griffin'
+  rewards: GearId[]; arenaType: 'spider' | 'drake' | 'griffin' | 'wyrm'
 }
 interface GearDef { id: GearId; name: string; icon: string; desc: string }
 interface Projectile {
   id: number; pos: V2; vel: V2; dmg: number; radius: number
   fromBoss: boolean; life: number; color: string
   aoe?: number; poison?: boolean; isWeb?: boolean
-  isPowerShot?: boolean; isFireball?: boolean; isLightning?: boolean; isFeather?: boolean; isVenom?: boolean; isArrow?: boolean; isArcane?: boolean; isFirebolt?: boolean
+  isPowerShot?: boolean; isFireball?: boolean; isLightning?: boolean; isFeather?: boolean; isVenom?: boolean; isArrow?: boolean; isArcane?: boolean; isFirebolt?: boolean; isIce?: boolean
   trail?: V2[]
 }
 interface BossAttack { type: string; telegraphTime: number; elapsed: number; active: boolean; data: AttackData }
@@ -321,10 +332,10 @@ interface AttackData {
   targetPos?: V2; angle?: number; coneAngle?: number; coneRange?: number; radius?: number
   projSpeed?: number; dmg?: number; count?: number; duration?: number; elapsed?: number; strikeIndex?: number
 }
-interface DamageNumber { id: number; pos: V2; val: number; life: number; maxLife: number; isPlayer: boolean; crit?: boolean; vx?: number }
+interface DamageNumber { id: number; pos: V2; val: number; life: number; maxLife: number; isPlayer: boolean; crit?: boolean; vx?: number; text?: string }
 interface Particle { id: number; pos: V2; vel: V2; life: number; maxLife: number; color: string; size: number }
 interface SlowTrap { id: number; pos: V2; life: number; fromPlayer: boolean; col?: string; zone?: 'poison' | 'fire' | 'lightning' | null }
-interface HazardZone { id: number; pos: V2; radius: number; type: 'poison' | 'fire' | 'lightning' | 'web'; dps: number; life: number; maxLife: number }
+interface HazardZone { id: number; pos: V2; radius: number; type: 'poison' | 'fire' | 'lightning' | 'web' | 'ice'; dps: number; life: number; maxLife: number }
 interface AttackFlash { angle: number; timer: number; maxTimer: number; type: 'slash' | 'slam' | 'shot' | 'magic' | 'shadow' | 'power_shot' | 'greatslash'; color: string }
 // Transient ability visual-effects layer (shockwaves, novas, muzzle stars, cast runes)
 interface Fx { id: number; type: 'shock' | 'nova' | 'star' | 'rune'; pos: V2; timer: number; maxTimer: number; color: string; radius: number; rot: number }
@@ -367,6 +378,10 @@ interface GS {
   combo: number; comboTimer: number; maxCombo: number; totalHits: number   // hit-chain combo meter
   introTimer: number         // cinematic boss-intro overlay countdown
   comboQueue: string[]       // queued follow-up attacks for multi-hit boss combos
+  dmgGate: 'both' | 'melee' | 'ranged'   // Frost Wyrm: which damage type can hurt the boss right now
+  wyrmFlying: boolean        // Frost Wyrm aerial (ranged-only) vs grounded (melee-only) stance
+  wyrmPhaseTimer: number     // countdown to the next ground/flight swap
+  immuneFxCd: number         // throttle for "IMMUNE" deflect feedback
 }
 interface PlayerState {
   pos: V2; vel: V2; targetPos: V2 | null
@@ -441,6 +456,12 @@ const BOSS_DEFS: BossDef[] = [
     hp: 10200, size: 100, enrageAt: 0.30,
     rewards: ['thunder_blade', 'storm_bow', 'feather_boots'], arenaType: 'griffin',
   },
+  {
+    id: 3, name: 'Frost Wyrm', color: '#7fd4ff', icon: '🐲', element: 'ice',
+    lore: 'An eternal frost-dragon of the frozen peaks. Grounded, its scales turn every arrow; aloft, no blade can reach it. Strike when it shows its weakness.',
+    hp: 5200, size: 110, enrageAt: 0.42,
+    rewards: ['wyrm_scale'], arenaType: 'wyrm',
+  },
 ]
 
 /* ═══ GEAR DEFINITIONS ═══ */
@@ -454,11 +475,13 @@ const GEAR_DEFS: Record<GearId, GearDef> = {
   thunder_blade: { id: 'thunder_blade', name: 'Thunder Blade',       icon: '⚡', desc: '+34% damage; every 3rd hit calls a lightning strike (+150 bonus dmg) (Griffin-tier upgrade)' },
   storm_bow:     { id: 'storm_bow',     name: 'Storm Bow',           icon: '🌩️', desc: '+34% damage; arrows are lightning bolts — 50 dmg AOE on impact (Griffin-tier upgrade)' },
   feather_boots: { id: 'feather_boots', name: 'Feather Armour',      icon: '🪶', desc: 'Feather-light — +22% move speed. No damage reduction.' },
+  wyrm_scale:    { id: 'wyrm_scale',    name: 'Wyrm Scale Armour',   icon: '❄️', desc: 'Frost-forged dragon plate — reduces all incoming damage by 40% and makes you immune to slows (Wyrm-tier upgrade)' },
 }
 const GEAR_CATEGORY: Record<GearId, 'attack' | 'defense'> = {
   spider_fang: 'attack', venom_bow: 'attack', web_amulet: 'defense',
   drake_sword: 'attack', fire_staff: 'attack', ember_armor: 'defense',
   thunder_blade: 'attack', storm_bow: 'attack', feather_boots: 'defense',
+  wyrm_scale: 'defense',
 }
 
 /* ═══ WEAPON SELECT (base weapons + unlocked weapon rewards) ═══ */
@@ -483,6 +506,7 @@ function generateEnvObjects(bossId: BossId): EnvObject[] {
     ['bone','skull','web','rock','nest','claw'],
     ['rock','crystal','bone','ruin'],
     ['rock','ruin','bone','claw'],
+    ['crystal','rock','ruin','crystal'],
   ]
   const types = typesByBoss[bossId]
   for (let i = 0; i < 50; i++) {
@@ -555,6 +579,8 @@ function mkState(wpn: WeaponDef, boss: BossDef, gear: GearId[]): GS {
     combo: 0, comboTimer: 0, maxCombo: 0, totalHits: 0,
     introTimer: 2.6,
     comboQueue: [],
+    dmgGate: boss.id === 3 ? 'melee' : 'both',   // Wyrm opens grounded (melee-only); others always take all damage
+    wyrmFlying: false, wyrmPhaseTimer: 8.0, immuneFxCd: 0,
     griffinState: { mode: 0, timer: 3.0, dive: v(1, 0), shotT: 0 },
   }
 }
@@ -580,6 +606,7 @@ function dealDmgToPlayer(g: GS, dmg: number, wpn: WeaponDef, gear: GearId[], kno
   if (wpn.id === 'sword') fd = Math.round(fd * 0.80)
   else if (wpn.id === 'staff') fd = Math.round(fd * 1.05)
   if (gear.includes('ember_armor')) fd = Math.round(fd * 0.55)       // heavy ember plate — best mitigation (buffed)
+  else if (gear.includes('wyrm_scale')) fd = Math.round(fd * 0.60)   // frost dragon plate — heavy mitigation
   else if (gear.includes('web_amulet')) fd = Math.round(fd * 0.78)   // webbing — light mitigation
   // feather: NO damage reduction — its perk is pure speed
   p.hp = Math.max(0, p.hp - fd)
@@ -621,8 +648,24 @@ function killPlayer(g: GS) {
   Sfx.playerDeath(); Sfx.roar()
 }
 
-function dealDmgToBoss(g: GS, baseDmg: number, gear: GearId[]) {
+// the Frost Wyrm deflects the wrong damage type for its current stance — show feedback, deal nothing
+function bossImmune(g: GS, src: 'melee' | 'ranged') {
+  const b = g.boss
+  b.hitFlash = Math.max(b.hitFlash, 0.05)
+  if (g.immuneFxCd > 0) return
+  g.immuneFxCd = 0.5
+  const col = g.dmgGate === 'melee' ? '#7fd4ff' : '#cfe9ff'
+  spawnParticles(g, b.pos, 7, col, 130)
+  spawnFx(g, 'nova', { ...b.pos }, col, 36, 0.22)
+  g.damageNums.push({ id: ++g.nextDmgId, pos: { x: b.pos.x + rnd(-20, 20), y: b.pos.y - 54 }, val: 0, life: 0.9, maxLife: 0.9, isPlayer: false, vx: rnd(-12, 12), text: src === 'melee' ? 'TOO HIGH!' : 'IMMUNE' })
+  Sfx.shieldHit()
+}
+
+function dealDmgToBoss(g: GS, baseDmg: number, gear: GearId[], src: 'melee' | 'ranged' = 'ranged') {
   const b = g.boss, p = g.player
+  // Frost Wyrm damage-type gate: grounded = melee only, airborne = ranged/mage only
+  if (g.dmgGate === 'melee' && src !== 'melee') { bossImmune(g, src); return }
+  if (g.dmgGate === 'ranged' && src !== 'ranged') { bossImmune(g, src); return }
   let dmg = baseDmg
   let crit = false
   // drake_sword's damage bonus lives in the basic-hit multiplier now; here it only stuns
@@ -696,26 +739,41 @@ function dealDmgToMinion(g: GS, m: Minion, dmg: number) {
 
 /* ═══ BOSS AI ═══ */
 /* ── ATTACK PACING & COMBOS — keeps the boss constantly pressuring with dodgeable, telegraphed chains ── */
-const CHANNELED = new Set(['thunderstorm', 'chain_lightning', 'lightning_barrage', 'lava_barrage', 'flame_wave', 'fire_breath', 'web_spiral', 'fire_sweep', 'storm_rings'])
+const CHANNELED = new Set(['thunderstorm', 'chain_lightning', 'lightning_barrage', 'lava_barrage', 'flame_wave', 'fire_breath', 'web_spiral', 'fire_sweep', 'storm_rings', 'frost_breath'])
 const COMBOS: Record<number, string[][]> = {
   0: [['venom_spit', 'web_spray'], ['leg_sweep', 'venom_spit'], ['spider_charge', 'web_burst'], ['web_shot', 'web_shot', 'venom_spit'], ['summon', 'venom_geyser'], ['web_spray', 'spider_leap'], ['venom_spit', 'venom_spit', 'web_burst']],
   1: [['fireball', 'tail_slam'], ['stomp', 'fire_fan'], ['fire_line', 'fireball'], ['ember_barrage', 'lava_puddle'], ['fire_fan', 'stomp'], ['tail_swipe', 'ember_barrage'], ['fireball', 'fire_fan', 'tail_slam']],
   2: [['wind_blade', 'lightning_strike'], ['gale_ring', 'dive_bomb'], ['lightning_strike', 'wind_blade'], ['wind_buffet', 'wind_blade'], ['wind_blade', 'wind_blade', 'dive_bomb'], ['talon_dive', 'gale_ring']],
+  3: [],   // Frost Wyrm gets variety from its ground/flight phase mechanic instead of combos
 }
 // gap until the next attack: snappy inside a combo, brisk between fresh attacks (scales with phase)
 // Griffin gets longer gaps + fewer combos because its flight state-machine (swoops/barrage) already pressures.
 function attackGap(g: GS, bossId: BossId): number {
   if (g.comboQueue.length) return rnd(0.28, 0.5)
   const phase = g.bossDesperate ? 1.95 : g.bossEnraged ? 1.5 : 1.0
-  const base = bossId === 1 ? rnd(1.5, 2.45) : bossId === 2 ? rnd(2.0, 3.2) : rnd(1.15, 2.0)
+  const base = bossId === 1 ? rnd(1.5, 2.45) : bossId === 2 ? rnd(2.0, 3.2) : bossId === 3 ? rnd(1.35, 2.25) : rnd(1.15, 2.0)
   return base / phase
 }
 function comboChance(g: GS, bossId: BossId): number {
+  if (bossId === 3) return 0
   const c = g.bossDesperate ? 0.72 : g.bossEnraged ? 0.5 : 0.32
   return bossId === 2 ? c * 0.3 : c
 }
 
-function selectBossAttack(bossId: BossId, enraged: boolean, desperate: boolean, d2p: number): string {
+function selectBossAttack(bossId: BossId, enraged: boolean, desperate: boolean, d2p: number, flying = false): string {
+  if (bossId === 3) {
+    // ── FROST WYRM — different pool per stance (grounded = melee-only, airborne = ranged-only) ──
+    if (flying) {
+      const pool = ['ice_shards', 'frost_nova', 'icicle_rain', 'glacier_dive', 'ice_shards']
+      if (enraged) pool.push('frost_nova', 'icicle_rain')
+      if (desperate) pool.push('frost_nova', 'glacier_dive', 'ice_shards')
+      return pool[rndI(0, pool.length - 1)]
+    }
+    const pool = ['frost_breath', 'frost_stomp', 'frost_bite', 'tail_frost', 'frost_bite']
+    if (enraged) pool.push('frost_stomp', 'frost_breath')
+    if (desperate) pool.push('frost_bite', 'frost_stomp', 'tail_frost', 'frost_breath')
+    return pool[rndI(0, pool.length - 1)]
+  }
   if (bossId === 0) {
     // ── SPIDER QUEEN — escalating stages ──
     const pool = d2p < 150 ? ['leg_sweep', 'venom_spit', 'web_spray', 'toxic_cloud', 'summon', 'web_wall'] : ['venom_spit', 'toxic_cloud', 'web_spray', 'web_shot', 'leg_sweep', 'summon', 'web_wall', 'spider_charge']
@@ -747,6 +805,7 @@ function startBossAttack(g: GS, bossId: BossId, type: string) {
     lightning_strike: 1.05, talon_dive: 1.0, wind_buffet: 0.95, thunderstorm: 1.0, static_field: 0.95, chain_lightning: 1.0, lightning_barrage: 0.95,
     wind_blade: 1.0, dive_bomb: 1.05,
     web_spiral: 1.0, fire_sweep: 1.1, storm_rings: 1.0,
+    frost_breath: 1.2, frost_stomp: 1.0, frost_bite: 1.0, tail_frost: 0.95, ice_shards: 0.95, frost_nova: 1.0, icicle_rain: 1.1, glacier_dive: 1.05,
   }
   const data: AttackData = { targetPos: { ...p.pos }, angle, dmg: 0 }
   if (type === 'venom_spit') { data.dmg = 10; data.count = 3; data.projSpeed = 260 }
@@ -788,9 +847,18 @@ function startBossAttack(g: GS, bossId: BossId, type: string) {
   else if (type === 'web_spiral') { data.dmg = 9; data.duration = g.bossDesperate ? 1.8 : 1.4; data.elapsed = 0; data.strikeIndex = 0; data.angle = rnd(0, Math.PI * 2) }
   else if (type === 'fire_sweep') { const dir = Math.random() < 0.5 ? 1 : -1; data.dmg = 17; data.coneAngle = 44 * Math.PI / 180; data.coneRange = 330; data.duration = 2.2; data.elapsed = 0; data.count = dir; data.angle = angle - dir * 1.45 }
   else if (type === 'storm_rings') { data.dmg = 11; data.count = 3; data.strikeIndex = 0; data.elapsed = 0 }
+  // ── FROST WYRM attacks ──
+  else if (type === 'frost_breath') { data.dmg = 18; data.coneAngle = 50 * Math.PI / 180; data.coneRange = 300; data.angle = angle; data.duration = 2.0; data.elapsed = 0 }
+  else if (type === 'frost_stomp') { data.dmg = 26; data.radius = 175; data.count = g.bossEnraged ? 14 : 11; data.targetPos = { ...b.pos }; data.projSpeed = 230 }
+  else if (type === 'frost_bite') { data.dmg = 26; data.angle = angle }
+  else if (type === 'tail_frost') { data.dmg = 28; data.coneAngle = 260 * Math.PI / 180; data.coneRange = 190; data.angle = angle + Math.PI }
+  else if (type === 'ice_shards') { data.dmg = 13; data.count = g.bossEnraged ? 7 : 5; data.projSpeed = 300; data.angle = angle }
+  else if (type === 'frost_nova') { data.dmg = 11; data.count = g.bossEnraged ? 14 : 11; data.projSpeed = 235 }
+  else if (type === 'icicle_rain') { data.dmg = 0; data.count = g.bossEnraged ? 5 : 4 }
+  else if (type === 'glacier_dive') { data.dmg = 32; data.radius = 130; data.targetPos = { ...p.pos } }
   g.bossAttack = { type, telegraphTime: telegraphs[type] ?? 1.0, elapsed: 0, active: false, data }
   // ── telegraph: audio warning + charge-up burst (readability/fairness) ──
-  const BIG_ATTACKS = ['spider_leap', 'venom_burst', 'fire_line', 'flame_wave', 'fire_breath', 'lava_puddle', 'lightning_barrage', 'lava_barrage', 'thunderstorm', 'meteor', 'talon_dive', 'fireball', 'tail_slam', 'dive_bomb', 'spider_charge', 'magma_geyser', 'thunder_cross', 'gale_ring', 'venom_geyser', 'web_burst', 'web_spiral', 'fire_sweep', 'storm_rings']
+  const BIG_ATTACKS = ['spider_leap', 'venom_burst', 'fire_line', 'flame_wave', 'fire_breath', 'lava_puddle', 'lightning_barrage', 'lava_barrage', 'thunderstorm', 'meteor', 'talon_dive', 'fireball', 'tail_slam', 'dive_bomb', 'spider_charge', 'magma_geyser', 'thunder_cross', 'gale_ring', 'venom_geyser', 'web_burst', 'web_spiral', 'fire_sweep', 'storm_rings', 'frost_breath', 'frost_stomp', 'frost_bite', 'frost_nova', 'icicle_rain', 'glacier_dive']
   if (BIG_ATTACKS.includes(type)) Sfx.warnBig(); else Sfx.warn()
   const chargeCol = bossId === 0 ? '#B370E0' : bossId === 1 ? '#FF7A1A' : '#5fe6ff'
   spawnParticles(g, b.pos, BIG_ATTACKS.includes(type) ? 16 : 9, chargeCol, 70, (telegraphs[type] ?? 1.0) * 0.7)
@@ -801,15 +869,39 @@ function resolveBossAttack(g: GS, bossId: BossId, wpn: WeaponDef, gear: GearId[]
   const type = atk.type, d = atk.data
   const toPlayer = norm(v(p.pos.x - b.pos.x, p.pos.y - b.pos.y))
 
-  if (type === 'venom_spit' || type === 'ember_barrage') {
+  if (type === 'venom_spit' || type === 'ember_barrage' || type === 'ice_shards') {
     const count = d.count ?? 3
     const baseAngle = Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
+    const ice = type === 'ice_shards'
     for (let i = 0; i < count; i++) {
       const spread = (i - (count - 1) / 2) * 0.28
       const a = baseAngle + spread
-      const color = type === 'venom_spit' ? '#8E44AD' : '#E67E22'
-      g.projectiles.push({ id: ++g.nextProjId, pos: { ...b.pos }, vel: v(Math.cos(a) * (d.projSpeed ?? 250), Math.sin(a) * (d.projSpeed ?? 250)), dmg: d.dmg ?? 22, radius: 9, fromBoss: true, life: 5.0, color })
+      const color = type === 'venom_spit' ? '#8E44AD' : ice ? '#9fe8ff' : '#E67E22'
+      g.projectiles.push({ id: ++g.nextProjId, pos: { ...b.pos }, vel: v(Math.cos(a) * (d.projSpeed ?? 250), Math.sin(a) * (d.projSpeed ?? 250)), dmg: d.dmg ?? 22, radius: ice ? 8 : 9, fromBoss: true, life: 5.0, color, isIce: ice, trail: ice ? [] : undefined })
     }
+    if (ice) Sfx.shot()
+  } else if (type === 'frost_nova') {
+    // Frost Wyrm: a full-circle burst of icicles — thread the gaps
+    const count = d.count ?? 11, sp = d.projSpeed ?? 235, off = g.gtime
+    for (let i = 0; i < count; i++) { const a = off + i / count * Math.PI * 2
+      g.projectiles.push({ id: ++g.nextProjId, pos: { ...b.pos }, vel: v(Math.cos(a) * sp, Math.sin(a) * sp), dmg: d.dmg ?? 11, radius: 8, fromBoss: true, life: 5.0, color: '#9fe8ff', isIce: true, trail: [] }) }
+    spawnParticles(g, b.pos, 16, '#cfe9ff', 180); g.screenShake = Math.max(g.screenShake, 0.4); Sfx.shot()
+  } else if (type === 'frost_stomp') {
+    // Frost Wyrm: a shockwave around the wyrm that also flings a ring of ice shards outward
+    const r = d.radius ?? 175
+    if (dist(p.pos, b.pos) <= r) { dealDmgToPlayer(g, d.dmg ?? 26, wpn, gear, toPlayer); p.slowTimer = Math.max(p.slowTimer, 2.0) }
+    const count = d.count ?? 11
+    for (let i = 0; i < count; i++) { const a = i / count * Math.PI * 2 + g.gtime
+      g.projectiles.push({ id: ++g.nextProjId, pos: { ...b.pos }, vel: v(Math.cos(a) * (d.projSpeed ?? 230), Math.sin(a) * (d.projSpeed ?? 230)), dmg: Math.round((d.dmg ?? 26) * 0.5), radius: 8, fromBoss: true, life: 4.0, color: '#9fe8ff', isIce: true, trail: [] }) }
+    spawnParticles(g, b.pos, 28, '#cfe9ff', 300); spawnFx(g, 'shock', { ...b.pos }, '#7fd4ff', r, 0.5); g.screenShake = Math.max(g.screenShake, 0.7); Sfx.slam()
+  } else if (type === 'icicle_rain') {
+    // Frost Wyrm: a scatter of crashing ice patches around the player — keep moving
+    for (let i = 0; i < (d.count ?? 4); i++) {
+      const tx = clamp(p.pos.x + rnd(-220, 220), 90, WW - 90), ty = clamp(p.pos.y + rnd(-220, 220), 90, WH - 90)
+      spawnZone(g, v(tx, ty), 'ice', 64, 14, 4.0)
+      spawnParticles(g, v(tx, ty), 12, '#9fe8ff', 200, 0.7)
+    }
+    g.screenShake = Math.max(g.screenShake, 0.4); Sfx.shot()
   } else if (type === 'web_shot') {
     g.projectiles.push({ id: ++g.nextProjId, pos: { ...b.pos }, vel: v(toPlayer.x * (d.projSpeed ?? 160), toPlayer.y * (d.projSpeed ?? 160)), dmg: d.dmg ?? 16, radius: 11, fromBoss: true, life: 6.0, color: '#8E44AD' })
     Sfx.webShot()
@@ -835,11 +927,13 @@ function resolveBossAttack(g: GS, bossId: BossId, wpn: WeaponDef, gear: GearId[]
     if (dist(p.pos, b.pos) <= r) { dealDmgToPlayer(g, d.dmg ?? 34, wpn, gear, toPlayer); p.knockbackVel = v(toPlayer.x * 300, toPlayer.y * 300) }
     for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; spawnZone(g, v(clamp(b.pos.x + Math.cos(a) * r * 0.7, 80, WW - 80), clamp(b.pos.y + Math.sin(a) * r * 0.7, 80, WH - 80)), 'fire', 50, 12, 2.5) }
     spawnParticles(g, b.pos, 30, '#FF6600', 320); g.screenShake = Math.max(g.screenShake, 0.8)
-  } else if (type === 'dive_bomb') {
-    // Griffin: a targeted crashing strike — walk out of the marked zone
-    const target = d.targetPos!, r = d.radius ?? 130
-    if (dist(p.pos, target) <= r) dealDmgToPlayer(g, d.dmg ?? 36, wpn, gear, norm(v(p.pos.x - target.x, p.pos.y - target.y)))
-    spawnParticles(g, target, 26, '#5fe6ff', 280); g.screenShake = Math.max(g.screenShake, 0.55)
+  } else if (type === 'dive_bomb' || type === 'glacier_dive') {
+    // a targeted crashing strike — walk out of the marked zone
+    const target = d.targetPos!, r = d.radius ?? 130, ice = type === 'glacier_dive'
+    if (dist(p.pos, target) <= r) { dealDmgToPlayer(g, d.dmg ?? 36, wpn, gear, norm(v(p.pos.x - target.x, p.pos.y - target.y))); if (ice) p.slowTimer = Math.max(p.slowTimer, 2.0) }
+    spawnParticles(g, target, 26, ice ? '#9fe8ff' : '#5fe6ff', 280)
+    if (ice) { spawnZone(g, { ...target }, 'ice', 70, 12, 2.6); spawnFx(g, 'shock', { ...target }, '#7fd4ff', r, 0.5) }
+    g.screenShake = Math.max(g.screenShake, 0.55); Sfx.slam()
   } else if (type === 'magma_geyser') {
     // Drake: a ring of lava geysers erupts around the player — sprint to the centre or out of the band
     const target = d.targetPos!, r = d.radius ?? 122
@@ -886,9 +980,10 @@ function resolveBossAttack(g: GS, bossId: BossId, wpn: WeaponDef, gear: GearId[]
       spawnZone(g, v(zx, zy), 'web', 50, 8, 4.5)
       if (i % 3 === 0) spawnParticles(g, v(zx, zy), 4, '#8E44AD', 90, 0.6)
     }
-  } else if (type === 'spider_charge') {
-    // Spider: a fast lunge along a lane — sidestep out of the path
-    const a = d.angle ?? 0, dirL = v(Math.cos(a), Math.sin(a)), lunge = 300, sz = BOSS_DEFS[bossId].size
+  } else if (type === 'spider_charge' || type === 'frost_bite') {
+    // a fast lunge along a lane — sidestep out of the path
+    const ice = type === 'frost_bite'
+    const a = d.angle ?? 0, dirL = v(Math.cos(a), Math.sin(a)), lunge = ice ? 340 : 300, sz = BOSS_DEFS[bossId].size
     const rel = v(p.pos.x - b.pos.x, p.pos.y - b.pos.y)
     const along = rel.x * dirL.x + rel.y * dirL.y
     const perpSigned = -rel.x * dirL.y + rel.y * dirL.x
@@ -899,8 +994,9 @@ function resolveBossAttack(g: GS, bossId: BossId, wpn: WeaponDef, gear: GearId[]
       if (wpn.id !== 'sword') p.knockbackVel = v(pushDir.x * 280, pushDir.y * 280)
     }
     b.pos.x = clamp(b.pos.x + dirL.x * lunge, 90, WW - 90); b.pos.y = clamp(b.pos.y + dirL.y * lunge, 90, WH - 90)
-    spawnParticles(g, b.pos, 18, '#8E44AD', 240); g.screenShake = Math.max(g.screenShake, 0.5)
-  } else if (type === 'leg_sweep' || type === 'tail_swipe' || type === 'wind_buffet') {
+    spawnParticles(g, b.pos, 18, ice ? '#9fe8ff' : '#8E44AD', 240); g.screenShake = Math.max(g.screenShake, 0.5)
+    if (ice) Sfx.slam()
+  } else if (type === 'leg_sweep' || type === 'tail_swipe' || type === 'wind_buffet' || type === 'tail_frost') {
     const angle = d.angle ?? 0, halfCone = (d.coneAngle ?? Math.PI) / 2, range = d.coneRange ?? 150
     if (dist(p.pos, b.pos) <= range) {
       const pAngle = Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
@@ -1017,6 +1113,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   p.atkTimer = Math.max(0, p.atkTimer - dt); p.iframeTimer = Math.max(0, p.iframeTimer - dt)
   p.dodgeCd = Math.max(0, p.dodgeCd - dt); p.hitFlash = Math.max(0, p.hitFlash - dt)
   p.slowTimer = Math.max(0, p.slowTimer - dt); p.webProcCd = Math.max(0, p.webProcCd - dt)
+  if (gear.includes('wyrm_scale')) p.slowTimer = 0   // frost plate — immune to slows
   b.stunTimer = Math.max(0, b.stunTimer - dt); b.slowTimer = Math.max(0, b.slowTimer - dt)
   b.hitFlash = Math.max(0, b.hitFlash - dt)
   b.legPhase += dt * (b.stunTimer > 0 ? 0.5 : g.bossEnraged ? 3.8 : 2.4)
@@ -1026,10 +1123,11 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   g.tooCloseFlash = Math.max(0, g.tooCloseFlash - dt * 2.0)
   g.mageCircle = Math.max(0, g.mageCircle - dt)
   g.manaShieldTimer = Math.max(0, g.manaShieldTimer - dt)
+  g.immuneFxCd = Math.max(0, g.immuneFxCd - dt)
   g.fx = g.fx.filter(f => { f.timer -= dt; return f.timer > 0 })
   if (p.hp > 0 && p.hp / p.maxHp < 0.25) Sfx.heartbeat()   // critical-HP heartbeat (throttled)
   if (g.rageTimer > 0) { g.rageTimer = Math.max(0, g.rageTimer - dt); if (g.rageTimer <= 0) g.rageActive = false }
-  if (g.poisonTimer > 0) { g.poisonTimer = Math.max(0, g.poisonTimer - dt); b.hp = Math.max(0, b.hp - 32 * dt) }
+  if (g.poisonTimer > 0) { g.poisonTimer = Math.max(0, g.poisonTimer - dt); if (g.dmgGate !== 'melee') b.hp = Math.max(0, b.hp - 32 * dt) }
   if (g.chainResetTimer > 0) { g.chainResetTimer = Math.max(0, g.chainResetTimer - dt); if (g.chainResetTimer <= 0) g.chainHits = 0 }
   if (g.bossFleeTimer > 0) g.bossFleeTimer = Math.max(0, g.bossFleeTimer - dt)
   if (g.webProcAnim) { g.webProcAnim.timer -= dt; if (g.webProcAnim.timer <= 0) g.webProcAnim = null }
@@ -1104,7 +1202,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
     p.iframeTimer = Math.max(p.iframeTimer, g.bullChargeDash.timer)
     spawnParticles(g, p.pos, 2, wTheme.particle, 70, 0.3)   // themed charge trail (fire / venom / spark)
     if (dist(p.pos, b.pos) < bossDef.size + 22) {
-      dealDmgToBoss(g, 150, gear); g.screenShake = Math.max(g.screenShake, 0.6)
+      dealDmgToBoss(g, 150, gear, 'melee'); g.screenShake = Math.max(g.screenShake, 0.6)
       themedBurst(g, b.pos, wTheme, 150, true)
       Sfx.chargeHit(); famSfx(wTheme, 'impact')
       g.bullChargeDash.active = false
@@ -1118,7 +1216,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
     Sfx.whirl()   // looping swish (throttled internally)
     if (g.whirlwindTimer <= 0) { g.whirlwindActive = false }
     else { spawnParticles(g, p.pos, 1, wTheme.accent, 150, 0.3)   // themed vortex motes
-      if (dist(p.pos, b.pos) < 110) { b.hp = Math.max(0, b.hp - 70 * dt); spawnParticles(g, b.pos, 2, wTheme.particle, 100) }
+      if (dist(p.pos, b.pos) < 110 && g.dmgGate !== 'ranged') { b.hp = Math.max(0, b.hp - 70 * dt); spawnParticles(g, b.pos, 2, wTheme.particle, 100) }
       g.minions.forEach(m => { if (m.hp > 0 && dist(p.pos, m.pos) < 110) { m.hp = Math.max(0, m.hp - 90 * dt); if (m.hp <= 0) { spawnParticles(g, m.pos, 12, '#8E44AD', 170); Sfx.minionDeath() } } }) }
   }
 
@@ -1233,7 +1331,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
       }
       let landed = false
       if (reaches(b.pos, bossDef.size)) {
-        dealDmgToBoss(g, mh.dmg, gear)
+        dealDmgToBoss(g, mh.dmg, gear, 'melee')
         spawnParticles(g, v(p.pos.x + Math.cos(mh.angle) * mh.reach * 0.6, p.pos.y + Math.sin(mh.angle) * mh.reach * 0.6), 6, '#FFFFFF', 110)
         landed = true
       }
@@ -1352,6 +1450,36 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
         b.pos.y = clamp(b.pos.y + strafe.y * bossSpeed * 0.65 * dt, 90, WH - 90)
       }
     }
+  } else if (bossId === 3 && b.stunTimer <= 0) {
+    // ── FROST WYRM — alternates grounded (melee-only) and airborne (ranged-only) stances ──
+    if (!g.bossDesperate) {
+      g.wyrmPhaseTimer -= dt
+      if (g.wyrmPhaseTimer <= 0) {
+        g.wyrmFlying = !g.wyrmFlying
+        g.dmgGate = g.wyrmFlying ? 'ranged' : 'melee'
+        g.wyrmPhaseTimer = 7.5 / (g.bossEnraged ? 1.4 : 1)
+        g.bossAttack = null; g.comboQueue = []; g.nextAttackTimer = 0.5
+        g.screenShake = Math.max(g.screenShake, 0.6); Sfx.roar()
+        g.phaseBanner = g.wyrmFlying
+          ? { text: 'THE WYRM TAKES FLIGHT', sub: 'Its scales turn all arrows aside — wait for it to land... or it is ranged-vulnerable aloft!', timer: 2.4 }
+          : { text: 'THE WYRM LANDS', sub: 'Grounded — close in with melee!', timer: 2.4 }
+        spawnParticles(g, b.pos, 30, '#cfe9ff', 320)
+      }
+    }
+    const speed = (g.bossEnraged ? 170 : 125) * (b.slowTimer > 0 ? 0.4 : 1)
+    if (g.wyrmFlying) {
+      // aerial: orbit the player at range, hard to reach with melee
+      g.bossFlightAngle += (g.bossEnraged ? 0.7 : 0.5) * dt
+      const r = 300, cx2 = clamp(p.pos.x, 320, WW - 320), cy2 = clamp(p.pos.y, 320, WH - 320)
+      const tx = cx2 + Math.cos(g.bossFlightAngle) * r, ty = cy2 + Math.sin(g.bossFlightAngle) * r * 0.7
+      b.pos.x = clamp(b.pos.x + (tx - b.pos.x) * Math.min(1, dt * 1.7), 80, WW - 80)
+      b.pos.y = clamp(b.pos.y + (ty - b.pos.y) * Math.min(1, dt * 1.7), 80, WH - 80)
+    } else {
+      // grounded: stalk toward the player so melee can connect
+      const d2p = dist(b.pos, p.pos)
+      if (d2p > 150) { const dir = norm(v(p.pos.x - b.pos.x, p.pos.y - b.pos.y)); b.pos.x = clamp(b.pos.x + dir.x * speed * dt, 90, WW - 90); b.pos.y = clamp(b.pos.y + dir.y * speed * dt, 90, WH - 90) }
+      else if (d2p < 110) { const away = norm(v(b.pos.x - p.pos.x, b.pos.y - p.pos.y)); b.pos.x = clamp(b.pos.x + away.x * speed * 0.5 * dt, 90, WW - 90); b.pos.y = clamp(b.pos.y + away.y * speed * 0.5 * dt, 90, WH - 90) }
+    }
   }
   if (bossId !== 1) b.angle = Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
   if (g.attackFlash) { g.attackFlash.timer = Math.max(0, g.attackFlash.timer - dt); if (g.attackFlash.timer <= 0) g.attackFlash = null }
@@ -1383,7 +1511,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   g.zones = g.zones.filter(zone => {
     zone.life -= dt; if (zone.life <= 0) return false
     if (dist(p.pos, zone.pos) < zone.radius + 14) {
-      if (zone.type === 'web') p.slowTimer = Math.max(p.slowTimer, 1.8)
+      if (zone.type === 'web' || zone.type === 'ice') p.slowTimer = Math.max(p.slowTimer, 1.8)
       if (p.iframeTimer <= 0 && zone.dps > 0 && !g.god && g.manaShieldTimer <= 0) {
         const tick2 = zone.dps * dt; p.hp = Math.max(0, p.hp - tick2); p.hitFlash = Math.max(p.hitFlash, 0.06)
         if (zone.type === 'poison' && Math.random() < dt * 2) g.damageNums.push({ id: ++g.nextDmgId, pos: { x: p.pos.x + rnd(-14, 14), y: p.pos.y - 18 }, val: Math.round(tick2), life: 0.8, maxLife: 0.8, isPlayer: true, vx: rnd(-8, 8) })
@@ -1410,6 +1538,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
     if (proj.pos.x < 0 || proj.pos.x > WW || proj.pos.y < 0 || proj.pos.y > WH) { if (proj.fromBoss && proj.isFireball) explodeFireball(g, proj.pos); return false }
     if (proj.fromBoss && p.iframeTimer <= 0 && dist(proj.pos, p.pos) < proj.radius + 14) {
       if (g.bossAttack?.type === 'web_shot' || proj.isWeb) p.slowTimer = Math.max(p.slowTimer, 3.0)
+      if (proj.isIce) p.slowTimer = Math.max(p.slowTimer, 1.6)
       dealDmgToPlayer(g, proj.dmg, wpn, gear, norm(v(p.pos.x - proj.pos.x, p.pos.y - proj.pos.y)))
       if (proj.isFireball) explodeFireball(g, proj.pos)
       spawnParticles(g, proj.pos, 9, proj.color, 130); return false
@@ -1504,6 +1633,18 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
       if ((atk.data.elapsed ?? 0) >= (atk.data.duration ?? 2.2)) { g.bossAttack = null; g.nextAttackTimer = attackGap(g, bossId) }
       return
     }
+    if (atk.type === 'frost_breath' && atk.active) {
+      // Frost Wyrm: a freezing breath cone that chills and leaves ice underfoot
+      const d2 = atk.data; d2.elapsed = (d2.elapsed ?? 0) + dt
+      const a3 = d2.angle ?? 0, hc2 = (d2.coneAngle ?? 0.5) / 2, rng2 = d2.coneRange ?? 300
+      const pa2 = Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
+      let df2 = Math.abs(pa2 - a3); while (df2 > Math.PI) df2 = Math.abs(df2 - Math.PI * 2)
+      if (df2 <= hc2 && dist(p.pos, b.pos) < rng2) { dealDmgToPlayer(g, (d2.dmg ?? 18) * dt * 1.5, wpn, gear); p.slowTimer = Math.max(p.slowTimer, 1.2) }
+      for (let k = 0; k < 4; k++) { const fa = a3 + rnd(-hc2, hc2), fd = rnd(40, rng2); spawnParticles(g, v(b.pos.x + Math.cos(fa) * fd, b.pos.y + Math.sin(fa) * fd), 1, ['#9fe8ff', '#cfe9ff', '#e8f7ff'][rndI(0, 2)], 60, 0.45) }
+      if (rndI(0, 9) === 0) { const fa = a3 + rnd(-hc2, hc2), fd = rnd(80, rng2); spawnZone(g, v(b.pos.x + Math.cos(fa) * fd, b.pos.y + Math.sin(fa) * fd), 'ice', 46, 10, 2.2) }
+      if ((d2.elapsed ?? 0) >= (d2.duration ?? 2.0)) { g.bossAttack = null; g.nextAttackTimer = attackGap(g, bossId) }
+      return
+    }
     if (atk.type === 'web_spiral' && atk.active) {
       // Spider: a spinning pinwheel of web bolts — circle the boss to stay in the gaps
       const d2 = atk.data; d2.elapsed = (d2.elapsed ?? 0) + dt
@@ -1557,9 +1698,9 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
     let next: string
     if (g.comboQueue.length) next = g.comboQueue.shift()!
     else {
-      next = selectBossAttack(bossId, g.bossEnraged, g.bossDesperate, dist(p.pos, b.pos))
+      next = selectBossAttack(bossId, g.bossEnraged, g.bossDesperate, dist(p.pos, b.pos), g.wyrmFlying)
       // chain a fresh (non-channelled) attack into a telegraphed multi-hit combo
-      if (!CHANNELED.has(next) && Math.random() < comboChance(g, bossId)) {
+      if (!CHANNELED.has(next) && COMBOS[bossId].length && Math.random() < comboChance(g, bossId)) {
         const tpl = COMBOS[bossId][rndI(0, COMBOS[bossId].length - 1)]
         next = tpl[0]
         for (let i = 1; i < tpl.length; i++) g.comboQueue.push(tpl[i])
@@ -1573,7 +1714,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   if (!g.bossEnraged && hpFrac <= bossDef.enrageAt) {
     g.bossEnraged = true; g.screenShake = 0.95; g.hitstop = Math.max(g.hitstop, 0.08); spawnParticles(g, b.pos, 40, '#FF4444', 360)
     Sfx.roar()
-    const p2Sub = bossId === 0 ? 'Venom floods the lair' : bossId === 1 ? 'The molten core ignites' : 'The storm answers her call'
+    const p2Sub = bossId === 0 ? 'Venom floods the lair' : bossId === 1 ? 'The molten core ignites' : bossId === 3 ? 'The blizzard rises' : 'The storm answers her call'
     g.phaseBanner = { text: 'PHASE 2 — ENRAGED', sub: p2Sub, timer: 2.6 }
   }
   // ── PHASE 3 — Desperate (final stand at low HP) ──
@@ -1588,7 +1729,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
     // shockwave nova — punishes anyone hugging the boss at the transition
     const novaR = bossDef.size + 150
     if (dist(p.pos, b.pos) < novaR && p.iframeTimer <= 0) dealDmgToPlayer(g, 26, wpn, gear, norm(v(p.pos.x - b.pos.x, p.pos.y - b.pos.y)))
-    const p3Sub = bossId === 0 ? 'She calls her brood!' : bossId === 1 ? 'The arena turns to magma!' : 'A storm of blades takes wing!'
+    const p3Sub = bossId === 0 ? 'She calls her brood!' : bossId === 1 ? 'The arena turns to magma!' : bossId === 3 ? 'It crashes down — now vulnerable to all!' : 'A storm of blades takes wing!'
     g.phaseBanner = { text: 'PHASE 3 — DESPERATE', sub: p3Sub, timer: 3.0 }
     // ── signature phase-3 openers ──
     if (bossId === 0) {
@@ -1602,6 +1743,13 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
         spawnParticles(g, v(b.pos.x + Math.cos(a) * rr, b.pos.y + Math.sin(a) * rr), 8, '#FF6600', 130, 0.6)
       }
       g.sigTimer = 0.36
+    } else if (bossId === 3) {
+      // Frost Wyrm: crashes to earth and drops its scale-guard — every weapon can now hurt it
+      g.wyrmFlying = false; g.dmgGate = 'both'
+      for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2, rr = bossDef.size + 90
+        spawnZone(g, v(clamp(b.pos.x + Math.cos(a) * rr, 80, WW - 80), clamp(b.pos.y + Math.sin(a) * rr, 80, WH - 80)), 'ice', 56, 12, 4.0)
+        spawnParticles(g, v(b.pos.x + Math.cos(a) * rr, b.pos.y + Math.sin(a) * rr), 8, '#9fe8ff', 150, 0.6) }
+      g.sigTimer = 0.5
     } else {
       // Griffin: takes wing and looses a feather storm; flies faster and more erratically
       fireFeatherVolley(g, 14, 240, 13, g.gtime)
@@ -1761,7 +1909,7 @@ function activateAbility(g: GS, idx: number, wpn: WeaponDef, gear: GearId[], abi
     }
   } else if (wpn.id === 'sword') {
     if (idx === 0) { // Ground Slam
-      if (dist(p.pos, b.pos) < 140) { dealDmgToBoss(g, 130, gear); g.screenShake = Math.max(g.screenShake, 0.7) }
+      if (dist(p.pos, b.pos) < 140) { dealDmgToBoss(g, 130, gear, 'melee'); g.screenShake = Math.max(g.screenShake, 0.7) }
       g.minions.forEach(m => { if (m.hp > 0 && dist(p.pos, m.pos) < 140) dealDmgToMinion(g, m, 130) })
       themedBurst(g, p.pos, th, 150, true)
       Sfx.slam(); famSfx(th, 'impact')
@@ -1829,7 +1977,7 @@ function rrect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h
   ctx.closePath()
 }
 
-function renderArena(ctx: CanvasRenderingContext2D, arenaType: 'spider'|'drake'|'griffin', t: number, g: GS) {
+function renderArena(ctx: CanvasRenderingContext2D, arenaType: 'spider'|'drake'|'griffin'|'wyrm', t: number, g: GS) {
   ctx.save()
   if (arenaType === 'spider') {
     const bg = ctx.createLinearGradient(0, 0, WW, WH)
@@ -1864,7 +2012,7 @@ function renderArena(ctx: CanvasRenderingContext2D, arenaType: 'spider'|'drake'|
       ctx.shadowColor = pt.color; ctx.shadowBlur = 9
       ctx.fillStyle = pt.color; ctx.beginPath(); ctx.arc(pt.pos.x, pt.pos.y, pt.size * (0.65 + a2 * 0.35), 0, Math.PI*2); ctx.fill(); ctx.restore()
     })
-  } else {
+  } else if (arenaType === 'griffin') {
     const bg = ctx.createLinearGradient(0,0,0,WH)
     bg.addColorStop(0,'#05090f'); bg.addColorStop(1,'#0e1528')
     ctx.fillStyle = bg; ctx.fillRect(0,0,WW,WH)
@@ -1876,16 +2024,35 @@ function renderArena(ctx: CanvasRenderingContext2D, arenaType: 'spider'|'drake'|
     const glow3 = ctx.createRadialGradient(WW/2,WH/2,0,WW/2,WH/2,700)
     glow3.addColorStop(0,'rgba(80,120,255,0.06)'); glow3.addColorStop(1,'rgba(0,0,0,0)')
     ctx.fillStyle = glow3; ctx.fillRect(0,0,WW,WH)
+  } else {
+    // ── FROZEN PEAK — pale icy cavern with frost cracks and a cold glow ──
+    const bg = ctx.createLinearGradient(0,0,WW,WH)
+    bg.addColorStop(0,'#071420'); bg.addColorStop(0.5,'#0a2030'); bg.addColorStop(1,'#06121c')
+    ctx.fillStyle = bg; ctx.fillRect(0,0,WW,WH)
+    // frost cracks radiating across the ice
+    ctx.strokeStyle = `rgba(150,220,255,${0.06+0.03*Math.sin(t*0.7)})`; ctx.lineWidth = 2
+    const cx = WW/2, cy = WH/2
+    for (let i=0;i<14;i++){ const a=i/14*Math.PI*2 + i*0.3
+      ctx.beginPath(); ctx.moveTo(cx,cy)
+      let x=cx, y=cy
+      for (let s=0;s<5;s++){ const seg=(120+s*120); x=cx+Math.cos(a+Math.sin(s*1.7)*0.2)*seg; y=cy+Math.sin(a+Math.sin(s*1.7)*0.2)*seg; ctx.lineTo(x,y) }
+      ctx.stroke() }
+    // scattered snow glints
+    ctx.fillStyle = 'rgba(200,235,255,0.5)'
+    for (let i=0;i<70;i++){ const seed=i*149; const x=(seed*7)%WW, y=(seed*13)%WH, r=0.6+(seed%3); ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill() }
+    const glow4 = ctx.createRadialGradient(cx,cy,0,cx,cy,700)
+    glow4.addColorStop(0,'rgba(120,210,255,0.08)'); glow4.addColorStop(1,'rgba(0,0,0,0)')
+    ctx.fillStyle = glow4; ctx.fillRect(0,0,WW,WH)
   }
   void t
   ctx.restore()
 }
 
-function renderEnvObjects(ctx: CanvasRenderingContext2D, g: GS, arenaType: 'spider'|'drake'|'griffin', t: number) {
+function renderEnvObjects(ctx: CanvasRenderingContext2D, g: GS, arenaType: 'spider'|'drake'|'griffin'|'wyrm', t: number) {
   for (const obj of g.envObjects) {
     ctx.save(); ctx.translate(obj.pos.x, obj.pos.y); ctx.rotate(obj.angle)
     if (obj.type === 'rock') {
-      ctx.fillStyle = arenaType==='drake' ? '#3a2010' : arenaType==='griffin' ? '#4a5060' : '#2a1a3a'
+      ctx.fillStyle = arenaType==='drake' ? '#3a2010' : arenaType==='griffin' ? '#4a5060' : arenaType==='wyrm' ? '#2b4a5e' : '#2a1a3a'
       ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 6
       ctx.beginPath()
       const sides = 5+obj.variant
@@ -1909,9 +2076,11 @@ function renderEnvObjects(ctx: CanvasRenderingContext2D, g: GS, arenaType: 'spid
       for (let i=0;i<8;i++) { const a=i/8*Math.PI*2; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(a)*obj.size,Math.sin(a)*obj.size); ctx.stroke() }
       for (let ring=1;ring<=4;ring++) { const r2=ring/4*obj.size; ctx.beginPath(); for (let i=0;i<8;i++) { const a=i/8*Math.PI*2; if(i===0) ctx.moveTo(Math.cos(a)*r2,Math.sin(a)*r2); else ctx.lineTo(Math.cos(a)*r2,Math.sin(a)*r2) } ctx.closePath(); ctx.stroke() }
     } else if (obj.type === 'crystal') {
+      const ice = arenaType === 'wyrm'
       const glow = ctx.createRadialGradient(0,0,0,0,0,obj.size)
-      glow.addColorStop(0,'rgba(255,130,30,0.5)'); glow.addColorStop(1,'rgba(255,80,0,0.05)')
-      ctx.fillStyle = glow; ctx.strokeStyle = 'rgba(255,150,60,0.7)'; ctx.lineWidth = 1.5
+      if (ice) { glow.addColorStop(0,'rgba(140,220,255,0.5)'); glow.addColorStop(1,'rgba(80,160,230,0.05)') }
+      else { glow.addColorStop(0,'rgba(255,130,30,0.5)'); glow.addColorStop(1,'rgba(255,80,0,0.05)') }
+      ctx.fillStyle = glow; ctx.strokeStyle = ice ? 'rgba(170,230,255,0.7)' : 'rgba(255,150,60,0.7)'; ctx.lineWidth = 1.5
       ctx.beginPath(); ctx.moveTo(0,-obj.size); ctx.lineTo(obj.size*0.4,-obj.size*0.2); ctx.lineTo(obj.size*0.25,obj.size*0.6); ctx.lineTo(-obj.size*0.25,obj.size*0.6); ctx.lineTo(-obj.size*0.4,-obj.size*0.2); ctx.closePath()
       ctx.fill(); ctx.stroke()
     } else if (obj.type === 'ruin') {
@@ -2216,7 +2385,7 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
       ctx.shadowBlur=0
     }
 
-  } else {
+  } else if (bossId === 2) {
     // ── STORM GRIFFIN ── majestic feathered raptor-lion, storm-charged wings
     const sz = bossDef.size
     const enr = g.bossEnraged
@@ -2447,6 +2616,88 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
       const a = t * 4 + i * (Math.PI / 3)
       bolt(Math.cos(a) * sz * 1.05, Math.sin(a) * sz * 1.05, Math.cos(a + 0.4) * sz * 1.5, Math.sin(a + 0.4) * sz * 1.5, 4, sz * 0.08, 'rgba(100,230,255,0.6)', 1.6)
     }
+  } else {
+    // ── FROST WYRM ── winged western frost-dragon; flies (ranged-only) or grounds (melee-only)
+    const sz = bossDef.size, enr = g.bossEnraged, flying = g.wyrmFlying
+    const flap = Math.sin(t * (flying ? 5.0 : 2.2))
+    const lift = flying ? 20 + flap * 6 : 0
+    const cDark = hitW ? '#FFF' : (enr ? '#1f5a78' : '#234a5e')
+    const cMid = hitW ? '#FFF' : (enr ? '#3a86b0' : '#356f8a')
+    const cLite = hitW ? '#FFF' : (enr ? '#ade4ff' : '#8fd0ec')
+    const cMem = enr ? 'rgba(120,230,255,0.45)' : 'rgba(150,210,240,0.34)'
+    const cEdge = enr ? '#9fe8ff' : '#cfeeff'
+    const cGlow = enr ? '#00d6ff' : '#7fd4ff'
+    const cHorn = hitW ? '#FFF' : '#e3f1f9'
+    // ground shadow (shrinks + detaches when aloft)
+    ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(0, sz * 0.5 + (flying ? 18 : 6), sz * (flying ? 0.72 : 0.95), sz * (flying ? 0.22 : 0.34), 0, 0, Math.PI * 2); ctx.fill(); ctx.restore()
+    // cold backlight
+    ctx.shadowColor = cGlow; ctx.shadowBlur = enr ? 40 : 24
+    { const ar = sz * 1.7, bg = ctx.createRadialGradient(0, -lift, sz * 0.3, 0, -lift, ar); bg.addColorStop(0, enr ? 'rgba(0,200,255,0.18)' : 'rgba(120,200,255,0.10)'); bg.addColorStop(1, 'rgba(40,60,90,0)'); ctx.fillStyle = bg; ctx.beginPath(); ctx.arc(0, -lift, ar, 0, Math.PI * 2); ctx.fill() }
+    ctx.shadowBlur = 0
+    ctx.save(); ctx.translate(0, -lift); ctx.rotate(b.angle)
+    // ── wings (behind) ──
+    const drawWing = (side: number) => {
+      ctx.save(); ctx.translate(-sz * 0.05, side * sz * 0.18)
+      const f = 0.5 + 0.5 * flap; ctx.rotate(side * (0.32 - f * 0.42))
+      ctx.fillStyle = cMem; ctx.strokeStyle = cEdge; ctx.lineWidth = 2; ctx.shadowColor = cGlow; ctx.shadowBlur = enr ? 14 : 8
+      ctx.beginPath(); ctx.moveTo(0, 0)
+      ctx.quadraticCurveTo(-sz * 0.5, side * sz * 0.5, -sz * 1.15, side * sz * 1.0)
+      ctx.quadraticCurveTo(-sz * 0.75, side * sz * 0.74, -sz * 0.5, side * sz * 0.9)
+      ctx.quadraticCurveTo(-sz * 0.45, side * sz * 0.6, -sz * 0.25, side * sz * 0.78)
+      ctx.quadraticCurveTo(-sz * 0.2, side * sz * 0.45, 0, 0)
+      ctx.closePath(); ctx.fill(); ctx.stroke()
+      ctx.strokeStyle = cMid; ctx.lineWidth = 2.5; ctx.shadowBlur = 0
+      for (const e of [0.55, 0.8, 1.0]) { ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-sz * 1.12 * e, side * sz * 0.98 * e); ctx.stroke() }
+      ctx.restore()
+    }
+    drawWing(-1); drawWing(1); ctx.shadowBlur = 0
+    // ── tail ──
+    ctx.strokeStyle = cMid; ctx.lineWidth = sz * 0.18; ctx.lineCap = 'round'
+    ctx.beginPath(); ctx.moveTo(-sz * 0.5, 0); ctx.quadraticCurveTo(-sz * 1.0, Math.sin(t * 2) * sz * 0.22, -sz * 1.5, Math.sin(t * 2.3) * sz * 0.3); ctx.stroke()
+    { const tx = -sz * 1.5 + Math.sin(t * 2.3) * 0, ty = Math.sin(t * 2.3) * sz * 0.3; ctx.fillStyle = cHorn; ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx - sz * 0.16, ty - sz * 0.12); ctx.lineTo(tx - sz * 0.06, ty); ctx.lineTo(tx - sz * 0.16, ty + sz * 0.12); ctx.closePath(); ctx.fill() }
+    ctx.lineCap = 'butt'
+    // ── legs ──
+    ctx.lineCap = 'round'
+    for (const lx of [sz * 0.22, -sz * 0.22]) for (const side of [-1, 1]) {
+      const fx2 = lx + (lx > 0 ? sz * 0.12 : -sz * 0.12), fy2 = side * sz * 0.5
+      ctx.strokeStyle = cDark; ctx.lineWidth = sz * 0.12; ctx.beginPath(); ctx.moveTo(lx, side * sz * 0.2); ctx.lineTo(fx2, fy2); ctx.stroke()
+      ctx.strokeStyle = cHorn; ctx.lineWidth = 2
+      for (const c of [-1, 0, 1]) { ctx.beginPath(); ctx.moveTo(fx2, fy2); ctx.lineTo(fx2 + c * sz * 0.05, fy2 + side * sz * 0.09); ctx.stroke() }
+    }
+    ctx.lineCap = 'butt'
+    // ── body ──
+    const bodyG = ctx.createLinearGradient(sz * 0.5, -sz * 0.3, -sz * 0.5, sz * 0.3)
+    bodyG.addColorStop(0, cMid); bodyG.addColorStop(1, cDark)
+    ctx.fillStyle = bodyG; ctx.beginPath(); ctx.ellipse(-sz * 0.05, 0, sz * 0.62, sz * 0.43, 0, 0, Math.PI * 2); ctx.fill()
+    ctx.globalAlpha = 0.5; ctx.fillStyle = cLite; ctx.beginPath(); ctx.ellipse(0, sz * 0.1, sz * 0.4, sz * 0.24, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1
+    // dorsal frost crystals
+    ctx.fillStyle = cHorn
+    for (let i = 0; i < 5; i++) { const x = -sz * 0.4 + i * sz * 0.2; ctx.beginPath(); ctx.moveTo(x, -sz * 0.08); ctx.lineTo(x + sz * 0.05, -sz * 0.26); ctx.lineTo(x + sz * 0.1, -sz * 0.08); ctx.closePath(); ctx.fill() }
+    // ── neck + head (forward) ──
+    ctx.strokeStyle = cMid; ctx.lineWidth = sz * 0.26; ctx.lineCap = 'round'
+    ctx.beginPath(); ctx.moveTo(sz * 0.4, 0); ctx.lineTo(sz * 0.72, 0); ctx.stroke(); ctx.lineCap = 'butt'
+    ctx.fillStyle = cMid; ctx.beginPath(); ctx.ellipse(sz * 0.84, 0, sz * 0.26, sz * 0.2, 0, 0, Math.PI * 2); ctx.fill()
+    ctx.beginPath(); ctx.moveTo(sz * 0.98, -sz * 0.11); ctx.lineTo(sz * 1.2, -sz * 0.045); ctx.lineTo(sz * 1.2, sz * 0.045); ctx.lineTo(sz * 0.98, sz * 0.11); ctx.closePath(); ctx.fill()
+    ctx.fillStyle = cDark; ctx.beginPath(); ctx.moveTo(sz * 1.0, sz * 0.06); ctx.lineTo(sz * 1.18, sz * 0.05); ctx.lineTo(sz * 1.02, sz * 0.17); ctx.closePath(); ctx.fill()
+    // swept-back horns
+    ctx.fillStyle = cHorn
+    for (const side of [-1, 1]) { ctx.beginPath(); ctx.moveTo(sz * 0.74, side * sz * 0.14); ctx.quadraticCurveTo(sz * 0.52, side * sz * 0.36, sz * 0.34, side * sz * 0.32); ctx.quadraticCurveTo(sz * 0.58, side * sz * 0.22, sz * 0.8, side * sz * 0.08); ctx.closePath(); ctx.fill() }
+    // glowing eyes
+    const ep = 0.6 + 0.4 * Math.sin(t * 4)
+    ctx.shadowColor = cGlow; ctx.shadowBlur = 18 * ep
+    ctx.fillStyle = enr ? '#d6f6ff' : '#9fe8ff'
+    for (const side of [-1, 1]) { ctx.beginPath(); ctx.arc(sz * 0.84, side * sz * 0.08, sz * 0.05, 0, Math.PI * 2); ctx.fill() }
+    ctx.shadowBlur = 0
+    // frost breath glow at the maw
+    { const fb = 0.5 + 0.5 * Math.sin(t * 6); ctx.fillStyle = `rgba(159,232,255,${0.4 + 0.3 * fb})`; ctx.shadowColor = cGlow; ctx.shadowBlur = 14; ctx.beginPath(); ctx.arc(sz * 1.2, 0, sz * 0.08 * (0.7 + fb * 0.5), 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0 }
+    ctx.restore()   // end rotate + lift
+    // ── damage-gate shimmer: hardened scales (ranged-immune) shown as a deflecting aura ──
+    if (g.dmgGate === 'melee') {
+      const sp = 0.5 + 0.5 * Math.sin(t * 4); ctx.save(); ctx.globalAlpha = 0.28 + 0.22 * sp
+      ctx.strokeStyle = cEdge; ctx.lineWidth = 2.5; ctx.shadowColor = cGlow; ctx.shadowBlur = 12
+      ctx.beginPath(); ctx.arc(0, -lift, sz * 1.08 + sp * 4, 0, Math.PI * 2); ctx.stroke(); ctx.restore()
+    }
+    ctx.shadowBlur = 0
   }
   ctx.restore()
 }
@@ -2524,8 +2775,8 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
 
   ctx.save(); ctx.translate(p.pos.x, p.pos.y)
   // the character's whole look is driven by armour (4 looks: basic + 3)
-  const armour = gear.includes('ember_armor')?'ember':gear.includes('web_amulet')?'web':gear.includes('feather_boots')?'feather':'basic'
-  const armGlow = armour==='ember'?'#FF6A1A':armour==='web'?'#9B59B6':armour==='feather'?'#9fc0ff':'#caa84a'
+  const armour = gear.includes('ember_armor')?'ember':gear.includes('web_amulet')?'web':gear.includes('feather_boots')?'feather':gear.includes('wyrm_scale')?'frost':'basic'
+  const armGlow = armour==='ember'?'#FF6A1A':armour==='web'?'#9B59B6':armour==='feather'?'#9fc0ff':armour==='frost'?'#7fd4ff':'#caa84a'
   // ground shadow under the character
   ctx.save(); ctx.shadowBlur = 0; ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.beginPath(); ctx.ellipse(0, 13, 13, 4.5, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore()
   if (p.hitFlash>0) { ctx.shadowColor='#FF0000'; ctx.shadowBlur=24 } else { ctx.shadowColor=armGlow; ctx.shadowBlur=14 }
@@ -2571,6 +2822,7 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
     const L = armour==='ember'   ? { rl:'#cf5740', rm:'#a93226', rd:'#5a1a10', cl:'#7a1d12', pl:'#c0392b', plt:'#e8714e', tr:'#FF8A1A', gl:'#FF6A1A' }
             : armour==='web'     ? { rl:'#5D2E86', rm:'#4A235A', rd:'#2c1240', cl:'#3b1560', pl:'#5D2E86', plt:'#7D3C98', tr:'#C39BD3', gl:'#9B59B6' }
             : armour==='feather' ? { rl:'#f2f6fb', rm:'#cfd8e6', rd:'#9aa6bc', cl:'#c2ccdd', pl:'#e8eef6', plt:'#ffffff', tr:'#aaccff', gl:'#9fc0ff' }
+            : armour==='frost'   ? { rl:'#9fd8ef', rm:'#4a87a8', rd:'#234a5e', cl:'#1f4254', pl:'#356f8a', plt:'#bfe9f7', tr:'#cfeeff', gl:'#7fd4ff' }
             :                      { rl:'#C9A876', rm:'#9C7B4F', rd:'#6B5436', cl:'#4a3826', pl:'', plt:'', tr:'#caa84a', gl:'#caa84a' }
     const W = (c: string) => hw ? '#FFF' : c
     const wp = p.walkPhase
@@ -2671,6 +2923,22 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
       ctx.fillStyle=W('#f2f6fb'); for (const side of [-1,1]){ ctx.beginPath(); ctx.moveTo(6,side*4); ctx.lineTo(14,side*3); ctx.lineTo(8,side*8); ctx.closePath(); ctx.fill() }
       // ethereal speed aura
       ctx.strokeStyle=`rgba(159,192,255,${0.35+0.35*fl})`; ctx.lineWidth=1.4; ctx.shadowColor=L.gl; ctx.shadowBlur=10; ctx.beginPath(); ctx.ellipse(2,0,11,6,0,0,Math.PI*2); ctx.stroke(); ctx.shadowBlur=0
+    } else if (armour==='frost') {
+      const fz = 0.5+0.5*Math.sin(t*5)
+      // layered dragon-scale pauldrons
+      ctx.shadowColor=L.gl; ctx.shadowBlur=7
+      for (const side of [-1,1]){ ctx.fillStyle=W(L.pl); ctx.beginPath(); ctx.ellipse(2, side*10, 6.4, 5.0, side*0.3, 0, Math.PI*2); ctx.fill(); ctx.fillStyle=W(L.plt); ctx.beginPath(); ctx.ellipse(3, side*10, 3.0, 2.4, side*0.3, 0, Math.PI*2); ctx.fill() }
+      ctx.shadowBlur=0
+      // scaled breastplate
+      ctx.fillStyle=W(L.plt); ctx.beginPath(); ctx.ellipse(-1,-1,7.8,8.8,0,0,Math.PI*2); ctx.fill()
+      ctx.strokeStyle=`rgba(120,210,250,${0.45+0.3*fz})`; ctx.lineWidth=0.9
+      for (let r=2.4;r<=7;r+=2.3){ ctx.beginPath(); for(let i=0;i<=8;i++){const a=i/8*Math.PI*2,x=-1+Math.cos(a)*r,y=-1+Math.sin(a)*r; if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y)} ctx.stroke() }
+      // horned frost helm
+      ctx.fillStyle=W(L.pl); ctx.beginPath(); ctx.arc(4.5,0,7.3,Math.PI*0.48,Math.PI*1.52); ctx.fill()
+      ctx.fillStyle=W('#e3f1f9'); for (const side of [-1,1]){ ctx.beginPath(); ctx.moveTo(3,side*5); ctx.quadraticCurveTo(-2,side*12,-6,side*11); ctx.quadraticCurveTo(0,side*7,2,side*4); ctx.closePath(); ctx.fill() }
+      // frost crystal crest
+      ctx.fillStyle=`rgba(190,233,247,${0.7+0.3*fz})`; ctx.shadowColor=L.gl; ctx.shadowBlur=10
+      ctx.beginPath(); ctx.moveTo(5,-2); ctx.lineTo(3,-12-fz*3); ctx.lineTo(7,-3); ctx.closePath(); ctx.fill(); ctx.shadowBlur=0
     }
   }
 
@@ -3272,7 +3540,7 @@ function renderTelegraph(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t
 }
 
 function renderHazards(ctx: CanvasRenderingContext2D, g: GS) {
-  const ZONE_COLORS: Record<string,[string,string]> = { poison:['#8E44AD','#5D1E7A'], fire:['#FF6600','#AA2200'], lightning:['#F1C40F','#8B6914'], web:['#6C3483','#3B1560'] }
+  const ZONE_COLORS: Record<string,[string,string]> = { poison:['#8E44AD','#5D1E7A'], fire:['#FF6600','#AA2200'], lightning:['#F1C40F','#8B6914'], web:['#6C3483','#3B1560'], ice:['#9fe8ff','#3a6e9a'] }
   g.zones.forEach(zone => {
     const [bright,dark] = ZONE_COLORS[zone.type]??['#FFF','#888']
     const lp=zone.life/zone.maxLife, pulse=0.55+0.45*Math.sin(g.gtime*4+zone.id*1.3)
@@ -3432,6 +3700,16 @@ function renderProjectiles(ctx: CanvasRenderingContext2D, g: GS, t: number) {
       ctx.beginPath(); ctx.moveTo(11,0); ctx.lineTo(-6,-4.5); ctx.lineTo(-3,0); ctx.lineTo(-6,4.5); ctx.closePath(); ctx.fill()
       ctx.strokeStyle='rgba(255,255,255,0.75)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(11,0); ctx.lineTo(-6,0); ctx.stroke()
       ctx.restore()
+    } else if (proj.isIce) {
+      // sharp icicle shard pointing along travel
+      const ai=Math.atan2(proj.vel.y,proj.vel.x)
+      ctx.save(); ctx.translate(proj.pos.x,proj.pos.y); ctx.rotate(ai)
+      ctx.shadowColor='#9fe8ff'; ctx.shadowBlur=12
+      const ig=ctx.createLinearGradient(-9,0,11,0); ig.addColorStop(0,'rgba(120,200,255,0.2)'); ig.addColorStop(0.5,'#bfeeff'); ig.addColorStop(1,'#ffffff')
+      ctx.fillStyle=ig
+      ctx.beginPath(); ctx.moveTo(11,0); ctx.lineTo(-3,-4); ctx.lineTo(-9,0); ctx.lineTo(-3,4); ctx.closePath(); ctx.fill()
+      ctx.strokeStyle='rgba(255,255,255,0.9)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(11,0); ctx.lineTo(-5,0); ctx.stroke()
+      ctx.restore()
     } else {
       ctx.fillStyle=proj.color; ctx.beginPath(); ctx.arc(proj.pos.x,proj.pos.y,proj.radius,0,Math.PI*2); ctx.fill()
     }
@@ -3534,6 +3812,14 @@ function renderDamageNumbers(ctx: CanvasRenderingContext2D, g: GS) {
     const alpha = Math.min(1, dn.life * 2.4)
     // pop: overshoot to ~1.6x at spawn, settle to 1.0 over the first 15% of life
     const scale = 1.6 - 0.6 * Math.min(1, prog / 0.15)
+    // damage-gate feedback ("IMMUNE" / "TOO HIGH!") — icy, no number
+    if (dn.text) {
+      ctx.save(); ctx.globalAlpha = alpha; ctx.translate(dn.pos.x, dn.pos.y); ctx.scale(scale, scale)
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '11px "Press Start 2P",monospace'
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.9)'; ctx.lineJoin = 'round'; ctx.strokeText(dn.text, 0, 0)
+      ctx.shadowColor = '#7fd4ff'; ctx.shadowBlur = 12; ctx.fillStyle = '#cfeeff'; ctx.fillText(dn.text, 0, 0)
+      ctx.restore(); return
+    }
     const txt = (dn.isPlayer ? '-' : '') + dn.val
     const sz = dn.isPlayer ? 16 : dn.crit ? 22 : 14
     const col = dn.isPlayer ? '#FF3B3B' : dn.crit ? '#FFD24A' : '#FFFFFF'
@@ -3665,6 +3951,14 @@ function renderHUD(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, bossDef
   ctx.fillStyle='rgba(255,255,255,0.14)'; ctx.fillRect(barX,barY+7,barW*hpRat,(barH-7)*0.4)
   if (g.bossEnraged) { const p2=0.5+0.5*Math.sin(t*6); ctx.fillStyle=`rgba(255,0,0,${p2*0.22})`; ctx.fillRect(barX,barY+7,barW*hpRat,barH-7); ctx.font='9px "Press Start 2P",monospace'; ctx.fillStyle='#FF4444'; ctx.textAlign='right'; ctx.fillText('ENRAGED',barX+barW-2,barY+barH+2) }
   if (b.stunTimer>0) { ctx.font='9px "Press Start 2P",monospace'; ctx.fillStyle='#F1C40F'; ctx.textAlign='left'; ctx.fillText('STUNNED',barX+2,barY+barH+2) }
+  // Frost Wyrm damage-gate banner above the bar
+  if (g.dmgGate !== 'both') {
+    const gp=0.55+0.45*Math.sin(t*5)
+    ctx.font='9px "Press Start 2P",monospace'; ctx.textAlign='center'
+    ctx.fillStyle=`rgba(159,232,255,${gp})`; ctx.shadowColor='#7fd4ff'; ctx.shadowBlur=10
+    ctx.fillText(g.dmgGate==='melee'?'⚔ MELEE ONLY — RANGED DEFLECTED':'✷ RANGED ONLY — MELEE CANNOT REACH', CW/2, barY+barH+28)
+    ctx.shadowBlur=0
+  }
   ctx.font='7px "Press Start 2P",monospace'; ctx.fillStyle='rgba(200,155,60,0.5)'; ctx.textAlign='center'
   ctx.fillText(`${Math.ceil(b.hp).toLocaleString()} / ${b.maxHp.toLocaleString()}`,CW/2,barY+barH+14)
 
@@ -4018,7 +4312,7 @@ function bossSvg(bossId: number, color: string, size: number): JSX.Element {
     <circle cx="44" cy="47" r="4" fill="#fff" /><circle cx="44" cy="47" r="2.2" fill={color} />
     <circle cx="82" cy="52" r="2" fill={color} />
   </g>)
-  return prepIcon(size, color, <g strokeLinejoin="round">
+  if (bossId === 2) return prepIcon(size, color, <g strokeLinejoin="round">
     <path d="M50 52 Q24 30 8 44 Q24 44 34 54 Q16 52 12 66 Q34 58 50 60 Z" fill={color} fillOpacity="0.22" stroke={color} strokeWidth="2" />
     <path d="M50 52 Q76 30 92 44 Q76 44 66 54 Q84 52 88 66 Q66 58 50 60 Z" fill={color} fillOpacity="0.22" stroke={color} strokeWidth="2" />
     <path d="M44 58 L42 82 L58 82 L56 58 Z" fill={color} fillOpacity="0.2" stroke={color} strokeWidth="2" />
@@ -4026,6 +4320,23 @@ function bossSvg(bossId: number, color: string, size: number): JSX.Element {
     <circle cx="50" cy="44" r="10" fill={color} fillOpacity="0.3" stroke={color} strokeWidth="2.5" />
     <path d="M59 41 L72 45 L59 49 Z" fill="#dcad3c" stroke="#7d5811" strokeWidth="1" />
     <circle cx="52" cy="42" r="2" fill="#fff" />
+  </g>)
+  // Frost Wyrm — winged western dragon with horns
+  return prepIcon(size, color, <g strokeLinejoin="round">
+    {/* wings */}
+    <path d="M40 46 Q16 26 6 40 Q20 42 28 50 Q12 50 10 62 Q28 54 42 54 Z" fill={color} fillOpacity="0.22" stroke={color} strokeWidth="2" />
+    <path d="M60 46 Q84 26 94 40 Q80 42 72 50 Q88 50 90 62 Q72 54 58 54 Z" fill={color} fillOpacity="0.22" stroke={color} strokeWidth="2" />
+    {/* body + tail */}
+    <ellipse cx="50" cy="54" rx="14" ry="17" fill={color} fillOpacity="0.28" stroke={color} strokeWidth="2.5" />
+    <path d="M50 70 Q46 84 54 88 Q49 80 54 72 Z" fill={color} fillOpacity="0.25" stroke={color} strokeWidth="2" />
+    {/* legs */}
+    <path d="M40 64 L32 76 M60 64 L68 76" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+    {/* horned head */}
+    <path d="M42 26 Q38 14 32 10 Q40 18 44 28 Z M58 26 Q62 14 68 10 Q60 18 56 28 Z" fill={color} fillOpacity="0.5" stroke={color} strokeWidth="1.5" />
+    <path d="M50 24 Q40 30 42 40 Q50 44 58 40 Q60 30 50 24 Z" fill={color} fillOpacity="0.32" stroke={color} strokeWidth="2.5" />
+    <path d="M44 42 L50 50 L56 42 Z" fill={color} fillOpacity="0.3" stroke={color} strokeWidth="2" />
+    {/* glowing eyes */}
+    <circle cx="46" cy="34" r="2" fill="#fff" /><circle cx="54" cy="34" r="2" fill="#fff" />
   </g>)
 }
 function weaponSvg(id: string, color: string, size: number): JSX.Element {
@@ -4098,7 +4409,14 @@ function weaponSvg(id: string, color: string, size: number): JSX.Element {
   </g>)
 }
 function armourSvg(id: GearId | null, size: number): JSX.Element {
-  const c = id === 'web_amulet' ? '#9B59B6' : id === 'ember_armor' ? '#FF6A1A' : id === 'feather_boots' ? '#9fc0ff' : '#5a6470'
+  const c = id === 'web_amulet' ? '#9B59B6' : id === 'ember_armor' ? '#FF6A1A' : id === 'feather_boots' ? '#9fc0ff' : id === 'wyrm_scale' ? '#7fd4ff' : '#5a6470'
+  if (id === 'wyrm_scale') return prepIcon(size, c, <g strokeLinejoin="round">
+    <path d="M28 30 Q50 23 72 30 L69 60 Q50 80 31 60 Z" fill={c} fillOpacity="0.2" stroke={c} strokeWidth="3" />
+    {/* overlapping dragon scales */}
+    {[0, 1, 2].map(row => [0, 1, 2, 3].map(col => { const x = 34 + col * 11 - (row % 2) * 5.5, y = 36 + row * 12; if (Math.hypot(x - 50, (y - 48) * 1.1) > 24) return null; return <path key={`${row}-${col}`} d={`M${x} ${y} q5 5 0 9 q-5 -4 0 -9 z`} fill={c} fillOpacity="0.3" stroke={c} strokeWidth="1" /> }))}
+    {/* frost crystal centre */}
+    <path d="M50 40 L54 48 L50 58 L46 48 Z" fill="#e8f7ff" stroke={c} strokeWidth="1.2" />
+  </g>)
   if (id === 'web_amulet') return prepIcon(size, c, <g fill="none" stroke={c} strokeWidth="1.4" strokeLinejoin="round">
     <circle cx="50" cy="50" r="30" fill={c} fillOpacity="0.16" strokeWidth="3" />
     {[0, 1, 2, 3, 4, 5, 6, 7].map(i => { const a = i / 8 * Math.PI * 2; return <line key={i} x1="50" y1="50" x2={50 + Math.cos(a) * 30} y2={50 + Math.sin(a) * 30} /> })}
@@ -4220,7 +4538,7 @@ export default function BossHunter() {
     if (screen !== 'menu') return
     const canvas = menuCanvasRef.current; if (!canvas) return
     const ctx = canvas.getContext('2d'); if (!ctx) return
-    const bossId = Math.floor(Math.random() * 3) as BossId
+    const bossId = Math.floor(Math.random() * 4) as BossId
     const g = mkState(WEAPON_DEFS[0], BOSS_DEFS[bossId], [])
     g.bossEnraged = true
     if (bossId === 1) g.boss.angle = -Math.PI / 2
@@ -4279,7 +4597,7 @@ export default function BossHunter() {
 
   // ── background music keyed to the current screen / boss ──
   useEffect(() => {
-    const track = screen === 'playing' ? `battle_${(['spider','drake','griffin'] as const)[selBoss]}`
+    const track = screen === 'playing' ? `battle_${(['spider','drake','griffin','wyrm'] as const)[selBoss]}`
       : screen === 'hunt_select' ? 'prep'
       : screen === 'victory' ? 'victory' : screen === 'defeat' ? 'defeat' : 'menu'
     Sfx.playMusic(track)
@@ -4392,7 +4710,7 @@ export default function BossHunter() {
 
       if (g.phase === 'playing') {
         // music escalates with the fight: per-boss theme → per-boss enrage → shared frantic finale
-        const bn = (['spider', 'drake', 'griffin'] as const)[selBoss]
+        const bn = (['spider', 'drake', 'griffin', 'wyrm'] as const)[selBoss]
         if (g.bossDesperate) Sfx.playMusic('battle_final')
         else if (g.bossEnraged) Sfx.playMusic(`battle_${bn}_rage`)
         else Sfx.playMusic(`battle_${bn}`)
@@ -4492,8 +4810,8 @@ export default function BossHunter() {
     const selWBase = WEAPON_DEFS.find(w => w.id === selLW.base)!
     const selB = BOSS_DEFS[selBoss]
 
-    const prevBoss = () => setSelBoss(((selBoss - 1 + 3) % 3) as BossId)
-    const nextBoss = () => setSelBoss(((selBoss + 1) % 3) as BossId)
+    const prevBoss = () => setSelBoss(((selBoss - 1 + 4) % 4) as BossId)
+    const nextBoss = () => setSelBoss(((selBoss + 1) % 4) as BossId)
     const prevWeapon = () => setSelWeapon(availWeapons[(selWIdx - 1 + availWeapons.length) % availWeapons.length].id)
     const nextWeapon = () => setSelWeapon(availWeapons[(selWIdx + 1) % availWeapons.length].id)
 
@@ -4503,7 +4821,7 @@ export default function BossHunter() {
     const prevArmour = () => setSelArmour(armourOptions[(armourIdx - 1 + armourOptions.length) % armourOptions.length])
     const nextArmour = () => setSelArmour(armourOptions[(armourIdx + 1) % armourOptions.length])
 
-    const arenaNames = ['Spider Lair','Lava Cavern','Storm Peak']
+    const arenaNames = ['Spider Lair','Lava Cavern','Storm Peak','Frozen Peak']
 
     const armColor = '#3aa0e0'
     const ag = curArmour ? GEAR_DEFS[curArmour] : null
@@ -4583,7 +4901,7 @@ export default function BossHunter() {
 
           <div style={{display:'flex',gap:14,alignItems:'stretch',justifyContent:'center',flexWrap:'wrap'}}>
 
-          {cardShell('TARGET', selB.color, prevBoss, nextBoss, selBoss, 3, selBoss,
+          {cardShell('TARGET', selB.color, prevBoss, nextBoss, selBoss, 4, selBoss,
             <div style={{padding:'16px 16px 4px',textAlign:'center',background:`radial-gradient(ellipse at 50% 0%, ${selB.color}1c 0%, transparent 62%)`}}>
               {pedestalNode(bossSvg(selBoss, selB.color, 64), selB.color)}
               <div style={{fontSize:11,color:selB.color,marginBottom:8,letterSpacing:1}}>{selB.name.toUpperCase()}</div>
