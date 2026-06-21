@@ -652,9 +652,13 @@ function killPlayer(g: GS) {
   g.playerDeathAnim = 2.6
   g.bossAttack = null
   g.screenShake = 1.4
+  g.hitstop = Math.max(g.hitstop, 0.22)   // a heavy slow-mo beat the instant you fall
   spawnParticles(g, g.player.pos, 46, '#E74C3C', 380, 1.3)
   spawnParticles(g, g.player.pos, 20, '#FFFFFF', 480, 0.9)
   spawnParticles(g, g.player.pos, 14, '#8B0000', 200, 1.6)
+  // a bursting death shockwave + soul flash
+  spawnFx(g, 'shock', { ...g.player.pos }, '#E74C3C', 150, 0.55)
+  spawnFx(g, 'nova', { ...g.player.pos }, '#FFD0D0', 90, 0.4)
   Sfx.playerDeath(); Sfx.roar()
 }
 
@@ -4543,11 +4547,13 @@ function render(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, bossId: Bo
     const tShow = clamp((prog-0.30)/0.32, 0, 1)
     if (tShow > 0) {
       ctx.save(); ctx.textAlign='center'; ctx.globalAlpha = tShow
-      ctx.translate(CW/2, CH/2); ctx.scale(1.14 - tShow*0.14, 1.14 - tShow*0.14)
+      ctx.translate(CW/2, CH/2); ctx.scale(1.35 - tShow*0.35, 1.35 - tShow*0.35)   // slams in from large
       ctx.fillStyle = '#8a0e0e'; ctx.shadowColor = '#ff1a1a'; ctx.shadowBlur = 28
-      ctx.font = 'bold 30px "Press Start 2P", monospace'; ctx.fillText('YOU DIED', 0, 8)
+      ctx.font = 'bold 30px "Press Start 2P", monospace'; ctx.fillText('YOU DIED', 0, 2)
       ctx.shadowBlur = 0; ctx.strokeStyle = `rgba(180,30,30,${tShow})`; ctx.lineWidth = 2
-      const ul = tShow*210; ctx.beginPath(); ctx.moveTo(-ul, 30); ctx.lineTo(ul, 30); ctx.stroke()
+      const ul = tShow*210; ctx.beginPath(); ctx.moveTo(-ul, 24); ctx.lineTo(ul, 24); ctx.stroke()
+      ctx.font = '9px "Press Start 2P", monospace'; ctx.fillStyle = `rgba(170,130,128,${tShow})`
+      ctx.fillText('SLAIN BY THE ' + bossDef.name.toUpperCase(), 0, 44)
       ctx.restore(); ctx.textAlign='left'
     }
     if (prog > 0.82) { ctx.fillStyle = `rgba(0,0,0,${(prog-0.82)/0.18})`; ctx.fillRect(0,0,CW,CH) }   // fade to black handoff
@@ -4827,12 +4833,13 @@ export default function BossHunter() {
   const [victoryBoss, setVictoryBoss] = useState(0)
   const [victoryTimeMs, setVictoryTimeMs] = useState(0)
   const [victoryStats, setVictoryStats] = useState<{ hits: number; combo: number }>({ hits: 0, combo: 0 })
-  const [defeatInfo, setDefeatInfo] = useState<{ hpPct: number; combo: number }>({ hpPct: 100, combo: 0 })
+  const [defeatInfo, setDefeatInfo] = useState<{ hpPct: number; combo: number; timeS: number }>({ hpPct: 100, combo: 0, timeS: 0 })
   const [victoryRank, setVictoryRank] = useState<number | null>(null)
   const submittedRunRef = useRef(false)
   const [lastUnlockedGear, setLastUnlockedGear] = useState<GearId | null>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const menuCanvasRef = useRef<HTMLCanvasElement>(null)
+  const defeatCanvasRef = useRef<HTMLCanvasElement>(null)
   const playWrapRef = useRef<HTMLDivElement>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [muted, setMuted] = useState(false)
@@ -4977,6 +4984,75 @@ export default function BossHunter() {
     draw(); window.addEventListener('resize', draw)
     return () => window.removeEventListener('resize', draw)
   }, [screen])
+
+  // ── defeat backdrop: an animated, mournful scene — a fallen hunter's blade, drifting ash, a rising soul ──
+  useEffect(() => {
+    if (screen !== 'defeat') return
+    const canvas = defeatCanvasRef.current; if (!canvas) return
+    const ctx = canvas.getContext('2d'); if (!ctx) return
+    const el = BOSS_DEFS[selBoss].element
+    const T = el === 'poison' ? { glow: '#b370e0', emb: '170,110,224', wash: 'rgba(90,30,130,0.30)' }
+          : el === 'fire'   ? { glow: '#ff8a1a', emb: '255,135,45', wash: 'rgba(150,45,0,0.32)' }
+          : el === 'ice'    ? { glow: '#7fd4ff', emb: '150,220,255', wash: 'rgba(30,85,135,0.28)' }
+          :                   { glow: '#7099ff', emb: '150,190,255', wash: 'rgba(45,45,120,0.28)' }
+    const ash = Array.from({ length: 80 }, () => ({ x: Math.random(), y: Math.random(), s: 0.5 + Math.random() * 2.3, vy: 0.012 + Math.random() * 0.035, sw: Math.random() * 6.28, ss: 0.3 + Math.random() * 0.8 }))
+    let raf = 0; const t0 = performance.now()
+    const draw = () => {
+      const w = canvas.width = canvas.clientWidth || window.innerWidth
+      const h = canvas.height = canvas.clientHeight || window.innerHeight
+      const t = (performance.now() - t0) / 1000, cx = w / 2
+      // base + blood radial
+      ctx.fillStyle = '#070205'; ctx.fillRect(0, 0, w, h)
+      const gr = ctx.createRadialGradient(cx, h * 0.46, 0, cx, h * 0.46, Math.max(w, h) * 0.82)
+      gr.addColorStop(0, 'rgba(64,9,9,0.55)'); gr.addColorStop(0.5, 'rgba(22,3,5,0.5)'); gr.addColorStop(1, 'rgba(0,0,0,0)')
+      ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h)
+      // the slayer's element looming from above
+      const bw = ctx.createRadialGradient(cx, -h * 0.05, 0, cx, -h * 0.05, h * 0.6)
+      bw.addColorStop(0, T.wash); bw.addColorStop(1, 'rgba(0,0,0,0)')
+      ctx.fillStyle = bw; ctx.fillRect(0, 0, w, h)
+      // drifting ash / embers rising
+      ctx.shadowColor = `rgb(${T.emb})`; ctx.shadowBlur = 5
+      ash.forEach(a => {
+        const yy = (((a.y - t * a.vy) % 1) + 1) % 1
+        const xx = a.x * w + Math.sin(t * a.ss + a.sw) * 16
+        ctx.globalAlpha = 0.12 + 0.4 * Math.abs(Math.sin(t * a.ss + a.sw))
+        ctx.fillStyle = `rgb(${T.emb})`; ctx.beginPath(); ctx.arc(xx, yy * h, a.s, 0, Math.PI * 2); ctx.fill()
+      })
+      ctx.globalAlpha = 1; ctx.shadowBlur = 0
+      // ── fallen memorial blade thrust into the ground ──
+      const sx = cx, sy = h * 0.78, L = Math.min(h * 0.26, 230), flick = 0.5 + 0.5 * Math.sin(t * 5 + Math.sin(t * 13) * 0.6)
+      ctx.save(); ctx.translate(sx, sy); ctx.rotate(0.1)
+      // ember light pool on the ground
+      const pool = ctx.createRadialGradient(0, 0, 0, 0, 0, L * 0.7)
+      pool.addColorStop(0, `rgba(${T.emb},${0.22 + flick * 0.16})`); pool.addColorStop(1, 'rgba(0,0,0,0)')
+      ctx.fillStyle = pool; ctx.beginPath(); ctx.ellipse(0, 6, L * 0.7, L * 0.2, 0, 0, Math.PI * 2); ctx.fill()
+      // blade (driven point-down into the earth)
+      ctx.fillStyle = '#11161e'; ctx.beginPath(); ctx.moveTo(-7, -L); ctx.lineTo(7, -L); ctx.lineTo(3.5, 2); ctx.lineTo(-3.5, 2); ctx.closePath(); ctx.fill()
+      ctx.strokeStyle = `rgba(${T.emb},${0.35 + flick * 0.35})`; ctx.lineWidth = 1.6; ctx.shadowColor = T.glow; ctx.shadowBlur = 12
+      ctx.beginPath(); ctx.moveTo(-7, -L); ctx.lineTo(-3.5, 2); ctx.stroke(); ctx.shadowBlur = 0
+      // fuller line
+      ctx.strokeStyle = 'rgba(120,130,150,0.25)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, -L + 6); ctx.lineTo(0, -4); ctx.stroke()
+      // crossguard, grip, pommel
+      ctx.fillStyle = '#2c2618'; ctx.fillRect(-24, -L - 7, 48, 9)
+      ctx.fillStyle = '#1a140c'; ctx.fillRect(-5.5, -L - 32, 11, 26)
+      ctx.fillStyle = '#2c2618'; ctx.beginPath(); ctx.arc(0, -L - 34, 6.5, 0, Math.PI * 2); ctx.fill()
+      ctx.restore()
+      // rising soul wisp from the blade
+      const sp = ((t * 0.16) % 1)
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = Math.max(0, 0.7 - sp * 0.7)
+      const wy = sy - L * 0.7 - sp * h * 0.4, wx = sx + Math.sin(t * 2) * 18
+      const sg = ctx.createRadialGradient(wx, wy, 0, wx, wy, 22 * (1 - sp * 0.5))
+      sg.addColorStop(0, 'rgba(230,240,255,0.9)'); sg.addColorStop(0.5, `rgba(${T.emb},0.5)`); sg.addColorStop(1, 'rgba(120,160,255,0)')
+      ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(wx, wy, 22 * (1 - sp * 0.5), 0, Math.PI * 2); ctx.fill(); ctx.restore()
+      // heavy vignette
+      const vg = ctx.createRadialGradient(cx, h * 0.5, h * 0.14, cx, h * 0.5, Math.max(w, h) * 0.72)
+      vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.92)')
+      ctx.fillStyle = vg; ctx.fillRect(0, 0, w, h)
+      raf = requestAnimationFrame(draw)
+    }
+    raf = requestAnimationFrame(draw)
+    return () => cancelAnimationFrame(raf)
+  }, [screen, selBoss])
 
   // ── unlock audio on first interaction (browser autoplay policy) ──
   useEffect(() => {
@@ -5149,7 +5225,7 @@ export default function BossHunter() {
         return
       }
       if (g.phase === 'defeat') {
-        setDefeatInfo({ hpPct: Math.max(1, Math.round((g.boss.hp / g.boss.maxHp) * 100)), combo: g.maxCombo })
+        setDefeatInfo({ hpPct: Math.max(1, Math.round((g.boss.hp / g.boss.maxHp) * 100)), combo: g.maxCombo, timeS: Math.round(g.gtime) })
         setScreen('defeat'); return
       }
 
@@ -5512,28 +5588,33 @@ export default function BossHunter() {
 
   // ─── DEFEAT ───
   return (
-    <div style={{background:'radial-gradient(ellipse at 50% 42%, #2a0606 0%, #0a0204 55%, #050203 100%)',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'"Press Start 2P",monospace',overflow:'hidden'}}>
+    <div style={{position:'relative',background:'#050203',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'"Press Start 2P",monospace',overflow:'hidden'}}>
+      <canvas ref={defeatCanvasRef} style={{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:0,display:'block'}}/>
       <style>{`
-        @keyframes bh-die-in{0%{opacity:0;transform:translateY(14px) scale(0.94)}100%{opacity:1;transform:none}}
-        @keyframes bh-skull-pulse{0%,100%{transform:scale(1);filter:drop-shadow(0 0 18px #c0151588)}50%{transform:scale(1.06);filter:drop-shadow(0 0 34px #e74c3ccc)}}
-        @keyframes bh-died-glow{0%,100%{text-shadow:0 0 18px #c01515aa,0 0 40px #6e0a0a66}50%{text-shadow:0 0 30px #ff2a2a,0 0 64px #c01515aa}}
-        .bh-die{animation:bh-die-in 0.6s cubic-bezier(.2,.8,.2,1) both}
+        @keyframes bh-die-rise{0%{opacity:0;transform:translateY(18px)}100%{opacity:1;transform:none}}
+        @keyframes bh-died-slam{0%{opacity:0;transform:scale(1.5);filter:blur(6px)}60%{opacity:1}100%{opacity:1;transform:scale(1);filter:blur(0)}}
+        @keyframes bh-died-glow{0%,100%{text-shadow:0 0 20px #c01515aa,0 0 46px #6e0a0a66}50%{text-shadow:0 0 34px #ff2a2a,0 0 72px #c01515aa}}
+        @keyframes bh-line-grow{0%{transform:scaleX(0)}100%{transform:scaleX(1)}}
+        .bh-d{opacity:0;animation:bh-die-rise 0.7s cubic-bezier(.2,.8,.2,1) both}
       `}</style>
-      <div className="bh-die" style={{textAlign:'center',maxWidth:480,padding:'0 24px'}}>
-        <div style={{fontSize:64,marginBottom:10,animation:'bh-skull-pulse 2.4s ease-in-out infinite'}}>💀</div>
-        <div style={{fontSize:30,color:'#a01212',letterSpacing:4,marginBottom:10,animation:'bh-died-glow 2.6s ease-in-out infinite'}}>YOU DIED</div>
-        <div style={{fontSize:9,color:'#7a5a5a',marginBottom:14}}>Slain by the {BOSS_DEFS[selBoss].name}</div>
-        <div style={{fontSize:8,color:'#9a8a86',marginBottom:26}}>
-          {BOSS_DEFS[selBoss].name} survived with <span style={{color:'#E74C3C'}}>{defeatInfo.hpPct}%</span> HP
-          {defeatInfo.hpPct <= 20 ? <span style={{color:'#C89B3C'}}> — so close!</span> : ''}
+      <div style={{position:'relative',zIndex:1,textAlign:'center',maxWidth:520,padding:'0 24px'}}>
+        <div style={{fontSize:42,color:'#b51616',letterSpacing:6,marginBottom:4,animation:'bh-died-slam 0.9s cubic-bezier(.2,.8,.2,1) both, bh-died-glow 2.8s ease-in-out 0.9s infinite'}}>YOU DIED</div>
+        <div style={{height:2,width:220,margin:'0 auto 18px',background:'linear-gradient(90deg,transparent,#8a1515,transparent)',transformOrigin:'center',animation:'bh-line-grow 0.7s ease-out 0.5s both'}}/>
+        <div className="bh-d" style={{animationDelay:'0.75s',fontSize:9,color:'#9a7070',marginBottom:16,lineHeight:'1.8'}}>
+          Slain by the <span style={{color:BOSS_DEFS[selBoss].color}}>{BOSS_DEFS[selBoss].name}</span>
         </div>
-        <div style={{fontSize:8,color:'#9a8a86',marginBottom:30,lineHeight:'2'}}>
+        <div className="bh-d" style={{animationDelay:'0.95s',fontSize:8,color:'#9a8a86',marginBottom:24,lineHeight:'1.9'}}>
+          It survived with <span style={{color:'#E74C3C'}}>{defeatInfo.hpPct}%</span> HP
+          {defeatInfo.hpPct <= 20 ? <span style={{color:'#C89B3C'}}> — so close!</span> : ''}
+          {typeof defeatInfo.timeS === 'number' ? <><br/><span style={{color:'#6a5a56'}}>You lasted {defeatInfo.timeS}s</span></> : ''}
+        </div>
+        <div className="bh-d" style={{animationDelay:'1.15s',fontSize:8,color:'#8a7a76',marginBottom:30,lineHeight:'2.1'}}>
           Read the telegraphs &mdash; every attack can be dodged.<br/>
           Keep your distance with ranged weapons; close in with melee.
         </div>
-        <div style={{display:'flex',gap:10,justifyContent:'center'}}>
-          <button onClick={beginHunt} style={{background:'linear-gradient(135deg,#E74C3C,#922B21)',border:'none',color:'#fff',padding:'12px 28px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit',letterSpacing:1,boxShadow:'0 0 20px #e74c3c44'}}>↻ TRY AGAIN</button>
-          <button onClick={() => setScreen('menu')} style={{background:'#160a0a',border:'1px solid #3a1a1a',color:'#A09880',padding:'12px 22px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>MENU</button>
+        <div className="bh-d" style={{animationDelay:'1.35s',display:'flex',gap:10,justifyContent:'center'}}>
+          <button onClick={beginHunt} style={{background:'linear-gradient(135deg,#E74C3C,#922B21)',border:'none',color:'#fff',padding:'13px 30px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit',letterSpacing:1,boxShadow:'0 0 22px #e74c3c55'}}>↻ TRY AGAIN</button>
+          <button onClick={() => setScreen('menu')} style={{background:'rgba(22,10,10,0.7)',border:'1px solid #3a1a1a',color:'#A09880',padding:'13px 24px',borderRadius:6,fontSize:9,cursor:'pointer',fontFamily:'inherit'}}>MENU</button>
         </div>
       </div>
     </div>
