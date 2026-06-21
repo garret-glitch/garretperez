@@ -2683,10 +2683,10 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
     const brScale = 1 + breatheCy * 0.02                    // subtle breathing swell
     const blink = (t % 3.4) < 0.13 ? 0.12 : 1               // occasional eye blink
     const lift = spread * (24 + flap * 9) + idleBob * 0.6
-    const cDark = hitW ? '#FFF' : (enr ? '#14455f' : '#19384a')
-    const cMid  = hitW ? '#FFF' : (enr ? '#347fa6' : '#2c5e78')
-    const cLite = hitW ? '#FFF' : (enr ? '#a9e6ff' : '#7ec4e2')
-    const cMem  = enr ? 'rgba(110,225,255,0.40)' : 'rgba(150,210,240,0.30)'
+    const cDark = hitW ? '#FFF' : (enr ? '#155878' : '#1c4459')
+    const cMid  = hitW ? '#FFF' : (enr ? '#3f93c2' : '#3a78a0')
+    const cLite = hitW ? '#FFF' : (enr ? '#bdeeff' : '#9fdcff')
+    const cMem  = enr ? 'rgba(120,232,255,0.46)' : 'rgba(150,222,255,0.38)'
     const cMemEdge = enr ? '#bdf0ff' : '#dff3ff'
     const cEdge = enr ? '#9fe8ff' : '#cfeeff'
     const cGlow = enr ? '#00d6ff' : '#7fd4ff'
@@ -2835,37 +2835,50 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
     drawLimb(-sz * 0.3, -1)   // hind legs (drawn first, behind)
     drawLimb(sz * 0.34, 1)    // forelimbs
     ctx.globalAlpha = 1
-    // ── BODY — built from overlapping lobes (chest, belly, haunch) for an organic, non-round bulk ──
-    const lobes = [
-      { x: sz * 0.2,   y: breath,             rx: sz * 0.44, ry: sz * 0.4 },   // chest/shoulders — broadest, most muscular
-      { x: -sz * 0.12, y: breath + sz * 0.02, rx: sz * 0.46, ry: sz * 0.32 },  // ribcage, slimming
-      { x: -sz * 0.42, y: breath,             rx: sz * 0.36, ry: sz * 0.24 },  // hips, tapering down into the tail
-      { x: -sz * 0.66, y: breath,             rx: sz * 0.22, ry: sz * 0.17 },  // tail-root wedge for a smooth flow into the tail
-    ]
-    // dark silhouette outline (union of lobes)
+    // ── BODY — slender segmented ice-spine: a tapered chain of glowing crystalline vertebrae ──
+    const bx0 = sz * 0.32, bx1 = -sz * 0.56
+    const segAt = (u: number) => bx0 + (bx1 - bx0) * u
+    const segH = (u: number) => sz * (0.3 - u * 0.18)          // across half-width, tapering to the tail
+    const segL = (u: number) => sz * (0.14 - u * 0.055)        // along half-length of each plate
+    const NB = 7
+    // 1) dark connective spindle so the plates read as one continuous creature
     ctx.fillStyle = cDark
-    for (const L of lobes) { ctx.beginPath(); ctx.ellipse(L.x, L.y, L.rx + 3, L.ry + 3, 0, 0, Math.PI * 2); ctx.fill() }
-    // shaded fill per lobe — top lit, underside dark, so the masses read as distinct
-    for (const L of lobes) { const lg = ctx.createRadialGradient(L.x + sz * 0.04, L.y - L.ry * 0.45, 0, L.x, L.y, L.rx)
-      lg.addColorStop(0, cLite); lg.addColorStop(0.45, cMid); lg.addColorStop(1, cDark)
-      ctx.fillStyle = lg; ctx.beginPath(); ctx.ellipse(L.x, L.y, L.rx, L.ry, 0, 0, Math.PI * 2); ctx.fill() }
-    // belly highlight along the underside
-    ctx.globalAlpha = 0.4; ctx.fillStyle = cLite; ctx.beginPath(); ctx.ellipse(-sz * 0.06, breath + sz * 0.15, sz * 0.62, sz * 0.18, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1
-    // muscular shoulder humps where the wings & forelimbs root
-    for (const side of [-1, 1]) { const sg = ctx.createRadialGradient(sz * 0.26, side * sz * 0.14, 0, sz * 0.28, side * sz * 0.22, sz * 0.26); sg.addColorStop(0, cMid); sg.addColorStop(1, cDark)
-      ctx.fillStyle = sg; ctx.beginPath(); ctx.ellipse(sz * 0.28, side * sz * 0.2, sz * 0.22, sz * 0.16, side * 0.4, 0, Math.PI * 2); ctx.fill() }
-    // glowing frozen heart pulsing in the chest
-    { const cp = 0.5 + 0.5 * Math.sin(t * 2.2); ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.shadowColor = cGlow; ctx.shadowBlur = 16 + cp * 12
-      const cg2 = ctx.createRadialGradient(sz * 0.18, breath, 0, sz * 0.18, breath, sz * 0.22); cg2.addColorStop(0, `rgba(225,247,255,${0.45 + cp * 0.3})`); cg2.addColorStop(0.5, `rgba(120,210,255,${0.25 + cp * 0.18})`); cg2.addColorStop(1, 'rgba(40,90,140,0)')
-      ctx.fillStyle = cg2; ctx.beginPath(); ctx.arc(sz * 0.18, breath, sz * 0.22, 0, Math.PI * 2); ctx.fill(); ctx.restore() }
-    // frost-scale plating across the back
-    if (!hitW) { ctx.strokeStyle = 'rgba(185,233,247,0.16)'; ctx.lineWidth = 1.2
-      for (let r = 0; r < 3; r++) for (let cI = -3; cI <= 3; cI++) { const bx = -sz * 0.1 + cI * sz * 0.16, by = -sz * 0.04 - r * sz * 0.12
-        if (Math.hypot(bx * 0.8, by) > sz * 0.58) continue; ctx.beginPath(); ctx.arc(bx, by, sz * 0.08, Math.PI * 1.12, Math.PI * 1.88); ctx.stroke() } }
-    // dorsal ice spikes running the length of the spine
-    ctx.fillStyle = cIce; ctx.shadowColor = cGlow; ctx.shadowBlur = 8
-    for (let i = 0; i < 7; i++) { const x = -sz * 0.62 + i * sz * 0.17, h = sz * (0.17 + 0.05 * Math.sin(i * 1.5))
-      ctx.beginPath(); ctx.moveTo(x - sz * 0.05, -sz * 0.02); ctx.lineTo(x, -h); ctx.lineTo(x + sz * 0.05, -sz * 0.02); ctx.closePath(); ctx.fill() }
+    ctx.beginPath()
+    for (let i = 0; i <= 24; i++) { const u = i / 24, x = segAt(u), y = breath - (segH(u) + 2.5); if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y) }
+    for (let i = 24; i >= 0; i--) { const u = i / 24, x = segAt(u), y = breath + (segH(u) + 2.5); ctx.lineTo(x, y) }
+    ctx.closePath(); ctx.fill()
+    // 2) glowing diamond vertebra plates, brightest at the chest
+    for (let i = 0; i < NB; i++) {
+      const u = (i + 0.5) / NB, cx = segAt(u), h = segH(u), l = segL(u)
+      ctx.shadowColor = cGlow; ctx.shadowBlur = enr ? 22 : 14
+      const pg = ctx.createRadialGradient(cx, breath - h * 0.25, 0, cx, breath, h * 1.15)
+      pg.addColorStop(0, hitW ? '#FFF' : cLite); pg.addColorStop(0.55, cMid); pg.addColorStop(1, cDark)
+      ctx.fillStyle = hitW ? '#FFF' : pg
+      ctx.beginPath()
+      ctx.moveTo(cx + l, breath)
+      ctx.quadraticCurveTo(cx + l * 0.35, breath - h * 0.78, cx, breath - h)
+      ctx.quadraticCurveTo(cx - l * 0.35, breath - h * 0.78, cx - l, breath)
+      ctx.quadraticCurveTo(cx - l * 0.35, breath + h * 0.78, cx, breath + h)
+      ctx.quadraticCurveTo(cx + l * 0.35, breath + h * 0.78, cx + l, breath)
+      ctx.closePath(); ctx.fill()
+      ctx.shadowBlur = 0
+      // bright frozen core — the chest plate pulses like a heart
+      const pulse = i === 0 ? 0.65 + 0.35 * Math.sin(t * 2.4) : 0.5
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = pulse
+      const cg2 = ctx.createRadialGradient(cx, breath, 0, cx, breath, l)
+      cg2.addColorStop(0, '#eafaff'); cg2.addColorStop(0.5, enr ? '#8fe6ff' : '#bfeaff'); cg2.addColorStop(1, 'rgba(120,210,255,0)')
+      ctx.fillStyle = cg2; ctx.beginPath(); ctx.ellipse(cx, breath, l * 0.85, h * 0.5, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore()
+      // crisp edge highlight on the leading half of each plate
+      ctx.strokeStyle = enr ? 'rgba(189,243,255,0.55)' : 'rgba(207,238,255,0.45)'; ctx.lineWidth = 1.4
+      ctx.beginPath(); ctx.moveTo(cx, breath - h); ctx.quadraticCurveTo(cx + l * 0.35, breath - h * 0.78, cx + l, breath)
+      ctx.quadraticCurveTo(cx + l * 0.35, breath + h * 0.78, cx, breath + h); ctx.stroke()
+    }
+    // 3) prominent dorsal ice fins cresting the spine
+    ctx.fillStyle = cIce; ctx.shadowColor = cGlow; ctx.shadowBlur = 9
+    for (let i = 0; i < NB; i++) { const u = (i + 0.5) / NB, cx = segAt(u), h = segH(u), finH = sz * (0.22 - u * 0.1)
+      const fg = ctx.createLinearGradient(cx, breath - h * 0.55, cx, breath - h - finH); fg.addColorStop(0, cMid); fg.addColorStop(1, cIce)
+      ctx.fillStyle = hitW ? '#FFF' : fg
+      ctx.beginPath(); ctx.moveTo(cx - sz * 0.055, breath - h * 0.5); ctx.lineTo(cx - sz * 0.012, breath - h - finH); ctx.lineTo(cx + sz * 0.055, breath - h * 0.5); ctx.closePath(); ctx.fill() }
     ctx.shadowBlur = 0
     // ── NECK — long arched column that flares from the chest and tapers to a slim head ──
     const headFwd = sz * 0.13   // push the head out so the neck reads long & serpentine
@@ -2874,7 +2887,7 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
       const sway = Math.sin(t * 1.3) * sz * 0.012
       const neckEndX = sz * 0.8 + headFwd
       const neckAt = (u: number) => ({ x: sz * 0.06 + u * (neckEndX - sz * 0.06), y: breath * 0.4 * (1 - u) - Math.sin(u * Math.PI) * sz * 0.18 + sway * u })
-      const neckW = (u: number) => sz * (0.095 + 0.235 * Math.pow(1 - u, 1.5))   // thick flare at the chest, slimming to the head
+      const neckW = (u: number) => sz * (0.075 + 0.165 * Math.pow(1 - u, 1.4))   // slim, gently flaring at the chest
       const band = (pad: number) => { ctx.beginPath()
         for (let i = 0; i <= nSEG; i++) { const u = i / nSEG, p = neckAt(u), w = neckW(u) + pad; if (i === 0) ctx.moveTo(p.x, p.y - w); else ctx.lineTo(p.x, p.y - w) }
         for (let i = nSEG; i >= 0; i--) { const u = i / nSEG, p = neckAt(u), w = neckW(u) + pad; ctx.lineTo(p.x, p.y + w) }
