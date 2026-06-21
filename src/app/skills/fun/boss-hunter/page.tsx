@@ -3018,10 +3018,9 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
     for (const side of [-1, 1]) for (let i = 0; i < 3; i++) { const ph = (t * 0.7 + i * 0.33 + side * 0.12) % 1; const vx = sz * 1.32 + ph * sz * 0.28, vy = side * sz * 0.05 + Math.sin(ph * 6 + side) * sz * 0.02
       ctx.fillStyle = `rgba(205,240,255,${(1 - ph) * 0.4})`; ctx.beginPath(); ctx.arc(vx, vy, (1 - ph) * sz * 0.045 + 1, 0, Math.PI * 2); ctx.fill() }
     ctx.restore()
-    // 7) open maw + fangs
-    ctx.fillStyle = '#0a1a24'; ctx.beginPath(); ctx.moveTo(sz * 1.3, -sz * 0.06); ctx.lineTo(sz * 1.46, 0); ctx.lineTo(sz * 1.3, sz * 0.06); ctx.closePath(); ctx.fill()
-    ctx.fillStyle = cHorn
-    for (const side of [-1, 1]) { ctx.beginPath(); ctx.moveTo(sz * 1.31, side * sz * 0.05); ctx.lineTo(sz * 1.42, side * sz * 0.018); ctx.lineTo(sz * 1.34, side * sz * 0.004); ctx.closePath(); ctx.fill() }
+    // 7) mouth — a closed dark seam along the snout (no bared teeth)
+    ctx.strokeStyle = 'rgba(8,22,30,0.85)'; ctx.lineWidth = sz * 0.022; ctx.lineCap = 'round'
+    ctx.beginPath(); ctx.moveTo(sz * 1.28, sz * 0.012); ctx.quadraticCurveTo(sz * 1.38, sz * 0.03, sz * 1.45, 0); ctx.stroke(); ctx.lineCap = 'butt'
     ctx.restore()   // end head nod/scan
     ctx.restore()   // end rotate + lift
     // ── orbiting ice shards (enraged) ──
