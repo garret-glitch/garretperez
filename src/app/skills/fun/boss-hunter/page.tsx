@@ -389,10 +389,10 @@ const WEAPON_DEFS: WeaponDef[] = [
     dmg: 48, range: 100, atkCd: 0.66,
     desc: 'Aggressive melee fighter. Close the distance and unleash devastating slams, rages, and charges.',
     abilities: [
-      { key: 'Q', name: 'Ground Slam', desc: 'Shockwave — 130 dmg AOE, 130px radius', cd: 6, icon: '💥' },
-      { key: 'W', name: 'Rage', desc: '+60% damage for 8s', cd: 18, icon: '😤' },
-      { key: 'E', name: 'Bull Charge', desc: 'Rush toward cursor — 150 dmg on boss impact', cd: 9, icon: '🐂' },
-      { key: 'R', name: 'Whirlwind', desc: 'Spin 3s — 70 dmg/s within 100px', cd: 25, icon: '🌀' },
+      { key: 'Q', name: 'Ground Slam', desc: 'Shockwave — 130 dmg AOE, 130px radius', cd: 6, icon: 'slam' },
+      { key: 'W', name: 'Rage', desc: '+60% damage for 8s', cd: 18, icon: 'rage' },
+      { key: 'E', name: 'Bull Charge', desc: 'Rush toward cursor — 150 dmg on boss impact', cd: 9, icon: 'charge' },
+      { key: 'R', name: 'Whirlwind', desc: 'Spin 3s — 70 dmg/s within 100px', cd: 25, icon: 'whirl' },
     ],
   },
   {
@@ -400,10 +400,10 @@ const WEAPON_DEFS: WeaponDef[] = [
     dmg: 35, range: 480, atkCd: 0.46,
     desc: 'Precision long-range archer. Rain death from afar with power shots, traps, and sky arrows.',
     abilities: [
-      { key: 'Q', name: 'Power Shot', desc: 'Massive gold arrow — 120 dmg, stuns boss 0.6s', cd: 5, icon: '🎯' },
-      { key: 'W', name: 'Trap', desc: 'Snap trap at cursor — 130 dmg + 3s slow on trigger', cd: 10, icon: '🪤' },
-      { key: 'E', name: 'Shadow Dash', desc: 'Dash in move direction with full invulnerability', cd: 7, icon: '💨' },
-      { key: 'R', name: 'Rain of Arrows', desc: '3 sky arrows — 80 dmg each at cursor', cd: 20, icon: '🏹' },
+      { key: 'Q', name: 'Power Shot', desc: 'Massive gold arrow — 120 dmg, stuns boss 0.6s', cd: 5, icon: 'powershot' },
+      { key: 'W', name: 'Trap', desc: 'Snap trap at cursor — 130 dmg + 3s slow on trigger', cd: 10, icon: 'trap' },
+      { key: 'E', name: 'Shadow Dash', desc: 'Dash in move direction with full invulnerability', cd: 7, icon: 'dash' },
+      { key: 'R', name: 'Rain of Arrows', desc: '3 sky arrows — 80 dmg each at cursor', cd: 20, icon: 'rain' },
     ],
   },
   {
@@ -411,10 +411,10 @@ const WEAPON_DEFS: WeaponDef[] = [
     dmg: 36, range: 540, atkCd: 0.62,
     desc: 'Arcane artillery. Longest range in the game with rapid, hard-hitting bolts and devastating spells. Master positioning to dominate.',
     abilities: [
-      { key: 'Q', name: 'Arcane Bolt', desc: 'Fast arcane missile — 185 dmg toward cursor', cd: 5, icon: '🔮' },
-      { key: 'W', name: 'Mana Shield', desc: '2.5s bubble — blocks ALL incoming damage', cd: 14, icon: '🛡️' },
-      { key: 'E', name: 'Arcane Surge', desc: 'Blink toward cursor and erupt — 175 dmg nova on arrival', cd: 8, icon: '✨' },
-      { key: 'R', name: 'Meteor', desc: 'Giant meteor — 430 dmg in 110px AOE at cursor', cd: 22, icon: '☄️' },
+      { key: 'Q', name: 'Arcane Bolt', desc: 'Fast arcane missile — 185 dmg toward cursor', cd: 5, icon: 'bolt' },
+      { key: 'W', name: 'Mana Shield', desc: '2.5s bubble — blocks ALL incoming damage', cd: 14, icon: 'shield' },
+      { key: 'E', name: 'Arcane Surge', desc: 'Blink toward cursor and erupt — 175 dmg nova on arrival', cd: 8, icon: 'surge' },
+      { key: 'R', name: 'Meteor', desc: 'Giant meteor — 430 dmg in 110px AOE at cursor', cd: 22, icon: 'meteor' },
     ],
   },
 ]
@@ -3432,6 +3432,75 @@ function renderBossDeath(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId) {
   }
 }
 
+// ── hand-drawn vector ability glyphs (no emoji) — drawn centred at (cx,cy), ±11 unit box scaled by s ──
+function drawAbilityIcon(ctx: CanvasRenderingContext2D, id: string, cx: number, cy: number, s: number, col: string) {
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(s / 11, s / 11)
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.lineJoin = 'round'
+  ctx.shadowColor = col; ctx.shadowBlur = 5
+  if (id === 'slam') {
+    // impact burst — 8-point spiked star
+    ctx.beginPath()
+    for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2, r = i % 2 === 0 ? 11 : 4.5; const x = Math.cos(a) * r, y = Math.sin(a) * r; if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y) }
+    ctx.closePath(); ctx.fill()
+  } else if (id === 'rage') {
+    // rising flames
+    ctx.beginPath()
+    for (const fx of [-6.5, 0, 6.5]) { const h = fx === 0 ? 11 : 7.5; ctx.moveTo(fx, 9); ctx.quadraticCurveTo(fx - 4, 1, fx - 1.5, -h); ctx.quadraticCurveTo(fx, -h - 1.5, fx + 1.5, -h); ctx.quadraticCurveTo(fx + 4, 1, fx, 9) }
+    ctx.fill()
+  } else if (id === 'charge') {
+    // blunt aggressive arrow + speed lines
+    ctx.beginPath(); ctx.moveTo(-11, -5); ctx.lineTo(-6, -5); ctx.moveTo(-11, 5); ctx.lineTo(-6, 5); ctx.stroke()
+    ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-7, 0); ctx.lineTo(3, 0); ctx.stroke(); ctx.lineWidth = 2
+    ctx.beginPath(); ctx.moveTo(11, 0); ctx.lineTo(3, -6.5); ctx.lineTo(3, 6.5); ctx.closePath(); ctx.fill()
+  } else if (id === 'whirl') {
+    // circular spin arrow + inner blades
+    ctx.lineWidth = 2.4; ctx.beginPath(); ctx.arc(0, 0, 8, -2.5, 1.9); ctx.stroke()
+    const ea = 1.9, ex = Math.cos(ea) * 8, ey = Math.sin(ea) * 8
+    ctx.save(); ctx.translate(ex, ey); ctx.rotate(ea + Math.PI / 2)
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-5, -3.2); ctx.lineTo(-5, 3.2); ctx.closePath(); ctx.fill(); ctx.restore()
+    ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(-3.5, -3.5); ctx.lineTo(3.5, 3.5); ctx.moveTo(3.5, -3.5); ctx.lineTo(-3.5, 3.5); ctx.stroke()
+  } else if (id === 'powershot') {
+    // archer arrow (diagonal) with fletching
+    ctx.save(); ctx.rotate(-Math.PI / 4); ctx.lineWidth = 2.2
+    ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(7, 0); ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(11, 0); ctx.lineTo(5, -4.5); ctx.lineTo(5, 4.5); ctx.closePath(); ctx.fill()
+    ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(-13, -4); ctx.moveTo(-10, 0); ctx.lineTo(-13, 4); ctx.moveTo(-7, 0); ctx.lineTo(-10, -3.5); ctx.moveTo(-7, 0); ctx.lineTo(-10, 3.5); ctx.stroke()
+    ctx.restore()
+  } else if (id === 'trap') {
+    // snare ring with inward fangs
+    ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, 8.5, 0, Math.PI * 2); ctx.stroke()
+    for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; ctx.beginPath(); ctx.moveTo(Math.cos(a) * 8.5, Math.sin(a) * 8.5); ctx.lineTo(Math.cos(a) * 4.5, Math.sin(a) * 4.5); ctx.stroke() }
+    ctx.beginPath(); ctx.arc(0, 0, 1.8, 0, Math.PI * 2); ctx.fill()
+  } else if (id === 'dash') {
+    // three speed chevrons
+    ctx.lineWidth = 2.4
+    for (let k = 0; k < 3; k++) { const x = -8 + k * 7; ctx.beginPath(); ctx.moveTo(x, -6); ctx.lineTo(x + 5, 0); ctx.lineTo(x, 6); ctx.stroke() }
+  } else if (id === 'rain') {
+    // three falling arrows (staggered)
+    const cols = [[-7, -2], [0, -9], [7, -2]]
+    for (const c of cols) { const x = c[0], ty = c[1]; ctx.beginPath(); ctx.moveTo(x, ty); ctx.lineTo(x, ty + 12); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x, ty + 12); ctx.lineTo(x - 3.5, ty + 7); ctx.moveTo(x, ty + 12); ctx.lineTo(x + 3.5, ty + 7); ctx.stroke() }
+  } else if (id === 'bolt') {
+    // arcane 4-point sparkle
+    const pts = [[0, -11], [3, -3], [11, 0], [3, 3], [0, 11], [-3, 3], [-11, 0], [-3, -3]]
+    ctx.beginPath(); pts.forEach((p, i) => { if (i === 0) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]) }); ctx.closePath(); ctx.fill()
+  } else if (id === 'shield') {
+    // heater shield
+    ctx.lineWidth = 2.2
+    ctx.beginPath(); ctx.moveTo(0, -9); ctx.lineTo(8.5, -5.5); ctx.lineTo(8, 3); ctx.quadraticCurveTo(4, 9.5, 0, 11); ctx.quadraticCurveTo(-4, 9.5, -8, 3); ctx.lineTo(-8.5, -5.5); ctx.closePath(); ctx.stroke()
+    ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(0, -6.5); ctx.lineTo(0, 9); ctx.stroke()
+  } else if (id === 'surge') {
+    // blink sparkle + orbiting motes
+    const pts = [[0, -7], [2, -2], [7, 0], [2, 2], [0, 7], [-2, 2], [-7, 0], [-2, -2]]
+    ctx.beginPath(); pts.forEach((p, i) => { if (i === 0) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]) }); ctx.closePath(); ctx.fill()
+    for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; ctx.beginPath(); ctx.arc(Math.cos(a) * 10, Math.sin(a) * 10, 1.4, 0, Math.PI * 2); ctx.fill() }
+  } else if (id === 'meteor') {
+    // falling fireball with comet streaks
+    ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-11, -11); ctx.lineTo(2, 2); ctx.moveTo(-6.5, -11); ctx.lineTo(3.5, -1); ctx.moveTo(-11, -6.5); ctx.lineTo(-1, 3.5); ctx.stroke()
+    ctx.beginPath(); ctx.arc(5, 5, 5, 0, Math.PI * 2); ctx.fill()
+  }
+  ctx.restore()
+}
+
 function renderHUD(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, bossDef: BossDef, gear: GearId[], t: number) {
   void gear
   const p=g.player, b=g.boss
@@ -3505,7 +3574,6 @@ function renderHUD(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, bossDef
 
   const slW=54,slH=54,slY=CH-90, tsW=4*slW+3*7, slX=CW/2-tsW/2
   const kkeys=['Q','W','E','R']
-  const EMOJI='"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",serif'
   wpn.abilities.forEach((ab,i) => {
     const sx=slX+i*(slW+7), cx=sx+slW/2, cy=slY+slH/2
     const cd=p.abilityCds[i], cdPct=clamp(cd/ab.cd,0,1), ready=cd<=0
@@ -3517,9 +3585,10 @@ function renderHUD(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, bossDef
     if (ready) { ctx.shadowColor=wpn.color; ctx.shadowBlur=10+(rf>0?rf*36:0); ctx.strokeStyle=rf>0?'#FFFFFF':`${wpn.color}DD`; ctx.lineWidth=rf>0?2.6:1.6 }
     else { ctx.strokeStyle='rgba(70,55,35,0.6)'; ctx.lineWidth=1.5 }
     rrect(ctx,sx,slY,slW,slH,8); ctx.stroke(); ctx.restore()
-    // ability icon
-    ctx.save(); ctx.globalAlpha=ready?1:0.38; ctx.font=`22px ${EMOJI}`; ctx.textAlign='center'; ctx.textBaseline='middle'
-    ctx.fillText(ab.icon,cx,cy-3); ctx.restore()
+    // ability icon (hand-drawn vector glyph)
+    ctx.save(); ctx.globalAlpha=ready?1:0.4
+    drawAbilityIcon(ctx, ab.icon, cx, cy-3, 11, ready?wpn.color:'#7a6a48')
+    ctx.restore()
     // key badge (top-left)
     ctx.font='8px "Press Start 2P",monospace'; ctx.textAlign='left'; ctx.textBaseline='top'
     ctx.fillStyle=ready?wpn.color:'#6a5a40'; ctx.fillText(kkeys[i],sx+4,slY+4)
