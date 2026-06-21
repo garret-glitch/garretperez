@@ -766,7 +766,7 @@ const COMBOS: Record<number, string[][]> = {
 function attackGap(g: GS, bossId: BossId): number {
   if (g.comboQueue.length) return rnd(0.28, 0.5)
   const phase = g.bossDesperate ? 1.95 : g.bossEnraged ? 1.5 : 1.0
-  const base = bossId === 1 ? rnd(1.5, 2.45) : bossId === 2 ? rnd(2.0, 3.2) : bossId === 3 ? rnd(1.35, 2.25) : rnd(1.15, 2.0)
+  const base = bossId === 1 ? rnd(1.5, 2.45) : bossId === 2 ? rnd(2.0, 3.2) : bossId === 3 ? rnd(0.8, 1.45) : rnd(1.15, 2.0)
   return base / phase
 }
 function comboChance(g: GS, bossId: BossId): number {
