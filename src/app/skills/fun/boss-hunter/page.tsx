@@ -300,7 +300,7 @@ interface WeaponDef {
   dmg: number; range: number; atkCd: number
   desc: string; abilities: AbilityDef[]
 }
-interface AbilityDef { key: string; name: string; desc: string; cd: number }
+interface AbilityDef { key: string; name: string; desc: string; cd: number; icon: string }
 interface BossDef {
   id: BossId; name: string; color: string; icon: string
   element: 'poison' | 'fire' | 'lightning'; lore: string
@@ -320,7 +320,7 @@ interface AttackData {
   targetPos?: V2; angle?: number; coneAngle?: number; coneRange?: number; radius?: number
   projSpeed?: number; dmg?: number; count?: number; duration?: number; elapsed?: number; strikeIndex?: number
 }
-interface DamageNumber { id: number; pos: V2; val: number; life: number; isPlayer: boolean }
+interface DamageNumber { id: number; pos: V2; val: number; life: number; maxLife: number; isPlayer: boolean; crit?: boolean; vx?: number }
 interface Particle { id: number; pos: V2; vel: V2; life: number; maxLife: number; color: string; size: number }
 interface SlowTrap { id: number; pos: V2; life: number; fromPlayer: boolean }
 interface HazardZone { id: number; pos: V2; radius: number; type: 'poison' | 'fire' | 'lightning' | 'web'; dps: number; life: number; maxLife: number }
@@ -360,12 +360,17 @@ interface GS {
   fx: Fx[]                   // transient ability effects
   manaShieldTimer: number    // staff W — glowing dome around the player while active
   god: boolean   // super-admin God Mode — player takes no damage
+  hitstop: number            // brief simulation freeze on heavy impacts (game feel)
+  bossHpDisplay: number      // lagging "chip damage" ghost of the boss HP bar
+  playerHpDisplay: number    // lagging "chip damage" ghost of the player HP bar
+  combo: number; comboTimer: number; maxCombo: number; totalHits: number   // hit-chain combo meter
+  introTimer: number         // cinematic boss-intro overlay countdown
 }
 interface PlayerState {
   pos: V2; vel: V2; targetPos: V2 | null
   hp: number; maxHp: number; atkTimer: number
   iframeTimer: number; dodgeTimer: number; dodgeCd: number; dodgeVel: V2; dodgeTrail: V2[]
-  hitFlash: number; abilityCds: number[]; slowTimer: number; knockbackVel: V2
+  hitFlash: number; abilityCds: number[]; abilityReadyFlash: number[]; slowTimer: number; knockbackVel: V2
   featherCharges: number; featherRecharge: number[]
   webTrapPlaced: boolean; dodgeChargeMode: boolean; facing: number
   gearHitCount: number; webProcCd: number
@@ -384,10 +389,10 @@ const WEAPON_DEFS: WeaponDef[] = [
     dmg: 48, range: 100, atkCd: 0.66,
     desc: 'Aggressive melee fighter. Close the distance and unleash devastating slams, rages, and charges.',
     abilities: [
-      { key: 'Q', name: 'Ground Slam', desc: 'Shockwave — 130 dmg AOE, 130px radius', cd: 6 },
-      { key: 'W', name: 'Rage', desc: '+60% damage for 8s', cd: 18 },
-      { key: 'E', name: 'Bull Charge', desc: 'Rush toward cursor — 150 dmg on boss impact', cd: 9 },
-      { key: 'R', name: 'Whirlwind', desc: 'Spin 3s — 70 dmg/s within 100px', cd: 25 },
+      { key: 'Q', name: 'Ground Slam', desc: 'Shockwave — 130 dmg AOE, 130px radius', cd: 6, icon: '💥' },
+      { key: 'W', name: 'Rage', desc: '+60% damage for 8s', cd: 18, icon: '😤' },
+      { key: 'E', name: 'Bull Charge', desc: 'Rush toward cursor — 150 dmg on boss impact', cd: 9, icon: '🐂' },
+      { key: 'R', name: 'Whirlwind', desc: 'Spin 3s — 70 dmg/s within 100px', cd: 25, icon: '🌀' },
     ],
   },
   {
@@ -395,10 +400,10 @@ const WEAPON_DEFS: WeaponDef[] = [
     dmg: 35, range: 480, atkCd: 0.46,
     desc: 'Precision long-range archer. Rain death from afar with power shots, traps, and sky arrows.',
     abilities: [
-      { key: 'Q', name: 'Power Shot', desc: 'Massive gold arrow — 120 dmg, stuns boss 0.6s', cd: 5 },
-      { key: 'W', name: 'Trap', desc: 'Snap trap at cursor — 130 dmg + 3s slow on trigger', cd: 10 },
-      { key: 'E', name: 'Shadow Dash', desc: 'Dash in move direction with full invulnerability', cd: 7 },
-      { key: 'R', name: 'Rain of Arrows', desc: '3 sky arrows — 80 dmg each at cursor', cd: 20 },
+      { key: 'Q', name: 'Power Shot', desc: 'Massive gold arrow — 120 dmg, stuns boss 0.6s', cd: 5, icon: '🎯' },
+      { key: 'W', name: 'Trap', desc: 'Snap trap at cursor — 130 dmg + 3s slow on trigger', cd: 10, icon: '🪤' },
+      { key: 'E', name: 'Shadow Dash', desc: 'Dash in move direction with full invulnerability', cd: 7, icon: '💨' },
+      { key: 'R', name: 'Rain of Arrows', desc: '3 sky arrows — 80 dmg each at cursor', cd: 20, icon: '🏹' },
     ],
   },
   {
@@ -406,10 +411,10 @@ const WEAPON_DEFS: WeaponDef[] = [
     dmg: 36, range: 540, atkCd: 0.62,
     desc: 'Arcane artillery. Longest range in the game with rapid, hard-hitting bolts and devastating spells. Master positioning to dominate.',
     abilities: [
-      { key: 'Q', name: 'Arcane Bolt', desc: 'Fast arcane missile — 185 dmg toward cursor', cd: 5 },
-      { key: 'W', name: 'Mana Shield', desc: '2.5s bubble — blocks ALL incoming damage', cd: 14 },
-      { key: 'E', name: 'Arcane Surge', desc: 'Blink toward cursor and erupt — 175 dmg nova on arrival', cd: 8 },
-      { key: 'R', name: 'Meteor', desc: 'Giant meteor — 430 dmg in 110px AOE at cursor', cd: 22 },
+      { key: 'Q', name: 'Arcane Bolt', desc: 'Fast arcane missile — 185 dmg toward cursor', cd: 5, icon: '🔮' },
+      { key: 'W', name: 'Mana Shield', desc: '2.5s bubble — blocks ALL incoming damage', cd: 14, icon: '🛡️' },
+      { key: 'E', name: 'Arcane Surge', desc: 'Blink toward cursor and erupt — 175 dmg nova on arrival', cd: 8, icon: '✨' },
+      { key: 'R', name: 'Meteor', desc: 'Giant meteor — 430 dmg in 110px AOE at cursor', cd: 22, icon: '☄️' },
     ],
   },
 ]
@@ -505,7 +510,7 @@ function mkState(wpn: WeaponDef, boss: BossDef, gear: GearId[]): GS {
       pos: v(sx, sy), vel: v(0, 0), targetPos: null,
       hp: baseHp, maxHp: baseHp, atkTimer: 0,
       iframeTimer: 0, dodgeTimer: 0, dodgeCd: 0, dodgeVel: v(0, 0), dodgeTrail: [],
-      hitFlash: 0, abilityCds: [0, 0, 0, 0], slowTimer: 0, knockbackVel: v(0, 0),
+      hitFlash: 0, abilityCds: [0, 0, 0, 0], abilityReadyFlash: [0, 0, 0, 0], slowTimer: 0, knockbackVel: v(0, 0),
       featherCharges: featherMode ? 3 : 1, featherRecharge: featherMode ? [0, 0, 0] : [0],
       webTrapPlaced: false, dodgeChargeMode: featherMode, facing: -Math.PI / 2,
       gearHitCount: 0, webProcCd: 0, shadowDashTrail: [],
@@ -543,6 +548,10 @@ function mkState(wpn: WeaponDef, boss: BossDef, gear: GearId[]): GS {
     fx: [],
     manaShieldTimer: 0,
     god: false,
+    hitstop: 0,
+    bossHpDisplay: boss.hp, playerHpDisplay: baseHp,
+    combo: 0, comboTimer: 0, maxCombo: 0, totalHits: 0,
+    introTimer: 2.6,
     griffinState: { mode: 0, timer: 3.0, dive: v(1, 0), shotT: 0 },
   }
 }
@@ -577,7 +586,9 @@ function dealDmgToPlayer(g: GS, dmg: number, wpn: WeaponDef, gear: GearId[], kno
   spawnParticles(g, p.pos, 8, '#FF4444', 110)
   Sfx.hurt(); if (gear.includes('ember_armor')) Sfx.emberSizzle()
   g.screenShake = Math.max(g.screenShake, 0.32)
-  g.damageNums.push({ id: ++g.nextDmgId, pos: { x: p.pos.x + rnd(-20, 20), y: p.pos.y - 20 }, val: Math.round(fd), life: 1.2, isPlayer: true })
+  if (fd >= 22) g.hitstop = Math.max(g.hitstop, 0.05)   // a heavy blow lands with weight
+  g.combo = 0   // taking a hit breaks the player's offensive chain
+  g.damageNums.push({ id: ++g.nextDmgId, pos: { x: p.pos.x + rnd(-20, 20), y: p.pos.y - 20 }, val: Math.round(fd), life: 1.2, maxLife: 1.2, isPlayer: true, vx: rnd(-14, 14) })
   if (p.hp <= 0) killPlayer(g)
 }
 
@@ -610,6 +621,7 @@ function killPlayer(g: GS) {
 function dealDmgToBoss(g: GS, baseDmg: number, gear: GearId[]) {
   const b = g.boss, p = g.player
   let dmg = baseDmg
+  let crit = false
   // drake_sword's damage bonus lives in the basic-hit multiplier now; here it only stuns
   if (gear.includes('drake_sword') && Math.random() < 0.15) b.stunTimer = Math.max(b.stunTimer, 1.5)
   if (g.rageActive) dmg = Math.round(dmg * 1.6)
@@ -620,7 +632,7 @@ function dealDmgToBoss(g: GS, baseDmg: number, gear: GearId[]) {
       dmg += 150
       spawnParticles(g, b.pos, 14, '#F1C40F', 260)
       g.screenShake = Math.max(g.screenShake, 0.45)
-      Sfx.crit()
+      Sfx.crit(); crit = true
     }
   }
   if (gear.includes('web_amulet') && p.webProcCd <= 0 && Math.random() < 0.10) {
@@ -631,11 +643,21 @@ function dealDmgToBoss(g: GS, baseDmg: number, gear: GearId[]) {
   }
   if (gear.includes('venom_bow') && g.poisonTimer <= 0) g.poisonTimer = 5.0
   dmg = Math.round(dmg * g.bossDmgTakenMult)
+  if (baseDmg >= 110) crit = true   // heavy ability strikes register as crits
   b.hp = Math.max(0, b.hp - dmg)
-  b.hitFlash = 0.12
+  b.hitFlash = crit ? 0.18 : 0.12
   Sfx.bossHit()
-  g.damageNums.push({ id: ++g.nextDmgId, pos: { x: b.pos.x + rnd(-30, 30), y: b.pos.y - 50 }, val: Math.round(dmg), life: 1.0, isPlayer: false })
-  spawnParticles(g, b.pos, 4, '#FFFFFF', 80)
+  // ── combo meter: every connected hit extends the chain ──
+  g.combo++; g.comboTimer = 2.0; g.totalHits++
+  if (g.combo > g.maxCombo) g.maxCombo = g.combo
+  // ── damage number (crits pop bigger + gold) ──
+  g.damageNums.push({ id: ++g.nextDmgId, pos: { x: b.pos.x + rnd(-26, 26), y: b.pos.y - 46 }, val: Math.round(dmg), life: crit ? 1.2 : 0.95, maxLife: crit ? 1.2 : 0.95, isPlayer: false, crit, vx: rnd(-16, 16) })
+  // ── impact spark at the contact edge, facing away from the player ──
+  const hitDir = norm(v(b.pos.x - p.pos.x, b.pos.y - p.pos.y))
+  const hitPos = v(b.pos.x - hitDir.x * 26, b.pos.y - hitDir.y * 26)
+  spawnFx(g, 'star', hitPos, crit ? '#FFE08A' : '#FFFFFF', crit ? 34 : 18, crit ? 0.30 : 0.18, Math.atan2(hitDir.y, hitDir.x))
+  spawnParticles(g, hitPos, crit ? 8 : 4, crit ? '#FFD24A' : '#FFFFFF', crit ? 150 : 90)
+  if (crit) { spawnFx(g, 'nova', hitPos, '#FFD24A', 40, 0.24); g.hitstop = Math.max(g.hitstop, 0.055); g.screenShake = Math.max(g.screenShake, 0.3) }
 }
 
 const MINION_CAP = 7
@@ -665,7 +687,7 @@ function fireFeatherVolley(g: GS, count: number, speed: number, dmg: number, pha
 function dealDmgToMinion(g: GS, m: Minion, dmg: number) {
   m.hp = Math.max(0, m.hp - dmg); m.hitFlash = 0.12
   Sfx.bossHit()
-  g.damageNums.push({ id: ++g.nextDmgId, pos: { x: m.pos.x + rnd(-10, 10), y: m.pos.y - 16 }, val: Math.round(dmg), life: 0.8, isPlayer: false })
+  g.damageNums.push({ id: ++g.nextDmgId, pos: { x: m.pos.x + rnd(-10, 10), y: m.pos.y - 16 }, val: Math.round(dmg), life: 0.8, maxLife: 0.8, isPlayer: false, vx: rnd(-10, 10) })
   if (m.hp <= 0) { spawnParticles(g, m.pos, 14, '#8E44AD', 180, 0.6); Sfx.minionDeath() }
 }
 
@@ -935,7 +957,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
       spawnParticles(g, v(p.pos.x + ox, p.pos.y + rnd(-10, 10)), 1, ['#E74C3C', '#8B0000', '#FFFFFF', '#C0392B'][rndI(0, 3)], rnd(20, 90), rnd(0.8, 1.8))
     }
     g.particles = g.particles.filter(pt => { pt.life -= dt; pt.pos.x += pt.vel.x * dt; pt.pos.y += pt.vel.y * dt - 16 * dt; pt.vel.x *= Math.pow(0.2, dt); pt.vel.y *= Math.pow(0.2, dt); return pt.life > 0 })
-    g.damageNums = g.damageNums.filter(d2 => { d2.life -= dt; d2.pos.y -= 28 * dt; return d2.life > 0 })
+    g.damageNums = g.damageNums.filter(d2 => { d2.life -= dt; d2.pos.y -= 30 * dt; d2.pos.x += (d2.vx ?? 0) * dt; if (d2.vx) d2.vx *= Math.pow(0.05, dt); return d2.life > 0 })
     if (g.playerDeathAnim <= 0) g.phase = 'defeat'
     return
   }
@@ -950,7 +972,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
     }
     if (Math.random() < dt * 5) g.screenShake = Math.max(g.screenShake, rnd(0.5, 1.2))
     g.particles = g.particles.filter(pt => { pt.life -= dt; pt.pos.x += pt.vel.x * dt; pt.pos.y += pt.vel.y * dt; pt.vel.x *= Math.pow(0.15, dt); pt.vel.y *= Math.pow(0.15, dt); return pt.life > 0 })
-    g.damageNums = g.damageNums.filter(d2 => { d2.life -= dt; d2.pos.y -= 28 * dt; return d2.life > 0 })
+    g.damageNums = g.damageNums.filter(d2 => { d2.life -= dt; d2.pos.y -= 30 * dt; d2.pos.x += (d2.vx ?? 0) * dt; if (d2.vx) d2.vx *= Math.pow(0.05, dt); return d2.life > 0 })
     if (g.bossDeathAnim <= 0) g.phase = 'victory'
     return
   }
@@ -982,7 +1004,20 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   if (g.chainResetTimer > 0) { g.chainResetTimer = Math.max(0, g.chainResetTimer - dt); if (g.chainResetTimer <= 0) g.chainHits = 0 }
   if (g.bossFleeTimer > 0) g.bossFleeTimer = Math.max(0, g.bossFleeTimer - dt)
   if (g.webProcAnim) { g.webProcAnim.timer -= dt; if (g.webProcAnim.timer <= 0) g.webProcAnim = null }
-  for (let i = 0; i < p.abilityCds.length; i++) p.abilityCds[i] = Math.max(0, p.abilityCds[i] - dt)
+  for (let i = 0; i < p.abilityCds.length; i++) {
+    const was = p.abilityCds[i]
+    p.abilityCds[i] = Math.max(0, was - dt)
+    if (was > 0 && p.abilityCds[i] <= 0) { p.abilityReadyFlash[i] = 0.55; Sfx.uiClick() }   // ability ready feedback
+    p.abilityReadyFlash[i] = Math.max(0, p.abilityReadyFlash[i] - dt)
+  }
+  // combo meter decay — let the chain lapse if you stop connecting hits
+  if (g.comboTimer > 0) { g.comboTimer = Math.max(0, g.comboTimer - dt); if (g.comboTimer <= 0) g.combo = 0 }
+  // chip-damage bars ease toward the true values for that satisfying delayed drain
+  g.bossHpDisplay += (b.hp - g.bossHpDisplay) * Math.min(1, dt * 3.2)
+  if (b.hp > g.bossHpDisplay) g.bossHpDisplay = b.hp
+  g.playerHpDisplay += (p.hp - g.playerHpDisplay) * Math.min(1, dt * 3.2)
+  if (p.hp > g.playerHpDisplay) g.playerHpDisplay = p.hp
+  if (g.introTimer > 0) g.introTimer = Math.max(0, g.introTimer - dt)
 
   // Shadow dash trail fade
   p.shadowDashTrail = p.shadowDashTrail.filter(t => { t.a -= dt * 3; return t.a > 0 })
@@ -1319,7 +1354,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
       if (zone.type === 'web') p.slowTimer = Math.max(p.slowTimer, 1.8)
       if (p.iframeTimer <= 0 && zone.dps > 0 && !g.god && g.manaShieldTimer <= 0) {
         const tick2 = zone.dps * dt; p.hp = Math.max(0, p.hp - tick2); p.hitFlash = Math.max(p.hitFlash, 0.06)
-        if (zone.type === 'poison' && Math.random() < dt * 2) g.damageNums.push({ id: ++g.nextDmgId, pos: { x: p.pos.x + rnd(-14, 14), y: p.pos.y - 18 }, val: Math.round(tick2), life: 0.8, isPlayer: true })
+        if (zone.type === 'poison' && Math.random() < dt * 2) g.damageNums.push({ id: ++g.nextDmgId, pos: { x: p.pos.x + rnd(-14, 14), y: p.pos.y - 18 }, val: Math.round(tick2), life: 0.8, maxLife: 0.8, isPlayer: true, vx: rnd(-8, 8) })
         if (p.hp <= 0) killPlayer(g)
       }
     }
@@ -1447,7 +1482,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
   const hpFrac = b.hp / b.maxHp
   // ── PHASE 2 — Enrage ──
   if (!g.bossEnraged && hpFrac <= bossDef.enrageAt) {
-    g.bossEnraged = true; g.screenShake = 0.95; spawnParticles(g, b.pos, 40, '#FF4444', 360)
+    g.bossEnraged = true; g.screenShake = 0.95; g.hitstop = Math.max(g.hitstop, 0.08); spawnParticles(g, b.pos, 40, '#FF4444', 360)
     Sfx.roar()
     const p2Sub = bossId === 0 ? 'Venom floods the lair' : bossId === 1 ? 'The molten core ignites' : 'The storm answers her call'
     g.phaseBanner = { text: 'PHASE 2 — ENRAGED', sub: p2Sub, timer: 2.6 }
@@ -1457,7 +1492,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
     g.bossDesperate = true; g.bossEnraged = true
     g.bossAttack = null            // cancel any wind-up
     g.nextAttackTimer = 0.6        // attack again quickly
-    g.screenShake = 1.4
+    g.screenShake = 1.4; g.hitstop = Math.max(g.hitstop, 0.10)
     spawnParticles(g, b.pos, 60, '#FFFFFF', 480); spawnParticles(g, b.pos, 40, bossDef.color, 420)
     Sfx.phaseShift()
     // shockwave nova — punishes anyone hugging the boss at the transition
@@ -1506,13 +1541,13 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
 
   // Boss death
   if (b.hp <= 0 && g.phase === 'playing') {
-    g.phase = 'dying'; g.bossDeathAnim = 3.0; g.bossAttack = null; g.screenShake = 1.5; g.minions = []
+    g.phase = 'dying'; g.bossDeathAnim = 3.0; g.bossAttack = null; g.screenShake = 1.5; g.hitstop = 0.16; g.minions = []
     spawnParticles(g, b.pos, 90, '#F1C40F', 400); spawnParticles(g, b.pos, 45, bossDef.color, 320); spawnParticles(g, b.pos, 22, '#FFFFFF', 550)
     Sfx.death()
   }
 
   // Decay
-  g.damageNums = g.damageNums.filter(d2 => { d2.life -= dt; d2.pos.y -= 28 * dt; return d2.life > 0 })
+  g.damageNums = g.damageNums.filter(d2 => { d2.life -= dt; d2.pos.y -= 30 * dt; d2.pos.x += (d2.vx ?? 0) * dt; if (d2.vx) d2.vx *= Math.pow(0.05, dt); return d2.life > 0 })
   g.particles = g.particles.filter(pt => { pt.life -= dt; pt.pos.x += pt.vel.x * dt; pt.pos.y += pt.vel.y * dt; pt.vel.x *= Math.pow(0.15, dt); pt.vel.y *= Math.pow(0.15, dt); return pt.life > 0 })
   if (bossId === 1) {
     const spawnRate = g.bossEnraged ? 26 : 16
@@ -3348,13 +3383,28 @@ function renderParticles(ctx: CanvasRenderingContext2D, g: GS) {
 
 function renderDamageNumbers(ctx: CanvasRenderingContext2D, g: GS) {
   g.damageNums.forEach(dn => {
-    ctx.save(); ctx.globalAlpha=Math.min(1,dn.life*1.5)
-    ctx.font=`${dn.isPlayer?16:14}px "Press Start 2P",monospace`
-    ctx.fillStyle=dn.isPlayer?'#FF2222':'#FFFFFF'; ctx.textAlign='center'; ctx.textBaseline='middle'
-    ctx.shadowColor=dn.isPlayer?'#FF0000':'#C89B3C'; ctx.shadowBlur=dn.isPlayer?14:7
-    ctx.fillText(`-${dn.val}`,dn.pos.x,dn.pos.y); ctx.restore()
+    const prog = 1 - dn.life / dn.maxLife
+    const alpha = Math.min(1, dn.life * 2.4)
+    // pop: overshoot to ~1.6x at spawn, settle to 1.0 over the first 15% of life
+    const scale = 1.6 - 0.6 * Math.min(1, prog / 0.15)
+    const txt = (dn.isPlayer ? '-' : '') + dn.val
+    const sz = dn.isPlayer ? 16 : dn.crit ? 22 : 14
+    const col = dn.isPlayer ? '#FF3B3B' : dn.crit ? '#FFD24A' : '#FFFFFF'
+    const glow = dn.isPlayer ? '#FF0000' : dn.crit ? '#FF8A1A' : '#C89B3C'
+    ctx.save(); ctx.globalAlpha = alpha
+    ctx.translate(dn.pos.x, dn.pos.y); ctx.scale(scale, scale)
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    ctx.font = `${sz}px "Press Start 2P",monospace`
+    // black outline keeps numbers legible over bright effects
+    ctx.lineWidth = dn.crit ? 4.5 : 3; ctx.strokeStyle = 'rgba(0,0,0,0.9)'; ctx.lineJoin = 'round'
+    ctx.strokeText(txt, 0, 0)
+    ctx.shadowColor = glow; ctx.shadowBlur = dn.crit ? 18 : dn.isPlayer ? 14 : 7
+    ctx.fillStyle = col; ctx.fillText(txt, 0, 0)
+    // crit gets a little "!" flourish
+    if (dn.crit) { ctx.font = '11px "Press Start 2P",monospace'; ctx.fillStyle = '#FFF7C0'; ctx.fillText('!', sz * 0.7, -sz * 0.34) }
+    ctx.restore()
   })
-  ctx.textBaseline='alphabetic'
+  ctx.textBaseline = 'alphabetic'
 }
 
 function renderBossDeath(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId) {
@@ -3392,18 +3442,42 @@ function renderHUD(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, bossDef
   ctx.fillStyle='#1a0808'; ctx.fillRect(barX,barY+7,barW,barH-7)
   const enX=barX+barW*bossDef.enrageAt; ctx.strokeStyle='#FF4444'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(enX,barY+4); ctx.lineTo(enX,barY+barH+2); ctx.stroke()
   const hpRat=b.hp/b.maxHp, hpCol=g.bossEnraged?'#FF1111':hpRat>0.6?'#E74C3C':hpRat>0.3?'#E67E22':'#FF4444'
+  const ghostRat=clamp(g.bossHpDisplay/b.maxHp,0,1)
+  if (ghostRat>hpRat+0.001) { ctx.fillStyle='rgba(255,235,150,0.65)'; ctx.fillRect(barX+barW*hpRat,barY+7,barW*(ghostRat-hpRat),barH-7) }
   ctx.fillStyle=hpCol; ctx.fillRect(barX,barY+7,barW*hpRat,barH-7)
+  // glossy top highlight for a more finished bar
+  ctx.fillStyle='rgba(255,255,255,0.14)'; ctx.fillRect(barX,barY+7,barW*hpRat,(barH-7)*0.4)
   if (g.bossEnraged) { const p2=0.5+0.5*Math.sin(t*6); ctx.fillStyle=`rgba(255,0,0,${p2*0.22})`; ctx.fillRect(barX,barY+7,barW*hpRat,barH-7); ctx.font='9px "Press Start 2P",monospace'; ctx.fillStyle='#FF4444'; ctx.textAlign='right'; ctx.fillText('ENRAGED',barX+barW-2,barY+barH+2) }
   if (b.stunTimer>0) { ctx.font='9px "Press Start 2P",monospace'; ctx.fillStyle='#F1C40F'; ctx.textAlign='left'; ctx.fillText('STUNNED',barX+2,barY+barH+2) }
   ctx.font='7px "Press Start 2P",monospace'; ctx.fillStyle='rgba(200,155,60,0.5)'; ctx.textAlign='center'
   ctx.fillText(`${Math.ceil(b.hp).toLocaleString()} / ${b.maxHp.toLocaleString()}`,CW/2,barY+barH+14)
+
+  // ── combo meter — builds as you chain hits, escalates in colour, pops on each hit ──
+  if (g.combo >= 2) {
+    const sinceHit = 2.0 - g.comboTimer
+    const pop = 1 + Math.max(0, 1 - sinceHit / 0.13) * 0.5
+    const fade = clamp(g.comboTimer / 0.6, 0, 1)
+    const cc = g.combo >= 20 ? '#FFF7C0' : g.combo >= 10 ? '#FF5566' : g.combo >= 5 ? '#FF9A3C' : '#C89B3C'
+    ctx.save(); ctx.globalAlpha = fade; ctx.translate(CW / 2, barY + barH + 40); ctx.scale(pop, pop); ctx.textAlign = 'center'
+    ctx.font = '16px "Press Start 2P",monospace'; ctx.lineWidth = 3.5; ctx.strokeStyle = 'rgba(0,0,0,0.85)'; ctx.lineJoin = 'round'
+    ctx.shadowColor = cc; ctx.shadowBlur = 12; ctx.fillStyle = cc
+    ctx.strokeText(`${g.combo} HIT`, 0, 0); ctx.fillText(`${g.combo} HIT`, 0, 0)
+    ctx.shadowBlur = 0; ctx.font = '6px "Press Start 2P",monospace'; ctx.fillStyle = '#A09880'; ctx.fillText('COMBO', 0, 12)
+    ctx.restore()
+  }
+  ctx.textAlign = 'left'
 
   const pBW=200,pBH=14,pBX=14,pBY=CH-90
   ctx.fillStyle='rgba(4,4,14,0.92)'; rrect(ctx,pBX-6,pBY-20,pBW+12,pBH+36,8); ctx.fill()
   ctx.strokeStyle=`${wpn.color}66`; ctx.lineWidth=1.5; ctx.stroke()
   ctx.font='9px "Press Start 2P",monospace'; ctx.fillStyle=wpn.color; ctx.textAlign='left'; ctx.fillText(wpn.icon+' '+wpn.name.toUpperCase(),pBX,pBY-8)
   ctx.fillStyle='#1a0808'; ctx.fillRect(pBX,pBY,pBW,pBH)
-  const ph=p.hp/p.maxHp; ctx.fillStyle=ph>0.5?'#27AE60':ph>0.25?'#F39C12':'#E74C3C'; ctx.fillRect(pBX,pBY,pBW*ph,pBH)
+  const ph=p.hp/p.maxHp
+  const pGhost=clamp(g.playerHpDisplay/p.maxHp,0,1)
+  if (pGhost>ph+0.001) { ctx.fillStyle='rgba(255,235,150,0.6)'; ctx.fillRect(pBX+pBW*ph,pBY,pBW*(pGhost-ph),pBH) }
+  ctx.fillStyle=ph>0.5?'#27AE60':ph>0.25?'#F39C12':'#E74C3C'; ctx.fillRect(pBX,pBY,pBW*ph,pBH)
+  if (ph<0.25) { const lp=0.5+0.5*Math.sin(t*9); ctx.fillStyle=`rgba(255,40,40,${lp*0.3})`; ctx.fillRect(pBX,pBY,pBW*ph,pBH) }   // low-HP danger pulse
+  ctx.fillStyle='rgba(255,255,255,0.14)'; ctx.fillRect(pBX,pBY,pBW*ph,pBH*0.4)
   ctx.font='8px "Press Start 2P",monospace'; ctx.fillStyle='#A09880'; ctx.fillText(`${Math.ceil(p.hp)} / ${p.maxHp}`,pBX,pBY+pBH+12)
 
   const dCX=pBX+pBW+46, dBW=68, dBH=28, dBY=pBY-1
@@ -3429,17 +3503,37 @@ function renderHUD(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, bossDef
   }
   if (p.dodgeChargeMode) { for (let i=0;i<3;i++) { ctx.fillStyle=i<p.featherCharges?'#C89B3C':'rgba(200,155,60,0.18)'; ctx.beginPath(); ctx.arc(dCX-14+i*14,dBY+dBH+9,5,0,Math.PI*2); ctx.fill() } }
 
-  const slW=52,slH=52,slY=CH-88, tsW=4*slW+3*6, slX=CW/2-tsW/2
+  const slW=54,slH=54,slY=CH-90, tsW=4*slW+3*7, slX=CW/2-tsW/2
   const kkeys=['Q','W','E','R']
+  const EMOJI='"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",serif'
   wpn.abilities.forEach((ab,i) => {
-    const sx=slX+i*(slW+6), cdPct=p.abilityCds[i]/ab.cd, ready=cdPct<=0
-    ctx.fillStyle='rgba(4,4,14,0.93)'; rrect(ctx,sx,slY,slW,slH,7); ctx.fill()
-    ctx.strokeStyle=ready?`${wpn.color}CC`:'rgba(70,55,35,0.6)'; ctx.lineWidth=1.5; ctx.stroke()
-    if (!ready) { ctx.fillStyle='rgba(0,0,0,0.65)'; ctx.save(); ctx.beginPath(); rrect(ctx,sx,slY,slW,slH*cdPct,7); ctx.fill(); ctx.restore() }
-    if (ready) { ctx.shadowColor=wpn.color; ctx.shadowBlur=9 } else ctx.shadowBlur=0
-    ctx.font='13px "Press Start 2P",monospace'; ctx.fillStyle=ready?wpn.color:'#504030'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(kkeys[i],sx+slW/2,slY+18); ctx.shadowBlur=0
-    ctx.font='6px "Press Start 2P",monospace'; ctx.fillStyle=ready?'#A09880':'#504030'; ctx.textBaseline='alphabetic'; ctx.fillText(ab.name,sx+slW/2,slY+slH-6)
-    if (!ready) { ctx.font='10px "Press Start 2P",monospace'; ctx.fillStyle='#C89B3C'; ctx.textBaseline='middle'; ctx.fillText(Math.ceil(p.abilityCds[i]).toString(),sx+slW/2,slY+slH/2+4); ctx.textBaseline='alphabetic' }
+    const sx=slX+i*(slW+7), cx=sx+slW/2, cy=slY+slH/2
+    const cd=p.abilityCds[i], cdPct=clamp(cd/ab.cd,0,1), ready=cd<=0
+    const rf=p.abilityReadyFlash[i]
+    // slot background
+    ctx.fillStyle='rgba(4,4,14,0.93)'; rrect(ctx,sx,slY,slW,slH,8); ctx.fill()
+    // border — steady glow when ready, bright pulse the moment it comes off cooldown
+    ctx.save()
+    if (ready) { ctx.shadowColor=wpn.color; ctx.shadowBlur=10+(rf>0?rf*36:0); ctx.strokeStyle=rf>0?'#FFFFFF':`${wpn.color}DD`; ctx.lineWidth=rf>0?2.6:1.6 }
+    else { ctx.strokeStyle='rgba(70,55,35,0.6)'; ctx.lineWidth=1.5 }
+    rrect(ctx,sx,slY,slW,slH,8); ctx.stroke(); ctx.restore()
+    // ability icon
+    ctx.save(); ctx.globalAlpha=ready?1:0.38; ctx.font=`22px ${EMOJI}`; ctx.textAlign='center'; ctx.textBaseline='middle'
+    ctx.fillText(ab.icon,cx,cy-3); ctx.restore()
+    // key badge (top-left)
+    ctx.font='8px "Press Start 2P",monospace'; ctx.textAlign='left'; ctx.textBaseline='top'
+    ctx.fillStyle=ready?wpn.color:'#6a5a40'; ctx.fillText(kkeys[i],sx+4,slY+4)
+    // ability name (bottom)
+    ctx.font='5px "Press Start 2P",monospace'; ctx.textAlign='center'; ctx.textBaseline='alphabetic'
+    ctx.fillStyle=ready?'#A09880':'#504030'; ctx.fillText(ab.name.toUpperCase(),cx,slY+slH-5)
+    // cooldown: radial dark sweep + seconds remaining
+    if (!ready) {
+      ctx.save(); ctx.beginPath(); rrect(ctx,sx,slY,slW,slH,8); ctx.clip()
+      ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.beginPath(); ctx.moveTo(cx,cy)
+      ctx.arc(cx,cy,slW,-Math.PI/2,-Math.PI/2+Math.PI*2*cdPct,false); ctx.closePath(); ctx.fill(); ctx.restore()
+      ctx.font='13px "Press Start 2P",monospace'; ctx.fillStyle='#E8D9A8'; ctx.textAlign='center'; ctx.textBaseline='middle'
+      ctx.fillText(Math.ceil(cd).toString(),cx,cy)
+    }
   })
   ctx.textBaseline='alphabetic'; ctx.textAlign='left'
 
@@ -3605,6 +3699,30 @@ function render(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, bossId: Bo
     ctx.fillText(pb.sub, CW / 2, CH * 0.28 + 52)
     ctx.restore(); ctx.textAlign = 'left'
   }
+  // ── cinematic boss intro — slams the boss name on screen as the fight opens ──
+  if (g.introTimer > 0 && g.phase === 'playing') {
+    const total = 2.6, it = g.introTimer
+    const inP = clamp((total - it) / 0.45, 0, 1)   // slam/scale in
+    const outA = clamp(it / 0.6, 0, 1)             // fade out near the end
+    const a = Math.min(inP, outA)
+    const ec = bossDef.element === 'poison' ? '#b370e0' : bossDef.element === 'fire' ? '#ff8a1a' : '#5fe6ff'
+    const topY = CH * 0.30
+    ctx.save(); ctx.globalAlpha = a; ctx.textAlign = 'center'
+    ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(0, topY, CW, 96)
+    ctx.fillStyle = ec; ctx.shadowColor = ec; ctx.shadowBlur = 5
+    ctx.fillRect(0, topY, CW * inP, 2); ctx.fillRect(CW * (1 - inP), topY + 94, CW * inP, 2)
+    ctx.shadowBlur = 0
+    ctx.font = '7px "Press Start 2P",monospace'; ctx.fillStyle = '#A09880'
+    ctx.fillText('— NOW ENTERING —', CW / 2, topY + 24)
+    ctx.save(); ctx.translate(CW / 2, topY + 54); const sc = 1.28 - 0.28 * inP; ctx.scale(sc, sc)
+    ctx.font = 'bold 26px "Press Start 2P",monospace'; ctx.lineWidth = 4; ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(0,0,0,0.8)'
+    ctx.shadowColor = ec; ctx.shadowBlur = 22
+    ctx.strokeText(bossDef.name.toUpperCase(), 0, 0); ctx.fillStyle = ec; ctx.fillText(bossDef.name.toUpperCase(), 0, 0)
+    ctx.restore()
+    ctx.font = '8px "Press Start 2P",monospace'; ctx.shadowBlur = 0; ctx.fillStyle = '#E8E6E0'
+    ctx.fillText(`${bossDef.element.toUpperCase()}  ⚔  THE HUNT BEGINS`, CW / 2, topY + 82)
+    ctx.restore(); ctx.textAlign = 'left'
+  }
   ctx.restore()
 }
 /* ═══ FASTEST-KILL LEADERBOARD ═══ */
@@ -3679,6 +3797,8 @@ export default function BossHunter() {
   }, [isAdmin])
   const [victoryBoss, setVictoryBoss] = useState(0)
   const [victoryTimeMs, setVictoryTimeMs] = useState(0)
+  const [victoryStats, setVictoryStats] = useState<{ hits: number; combo: number }>({ hits: 0, combo: 0 })
+  const [defeatInfo, setDefeatInfo] = useState<{ hpPct: number; combo: number }>({ hpPct: 100, combo: 0 })
   const [victoryRank, setVictoryRank] = useState<number | null>(null)
   const submittedRunRef = useRef(false)
   const [lastUnlockedGear, setLastUnlockedGear] = useState<GearId | null>(null)
@@ -3913,6 +4033,14 @@ export default function BossHunter() {
       const g = gsRef.current
       if (!g) { rafRef.current = requestAnimationFrame(loop); return }
 
+      // ── hitstop: briefly freeze the simulation on heavy impacts (still renders) ──
+      if (g.hitstop > 0 && (g.phase === 'playing' || g.phase === 'dying' || g.phase === 'player_dying')) {
+        g.hitstop = Math.max(0, g.hitstop - dt)
+        render(ctx, g, wpn, selBoss, gear, g.gtime)
+        rafRef.current = requestAnimationFrame(loop)
+        return
+      }
+
       const pending = pendingAbilityRef.current
       pendingAbilityRef.current = null
       pendingDodgeRef.current = false
@@ -3932,6 +4060,7 @@ export default function BossHunter() {
         const killMs = Math.round(g.gtime * 1000)
         setVictoryBoss(selBoss)
         setVictoryTimeMs(killMs)
+        setVictoryStats({ hits: g.totalHits, combo: g.maxCombo })
         setVictoryRank(null)
         const newGear = BOSS_DEFS[selBoss].rewards.filter(r => !unlockedGear.includes(r)) as GearId[]
         const toUnlock = newGear.length > 0 ? newGear[Math.floor(Math.random() * newGear.length)] : null
@@ -3949,7 +4078,10 @@ export default function BossHunter() {
         }
         return
       }
-      if (g.phase === 'defeat') { setScreen('defeat'); return }
+      if (g.phase === 'defeat') {
+        setDefeatInfo({ hpPct: Math.max(1, Math.round((g.boss.hp / g.boss.maxHp) * 100)), combo: g.maxCombo })
+        setScreen('defeat'); return
+      }
 
       render(ctx, g, wpn, selBoss, gear, g.gtime)
       rafRef.current = requestAnimationFrame(loop)
@@ -4193,10 +4325,14 @@ export default function BossHunter() {
           <div style={{fontSize:10,color:boss.color,marginBottom:10}}>{boss.name} Defeated</div>
           <div style={{fontSize:11,color:'#a8e0b0',marginBottom:victoryRank!=null?4:20}}>⏱ Kill Time: {fmtKillTime(victoryTimeMs)}</div>
           {victoryRank != null && (
-            <div style={{fontSize:9,color:'#C89B3C',marginBottom:18,textShadow:'0 0 14px #C89B3C66'}}>
+            <div style={{fontSize:9,color:'#C89B3C',marginBottom:10,textShadow:'0 0 14px #C89B3C66'}}>
               {victoryRank <= 10 ? `🏆 You ranked #${victoryRank}!` : `Your rank: #${victoryRank}`}
             </div>
           )}
+          <div style={{display:'flex',gap:20,justifyContent:'center',marginBottom:18,fontSize:8,color:'#605848'}}>
+            <span>HITS LANDED <span style={{color:'#E8E6E0'}}>{victoryStats.hits}</span></span>
+            <span>BEST COMBO <span style={{color:'#FF9A3C'}}>{victoryStats.combo}</span></span>
+          </div>
           <div style={{background:'#0d0d1a',border:'1px solid #2a2820',borderRadius:10,padding:20,marginBottom:16,textAlign:'left'}}>
             {lastUnlockedGear ? (() => {
               const gid = lastUnlockedGear
@@ -4261,7 +4397,11 @@ export default function BossHunter() {
       <div className="bh-die" style={{textAlign:'center',maxWidth:480,padding:'0 24px'}}>
         <div style={{fontSize:64,marginBottom:10,animation:'bh-skull-pulse 2.4s ease-in-out infinite'}}>💀</div>
         <div style={{fontSize:30,color:'#a01212',letterSpacing:4,marginBottom:10,animation:'bh-died-glow 2.6s ease-in-out infinite'}}>YOU DIED</div>
-        <div style={{fontSize:9,color:'#7a5a5a',marginBottom:26}}>Slain by the {BOSS_DEFS[selBoss].name}</div>
+        <div style={{fontSize:9,color:'#7a5a5a',marginBottom:14}}>Slain by the {BOSS_DEFS[selBoss].name}</div>
+        <div style={{fontSize:8,color:'#9a8a86',marginBottom:26}}>
+          {BOSS_DEFS[selBoss].name} survived with <span style={{color:'#E74C3C'}}>{defeatInfo.hpPct}%</span> HP
+          {defeatInfo.hpPct <= 20 ? <span style={{color:'#C89B3C'}}> — so close!</span> : ''}
+        </div>
         <div style={{fontSize:8,color:'#9a8a86',marginBottom:30,lineHeight:'2'}}>
           Read the telegraphs &mdash; every attack can be dodged.<br/>
           Keep your distance with ranged weapons; close in with melee.
