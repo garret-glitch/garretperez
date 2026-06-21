@@ -4279,7 +4279,7 @@ export default function BossHunter() {
     const ag = curArmour ? GEAR_DEFS[curArmour] : null
 
     const navBtn = (onClick: ()=>void, label: string) => (
-      <button onClick={onClick} className="bh-nav" style={{background:'#14141e',border:'1px solid #2f2c22',color:'#C8B98A',width:34,height:34,borderRadius:'50%',fontSize:17,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,lineHeight:1}}>
+      <button onClick={onClick} className="bh-nav" style={{background:'#14141e',border:'1px solid #2f2c22',color:'#C8B98A',width:34,height:34,borderRadius:'50%',fontSize:17,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,lineHeight:1,alignSelf:'center'}}>
         {label}
       </button>
     )
@@ -4305,17 +4305,17 @@ export default function BossHunter() {
       </div>
     )
     const cardShell = (label: string, color: string, prevFn: ()=>void, nextFn: ()=>void, animKey: string|number, dTotal: number, dActive: number, inner: JSX.Element) => (
-      <div style={{flex:'1 1 0',minWidth:248}}>
+      <div style={{flex:'1 1 0',minWidth:248,display:'flex',flexDirection:'column'}}>
         <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:9}}>
           <span style={{flex:1,height:1,background:'linear-gradient(90deg,transparent,#2a2820)'}}/>
           <span style={{fontSize:7,color:'#8a7a55',letterSpacing:3}}>◆ {label}</span>
           <span style={{flex:1,height:1,background:'linear-gradient(90deg,#2a2820,transparent)'}}/>
         </div>
-        <div style={{display:'flex',alignItems:'center',gap:8}}>
+        <div style={{display:'flex',alignItems:'stretch',gap:8,flex:1}}>
           {navBtn(prevFn,'‹')}
-          <div key={animKey} className="bh-prep-card bh-card-anim" style={{flex:1,position:'relative',background:'linear-gradient(180deg,#101019,#09090f)',border:`1px solid ${color}66`,borderRadius:14,overflow:'hidden',boxShadow:`0 0 26px ${color}26, inset 0 1px 0 rgba(255,255,255,0.04)`}}>
+          <div key={animKey} className="bh-prep-card bh-card-anim" style={{flex:1,display:'flex',flexDirection:'column',position:'relative',background:'linear-gradient(180deg,#101019,#09090f)',border:`1px solid ${color}66`,borderRadius:14,overflow:'hidden',boxShadow:`0 0 26px ${color}26, inset 0 1px 0 rgba(255,255,255,0.04)`}}>
             <div style={{height:3,background:`linear-gradient(90deg,transparent,${color},transparent)`}}/>
-            {inner}
+            <div style={{flex:1}}>{inner}</div>
             {dots(dTotal, dActive, color)}
           </div>
           {navBtn(nextFn,'›')}
