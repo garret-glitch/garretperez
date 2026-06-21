@@ -815,7 +815,7 @@ function startBossAttack(g: GS, bossId: BossId, type: string) {
     lightning_strike: 1.05, talon_dive: 1.0, wind_buffet: 0.95, thunderstorm: 1.0, static_field: 0.95, chain_lightning: 1.0, lightning_barrage: 0.95,
     wind_blade: 1.0, dive_bomb: 1.05,
     web_spiral: 1.0, fire_sweep: 1.1, storm_rings: 1.0,
-    frost_breath: 1.2, frost_stomp: 1.0, frost_bite: 1.0, tail_frost: 0.95, ice_shards: 0.95, frost_nova: 1.0, icicle_rain: 1.1, glacier_dive: 1.05,
+    frost_breath: 1.2, frost_stomp: 1.1, frost_bite: 1.0, tail_frost: 1.0, ice_shards: 0.95, frost_nova: 1.1, icicle_rain: 1.15, glacier_dive: 1.2,
   }
   const data: AttackData = { targetPos: { ...p.pos }, angle, dmg: 0 }
   if (type === 'venom_spit') { data.dmg = 10; data.count = 3; data.projSpeed = 260 }
@@ -858,14 +858,14 @@ function startBossAttack(g: GS, bossId: BossId, type: string) {
   else if (type === 'fire_sweep') { const dir = Math.random() < 0.5 ? 1 : -1; data.dmg = 17; data.coneAngle = 44 * Math.PI / 180; data.coneRange = 330; data.duration = 2.2; data.elapsed = 0; data.count = dir; data.angle = angle - dir * 1.45 }
   else if (type === 'storm_rings') { data.dmg = 11; data.count = 3; data.strikeIndex = 0; data.elapsed = 0 }
   // ── FROST WYRM attacks ──
-  else if (type === 'frost_breath') { data.dmg = 18; data.coneAngle = 50 * Math.PI / 180; data.coneRange = 300; data.angle = angle; data.duration = 2.0; data.elapsed = 0 }
-  else if (type === 'frost_stomp') { data.dmg = 26; data.radius = 175; data.count = g.bossEnraged ? 14 : 11; data.targetPos = { ...b.pos }; data.projSpeed = 230 }
-  else if (type === 'frost_bite') { data.dmg = 26; data.angle = angle }
-  else if (type === 'tail_frost') { data.dmg = 28; data.coneAngle = 260 * Math.PI / 180; data.coneRange = 190; data.angle = angle + Math.PI }
-  else if (type === 'ice_shards') { data.dmg = 13; data.count = g.bossEnraged ? 7 : 5; data.projSpeed = 300; data.angle = angle }
-  else if (type === 'frost_nova') { data.dmg = 11; data.count = g.bossEnraged ? 14 : 11; data.projSpeed = 235 }
-  else if (type === 'icicle_rain') { data.dmg = 0; data.count = g.bossEnraged ? 5 : 4 }
-  else if (type === 'glacier_dive') { data.dmg = 32; data.radius = 130; data.targetPos = { ...p.pos } }
+  else if (type === 'frost_breath') { data.dmg = 15; data.coneAngle = 56 * Math.PI / 180; data.coneRange = 380; data.angle = angle; data.duration = 2.2; data.elapsed = 0 }
+  else if (type === 'frost_stomp') { data.dmg = 22; data.radius = 192; data.count = g.bossEnraged ? 16 : 13; data.targetPos = { ...b.pos }; data.projSpeed = 245 }
+  else if (type === 'frost_bite') { data.dmg = 24; data.angle = angle }
+  else if (type === 'tail_frost') { data.dmg = 25; data.coneAngle = 285 * Math.PI / 180; data.coneRange = 235; data.angle = angle + Math.PI }
+  else if (type === 'ice_shards') { data.dmg = 11; data.count = g.bossEnraged ? 9 : 7; data.projSpeed = 300; data.angle = angle }
+  else if (type === 'frost_nova') { data.dmg = 9; data.count = g.bossEnraged ? 18 : 14; data.projSpeed = 250 }
+  else if (type === 'icicle_rain') { data.dmg = 0; data.count = g.bossEnraged ? 7 : 5 }
+  else if (type === 'glacier_dive') { data.dmg = 28; data.radius = 154; data.targetPos = { ...p.pos } }
   g.bossAttack = { type, telegraphTime: telegraphs[type] ?? 1.0, elapsed: 0, active: false, data }
   // ── telegraph: audio warning + charge-up burst (readability/fairness) ──
   const BIG_ATTACKS = ['spider_leap', 'venom_burst', 'fire_line', 'flame_wave', 'fire_breath', 'lava_puddle', 'lightning_barrage', 'lava_barrage', 'thunderstorm', 'meteor', 'talon_dive', 'fireball', 'tail_slam', 'dive_bomb', 'spider_charge', 'magma_geyser', 'thunder_cross', 'gale_ring', 'venom_geyser', 'web_burst', 'web_spiral', 'fire_sweep', 'storm_rings', 'frost_breath', 'frost_stomp', 'frost_bite', 'frost_nova', 'icicle_rain', 'glacier_dive']
@@ -887,31 +887,39 @@ function resolveBossAttack(g: GS, bossId: BossId, wpn: WeaponDef, gear: GearId[]
       const spread = (i - (count - 1) / 2) * 0.28
       const a = baseAngle + spread
       const color = type === 'venom_spit' ? '#8E44AD' : ice ? '#9fe8ff' : '#E67E22'
-      g.projectiles.push({ id: ++g.nextProjId, pos: { ...b.pos }, vel: v(Math.cos(a) * (d.projSpeed ?? 250), Math.sin(a) * (d.projSpeed ?? 250)), dmg: d.dmg ?? 22, radius: ice ? 8 : 9, fromBoss: true, life: 5.0, color, isIce: ice, trail: ice ? [] : undefined })
+      g.projectiles.push({ id: ++g.nextProjId, pos: { ...b.pos }, vel: v(Math.cos(a) * (d.projSpeed ?? 250), Math.sin(a) * (d.projSpeed ?? 250)), dmg: d.dmg ?? 22, radius: ice ? 11 : 9, fromBoss: true, life: 5.0, color, isIce: ice, trail: ice ? [] : undefined })
     }
-    if (ice) Sfx.shot()
+    if (ice) { spawnParticles(g, b.pos, 16, '#cfe9ff', 200); spawnParticles(g, b.pos, 8, '#FFFFFF', 130, 0.4); Sfx.shot() }
   } else if (type === 'frost_nova') {
-    // Frost Wyrm: a full-circle burst of icicles — thread the gaps
-    const count = d.count ?? 11, sp = d.projSpeed ?? 235, off = g.gtime
+    // Frost Wyrm: a sweeping double-ring blizzard of icicles — thread the shifting gaps
+    const count = d.count ?? 14, sp = d.projSpeed ?? 250, off = g.gtime
     for (let i = 0; i < count; i++) { const a = off + i / count * Math.PI * 2
-      g.projectiles.push({ id: ++g.nextProjId, pos: { ...b.pos }, vel: v(Math.cos(a) * sp, Math.sin(a) * sp), dmg: d.dmg ?? 11, radius: 8, fromBoss: true, life: 5.0, color: '#9fe8ff', isIce: true, trail: [] }) }
-    spawnParticles(g, b.pos, 16, '#cfe9ff', 180); g.screenShake = Math.max(g.screenShake, 0.4); Sfx.shot()
+      g.projectiles.push({ id: ++g.nextProjId, pos: { ...b.pos }, vel: v(Math.cos(a) * sp, Math.sin(a) * sp), dmg: d.dmg ?? 10, radius: 10, fromBoss: true, life: 5.0, color: '#9fe8ff', isIce: true, trail: [] }) }
+    const inner = Math.round(count * 0.65)
+    for (let i = 0; i < inner; i++) { const a = off + Math.PI / count + i / inner * Math.PI * 2
+      g.projectiles.push({ id: ++g.nextProjId, pos: { ...b.pos }, vel: v(Math.cos(a) * sp * 0.62, Math.sin(a) * sp * 0.62), dmg: d.dmg ?? 10, radius: 9, fromBoss: true, life: 5.0, color: '#bfe9f7', isIce: true, trail: [] }) }
+    spawnParticles(g, b.pos, 30, '#cfe9ff', 260); spawnParticles(g, b.pos, 16, '#FFFFFF', 170)
+    spawnFx(g, 'shock', { ...b.pos }, '#7fd4ff', 130, 0.4); g.screenShake = Math.max(g.screenShake, 0.5); Sfx.shot()
   } else if (type === 'frost_stomp') {
-    // Frost Wyrm: a shockwave around the wyrm that also flings a ring of ice shards outward
-    const r = d.radius ?? 175
-    if (dist(p.pos, b.pos) <= r) { dealDmgToPlayer(g, d.dmg ?? 26, wpn, gear, toPlayer); p.slowTimer = Math.max(p.slowTimer, 2.0) }
-    const count = d.count ?? 11
+    // Frost Wyrm: a huge frost shockwave that flings a ring of ice shards + freezes the rim
+    const r = d.radius ?? 210
+    if (dist(p.pos, b.pos) <= r) { dealDmgToPlayer(g, d.dmg ?? 24, wpn, gear, toPlayer); p.slowTimer = Math.max(p.slowTimer, 2.2) }
+    const count = d.count ?? 13
     for (let i = 0; i < count; i++) { const a = i / count * Math.PI * 2 + g.gtime
-      g.projectiles.push({ id: ++g.nextProjId, pos: { ...b.pos }, vel: v(Math.cos(a) * (d.projSpeed ?? 230), Math.sin(a) * (d.projSpeed ?? 230)), dmg: Math.round((d.dmg ?? 26) * 0.5), radius: 8, fromBoss: true, life: 4.0, color: '#9fe8ff', isIce: true, trail: [] }) }
-    spawnParticles(g, b.pos, 28, '#cfe9ff', 300); spawnFx(g, 'shock', { ...b.pos }, '#7fd4ff', r, 0.5); g.screenShake = Math.max(g.screenShake, 0.7); Sfx.slam()
+      g.projectiles.push({ id: ++g.nextProjId, pos: { ...b.pos }, vel: v(Math.cos(a) * (d.projSpeed ?? 245), Math.sin(a) * (d.projSpeed ?? 245)), dmg: Math.round((d.dmg ?? 24) * 0.5), radius: 9, fromBoss: true, life: 4.2, color: '#9fe8ff', isIce: true, trail: [] }) }
+    // a ring of frozen ground at the shockwave's edge (cosmetic + slow)
+    for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; spawnZone(g, v(clamp(b.pos.x + Math.cos(a) * r * 0.8, 80, WW - 80), clamp(b.pos.y + Math.sin(a) * r * 0.8, 80, WH - 80)), 'ice', 56, 0, 2.0) }
+    spawnParticles(g, b.pos, 44, '#cfe9ff', 340); spawnParticles(g, b.pos, 18, '#FFFFFF', 220)
+    spawnFx(g, 'shock', { ...b.pos }, '#7fd4ff', r, 0.55); spawnFx(g, 'nova', { ...b.pos }, '#e8f7ff', r * 0.5, 0.3); g.screenShake = Math.max(g.screenShake, 0.85); Sfx.slam()
   } else if (type === 'icicle_rain') {
-    // Frost Wyrm: a scatter of crashing ice patches around the player — keep moving
-    for (let i = 0; i < (d.count ?? 4); i++) {
-      const tx = clamp(p.pos.x + rnd(-220, 220), 90, WW - 90), ty = clamp(p.pos.y + rnd(-220, 220), 90, WH - 90)
-      spawnZone(g, v(tx, ty), 'ice', 64, 14, 4.0)
-      spawnParticles(g, v(tx, ty), 12, '#9fe8ff', 200, 0.7)
+    // Frost Wyrm: a heavy scatter of crashing ice patches around the player — keep moving
+    for (let i = 0; i < (d.count ?? 5); i++) {
+      const tx = clamp(p.pos.x + rnd(-260, 260), 90, WW - 90), ty = clamp(p.pos.y + rnd(-260, 260), 90, WH - 90)
+      spawnZone(g, v(tx, ty), 'ice', 76, 13, 4.0)
+      spawnParticles(g, v(tx, ty), 18, '#9fe8ff', 240, 0.8); spawnParticles(g, v(tx, ty), 8, '#FFFFFF', 150, 0.5)
+      spawnFx(g, 'star', v(tx, ty), '#cfeeff', 34, 0.3, rnd(0, 6.28))
     }
-    g.screenShake = Math.max(g.screenShake, 0.4); Sfx.shot()
+    g.screenShake = Math.max(g.screenShake, 0.5); Sfx.slam()
   } else if (type === 'web_shot') {
     g.projectiles.push({ id: ++g.nextProjId, pos: { ...b.pos }, vel: v(toPlayer.x * (d.projSpeed ?? 160), toPlayer.y * (d.projSpeed ?? 160)), dmg: d.dmg ?? 16, radius: 11, fromBoss: true, life: 6.0, color: '#8E44AD' })
     Sfx.webShot()
@@ -940,10 +948,15 @@ function resolveBossAttack(g: GS, bossId: BossId, wpn: WeaponDef, gear: GearId[]
   } else if (type === 'dive_bomb' || type === 'glacier_dive') {
     // a targeted crashing strike — walk out of the marked zone
     const target = d.targetPos!, r = d.radius ?? 130, ice = type === 'glacier_dive'
-    if (dist(p.pos, target) <= r) { dealDmgToPlayer(g, d.dmg ?? 36, wpn, gear, norm(v(p.pos.x - target.x, p.pos.y - target.y))); if (ice) p.slowTimer = Math.max(p.slowTimer, 2.0) }
-    spawnParticles(g, target, 26, ice ? '#9fe8ff' : '#5fe6ff', 280)
-    if (ice) { spawnZone(g, { ...target }, 'ice', 70, 12, 2.6); spawnFx(g, 'shock', { ...target }, '#7fd4ff', r, 0.5) }
-    g.screenShake = Math.max(g.screenShake, 0.55); Sfx.slam()
+    if (dist(p.pos, target) <= r) { dealDmgToPlayer(g, d.dmg ?? 36, wpn, gear, norm(v(p.pos.x - target.x, p.pos.y - target.y))); if (ice) p.slowTimer = Math.max(p.slowTimer, 2.4) }
+    spawnParticles(g, target, ice ? 40 : 26, ice ? '#9fe8ff' : '#5fe6ff', ice ? 340 : 280)
+    if (ice) {
+      spawnParticles(g, target, 16, '#FFFFFF', 220); spawnZone(g, { ...target }, 'ice', 96, 12, 3.2)
+      // a ring of ice shards bursts out from the impact
+      for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2; g.projectiles.push({ id: ++g.nextProjId, pos: { ...target }, vel: v(Math.cos(a) * 230, Math.sin(a) * 230), dmg: Math.round((d.dmg ?? 30) * 0.4), radius: 9, fromBoss: true, life: 3.4, color: '#9fe8ff', isIce: true, trail: [] }) }
+      spawnFx(g, 'shock', { ...target }, '#7fd4ff', r, 0.55); spawnFx(g, 'nova', { ...target }, '#e8f7ff', r * 0.6, 0.32)
+    }
+    g.screenShake = Math.max(g.screenShake, ice ? 0.8 : 0.55); Sfx.slam()
   } else if (type === 'magma_geyser') {
     // Drake: a ring of lava geysers erupts around the player — sprint to the centre or out of the band
     const target = d.targetPos!, r = d.radius ?? 122
@@ -1003,9 +1016,14 @@ function resolveBossAttack(g: GS, bossId: BossId, wpn: WeaponDef, gear: GearId[]
       dealDmgToPlayer(g, d.dmg ?? 30, wpn, gear, pushDir)
       if (wpn.id !== 'sword') p.knockbackVel = v(pushDir.x * 280, pushDir.y * 280)
     }
+    const startX = b.pos.x, startY = b.pos.y
     b.pos.x = clamp(b.pos.x + dirL.x * lunge, 90, WW - 90); b.pos.y = clamp(b.pos.y + dirL.y * lunge, 90, WH - 90)
-    spawnParticles(g, b.pos, 18, ice ? '#9fe8ff' : '#8E44AD', 240); g.screenShake = Math.max(g.screenShake, 0.5)
-    if (ice) Sfx.slam()
+    if (ice) {
+      for (let k = 1; k <= 5; k++) { const px = clamp(startX + dirL.x * lunge * (k / 5), 80, WW - 80), py = clamp(startY + dirL.y * lunge * (k / 5), 80, WH - 80)
+        spawnZone(g, v(px, py), 'ice', 56, 0, 2.0); spawnParticles(g, v(px, py), 6, '#9fe8ff', 160, 0.5) }   // freezing wake (cosmetic)
+      spawnParticles(g, b.pos, 30, '#cfe9ff', 300); spawnParticles(g, b.pos, 12, '#FFFFFF', 200); spawnFx(g, 'shock', { ...b.pos }, '#7fd4ff', 120, 0.45); Sfx.slam()
+    } else spawnParticles(g, b.pos, 18, '#8E44AD', 240)
+    g.screenShake = Math.max(g.screenShake, ice ? 0.6 : 0.5)
   } else if (type === 'leg_sweep' || type === 'tail_swipe' || type === 'wind_buffet' || type === 'tail_frost') {
     const angle = d.angle ?? 0, halfCone = (d.coneAngle ?? Math.PI) / 2, range = d.coneRange ?? 150
     if (dist(p.pos, b.pos) <= range) {
@@ -1014,7 +1032,16 @@ function resolveBossAttack(g: GS, bossId: BossId, wpn: WeaponDef, gear: GearId[]
       if (diff <= halfCone) {
         dealDmgToPlayer(g, d.dmg ?? 22, wpn, gear, type === 'wind_buffet' ? toPlayer : undefined)
         if (type === 'wind_buffet' && wpn.id !== 'sword') p.knockbackVel = v(toPlayer.x * 240, toPlayer.y * 240)
+        if (type === 'tail_frost') p.slowTimer = Math.max(p.slowTimer, 1.8)
       }
+    }
+    // tail_frost: a wide arc of ice spray + scattered shards across the swept cone
+    if (type === 'tail_frost') {
+      for (let k = 0; k < 22; k++) { const a = angle + rnd(-halfCone, halfCone), dd2 = rnd(40, range)
+        spawnParticles(g, v(b.pos.x + Math.cos(a) * dd2, b.pos.y + Math.sin(a) * dd2), 1, ['#9fe8ff', '#cfe9ff', '#FFFFFF'][rndI(0, 2)], 70, 0.5) }
+      for (let i = 0; i < 5; i++) { const a = angle + (i / 4 - 0.5) * halfCone * 1.6
+        g.projectiles.push({ id: ++g.nextProjId, pos: { ...b.pos }, vel: v(Math.cos(a) * 240, Math.sin(a) * 240), dmg: Math.round((d.dmg ?? 26) * 0.45), radius: 9, fromBoss: true, life: 3.2, color: '#9fe8ff', isIce: true, trail: [] }) }
+      spawnFx(g, 'shock', { ...b.pos }, '#7fd4ff', range * 0.7, 0.4); g.screenShake = Math.max(g.screenShake, 0.5); Sfx.slam()
     }
   } else if (type === 'toxic_cloud') {
     for (let i = 0; i < (d.count ?? 3); i++) {
@@ -1652,9 +1679,9 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
       const a3 = d2.angle ?? 0, hc2 = (d2.coneAngle ?? 0.5) / 2, rng2 = d2.coneRange ?? 300
       const pa2 = Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
       let df2 = Math.abs(pa2 - a3); while (df2 > Math.PI) df2 = Math.abs(df2 - Math.PI * 2)
-      if (df2 <= hc2 && dist(p.pos, b.pos) < rng2) { dealDmgToPlayer(g, (d2.dmg ?? 18) * dt * 1.5, wpn, gear); p.slowTimer = Math.max(p.slowTimer, 1.2) }
-      for (let k = 0; k < 4; k++) { const fa = a3 + rnd(-hc2, hc2), fd = rnd(40, rng2); spawnParticles(g, v(b.pos.x + Math.cos(fa) * fd, b.pos.y + Math.sin(fa) * fd), 1, ['#9fe8ff', '#cfe9ff', '#e8f7ff'][rndI(0, 2)], 60, 0.45) }
-      if (rndI(0, 9) === 0) { const fa = a3 + rnd(-hc2, hc2), fd = rnd(80, rng2); spawnZone(g, v(b.pos.x + Math.cos(fa) * fd, b.pos.y + Math.sin(fa) * fd), 'ice', 46, 10, 2.2) }
+      if (df2 <= hc2 && dist(p.pos, b.pos) < rng2) { dealDmgToPlayer(g, (d2.dmg ?? 18) * dt * 1.5, wpn, gear); p.slowTimer = Math.max(p.slowTimer, 1.4) }
+      for (let k = 0; k < 8; k++) { const fa = a3 + rnd(-hc2, hc2), fd = rnd(40, rng2); spawnParticles(g, v(b.pos.x + Math.cos(fa) * fd, b.pos.y + Math.sin(fa) * fd), 1, ['#9fe8ff', '#cfe9ff', '#e8f7ff', '#FFFFFF'][rndI(0, 3)], 80, 0.5) }
+      if (rndI(0, 5) === 0) { const fa = a3 + rnd(-hc2, hc2), fd = rnd(80, rng2); spawnZone(g, v(b.pos.x + Math.cos(fa) * fd, b.pos.y + Math.sin(fa) * fd), 'ice', 60, 10, 2.4) }
       if ((d2.elapsed ?? 0) >= (d2.duration ?? 2.0)) { g.bossAttack = null; g.nextAttackTimer = attackGap(g, bossId) }
       return
     }
