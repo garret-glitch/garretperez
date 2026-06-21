@@ -2594,9 +2594,7 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
     // arms — staves gripped with both hands
     ctx.strokeStyle=W(L.rm); ctx.lineWidth=4; ctx.lineCap='round'
     if (wpn.id==='staff') {
-      ctx.beginPath(); ctx.moveTo(2,-7); ctx.lineTo(25,-3); ctx.stroke()
-      ctx.beginPath(); ctx.moveTo(2,7); ctx.lineTo(13,3); ctx.stroke()
-      ctx.fillStyle=W('#E8B98C'); ctx.beginPath(); ctx.arc(25,-1.5,2.7,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(13,1.5,2.7,0,Math.PI*2); ctx.fill()
+      // staff arms are drawn together with the carried staff (held across the body) below
     } else {
       ctx.beginPath(); ctx.moveTo(3,-8); ctx.lineTo(11,-5); ctx.stroke()
       ctx.beginPath(); ctx.moveTo(3,8); ctx.lineTo(9,6); ctx.stroke()
@@ -2913,6 +2911,16 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
     const draw = clamp(1 - p.atkTimer / cd, 0, 1)                 // 0 just-cast -> 1 charged
     const release = clamp((p.atkTimer - (cd - 0.16)) / 0.16, 0, 1) // 1 right after a cast
     const ox = 53                                                  // orb centre x
+    // ── carry the staff HORIZONTALLY across the body (held in both hands), not aimed like a spear ──
+    ctx.save()
+    const fl = Math.cos(facing) < 0 ? -1 : 1
+    ctx.rotate(-facing); ctx.scale(fl, 1); ctx.translate(-22, 8)
+    { const ac = hw ? '#FFF' : (armour === 'ember' ? '#a93226' : armour === 'web' ? '#4A235A' : armour === 'feather' ? '#cfd8e6' : '#9C7B4F')
+      ctx.strokeStyle = ac; ctx.lineWidth = 4; ctx.lineCap = 'round'
+      ctx.beginPath(); ctx.moveTo(22, -8); ctx.lineTo(10, 1); ctx.stroke()
+      ctx.beginPath(); ctx.moveTo(22, -8); ctx.lineTo(30, 1); ctx.stroke()
+      ctx.fillStyle = hw ? '#FFF' : '#E8B98C'; ctx.beginPath(); ctx.arc(10, 1, 2.7, 0, Math.PI * 2); ctx.arc(30, 1, 2.7, 0, Math.PI * 2); ctx.fill()
+      ctx.lineCap = 'butt' }
     // ── ornate charred shaft ──
     ctx.shadowColor = '#FF4500'; ctx.shadowBlur = 8
     ctx.strokeStyle = hw ? '#FFF' : '#4A1E00'; ctx.lineWidth = 5; ctx.lineCap = 'round'
@@ -2968,12 +2976,23 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
     // cast eruption — a bright burst bloom right after firing
     if (release > 0) { ctx.shadowColor = '#FFB02A'; ctx.shadowBlur = 30; ctx.globalAlpha = release; ctx.fillStyle = '#FFE8A0'; ctx.beginPath(); ctx.arc(ox + 4, 0, 7 + (1 - release) * 14, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1 }
     ctx.restore()
+    ctx.restore()   // end across-body carry frame
   } else if (wid === 'staff') {
     // ── STARTER STAFF — gathers arcane energy at the tip, soft flare on cast (calmer than fire) ──
     const ap = 0.6 + 0.4 * Math.sin(t * 7)
     const cd = wpn.atkCd || 0.64
     const draw = clamp(1 - p.atkTimer / cd, 0, 1)
     const release = clamp((p.atkTimer - (cd - 0.16)) / 0.16, 0, 1)
+    // ── carry the staff HORIZONTALLY across the body (held in both hands), not aimed like a spear ──
+    ctx.save()
+    const fl = Math.cos(facing) < 0 ? -1 : 1
+    ctx.rotate(-facing); ctx.scale(fl, 1); ctx.translate(-22, 8)
+    { const ac = hw ? '#FFF' : (armour === 'ember' ? '#a93226' : armour === 'web' ? '#4A235A' : armour === 'feather' ? '#cfd8e6' : '#9C7B4F')
+      ctx.strokeStyle = ac; ctx.lineWidth = 4; ctx.lineCap = 'round'
+      ctx.beginPath(); ctx.moveTo(22, -8); ctx.lineTo(10, 1); ctx.stroke()
+      ctx.beginPath(); ctx.moveTo(22, -8); ctx.lineTo(30, 1); ctx.stroke()
+      ctx.fillStyle = hw ? '#FFF' : '#E8B98C'; ctx.beginPath(); ctx.arc(10, 1, 2.7, 0, Math.PI * 2); ctx.arc(30, 1, 2.7, 0, Math.PI * 2); ctx.fill()
+      ctx.lineCap = 'butt' }
     // ── ornate arcane shaft ──
     ctx.shadowColor = '#9B59B6'; ctx.shadowBlur = 8
     ctx.strokeStyle = hw ? '#FFF' : '#3A1D49'; ctx.lineWidth = 5; ctx.lineCap = 'round'
@@ -3004,6 +3023,7 @@ function renderPlayer(ctx: CanvasRenderingContext2D, g: GS, wpn: WeaponDef, gear
     for (let i = 0; i < sp; i++) { const a = t * 4 + i * (Math.PI * 2 / sp), rr = orbR + 3 + Math.sin(t * 6 + i) * 1.5; ctx.beginPath(); ctx.arc(53 + Math.cos(a) * rr, Math.sin(a) * rr, 1.4, 0, Math.PI * 2); ctx.fill() }
     // modest release flare
     if (release > 0) { ctx.save(); ctx.globalAlpha = release; ctx.fillStyle = '#E8D0FF'; ctx.shadowColor = '#CE9EE8'; ctx.shadowBlur = 16; ctx.beginPath(); ctx.arc(56, 0, 4 + (1 - release) * 7, 0, Math.PI * 2); ctx.fill(); ctx.restore() }
+    ctx.restore()   // end across-body carry frame
   } else if (wid === 'venom_bow') {
     // ── VENOM BOW — organic thorned bow that drips toxin; nocks, draws and looses a venom arrow ──
     const hum = 0.5 + 0.5 * Math.sin(t * 6)
