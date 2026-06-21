@@ -4469,8 +4469,9 @@ function armourSvg(id: GearId | null, size: number): JSX.Element {
 /* ═══ REACT COMPONENT ═══ */
 export default function BossHunter() {
   const [screen, setScreen] = useState<'menu'|'hunt_select'|'playing'|'victory'|'defeat'>('menu')
-  const [selMelee, setSelMelee] = useState<string>('sword')    // equipped melee loadout id
-  const [selRanged, setSelRanged] = useState<string>('bow')    // equipped ranged loadout id
+  const [selWeapon, setSelWeapon] = useState<string>('bow')    // single equipped weapon (bosses 0-2)
+  const [selMelee, setSelMelee] = useState<string>('sword')    // Wyrm only: equipped melee loadout id
+  const [selRanged, setSelRanged] = useState<string>('bow')    // Wyrm only: equipped ranged loadout id
   const [selBoss, setSelBoss] = useState<BossId>(0)
   const [unlockedGear, setUnlockedGear] = useState<GearId[]>([])
   const [selArmour, setSelArmour] = useState<GearId | null>(null)
@@ -4519,17 +4520,22 @@ export default function BossHunter() {
   }, [selMelee, selRanged, selArmour, getWpn])
 
   const startGame = useCallback(() => {
-    const { meleeWpn, meleeGear } = loadoutPair()
-    const g = mkState(meleeWpn, BOSS_DEFS[selBoss], meleeGear)
-    // dual-wield HP is fixed (defense still varies by the active weapon path); +30 from ember plate
-    const baseHp = 165 + (selArmour === 'ember_armor' ? 30 : 0)
-    g.player.hp = g.player.maxHp = baseHp
-    gsRef.current = g
     activeSlotRef.current = 0
+    if (selBoss === 3) {
+      // Frost Wyrm: dual-wield (melee + ranged), fixed HP; defense varies by the active weapon path
+      const { meleeWpn, meleeGear } = loadoutPair()
+      const g = mkState(meleeWpn, BOSS_DEFS[selBoss], meleeGear)
+      g.player.hp = g.player.maxHp = 165 + (selArmour === 'ember_armor' ? 30 : 0)
+      gsRef.current = g
+    } else {
+      // all other bosses: a single equipped weapon, normal per-weapon HP
+      const lw = LOADOUT_WEAPONS.find(w => w.id === selWeapon) ?? LOADOUT_WEAPONS[1]
+      gsRef.current = mkState(getWpn(lw.base), BOSS_DEFS[selBoss], [lw.gear, selArmour].filter(Boolean) as GearId[])
+    }
     submittedRunRef.current = false
     Sfx.resume(); Sfx.roar()
     setScreen('playing')
-  }, [loadoutPair, selBoss, selArmour])
+  }, [loadoutPair, selBoss, selArmour, selWeapon, getWpn])
 
   const toggleFullscreen = useCallback(() => {
     const el = playWrapRef.current as (HTMLDivElement & { webkitRequestFullscreen?: () => void }) | null
@@ -4672,10 +4678,13 @@ export default function BossHunter() {
     if (screen !== 'playing') return
     const canvas = canvasRef.current; if (!canvas) return
     const ctx = canvas.getContext('2d'); if (!ctx) return
+    const dual = selBoss === 3   // weapon swapping is a Frost-Wyrm-only mechanic
     const { ml, rl, meleeWpn, rangedWpn, meleeGear, rangedGear } = loadoutPair()
-    // the live-active weapon (slot 0 = melee, slot 1 = ranged) — swapped with Tab
-    const active = () => activeSlotRef.current === 0
-      ? { wpn: meleeWpn, gear: meleeGear }
+    const singleLw = LOADOUT_WEAPONS.find(w => w.id === selWeapon) ?? LOADOUT_WEAPONS[1]
+    const singleWpn = getWpn(singleLw.base), singleGear = [singleLw.gear, selArmour].filter(Boolean) as GearId[]
+    // the live-active weapon — for the Wyrm, slot 0=melee / slot 1=ranged (Tab-swapped); otherwise the single weapon
+    const active = () => !dual ? { wpn: singleWpn, gear: singleGear }
+      : activeSlotRef.current === 0 ? { wpn: meleeWpn, gear: meleeGear }
       : { wpn: rangedWpn, gear: rangedGear }
 
     const triggerDodge = () => {
@@ -4705,13 +4714,15 @@ export default function BossHunter() {
       if (e.repeat) return
       const g = gsRef.current; if (!g || g.phase !== 'playing') return
       if (e.code === 'Space') { e.preventDefault(); triggerDodge() }
-      if (e.code === 'Tab' || e.code === 'KeyF') {   // swap melee ⇄ ranged
+      if (e.code === 'Tab' || e.code === 'KeyF') {   // swap melee ⇄ ranged (Frost Wyrm only)
         e.preventDefault()
-        activeSlotRef.current = activeSlotRef.current === 0 ? 1 : 0
-        g.player.atkTimer = Math.max(g.player.atkTimer, 0.3)   // brief swap recovery
-        g.meleeHit = null; g.attackFlash = null
-        spawnParticles(g, g.player.pos, 10, activeSlotRef.current === 0 ? '#E74C3C' : '#5fe0ff', 150, 0.4)
-        Sfx.dodge()
+        if (dual) {
+          activeSlotRef.current = activeSlotRef.current === 0 ? 1 : 0
+          g.player.atkTimer = Math.max(g.player.atkTimer, 0.3)   // brief swap recovery
+          g.meleeHit = null; g.attackFlash = null
+          spawnParticles(g, g.player.pos, 10, activeSlotRef.current === 0 ? '#E74C3C' : '#5fe0ff', 150, 0.4)
+          Sfx.dodge()
+        }
       }
       if (e.code === 'KeyQ') pendingAbilityRef.current = 0
       if (e.code === 'KeyW') pendingAbilityRef.current = 1
@@ -4748,11 +4759,11 @@ export default function BossHunter() {
       const g = gsRef.current
       if (!g) { rafRef.current = requestAnimationFrame(loop); return }
 
-      // resolve the live-active weapon + expose the stowed one for the HUD swap indicator
+      // resolve the live-active weapon + expose the stowed one for the HUD swap indicator (Wyrm only)
       const a = active()
       g.activeSlot = activeSlotRef.current
-      const inactive = activeSlotRef.current === 0 ? rl : ml
-      g.altWeapon = { name: inactive.name, color: inactive.color, melee: activeSlotRef.current === 1 }
+      if (dual) { const inactive = activeSlotRef.current === 0 ? rl : ml; g.altWeapon = { name: inactive.name, color: inactive.color, melee: activeSlotRef.current === 1 } }
+      else g.altWeapon = null
 
       // ── hitstop: briefly freeze the simulation on heavy impacts (still renders) ──
       if (g.hitstop > 0 && (g.phase === 'playing' || g.phase === 'dying' || g.phase === 'player_dying')) {
@@ -4815,7 +4826,7 @@ export default function BossHunter() {
       canvas.removeEventListener('mousemove', handleMouseMove)
       canvas.removeEventListener('click', handleClick)
     }
-  }, [screen, selMelee, selRanged, selBoss, selArmour, unlockedGear, getWpn, loadoutPair])
+  }, [screen, selWeapon, selMelee, selRanged, selBoss, selArmour, unlockedGear, getWpn, loadoutPair])
 
   // ─── MENU ───
   if (screen === 'menu') return (
@@ -4849,14 +4860,14 @@ export default function BossHunter() {
           ▶&nbsp;BEGIN HUNT
         </button>
         <div style={{display:'flex',gap:18,justifyContent:'center',flexWrap:'wrap',marginTop:22}}>
-          {([['🖱️','Move'],['SPACE','Dodge'],['Q W E R','Abilities'],['TAB','Swap Weapon'],['💀','Loot']] as [string,string][]).map(([k,v],i)=>(
+          {([['🖱️','Move'],['SPACE','Dodge'],['Q W E R','Abilities'],['💀','Loot']] as [string,string][]).map(([k,v],i)=>(
             <div key={i} style={{fontSize:7,color:'#8a7a78',textShadow:'0 0 8px #000'}}><span style={{color:'#caa84a'}}>{k}</span>&nbsp;{v}</div>
           ))}
         </div>
         {unlockedGear.length > 0 && (
           <div style={{fontSize:7,color:'#6a5a58',marginTop:16,textShadow:'0 0 8px #000'}}>
             GEAR COLLECTED: <span style={{color:'#C89B3C'}}>{unlockedGear.length}</span>
-            <span style={{color:'#8a7a78'}}> &bull; LOADOUT: {(LOADOUT_WEAPONS.find(w=>w.id===selMelee)??LOADOUT_WEAPONS[0]).icon}{(LOADOUT_WEAPONS.find(w=>w.id===selRanged)??LOADOUT_WEAPONS[1]).icon}{selArmour?' '+GEAR_DEFS[selArmour].icon:''}</span>
+            <span style={{color:'#8a7a78'}}> &bull; LOADOUT: {selBoss===3 ? `${(LOADOUT_WEAPONS.find(w=>w.id===selMelee)??LOADOUT_WEAPONS[0]).icon}${(LOADOUT_WEAPONS.find(w=>w.id===selRanged)??LOADOUT_WEAPONS[1]).icon}` : (LOADOUT_WEAPONS.find(w=>w.id===selWeapon)??LOADOUT_WEAPONS[1]).icon}{selArmour?' '+GEAR_DEFS[selArmour].icon:''}</span>
           </div>
         )}
       </div>
@@ -4880,6 +4891,12 @@ export default function BossHunter() {
     const nextMelee = () => setSelMelee(availMelee[(selMIdx + 1) % availMelee.length].id)
     const prevRanged = () => setSelRanged(availRanged[(selRIdx - 1 + availRanged.length) % availRanged.length].id)
     const nextRanged = () => setSelRanged(availRanged[(selRIdx + 1) % availRanged.length].id)
+    // single-weapon selection (all bosses except the Frost Wyrm)
+    const dual = selBoss === 3
+    let selWIdx = availWeapons.findIndex(w => w.id === selWeapon); if (selWIdx < 0) selWIdx = 0
+    const selLW = availWeapons[selWIdx], selWBase = WEAPON_DEFS.find(w => w.id === selLW.base)!
+    const prevWeapon = () => setSelWeapon(availWeapons[(selWIdx - 1 + availWeapons.length) % availWeapons.length].id)
+    const nextWeapon = () => setSelWeapon(availWeapons[(selWIdx + 1) % availWeapons.length].id)
     // shared weapon-card body builder
     const weaponCardBody = (lw: typeof selML, base: WeaponDef, color: string) => (
       <div style={{padding:'14px 14px 4px',textAlign:'center',background:`radial-gradient(ellipse at 50% 0%, ${color}1c 0%, transparent 62%)`}}>
@@ -5000,9 +5017,13 @@ export default function BossHunter() {
             </div>
           )}
 
-          {cardShell('⚔ MELEE', selML.color, prevMelee, nextMelee, selML.id, availMelee.length, selMIdx, weaponCardBody(selML, selMBase, selML.color))}
-
-          {cardShell('✷ RANGED', selRL.color, prevRanged, nextRanged, selRL.id, availRanged.length, selRIdx, weaponCardBody(selRL, selRBase, selRL.color))}
+          {dual
+            ? <>
+                {cardShell('⚔ MELEE', selML.color, prevMelee, nextMelee, selML.id, availMelee.length, selMIdx, weaponCardBody(selML, selMBase, selML.color))}
+                {cardShell('✷ RANGED', selRL.color, prevRanged, nextRanged, selRL.id, availRanged.length, selRIdx, weaponCardBody(selRL, selRBase, selRL.color))}
+              </>
+            : cardShell('WEAPON', selLW.color, prevWeapon, nextWeapon, selLW.id, availWeapons.length, selWIdx, weaponCardBody(selLW, selWBase, selLW.color))
+          }
 
           {cardShell('ARMOUR', curArmour ? armColor : '#2a2c34', prevArmour, nextArmour, curArmour??'none', armourOptions.length, armourIdx,
             ag ? (
@@ -5027,15 +5048,17 @@ export default function BossHunter() {
           {/* assembled loadout vs quarry */}
           <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:10,margin:'20px 0 2px',flexWrap:'wrap'}}>
             <span style={{fontSize:7,color:'#605848',letterSpacing:2}}>LOADOUT</span>
-            {weaponSvg(selML.id, selML.color, 26)}
-            <span style={{fontSize:9,color:'#3a3628'}}>+</span>
-            {weaponSvg(selRL.id, selRL.color, 26)}
+            {dual ? <>
+              {weaponSvg(selML.id, selML.color, 26)}
+              <span style={{fontSize:9,color:'#3a3628'}}>+</span>
+              {weaponSvg(selRL.id, selRL.color, 26)}
+            </> : weaponSvg(selLW.id, selLW.color, 26)}
             <span style={{fontSize:9,color:'#3a3628'}}>+</span>
             <span style={{display:'inline-flex',opacity:curArmour?1:0.32}}>{armourSvg(curArmour, 24)}</span>
             <span style={{fontSize:8,color:'#605848',margin:'0 4px',letterSpacing:1}}>VS</span>
             {bossSvg(selBoss, selB.color, 26)}
           </div>
-          <div style={{fontSize:6,color:'#605848',textAlign:'center',marginBottom:2,letterSpacing:1}}>In battle: <span style={{color:'#C8B98A'}}>TAB</span> swaps melee ⇄ ranged{selBoss===3?<span style={{color:'#9fe8ff'}}> — the Frost Wyrm demands it!</span>:''}</div>
+          {dual && <div style={{fontSize:6,color:'#9fe8ff',textAlign:'center',marginBottom:2,letterSpacing:1}}>In battle: <span style={{color:'#C8B98A'}}>TAB</span> swaps melee ⇄ ranged — the Frost Wyrm demands it!</div>}
 
           {/* fastest-kill board for the selected boss */}
           <div style={{maxWidth:380,margin:'16px auto 18px',background:'rgba(9,9,16,0.6)',border:'1px solid #1e1c18',borderRadius:10,padding:'12px 14px'}}>
