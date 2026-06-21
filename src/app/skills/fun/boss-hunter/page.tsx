@@ -871,24 +871,33 @@ function startBossAttack(g: GS, bossId: BossId, type: string) {
   const BIG_ATTACKS = ['spider_leap', 'venom_burst', 'fire_line', 'flame_wave', 'fire_breath', 'lava_puddle', 'lightning_barrage', 'lava_barrage', 'thunderstorm', 'meteor', 'talon_dive', 'fireball', 'tail_slam', 'dive_bomb', 'spider_charge', 'magma_geyser', 'thunder_cross', 'gale_ring', 'venom_geyser', 'web_burst', 'web_spiral', 'fire_sweep', 'storm_rings', 'frost_breath', 'frost_stomp', 'frost_bite', 'frost_nova', 'icicle_rain', 'glacier_dive']
   if (BIG_ATTACKS.includes(type)) Sfx.warnBig(); else Sfx.warn()
   const chargeCol = bossId === 0 ? '#B370E0' : bossId === 1 ? '#FF7A1A' : '#5fe6ff'
-  spawnParticles(g, b.pos, BIG_ATTACKS.includes(type) ? 16 : 9, chargeCol, 70, (telegraphs[type] ?? 1.0) * 0.7)
+  // Drake gathers its fire at the snout during the wind-up
+  const chargeAt = bossId === 1
+    ? v(b.pos.x + Math.cos(b.angle) * BOSS_DEFS[1].size * 0.58, b.pos.y + Math.sin(b.angle) * BOSS_DEFS[1].size * 0.58)
+    : b.pos
+  spawnParticles(g, chargeAt, BIG_ATTACKS.includes(type) ? 16 : 9, chargeCol, 70, (telegraphs[type] ?? 1.0) * 0.7)
 }
 
 function resolveBossAttack(g: GS, bossId: BossId, wpn: WeaponDef, gear: GearId[]) {
   const atk = g.bossAttack!, p = g.player, b = g.boss
   const type = atk.type, d = atk.data
   const toPlayer = norm(v(p.pos.x - b.pos.x, p.pos.y - b.pos.y))
+  // Drake fires from its snout, not its body centre — anchor projectiles/embers at the mouth tip
+  const muzzle = bossId === 1
+    ? v(b.pos.x + Math.cos(b.angle) * BOSS_DEFS[1].size * 0.58, b.pos.y + Math.sin(b.angle) * BOSS_DEFS[1].size * 0.58)
+    : b.pos
 
   if (type === 'venom_spit' || type === 'ember_barrage' || type === 'ice_shards') {
     const count = d.count ?? 3
-    const baseAngle = Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
+    const baseAngle = Math.atan2(p.pos.y - muzzle.y, p.pos.x - muzzle.x)
     const ice = type === 'ice_shards'
     for (let i = 0; i < count; i++) {
       const spread = (i - (count - 1) / 2) * 0.28
       const a = baseAngle + spread
       const color = type === 'venom_spit' ? '#8E44AD' : ice ? '#9fe8ff' : '#E67E22'
-      g.projectiles.push({ id: ++g.nextProjId, pos: { ...b.pos }, vel: v(Math.cos(a) * (d.projSpeed ?? 250), Math.sin(a) * (d.projSpeed ?? 250)), dmg: d.dmg ?? 22, radius: ice ? 11 : 9, fromBoss: true, life: 5.0, color, isIce: ice, trail: ice ? [] : undefined })
+      g.projectiles.push({ id: ++g.nextProjId, pos: { ...muzzle }, vel: v(Math.cos(a) * (d.projSpeed ?? 250), Math.sin(a) * (d.projSpeed ?? 250)), dmg: d.dmg ?? 22, radius: ice ? 11 : 9, fromBoss: true, life: 5.0, color, isIce: ice, trail: ice ? [] : undefined })
     }
+    if (type === 'ember_barrage') spawnParticles(g, muzzle, 14, '#FF7700', 150)
     if (ice) { spawnParticles(g, b.pos, 16, '#cfe9ff', 200); spawnParticles(g, b.pos, 8, '#FFFFFF', 130, 0.4); Sfx.shot() }
   } else if (type === 'frost_nova') {
     // Frost Wyrm: a sweeping double-ring blizzard of icicles — thread the shifting gaps
@@ -925,12 +934,12 @@ function resolveBossAttack(g: GS, bossId: BossId, wpn: WeaponDef, gear: GearId[]
     Sfx.webShot()
   } else if (type === 'fireball') {
     // Drake: slow aimed fireballs that explode into a lingering fire pool on impact
-    const count = d.count ?? 2, baseA = d.angle ?? Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
+    const count = d.count ?? 2, baseA = d.angle ?? Math.atan2(p.pos.y - muzzle.y, p.pos.x - muzzle.x)
     for (let i = 0; i < count; i++) {
       const a = baseA + (i - (count - 1) / 2) * 0.16
-      g.projectiles.push({ id: ++g.nextProjId, pos: { ...b.pos }, vel: v(Math.cos(a) * (d.projSpeed ?? 235), Math.sin(a) * (d.projSpeed ?? 235)), dmg: d.dmg ?? 22, radius: 14, fromBoss: true, life: 3.2, color: '#FF6600', isFireball: true, aoe: 70, trail: [] })
+      g.projectiles.push({ id: ++g.nextProjId, pos: { ...muzzle }, vel: v(Math.cos(a) * (d.projSpeed ?? 235), Math.sin(a) * (d.projSpeed ?? 235)), dmg: d.dmg ?? 22, radius: 14, fromBoss: true, life: 3.2, color: '#FF6600', isFireball: true, aoe: 70, trail: [] })
     }
-    spawnParticles(g, b.pos, 12, '#FF7700', 150)
+    spawnParticles(g, muzzle, 12, '#FF7700', 150)
   } else if (type === 'wind_blade') {
     // Griffin: a fan of fast crescent wind blades — sidestep the gaps
     const count = d.count ?? 5, baseA = d.angle ?? Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
@@ -965,10 +974,10 @@ function resolveBossAttack(g: GS, bossId: BossId, wpn: WeaponDef, gear: GearId[]
     g.screenShake = Math.max(g.screenShake, 0.6); Sfx.explosion()
   } else if (type === 'fire_fan') {
     // Drake: a wide sweeping fan of slow exploding fireballs
-    const count = d.count ?? 5, baseA = d.angle ?? Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
+    const count = d.count ?? 5, baseA = d.angle ?? Math.atan2(p.pos.y - muzzle.y, p.pos.x - muzzle.x)
     for (let i = 0; i < count; i++) { const a = baseA + (i - (count - 1) / 2) * 0.27
-      g.projectiles.push({ id: ++g.nextProjId, pos: { ...b.pos }, vel: v(Math.cos(a) * (d.projSpeed ?? 215), Math.sin(a) * (d.projSpeed ?? 215)), dmg: d.dmg ?? 22, radius: 13, fromBoss: true, life: 3.4, color: '#FF6600', isFireball: true, aoe: 60, trail: [] }) }
-    spawnParticles(g, b.pos, 14, '#FF7700', 170); Sfx.fireball()
+      g.projectiles.push({ id: ++g.nextProjId, pos: { ...muzzle }, vel: v(Math.cos(a) * (d.projSpeed ?? 215), Math.sin(a) * (d.projSpeed ?? 215)), dmg: d.dmg ?? 22, radius: 13, fromBoss: true, life: 3.4, color: '#FF6600', isFireball: true, aoe: 60, trail: [] }) }
+    spawnParticles(g, muzzle, 14, '#FF7700', 170); Sfx.fireball()
   } else if (type === 'gale_ring') {
     // Griffin: a full-circle burst of wind blades — thread the gaps
     fireFeatherVolley(g, d.count ?? 11, d.projSpeed ?? 250, d.dmg ?? 16, g.gtime)
@@ -1658,8 +1667,9 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
       const pa = Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
       let df = Math.abs(pa - a2); while (df > Math.PI) df = Math.abs(df - Math.PI * 2)
       if (df <= hc && dist(p.pos, b.pos) < rng) dealDmgToPlayer(g, (atk.data.dmg ?? 20) * dt * 2.5, wpn, gear)
-      // visible roaring flame fan
-      for (let k = 0; k < 3; k++) { const fa = a2 + rnd(-hc, hc), fd = rnd(40, rng); spawnParticles(g, v(b.pos.x + Math.cos(fa) * fd, b.pos.y + Math.sin(fa) * fd), 1, ['#FF6600', '#FFAA00', '#FF3000'][rndI(0, 2)], 50, 0.4) }
+      // visible roaring flame fan — erupts from the snout
+      { const mz = BOSS_DEFS[1].size * 0.55, mx = b.pos.x + Math.cos(a2) * mz, my = b.pos.y + Math.sin(a2) * mz
+        for (let k = 0; k < 5; k++) { const fa = a2 + rnd(-hc, hc), fd = rnd(0, rng); spawnParticles(g, v(mx + Math.cos(fa) * fd, my + Math.sin(fa) * fd), 1, ['#FF6600', '#FFAA00', '#FF3000'][rndI(0, 2)], 50, 0.4) } }
       if ((atk.data.elapsed ?? 0) >= (atk.data.duration ?? 1.6)) { g.bossAttack = null; g.nextAttackTimer = attackGap(g, bossId) }
       return
     }
@@ -1669,7 +1679,9 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
       const pa2 = Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
       let df2 = Math.abs(pa2 - a3); while (df2 > Math.PI) df2 = Math.abs(df2 - Math.PI * 2)
       if (df2 <= hc2 && dist(p.pos, b.pos) < rng2) dealDmgToPlayer(g, (atk.data.dmg ?? 18) * dt * 1.5, wpn, gear)
-      for (let k = 0; k < 3; k++) { const fa = a3 + rnd(-hc2, hc2), fd = rnd(40, rng2); spawnParticles(g, v(b.pos.x + Math.cos(fa) * fd, b.pos.y + Math.sin(fa) * fd), 1, ['#FF6600', '#FFAA00', '#FF3000'][rndI(0, 2)], 50, 0.4) }
+      // breath jet pouring from the maw
+      { const mz = BOSS_DEFS[1].size * 0.55, mx = b.pos.x + Math.cos(a3) * mz, my = b.pos.y + Math.sin(a3) * mz
+        for (let k = 0; k < 6; k++) { const fa = a3 + rnd(-hc2, hc2), fd = rnd(0, rng2); spawnParticles(g, v(mx + Math.cos(fa) * fd, my + Math.sin(fa) * fd), 1, ['#FF6600', '#FFAA00', '#FF3000', '#FFD24A'][rndI(0, 3)], 50, 0.4) } }
       if ((atk.data.elapsed ?? 0) >= (atk.data.duration ?? 2.2)) { g.bossAttack = null; g.nextAttackTimer = attackGap(g, bossId) }
       return
     }
@@ -1709,7 +1721,9 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
       const pa = Math.atan2(p.pos.y - b.pos.y, p.pos.x - b.pos.x)
       let df = Math.abs(pa - a); while (df > Math.PI) df = Math.abs(df - Math.PI * 2)
       if (df <= hc && dist(p.pos, b.pos) < rng) dealDmgToPlayer(g, (d2.dmg ?? 17) * dt * 2.4, wpn, gear)
-      for (let k = 0; k < 4; k++) { const fa = a + rnd(-hc, hc), fd = rnd(40, rng); spawnParticles(g, v(b.pos.x + Math.cos(fa) * fd, b.pos.y + Math.sin(fa) * fd), 1, ['#FF6600', '#FFAA00', '#FF3000', '#FFD24A'][rndI(0, 3)], 60, 0.45) }
+      // flamethrower jet sweeping from the snout
+      { const mz = BOSS_DEFS[1].size * 0.55, mx = b.pos.x + Math.cos(a) * mz, my = b.pos.y + Math.sin(a) * mz
+        for (let k = 0; k < 6; k++) { const fa = a + rnd(-hc, hc), fd = rnd(0, rng); spawnParticles(g, v(mx + Math.cos(fa) * fd, my + Math.sin(fa) * fd), 1, ['#FF6600', '#FFAA00', '#FF3000', '#FFD24A'][rndI(0, 3)], 60, 0.45) } }
       if (rndI(0, 30) === 0) Sfx.fireCast()
       if ((d2.elapsed ?? 0) >= (d2.duration ?? 2.2)) { g.bossAttack = null; g.nextAttackTimer = attackGap(g, bossId) }
       return
