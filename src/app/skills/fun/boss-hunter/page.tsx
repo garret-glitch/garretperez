@@ -330,7 +330,7 @@ interface Projectile {
 interface BossAttack { type: string; telegraphTime: number; elapsed: number; active: boolean; data: AttackData }
 interface AttackData {
   targetPos?: V2; angle?: number; coneAngle?: number; coneRange?: number; radius?: number
-  projSpeed?: number; dmg?: number; count?: number; duration?: number; elapsed?: number; strikeIndex?: number
+  projSpeed?: number; dmg?: number; count?: number; duration?: number; elapsed?: number; strikeIndex?: number; traveled?: number
 }
 interface DamageNumber { id: number; pos: V2; val: number; life: number; maxLife: number; isPlayer: boolean; crit?: boolean; vx?: number; text?: string }
 interface Particle { id: number; pos: V2; vel: V2; life: number; maxLife: number; color: string; size: number }
@@ -754,7 +754,7 @@ function dealDmgToMinion(g: GS, m: Minion, dmg: number) {
 
 /* ═══ BOSS AI ═══ */
 /* ── ATTACK PACING & COMBOS — keeps the boss constantly pressuring with dodgeable, telegraphed chains ── */
-const CHANNELED = new Set(['thunderstorm', 'chain_lightning', 'lightning_barrage', 'lava_barrage', 'flame_wave', 'fire_breath', 'web_spiral', 'fire_sweep', 'storm_rings', 'frost_breath'])
+const CHANNELED = new Set(['thunderstorm', 'chain_lightning', 'lightning_barrage', 'lava_barrage', 'flame_wave', 'fire_breath', 'web_spiral', 'fire_sweep', 'storm_rings', 'frost_breath', 'frost_bite'])
 const COMBOS: Record<number, string[][]> = {
   0: [['venom_spit', 'web_spray'], ['leg_sweep', 'venom_spit'], ['spider_charge', 'web_burst'], ['web_shot', 'web_shot', 'venom_spit'], ['summon', 'venom_geyser'], ['web_spray', 'spider_leap'], ['venom_spit', 'venom_spit', 'web_burst']],
   1: [['fireball', 'tail_slam'], ['stomp', 'fire_fan'], ['fire_line', 'fireball'], ['ember_barrage', 'lava_puddle'], ['fire_fan', 'stomp'], ['tail_swipe', 'ember_barrage'], ['fireball', 'fire_fan', 'tail_slam']],
@@ -1715,6 +1715,25 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
       for (let k = 0; k < 8; k++) { const fa = a3 + rnd(-hc2, hc2), fd = rnd(40, rng2); spawnParticles(g, v(b.pos.x + Math.cos(fa) * fd, b.pos.y + Math.sin(fa) * fd), 1, ['#9fe8ff', '#cfe9ff', '#e8f7ff', '#FFFFFF'][rndI(0, 3)], 80, 0.5) }
       if (rndI(0, 5) === 0) { const fa = a3 + rnd(-hc2, hc2), fd = rnd(80, rng2); spawnZone(g, v(b.pos.x + Math.cos(fa) * fd, b.pos.y + Math.sin(fa) * fd), 'ice', 60, 10, 2.4) }
       if ((d2.elapsed ?? 0) >= (d2.duration ?? 2.0)) { g.bossAttack = null; g.nextAttackTimer = attackGap(g, bossId) }
+      return
+    }
+    if (atk.type === 'frost_bite' && atk.active) {
+      // Frost Wyrm: a fast but SMOOTH lunge along the locked lane (glides, never teleports)
+      const d2 = atk.data, a = d2.angle ?? 0, dir = v(Math.cos(a), Math.sin(a))
+      const total = 340, step = Math.min(1000 * dt, total - (d2.traveled ?? 0))
+      const before = d2.traveled ?? 0; d2.traveled = before + step
+      b.pos.x = clamp(b.pos.x + dir.x * step, 90, WW - 90); b.pos.y = clamp(b.pos.y + dir.y * step, 90, WH - 90)
+      // freezing ice wake dropped along the path
+      if (Math.floor(d2.traveled / 70) > Math.floor(before / 70)) { spawnZone(g, { ...b.pos }, 'ice', 56, 0, 2.0); spawnParticles(g, b.pos, 6, '#9fe8ff', 160, 0.5) }
+      // contact damage as it barrels through you
+      if (p.iframeTimer <= 0 && dist(p.pos, b.pos) < BOSS_DEFS[bossId].size + 20) {
+        const pd = norm(v(p.pos.x - b.pos.x, p.pos.y - b.pos.y)); dealDmgToPlayer(g, d2.dmg ?? 24, wpn, gear, pd)
+        if (wpn.id !== 'sword') p.knockbackVel = v(pd.x * 280, pd.y * 280)
+      }
+      if ((d2.traveled ?? 0) >= total) {
+        spawnParticles(g, b.pos, 30, '#cfe9ff', 300); spawnParticles(g, b.pos, 12, '#FFFFFF', 200); spawnFx(g, 'shock', { ...b.pos }, '#7fd4ff', 120, 0.45); Sfx.slam()
+        g.bossAttack = null; g.nextAttackTimer = attackGap(g, bossId)
+      }
       return
     }
     if (atk.type === 'web_spiral' && atk.active) {
