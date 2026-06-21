@@ -3919,6 +3919,30 @@ function renderHazards(ctx: CanvasRenderingContext2D, g: GS) {
   g.zones.forEach(zone => {
     const [bright,dark] = ZONE_COLORS[zone.type]??['#FFF','#888']
     const lp=zone.life/zone.maxLife, pulse=0.55+0.45*Math.sin(g.gtime*4+zone.id*1.3)
+    if (zone.type === 'ice') {
+      // ── frozen ground patch: frosted disc + fracture cracks + a rim of ice crystals ──
+      const a = Math.min(lp * 2, 0.92), R = zone.radius, seed = zone.id * 2.39
+      ctx.save()
+      const fg = ctx.createRadialGradient(zone.pos.x, zone.pos.y, 0, zone.pos.x, zone.pos.y, R)
+      fg.addColorStop(0, `rgba(231,247,255,${0.52 * a})`); fg.addColorStop(0.55, `rgba(159,232,255,${0.26 * a})`); fg.addColorStop(1, 'rgba(127,212,255,0)')
+      ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(zone.pos.x, zone.pos.y, R, 0, Math.PI * 2); ctx.fill()
+      // fracture cracks radiating out (deterministic per zone)
+      ctx.globalAlpha = 0.55 * a; ctx.strokeStyle = 'rgba(235,250,255,0.85)'; ctx.lineWidth = 1.4; ctx.shadowColor = '#bfeaff'; ctx.shadowBlur = 6
+      for (let i = 0; i < 6; i++) { const ang = seed + i * (Math.PI * 2 / 6), r1 = R * (0.72 + 0.26 * ((i * 7 % 5) / 5))
+        const mx = zone.pos.x + Math.cos(ang) * r1 * 0.55 + Math.cos(ang + 1.4) * R * 0.1, my = zone.pos.y + Math.sin(ang) * r1 * 0.55 + Math.sin(ang + 1.4) * R * 0.1
+        ctx.beginPath(); ctx.moveTo(zone.pos.x + Math.cos(ang) * R * 0.1, zone.pos.y + Math.sin(ang) * R * 0.1); ctx.lineTo(mx, my); ctx.lineTo(zone.pos.x + Math.cos(ang) * r1, zone.pos.y + Math.sin(ang) * r1); ctx.stroke() }
+      ctx.shadowBlur = 0
+      // ring of jagged ice crystals jutting from the rim
+      ctx.globalAlpha = 0.85 * a; ctx.fillStyle = '#eafaff'
+      for (let i = 0; i < 9; i++) { const ang = seed * 0.5 + i * (Math.PI * 2 / 9), rr = R * 0.88
+        const cx2 = zone.pos.x + Math.cos(ang) * rr, cy2 = zone.pos.y + Math.sin(ang) * rr
+        const ox = Math.cos(ang), oy = Math.sin(ang), px = -oy, py = ox, h = R * (0.16 + 0.07 * ((i * 3 % 4) / 4)), wd = R * 0.05
+        ctx.beginPath(); ctx.moveTo(cx2 + px * wd, cy2 + py * wd); ctx.lineTo(cx2 + ox * h, cy2 + oy * h); ctx.lineTo(cx2 - px * wd, cy2 - py * wd); ctx.closePath(); ctx.fill() }
+      // faint shimmer ring
+      ctx.globalAlpha = 0.4 * a * pulse; ctx.strokeStyle = '#bfeaff'; ctx.lineWidth = 1.5
+      ctx.beginPath(); ctx.arc(zone.pos.x, zone.pos.y, R * (0.84 + 0.12 * pulse), 0, Math.PI * 2); ctx.stroke()
+      ctx.restore(); return
+    }
     ctx.save(); ctx.globalAlpha=Math.min(lp*2,0.85)*(0.7+0.3*pulse)
     const gr=ctx.createRadialGradient(zone.pos.x,zone.pos.y,0,zone.pos.x,zone.pos.y,zone.radius)
     gr.addColorStop(0,dark+'CC'); gr.addColorStop(0.6,bright+'44'); gr.addColorStop(1,bright+'00')
