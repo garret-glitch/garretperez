@@ -5062,16 +5062,6 @@ export default function BossHunter() {
       ctx.save(); ctx.translate(g.boss.pos.x, g.boss.pos.y); ctx.scale(sc, sc); ctx.translate(-g.boss.pos.x, -g.boss.pos.y)
       try { renderBoss(ctx, g, bossId, t) } catch { /* keep the menu alive */ }
       ctx.restore()
-      // magic rune circle on the ground (foreground)
-      const R = Math.min(w, h) * 0.2, rx = cx, ry = h * 0.78
-      ctx.save(); ctx.translate(rx, ry); ctx.scale(1, 0.4); ctx.globalAlpha = 0.85
-      ctx.strokeStyle = T.rune; ctx.shadowColor = T.rune; ctx.shadowBlur = 22
-      ctx.rotate(t * 0.25); ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.stroke()
-      ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(0, 0, R * 0.78, 0, Math.PI * 2); ctx.stroke()
-      for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; ctx.beginPath(); ctx.moveTo(Math.cos(a) * R * 0.78, Math.sin(a) * R * 0.78); ctx.lineTo(Math.cos(a) * R, Math.sin(a) * R); ctx.stroke() }
-      ctx.rotate(-t * 0.5)
-      for (const off of [0, Math.PI / 3]) { ctx.beginPath(); for (let i = 0; i < 3; i++) { const a = off + i * Math.PI * 2 / 3 - Math.PI / 2, px = Math.cos(a) * R * 0.62, py = Math.sin(a) * R * 0.62; if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py) } ctx.closePath(); ctx.stroke() }
-      ctx.restore()
       // vignette
       const vg = ctx.createRadialGradient(cx, h * 0.5, h * 0.18, cx, h * 0.5, Math.max(w, h) * 0.72)
       vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.88)')
