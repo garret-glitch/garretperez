@@ -19,9 +19,19 @@ interface Props {
   xpPercent: number
   isLoggedIn: boolean
   initColor?: string
+  loggedOutTitle?: string
+  loggedOutIcon?: string
+  registerLabel?: string
+  loginLabel?: string
 }
 
-export default function AccountShield({ username, level, xp, xpPercent, isLoggedIn, initColor = '#1a0e06' }: Props) {
+export default function AccountShield({
+  username, level, xp, xpPercent, isLoggedIn, initColor = '#1a0e06',
+  loggedOutTitle = 'Your Character Awaits',
+  loggedOutIcon = '⚔',
+  registerLabel = '🛡 Create Account',
+  loginLabel = 'Log In',
+}: Props) {
   const [color, setColor] = useState(initColor)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving]   = useState(false)
@@ -101,7 +111,7 @@ export default function AccountShield({ username, level, xp, xpPercent, isLogged
           </>
         ) : (
           <>
-            <div style={{ fontSize: 32, lineHeight: 1 }}>⚔</div>
+            <div style={{ fontSize: 32, lineHeight: 1 }}>{loggedOutIcon}</div>
             <div style={{
               fontFamily: "'Cinzel', serif",
               fontSize: 13, fontWeight: 700,
@@ -109,7 +119,7 @@ export default function AccountShield({ username, level, xp, xpPercent, isLogged
               letterSpacing: '0.04em',
               textShadow: '0 0 24px rgba(200,155,60,0.55)',
             }}>
-              Your Character<br />Awaits
+              {loggedOutTitle}
             </div>
           </>
         )}
@@ -221,7 +231,7 @@ export default function AccountShield({ username, level, xp, xpPercent, isLogged
               boxShadow: '0 3px 18px rgba(200,155,60,0.38)',
               letterSpacing: '0.01em',
             }}>
-              🛡 Create Account
+              {registerLabel}
             </Link>
             <Link href="/login" className="body-text" style={{
               display: 'block', textAlign: 'center', padding: '11px 0',
@@ -230,7 +240,7 @@ export default function AccountShield({ username, level, xp, xpPercent, isLogged
               color: '#c89b3c', fontSize: 13, fontWeight: 600,
               textDecoration: 'none', letterSpacing: '0.01em',
             }}>
-              Log In
+              {loginLabel}
             </Link>
           </div>
         )}

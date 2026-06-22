@@ -2,8 +2,9 @@ import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import BuilderClient from './BuilderClient'
-import type { PageBlock, BlockLiveData } from '@/types/builder'
+import type { PageBlock, BlockLiveData, HeroBlockConfig } from '@/types/builder'
 import { xpToLevel, xpProgress } from '@/lib/xp'
+import { normalizeHeroConfig } from '@/lib/block-defaults'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,13 +46,13 @@ export default async function BuilderPage() {
           colSpan: 3,
           colStart: 1,
           visible: true,
-          config: JSON.stringify({
-            heroTitle:       settingsMap.hero_title       ?? 'Sales Supervisor · Builder · Family Man',
-            heroLocation:    settingsMap.hero_location    ?? 'Houston, TX',
-            contactPhone:    settingsMap.contact_phone    ?? '(346) 604-1635',
-            contactEmail:    settingsMap.contact_email    ?? 'gis.owner@gmail.com',
-            contactLinkedin: settingsMap.contact_linkedin ?? 'garretperez',
-          }),
+          config: JSON.stringify(normalizeHeroConfig({
+            ...(settingsMap.hero_title     ? { heroTitle: settingsMap.hero_title } : {}),
+            ...(settingsMap.hero_location  ? { heroLocation: settingsMap.hero_location } : {}),
+            ...(settingsMap.contact_phone  ? { contactPhone: settingsMap.contact_phone } : {}),
+            ...(settingsMap.contact_email  ? { contactEmail: settingsMap.contact_email } : {}),
+            ...(settingsMap.contact_linkedin ? { contactLinkedin: settingsMap.contact_linkedin } : {}),
+          } as Partial<HeroBlockConfig>)),
           styles: JSON.stringify({}),
         },
       })

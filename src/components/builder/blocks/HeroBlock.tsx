@@ -1,7 +1,7 @@
 'use client'
 import type { PageBlock, HeroBlockConfig, BlockLiveData } from '@/types/builder'
-import { applyStylesToElement } from '@/lib/block-defaults'
-import { Phone, Mail, FileText } from 'lucide-react'
+import { applyStylesToElement, normalizeHeroConfig } from '@/lib/block-defaults'
+import HeroCard from '@/components/HeroCard'
 
 interface Props {
   block: PageBlock
@@ -10,239 +10,253 @@ interface Props {
   onConfigChange?: (c: HeroBlockConfig) => void
 }
 
-export default function HeroBlock({ block, isEditing, liveData, onConfigChange }: Props) {
-  const cfg = block.config as HeroBlockConfig
-  const style = applyStylesToElement(block.styles)
+const THEME_OPTIONS = [
+  { name: 'Gold',    val: '#1a0e06' },
+  { name: 'Royal',   val: '#0e1628' },
+  { name: 'Forest',  val: '#081a10' },
+  { name: 'Crimson', val: '#1a0808' },
+  { name: 'Arcane',  val: '#100818' },
+  { name: 'Onyx',    val: '#111118' },
+]
 
-  const upd = (field: keyof HeroBlockConfig, val: string) =>
-    onConfigChange?.({ ...cfg, [field]: val })
+const LBL: React.CSSProperties = { fontSize: 6, color: 'var(--text-3)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.1em' }
+const SECTION_TITLE: React.CSSProperties = { fontSize: 8, color: 'var(--gold)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 7 }
+const CARD: React.CSSProperties = { background: 'var(--bg-elevated)', border: '1px solid rgba(200,155,60,0.25)', padding: '16px 18px', marginBottom: 10 }
+
+function pickImage(cb: (dataUrl: string) => void) {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/*'
+  input.onchange = () => {
+    const file = input.files?.[0]
+    if (!file) return
+    if (file.size > 2.5 * 1024 * 1024) { alert('Image is too large — please use one under ~2.5 MB.'); return }
+    const r = new FileReader()
+    r.onload = () => cb(r.result as string)
+    r.readAsDataURL(file)
+  }
+  input.click()
+}
+
+function stopEvt(e: React.SyntheticEvent) { e.stopPropagation() }
+
+// Defined at module scope so React doesn't remount them (and drop input focus) on every keystroke.
+function TextField({ label, value, onChange, full, placeholder }: {
+  label: string; value: string; onChange: (v: string) => void; full?: boolean; placeholder?: string
+}) {
+  return (
+    <div style={{ gridColumn: full ? '1 / -1' : undefined }}>
+      <div style={LBL}>{label}</div>
+      <input
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onClick={stopEvt}
+        placeholder={placeholder}
+        className="osrs-input"
+        style={{ width: '100%', fontSize: 10, padding: '6px 9px' }}
+      />
+    </div>
+  )
+}
+
+function Toggle({ label, on, onToggle }: { label: string; on: boolean; onToggle: () => void }) {
+  return (
+    <button
+      onClick={e => { stopEvt(e); onToggle() }}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer',
+        padding: '7px 10px', borderRadius: 6, textAlign: 'left',
+        background: on ? 'rgba(200,155,60,0.12)' : 'var(--bg-card)',
+        border: `1px solid ${on ? 'rgba(200,155,60,0.4)' : 'var(--border)'}`,
+      }}
+    >
+      <span style={{
+        width: 26, height: 15, borderRadius: 8, flexShrink: 0, position: 'relative',
+        background: on ? 'var(--gold)' : 'rgba(255,255,255,0.12)', transition: 'background 0.15s',
+      }}>
+        <span style={{
+          position: 'absolute', top: 2, left: on ? 13 : 2, width: 11, height: 11, borderRadius: '50%',
+          background: '#0d0d14', transition: 'left 0.15s',
+        }} />
+      </span>
+      <span style={{ fontSize: 8.5, color: on ? 'var(--text-1)' : 'var(--text-3)', fontWeight: 600 }}>{label}</span>
+    </button>
+  )
+}
+
+function ImageField({ label, value, onChange, hint }: {
+  label: string; value: string; onChange: (v: string) => void; hint?: string
+}) {
+  return (
+    <div>
+      <div style={LBL}>{label}</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{
+          width: 46, height: 46, flexShrink: 0, borderRadius: 6, overflow: 'hidden',
+          border: '1px solid var(--border)', background: 'var(--bg-page)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
+        }}>
+          {value ? <img src={value} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '🖼️'}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <input
+            value={value.startsWith('data:') ? '' : value}
+            onChange={e => onChange(e.target.value)}
+            onClick={stopEvt}
+            placeholder={value.startsWith('data:') ? 'Uploaded image' : 'Paste image URL…'}
+            className="osrs-input"
+            style={{ width: '100%', fontSize: 9, padding: '5px 8px', marginBottom: 5 }}
+          />
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button onClick={e => { stopEvt(e); pickImage(onChange) }} className="osrs-btn" style={{ fontSize: 7, padding: '5px 10px' }}>⬆ Upload</button>
+            {value && <button onClick={e => { stopEvt(e); onChange('') }} style={{ fontSize: 7, padding: '5px 10px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 4, color: '#df5d5d', cursor: 'pointer' }}>Clear</button>}
+          </div>
+        </div>
+      </div>
+      {hint && <div style={{ fontSize: 6.5, color: 'var(--text-3)', marginTop: 5 }}>{hint}</div>}
+    </div>
+  )
+}
+
+export default function HeroBlock({ block, isEditing, liveData, onConfigChange }: Props) {
+  const cfg = normalizeHeroConfig(block.config as Partial<HeroBlockConfig>)
+  const style = applyStylesToElement(block.styles)
 
   const headshot = liveData.heroHeadshot ?? ''
   const totalMembers = liveData.heroTotalMembers ?? 0
   const totalPosts = liveData.heroTotalPosts ?? 0
   const garretLevel = liveData.heroGarretLevel ?? 1
   const xpBar = liveData.heroGarretXpBar ?? { currentXp: 0, neededXp: 100, percent: 0 }
-  const phone = cfg.contactPhone ?? '(346) 604-1635'
-  const email = cfg.contactEmail ?? 'gis.owner@gmail.com'
-  const linkedin = cfg.contactLinkedin ?? 'garretperez'
 
-  if (isEditing) {
+  // Read mode (public): rendered by page.tsx — kept here for completeness / safety
+  if (!isEditing) {
     return (
-      <div style={{ ...style }}>
-        {/* Settings panel */}
-        <div style={{
-          background: 'var(--bg-elevated)', border: '1px solid rgba(200,155,60,0.25)',
-          padding: '18px 20px',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <span style={{ fontSize: 16 }}>🏠</span>
-            <span style={{ fontSize: 9, color: 'var(--gold)', fontWeight: 700, letterSpacing: '0.05em' }}>Hero Panel Settings</span>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            {([
-              { key: 'heroTitle'       as const, label: 'Title / Role',    span: true },
-              { key: 'heroLocation'    as const, label: 'Location',        span: false },
-              { key: 'contactPhone'    as const, label: 'Phone',           span: false },
-              { key: 'contactEmail'    as const, label: 'Email',           span: false },
-              { key: 'contactLinkedin' as const, label: 'LinkedIn Handle', span: false },
-            ]).map(({ key, label, span }) => (
-              <div key={key} style={{ gridColumn: span ? '1 / -1' : undefined }}>
-                <div style={{ fontSize: 5.5, color: 'var(--text-3)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                  {label}
-                </div>
-                <input
-                  value={(cfg as unknown as Record<string, string>)[key] ?? ''}
-                  onChange={e => upd(key, e.target.value)}
-                  onClick={e => e.stopPropagation()}
-                  className="osrs-input"
-                  style={{ width: '100%', fontSize: 10, padding: '6px 9px' }}
-                />
-              </div>
-            ))}
-          </div>
-
-          <div style={{
-            marginTop: 14, padding: '8px 12px',
-            background: 'rgba(200,155,60,0.05)', border: '1px solid rgba(200,155,60,0.14)',
-            fontSize: 7, color: 'var(--text-3)', lineHeight: 1.6,
-          }}>
-            💡 Photo → Admin → Settings tab &nbsp;·&nbsp; Stats and XP update live from the database
-          </div>
-        </div>
-
-        {/* Live preview */}
-        <div style={{
-          marginTop: 8,
-          background: 'var(--bg-card)', border: '1px solid var(--border)',
-          padding: '4px 8px 6px',
-        }}>
-          <div style={{ fontSize: 5.5, color: 'var(--text-3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-            Preview (live stats)
-          </div>
-          <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-            {/* Mini photo */}
-            <div style={{
-              width: 48, height: 48, flexShrink: 0,
-              border: '2px solid #c89b3c', overflow: 'hidden',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'var(--bg-page)', color: 'var(--gold)', fontSize: 12, fontWeight: 700,
-            }}>
-              {headshot
-                ? <img src={headshot} alt="GP" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : 'GP'}
-            </div>
-
-            {/* Identity */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontFamily: "'Cinzel', serif", fontSize: 13, color: 'var(--text-1)', fontWeight: 700, marginBottom: 2 }}>
-                Garret Perez
-              </div>
-              <div className="body-text" style={{ fontSize: 9, color: 'var(--text-2)', marginBottom: 2 }}>
-                {cfg.heroTitle || '—'}
-              </div>
-              <div className="body-text" style={{ fontSize: 8, color: 'var(--text-3)' }}>
-                📍 {cfg.heroLocation || '—'}
-              </div>
-            </div>
-
-            {/* Stats */}
-            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-              {[
-                { v: totalMembers, l: 'Members' },
-                { v: totalPosts,   l: 'Posts' },
-                { v: garretLevel,  l: 'Level' },
-              ].map(s => (
-                <div key={s.l} style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  padding: '5px 10px', background: 'rgba(200,155,60,0.07)',
-                  border: '1px solid rgba(200,155,60,0.2)',
-                }}>
-                  <span className="body-text" style={{ fontSize: 14, fontWeight: 700, color: '#c89b3c', lineHeight: 1 }}>{s.v}</span>
-                  <span style={{ fontSize: 4.5, color: '#7a6040', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 3 }}>{s.l}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* XP bar */}
-          <div style={{ marginTop: 8 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-              <span style={{ fontSize: 5, color: '#6a5030', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Community XP</span>
-              <span className="body-text" style={{ fontSize: 7, color: 'var(--text-3)' }}>{xpBar.currentXp} / {xpBar.neededXp}</span>
-            </div>
-            <div style={{ height: 6, background: '#a88040', border: '1px solid rgba(200,155,60,0.25)', overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${xpBar.percent}%`, background: 'linear-gradient(90deg, #2a5a18, #3a7a22)' }} />
-            </div>
-          </div>
-
-          {/* Contact preview */}
-          <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {[
-              { icon: <Phone size={9} color="#c89b3c" />, val: phone },
-              { icon: <Mail size={9} color="#7090c8" />,  val: email },
-              { icon: <span style={{ fontFamily: 'Georgia', fontWeight: 900, color: '#4a88d0', fontSize: 9, lineHeight: 1 }}>in</span>, val: linkedin },
-              { icon: <FileText size={9} color="#c89b3c" />, val: 'Resume' },
-            ].map((c, i) => (
-              <div key={i} className="body-text" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 8, color: 'var(--text-2)' }}>
-                {c.icon} {c.val}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <HeroCard
+        cfg={cfg} headshot={headshot}
+        totalMembers={totalMembers} totalPosts={totalPosts}
+        garretLevel={garretLevel} xpBar={xpBar} style={style}
+      />
     )
   }
 
-  // Read mode: rendered by page.tsx, not HomepageBlockRenderer (which skips hero blocks)
+  // ── Edit mode ──────────────────────────────────────────────────────────────
+  const upd = (patch: Partial<HeroBlockConfig>) => onConfigChange?.({ ...cfg, ...patch })
+  const updAccount = (patch: Partial<HeroBlockConfig['account']>) =>
+    onConfigChange?.({ ...cfg, account: { ...cfg.account, ...patch } })
+
+  const stop = stopEvt
+
   return (
-    <div className="hero-panel" style={style}>
-      <div className="hidden sm:grid" style={{ gridTemplateColumns: '200px 1fr 185px', gap: 28, minHeight: 210, alignItems: 'stretch' }}>
-        {/* Col 1 — Photo */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{
-            width: 200, height: 200, flexShrink: 0,
-            border: '3px solid #c89b3c',
-            boxShadow: '0 0 0 5px rgba(200,155,60,0.1), 0 10px 40px rgba(0,0,0,0.7)',
-            overflow: 'hidden',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'var(--bg-page)', color: 'var(--gold)', fontSize: 38, fontWeight: 700,
-          }}>
-            {headshot
-              ? <img src={headshot} alt="Garret Perez" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : 'GP'}
-          </div>
-        </div>
-
-        {/* Col 2 — Identity + Stats + XP */}
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div style={{ marginBottom: 16 }}>
-            <h1 style={{ fontFamily: "'Cinzel', serif", fontSize: 30, fontWeight: 700, lineHeight: 1.1, color: 'var(--text-1)', textShadow: '0 0 24px rgba(200,155,60,0.45), 1px 2px 4px rgba(0,0,0,0.9)', letterSpacing: '0.04em', marginBottom: 7 }}>Garret Perez</h1>
-            <div className="body-text" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)', marginBottom: 4 }}>{cfg.heroTitle}</div>
-            <div className="body-text" style={{ fontSize: 12, color: 'var(--text-2)' }}>📍 {cfg.heroLocation}</div>
-          </div>
-          <div style={{ height: 1, background: 'linear-gradient(90deg, rgba(200,155,60,0.35) 0%, transparent 100%)', marginBottom: 16 }} />
-          <div style={{ display: 'flex', gap: 10, marginBottom: 18 }}>
-            {[
-              { value: totalMembers, label: 'Members' },
-              { value: totalPosts,   label: 'Posts' },
-              { value: garretLevel,  label: 'Level' },
-            ].map(stat => (
-              <div key={stat.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 20px', background: 'rgba(200,155,60,0.07)', border: '1px solid rgba(200,155,60,0.22)' }}>
-                <span className="body-text" style={{ fontSize: 22, fontWeight: 700, color: '#c89b3c', lineHeight: 1, marginBottom: 5 }}>{stat.value}</span>
-                <span style={{ fontSize: 5.5, color: '#7a6040', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: "'Press Start 2P', monospace" }}>{stat.label}</span>
-              </div>
-            ))}
-          </div>
-          <div style={{ marginBottom: 6 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <span style={{ fontSize: 5.5, color: '#6a5030', textTransform: 'uppercase', letterSpacing: '0.14em', fontFamily: "'Press Start 2P', monospace" }}>XP Progress</span>
-              <span className="body-text" style={{ fontSize: 8, color: 'var(--text-3)' }}>{xpBar.currentXp} / {xpBar.neededXp} XP</span>
-            </div>
-            <div style={{ height: 10, background: '#a88040', border: '1px solid rgba(200,155,60,0.3)', overflow: 'hidden', position: 'relative' }}>
-              <div style={{ height: '100%', width: `${xpBar.percent}%`, background: 'linear-gradient(90deg, #2a5a18, #3a7a22)', position: 'relative' }}>
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '45%', background: 'rgba(255,255,255,0.12)' }} />
-              </div>
+    <div style={style} onClick={stop}>
+      {/* ─ Identity ───────────────────────────────────────────── */}
+      <div style={CARD}>
+        <div style={SECTION_TITLE}><span style={{ fontSize: 14 }}>🏠</span> Hero — Identity</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+          <TextField label="Name" value={cfg.heroName} onChange={v => upd({ heroName: v })} full />
+          <TextField label="Title / Role" value={cfg.heroTitle} onChange={v => upd({ heroTitle: v })} full />
+          <TextField label="Location" value={cfg.heroLocation} onChange={v => upd({ heroLocation: v })} />
+          <div>
+            <div style={LBL}>Accent Color</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <input type="color" value={cfg.accentColor || '#c89b3c'} onChange={e => upd({ accentColor: e.target.value })} onClick={stop}
+                style={{ width: 30, height: 30, padding: 0, border: '1px solid var(--border)', borderRadius: 4, background: 'none', cursor: 'pointer' }} />
+              <input value={cfg.accentColor ?? ''} onChange={e => upd({ accentColor: e.target.value })} onClick={stop}
+                placeholder="default gold" className="osrs-input" style={{ flex: 1, fontSize: 9, padding: '6px 8px' }} />
+              {cfg.accentColor && <button onClick={e => { stop(e); upd({ accentColor: '' }) }} style={{ background: 'none', border: 'none', color: 'var(--text-3)', cursor: 'pointer', fontSize: 12 }}>✕</button>}
             </div>
           </div>
-          <p className="body-text" style={{ fontSize: 7, color: 'var(--text-3)' }}>Level grows as the community interacts.</p>
         </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <ImageField label="Profile Photo" value={cfg.heroPhoto ?? ''} onChange={v => upd({ heroPhoto: v })} hint="Overrides the Settings headshot. Leave empty to use it." />
+          <ImageField label="Panel Background" value={cfg.heroBgImage ?? ''} onChange={v => upd({ heroBgImage: v })} hint="Optional background image behind the hero." />
+        </div>
+      </div>
 
-        {/* Col 3 — Contact */}
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderLeft: '1px solid rgba(200,155,60,0.2)', paddingLeft: 22 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-            <a href={`tel:${phone.replace(/\D/g, '')}`} className="flex items-center gap-3 rounded transition-colors hover:bg-white/[0.04]" style={{ textDecoration: 'none', padding: '9px 8px', margin: '0 -8px' }}>
-              <div style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(200,155,60,0.12)', border: '1px solid rgba(200,155,60,0.28)' }}>
-                <Phone size={15} color="#c89b3c" strokeWidth={1.7} />
-              </div>
-              <div>
-                <div style={{ fontSize: 5.5, color: '#6a5030', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 2 }}>Phone</div>
-                <div className="body-text" style={{ fontSize: 10, color: '#f0dc90', fontWeight: 700 }}>{phone}</div>
-              </div>
-            </a>
-            <a href={`mailto:${email}`} className="flex items-center gap-3 rounded transition-colors hover:bg-white/[0.04]" style={{ textDecoration: 'none', padding: '9px 8px', margin: '0 -8px' }}>
-              <div style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(60,110,200,0.12)', border: '1px solid rgba(60,110,200,0.28)' }}>
-                <Mail size={15} color="#7090c8" strokeWidth={1.7} />
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 5.5, color: '#6a5030', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 2 }}>Email</div>
-                <div className="body-text" style={{ fontSize: 8.5, color: '#f0dc90', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 148 }}>{email}</div>
-              </div>
-            </a>
-            <a href={`https://www.linkedin.com/in/${linkedin}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 rounded transition-colors hover:bg-white/[0.04]" style={{ textDecoration: 'none', padding: '9px 8px', margin: '0 -8px' }}>
-              <div style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,90,200,0.14)', border: '1px solid rgba(0,90,200,0.3)' }}>
-                <span style={{ fontFamily: 'Georgia, serif', fontWeight: 900, color: '#4a88d0', fontSize: 15, lineHeight: 1, userSelect: 'none' }}>in</span>
-              </div>
-              <div>
-                <div style={{ fontSize: 5.5, color: '#6a5030', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 2 }}>LinkedIn</div>
-                <div className="body-text" style={{ fontSize: 8.5, color: '#f0dc90', fontWeight: 700 }}>in/{linkedin}</div>
-              </div>
-            </a>
+      {/* ─ Sections to show ───────────────────────────────────── */}
+      <div style={CARD}>
+        <div style={SECTION_TITLE}><span style={{ fontSize: 14 }}>🧩</span> Sections to Show</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 8 }}>
+          <Toggle label="Photo" on={cfg.showPhoto} onToggle={() => upd({ showPhoto: !cfg.showPhoto })} />
+          <Toggle label="Title line" on={cfg.showTitle} onToggle={() => upd({ showTitle: !cfg.showTitle })} />
+          <Toggle label="Stat chips" on={cfg.showStats} onToggle={() => upd({ showStats: !cfg.showStats })} />
+          <Toggle label="XP bar" on={cfg.showXpBar} onToggle={() => upd({ showXpBar: !cfg.showXpBar })} />
+          <Toggle label="CTA box" on={cfg.showCta} onToggle={() => upd({ showCta: !cfg.showCta })} />
+          <Toggle label="Contact column" on={cfg.showContact} onToggle={() => upd({ showContact: !cfg.showContact })} />
+        </div>
+      </div>
+
+      {/* ─ Call to action ─────────────────────────────────────── */}
+      {cfg.showCta && (
+        <div style={CARD}>
+          <div style={SECTION_TITLE}><span style={{ fontSize: 14 }}>⚡</span> Call to Action</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <TextField label="CTA Title" value={cfg.ctaTitle} onChange={v => upd({ ctaTitle: v })} full />
+            <TextField label="CTA Text" value={cfg.ctaText} onChange={v => upd({ ctaText: v })} full />
           </div>
-          <a href="/resume" className="flex items-center justify-center gap-2 transition-opacity hover:opacity-85" style={{ background: 'linear-gradient(135deg, #c89b3c 0%, #9a7228 100%)', color: '#120c00', fontFamily: "'Press Start 2P', monospace", fontSize: 6.5, fontWeight: 700, padding: '10px 14px', marginTop: 16, textDecoration: 'none', letterSpacing: '0.03em', boxShadow: '0 3px 18px rgba(200,155,60,0.42)', display: 'flex' }}>
-            <FileText size={12} strokeWidth={2.2} />
-            View Resume
-          </a>
+        </div>
+      )}
+
+      {/* ─ Stat labels ────────────────────────────────────────── */}
+      {cfg.showStats && (
+        <div style={CARD}>
+          <div style={SECTION_TITLE}><span style={{ fontSize: 14 }}>📊</span> Stat Labels <span style={{ fontSize: 6.5, color: 'var(--text-3)', fontWeight: 400 }}>(values update live from the database)</span></div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+            <TextField label="Members label" value={cfg.statMembersLabel} onChange={v => upd({ statMembersLabel: v })} />
+            <TextField label="Posts label" value={cfg.statPostsLabel} onChange={v => upd({ statPostsLabel: v })} />
+            <TextField label="Level label" value={cfg.statLevelLabel} onChange={v => upd({ statLevelLabel: v })} />
+          </div>
+        </div>
+      )}
+
+      {/* ─ Contact ────────────────────────────────────────────── */}
+      {cfg.showContact && (
+        <div style={CARD}>
+          <div style={SECTION_TITLE}><span style={{ fontSize: 14 }}>📇</span> Contact</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
+            <TextField label="Phone" value={cfg.contactPhone} onChange={v => upd({ contactPhone: v })} />
+            <TextField label="Email" value={cfg.contactEmail} onChange={v => upd({ contactEmail: v })} />
+            <TextField label="LinkedIn handle" value={cfg.contactLinkedin} onChange={v => upd({ contactLinkedin: v })} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 8 }}>
+            <Toggle label="Phone" on={cfg.showPhone} onToggle={() => upd({ showPhone: !cfg.showPhone })} />
+            <Toggle label="Email" on={cfg.showEmail} onToggle={() => upd({ showEmail: !cfg.showEmail })} />
+            <Toggle label="LinkedIn" on={cfg.showLinkedin} onToggle={() => upd({ showLinkedin: !cfg.showLinkedin })} />
+            <Toggle label="Resume button" on={cfg.showResume} onToggle={() => upd({ showResume: !cfg.showResume })} />
+          </div>
+        </div>
+      )}
+
+      {/* ─ Account card (right side) ──────────────────────────── */}
+      <div style={CARD}>
+        <div style={SECTION_TITLE}><span style={{ fontSize: 14 }}>🛡</span> Account Card <span style={{ fontSize: 6.5, color: 'var(--text-3)', fontWeight: 400 }}>(the card to the right)</span></div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+          <TextField label="Welcome title (logged out)" value={cfg.account.loggedOutTitle} onChange={v => updAccount({ loggedOutTitle: v })} />
+          <TextField label="Icon (emoji)" value={cfg.account.loggedOutIcon} onChange={v => updAccount({ loggedOutIcon: v })} />
+          <TextField label="Create-account button" value={cfg.account.registerLabel} onChange={v => updAccount({ registerLabel: v })} />
+          <TextField label="Log-in button" value={cfg.account.loginLabel} onChange={v => updAccount({ loginLabel: v })} />
+        </div>
+        <div style={LBL}>Default Banner Theme</div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {THEME_OPTIONS.map(t => (
+            <button key={t.val} onClick={e => { stop(e); updAccount({ defaultTheme: t.val }) }}
+              style={{
+                fontSize: 8, padding: '6px 12px', borderRadius: 5, cursor: 'pointer',
+                background: t.val, color: '#d4b880',
+                border: cfg.account.defaultTheme === t.val ? '2px solid var(--gold)' : '1px solid var(--border)',
+              }}>{t.name}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─ Live preview ───────────────────────────────────────── */}
+      <div style={{ marginTop: 4 }}>
+        <div style={{ fontSize: 6.5, color: 'var(--text-3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.1em' }}>↓ Live preview (exactly how it looks on the homepage)</div>
+        <div style={{ pointerEvents: 'none', border: '1px dashed var(--border)', padding: 12, borderRadius: 6 }}>
+          <HeroCard
+            cfg={cfg} headshot={headshot}
+            totalMembers={totalMembers} totalPosts={totalPosts}
+            garretLevel={garretLevel} xpBar={xpBar}
+          />
         </div>
       </div>
     </div>

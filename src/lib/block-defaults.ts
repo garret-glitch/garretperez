@@ -1,4 +1,53 @@
-import type { BlockType, AnyBlockConfig, BlockStyles } from '@/types/builder'
+import type { BlockType, AnyBlockConfig, BlockStyles, HeroBlockConfig, HeroAccountConfig } from '@/types/builder'
+
+// ─── Hero defaults + normalizer ───────────────────────────────────────────────
+export const DEFAULT_ACCENT = '#c89b3c'
+
+export const DEFAULT_HERO_ACCOUNT: HeroAccountConfig = {
+  loggedOutTitle: 'Your Character Awaits',
+  loggedOutIcon: '⚔',
+  registerLabel: '🛡 Create Account',
+  loginLabel: 'Log In',
+  defaultTheme: '#1a0e06',
+}
+
+export const DEFAULT_HERO_CONFIG: HeroBlockConfig = {
+  heroName: 'Garret Perez',
+  heroTitle: 'Sales Supervisor · Builder · Family Man',
+  heroLocation: 'Houston, TX',
+  heroPhoto: '',
+  heroBgImage: '',
+  accentColor: '',
+  showCta: true,
+  ctaTitle: 'Help Me Level Up',
+  ctaText: 'Interacting with the website I gain XP — you can gain XP too!',
+  showPhoto: true,
+  showTitle: false,
+  showStats: true,
+  showXpBar: true,
+  showContact: true,
+  statMembersLabel: 'Members',
+  statPostsLabel: 'Posts',
+  statLevelLabel: 'Level',
+  contactPhone: '(346) 604-1635',
+  contactEmail: 'gis.owner@gmail.com',
+  contactLinkedin: 'garretperez',
+  showPhone: true,
+  showEmail: true,
+  showLinkedin: true,
+  showResume: true,
+  account: { ...DEFAULT_HERO_ACCOUNT },
+}
+
+/** Fill any missing fields on a (possibly legacy) hero config with safe defaults. */
+export function normalizeHeroConfig(raw: Partial<HeroBlockConfig> | null | undefined): HeroBlockConfig {
+  const c = raw ?? {}
+  return {
+    ...DEFAULT_HERO_CONFIG,
+    ...c,
+    account: { ...DEFAULT_HERO_ACCOUNT, ...(c.account ?? {}) },
+  }
+}
 
 export const BLOCK_META: Record<BlockType, { label: string; icon: string; description: string }> = {
   'hero':           { label: 'Hero Panel',      icon: '🏠', description: 'Profile hero at top of page' },
@@ -21,13 +70,7 @@ export const BLOCK_META: Record<BlockType, { label: string; icon: string; descri
 export function getDefaultConfig(type: BlockType): AnyBlockConfig {
   switch (type) {
     case 'hero':
-      return {
-        heroTitle: 'Sales Supervisor · Builder · Family Man',
-        heroLocation: 'Houston, TX',
-        contactPhone: '(346) 604-1635',
-        contactEmail: 'gis.owner@gmail.com',
-        contactLinkedin: 'garretperez',
-      }
+      return { ...DEFAULT_HERO_CONFIG, account: { ...DEFAULT_HERO_ACCOUNT } }
     case 'about':
       return {
         headingText: 'About Me', headingIcon: '📜',

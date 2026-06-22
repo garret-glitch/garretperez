@@ -17,12 +17,46 @@ export type BlockType =
   | 'communities'
 
 // ─── Per-type config shapes ───────────────────────────────────────────────────
+export interface HeroAccountConfig {
+  loggedOutTitle: string      // "Your Character Awaits"
+  loggedOutIcon: string       // "⚔"
+  registerLabel: string       // "🛡 Create Account"
+  loginLabel: string          // "Log In"
+  defaultTheme: string        // banner color value (matches AccountShield THEMES val)
+}
+
 export interface HeroBlockConfig {
+  // Identity
+  heroName: string
   heroTitle: string
   heroLocation: string
+  heroPhoto?: string          // base64/URL override for the headshot
+  heroBgImage?: string        // base64/URL background for the hero panel
+  accentColor?: string        // gold accent override (hex)
+  // Call-to-action
+  showCta: boolean
+  ctaTitle: string            // "Help Me Level Up"
+  ctaText: string             // "Interacting with the website I gain XP..."
+  // Section toggles
+  showPhoto: boolean
+  showTitle: boolean
+  showStats: boolean
+  showXpBar: boolean
+  showContact: boolean
+  // Stat labels
+  statMembersLabel: string
+  statPostsLabel: string
+  statLevelLabel: string
+  // Contact
   contactPhone: string
   contactEmail: string
   contactLinkedin: string
+  showPhone: boolean
+  showEmail: boolean
+  showLinkedin: boolean
+  showResume: boolean
+  // Right-hand account card
+  account: HeroAccountConfig
 }
 
 export interface AboutBubble {

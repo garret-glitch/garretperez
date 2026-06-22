@@ -18,6 +18,21 @@ const FONTS = [
   { label: 'Courier New (Mono)',       value: "'Courier New', monospace" },
 ]
 
+function pickImage(cb: (dataUrl: string) => void) {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/*'
+  input.onchange = () => {
+    const file = input.files?.[0]
+    if (!file) return
+    if (file.size > 2.5 * 1024 * 1024) { alert('Image is too large — please use one under ~2.5 MB.'); return }
+    const r = new FileReader()
+    r.onload = () => cb(r.result as string)
+    r.readAsDataURL(file)
+  }
+  input.click()
+}
+
 const LBL: React.CSSProperties = { fontSize: 5.5, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: 4 }
 const ROW: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }
 const INPUT = (w?: number): React.CSSProperties => ({
@@ -144,9 +159,22 @@ export default function StylesPanel({ block, onStyleChange, onSpanChange, onDele
       <div style={SECTION}>
         <label style={LBL}>Background</label>
         <ColorField label="Color" value={s.bgColor ?? ''} onChange={v => upd({ bgColor: v || undefined })} />
-        <label style={LBL}>Image URL</label>
-        <input value={s.bgImage ?? ''} onChange={e => upd({ bgImage: e.target.value || undefined })}
-          placeholder="https://..." style={{ ...INPUT(230), width: '100%', marginBottom: 6 }} />
+        <label style={LBL}>Image</label>
+        {s.bgImage && (
+          <div style={{ width: '100%', height: 48, borderRadius: 4, overflow: 'hidden', border: '1px solid var(--border)', marginBottom: 5, backgroundImage: `url(${s.bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+        )}
+        <input value={(s.bgImage ?? '').startsWith('data:') ? '' : (s.bgImage ?? '')}
+          onChange={e => upd({ bgImage: e.target.value || undefined })}
+          placeholder={(s.bgImage ?? '').startsWith('data:') ? 'Uploaded image' : 'https://...'}
+          style={{ ...INPUT(230), width: '100%', marginBottom: 5 }} />
+        <div style={{ display: 'flex', gap: 5 }}>
+          <button onClick={() => pickImage(v => upd({ bgImage: v }))}
+            style={{ flex: 1, ...INPUT(), textAlign: 'center', cursor: 'pointer', color: 'var(--gold)' }}>⬆ Upload</button>
+          {s.bgImage && (
+            <button onClick={() => upd({ bgImage: undefined })}
+              style={{ ...INPUT(60), textAlign: 'center', cursor: 'pointer', color: '#df5d5d' }}>Clear</button>
+          )}
+        </div>
       </div>
 
       {/* Border */}
