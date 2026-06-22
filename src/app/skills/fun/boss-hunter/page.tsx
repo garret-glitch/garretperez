@@ -2818,8 +2818,8 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
     drawWing(-1); drawWing(1)
     // ── TAIL — thick serpentine length down to a spinning frozen morningstar ──
     {
-      const tailAt = (u: number) => ({ x: -sz * (0.5 + u * 1.42), y: Math.sin(t * 1.8 - u * 1.7) * sz * 0.42 * u })
-      const wOf = (u: number) => sz * (0.22 * (1 - u) + 0.035)
+      const tailAt = (u: number) => ({ x: -sz * (0.4 + u * 1.52), y: Math.sin(t * 1.8 - u * 1.7) * sz * 0.42 * u })
+      const wOf = (u: number) => sz * (0.135 * (1 - u) + 0.028)   // base matches the body's rear taper, so it flows in seamlessly
       const SEG = 16
       // dark outline pass
       ctx.fillStyle = cDark
