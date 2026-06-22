@@ -1507,13 +1507,14 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
     }
   } else if (bossId === 3 && b.stunTimer <= 0) {
     // ── FROST WYRM — alternates grounded (melee-only) and airborne (ranged-only) stances ──
-    if (!g.bossDesperate) {
-      // stance only swaps once you've hurt it ENOUGH in the current stance — so you must wield both
+    {
+      // stance only swaps once you've hurt it ENOUGH in the current stance — so you must wield both.
+      // (the gate holds even through the desperate phase — magic never hurts it while grounded)
       g.wyrmPhaseTimer -= dt   // minimum hold time, prevents instant whiplash on burst
       if (g.wyrmStagger >= g.wyrmStaggerMax && g.wyrmPhaseTimer <= 0) {
         g.wyrmFlying = !g.wyrmFlying
         g.dmgGate = g.wyrmFlying ? 'ranged' : 'melee'
-        g.wyrmStagger = 0; g.wyrmPhaseTimer = 2.5
+        g.wyrmStagger = 0; g.wyrmPhaseTimer = g.bossDesperate ? 1.8 : 2.5   // swaps faster when frenzied
         g.bossAttack = null; g.comboQueue = []; g.nextAttackTimer = 0.5
         g.screenShake = Math.max(g.screenShake, 0.6); Sfx.roar()
         g.phaseBanner = g.wyrmFlying
@@ -1822,7 +1823,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
     // shockwave nova — punishes anyone hugging the boss at the transition
     const novaR = bossDef.size + 150
     if (dist(p.pos, b.pos) < novaR && p.iframeTimer <= 0) dealDmgToPlayer(g, 26, wpn, gear, norm(v(p.pos.x - b.pos.x, p.pos.y - b.pos.y)))
-    const p3Sub = bossId === 0 ? 'She calls her brood!' : bossId === 1 ? 'The arena turns to magma!' : bossId === 3 ? 'It crashes down — now vulnerable to all!' : 'A storm of blades takes wing!'
+    const p3Sub = bossId === 0 ? 'She calls her brood!' : bossId === 1 ? 'The arena turns to magma!' : bossId === 3 ? 'It frenzies — keep matching its stance!' : 'A storm of blades takes wing!'
     g.phaseBanner = { text: 'PHASE 3 — DESPERATE', sub: p3Sub, timer: 3.0 }
     // ── signature phase-3 openers ──
     if (bossId === 0) {
@@ -1837,8 +1838,8 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
       }
       g.sigTimer = 0.36
     } else if (bossId === 3) {
-      // Frost Wyrm: crashes to earth and drops its scale-guard — every weapon can now hurt it
-      g.wyrmFlying = false; g.dmgGate = 'both'
+      // Frost Wyrm: enters a frenzy but KEEPS its stance discipline — lands in melee stance and swaps faster from here
+      g.wyrmFlying = false; g.dmgGate = 'melee'; g.wyrmStagger = 0; g.wyrmPhaseTimer = 1.6
       for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2, rr = bossDef.size + 90
         spawnZone(g, v(clamp(b.pos.x + Math.cos(a) * rr, 80, WW - 80), clamp(b.pos.y + Math.sin(a) * rr, 80, WH - 80)), 'ice', 56, 12, 4.0)
         spawnParticles(g, v(b.pos.x + Math.cos(a) * rr, b.pos.y + Math.sin(a) * rr), 8, '#9fe8ff', 150, 0.6) }
