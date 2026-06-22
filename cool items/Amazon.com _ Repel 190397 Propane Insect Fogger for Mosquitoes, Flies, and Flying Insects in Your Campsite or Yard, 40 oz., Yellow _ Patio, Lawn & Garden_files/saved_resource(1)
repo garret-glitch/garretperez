@@ -1,43 +1,0 @@
-
-var ftGUID_10852581="67380C8CD55991";
-var ftConfID_10852581="41720595";
-var ftParams_10852581="cachebuster=5234324417019731986&gdpr=0&gdpr_consent=&us_privacy=%24%7BUS_PRIVACY%7D&ft_referrer=https%3A%2F%2Fwww.amazon.com%2F&ftRandom=64b73434a4&ftClick=https://aax-events-cell01-cf.us-east.ono.axp.amazon-adsystem.com/x/c/RLIlxT430ukNH8GpmfEBazsAAAGewnpzQgEAAAH0BABvbm9fdHhuX2JpZDcgICBvbm9fdHhuX2ltcDIgICCXtzoM/clv1c_ek-gAfUyHeDC7ntHCKCGaJoaGD7RKmy7Jy1Z9lOnIXd3w-jgEQxEfqu5mt-KDYz5thumpLha2XSAZEPzFfOQMSY5j9Leg5XfdKtS-wub4ZUhz1ITOqZmTsrFbYFDgRE1HnR69x547DUV8kf_1SHfTDSQ-wM9UVLhlOqY3BoBkrIsTArc6MPeIE2QnUoYgD2JNQyQ5-InTjuau_W3Q8IemdMXGZMp0g2xD8uukEVVLrsFs9IGtgN8QhXIboS3wI23lMLAGyW4T98f-aIZTGKyr9j9IPD3hTcKekirBLaQAFqC5TQWa0iAubVZSY8YTOzv6o4IgZwZ4JD60uZ4_Me_5Py_1TXOWhEXqmyIeIbVTqZqEFP4rGuDQkbO4XdYsHgy1ky8dbL-aFLbETK3PZwArrcF6zb_ylyqSjAL-qVHeh1YvqGzhI8eLlrUGzscolVI0lXW9tI7lF18TiQNrlb3fJEQU4XOxzshSMHsScdtc1Y4oInUQLg5WAB35DctRy5b_8aa-VdpZLPjfC3wBhSKFsGNBjHZ-_7etCy8Q4hCSkAi5bEhczLuSMy63GHrA9LODuwqIkXr-bxGHnZeAhIbon-oXHi-8-3KiddPQ97N30qZZf8yFVnEoNR3TmNsYc7QXgjTyADGT_EWcwKwVGBZx17E7s5_oZtOtL6IhhBBIU1gi0KJiD8QIGtZxHIxdXq3UXFZIcRXeUKVbx4ddHsE2Nn6PoYv-36oAEjj6jDmEFmA-Dyrmax-U006zCj7mZtjP_STjv4kdjU9AUFzFW6EOycS360KyNT4gkOIzgN2lhmCfwci-2SUMYo5nFhGvOuqP09xv6WGQw/&ft_agentEnv=0&ftOBA=1&cachebuster=64b73434a4";
-var ftKeyword_10852581="";
-var ftCustom_10852581="";
-var ftSection_10852581="";
-var ftSegment_10852581="";
-var ftSegmentList_10852581=[];
-var ftRuleMatch_10852581="0";
-var ftTimestamp_10852581="1781380655";
-var ftGeoC2_10852581="us";
-var ftGeoState_10852581="tx";
-var ftGeoCity_10852581="pearland";
-var ftISP_10852581="att enterprises llc";
-var ftSpeed_10852581="broadband";
-var ftConnType_10852581="wifi";
-var ftDMA_10852581="618";
-var ftLong_10852581="-95.28";
-var ftLat_10852581="29.56";
-var ftPostal_10852581="77581";
-var ftTimeZone_10852581="-500";
-var ftMobileCarrier_10852581="";
-var ftImp10852581 = {};
-ftImp10852581.privacy = "x";
-ftImp10852581.guidAge = "-1";
-ftImp10852581.impID = "2A26ABED-2182-A964-3EC8-AF74828FA435";
-ftImp10852581.duid = "FT:67380C8CD55991";
-
-ftImp10852581.ft_tpplid = "";
-ftImp10852581.ft_c = {};
-ftImp10852581.gdpr = "0";
-ftImp10852581.gdpr_consent = "";
-ftImp10852581.gdpr_pd = "";
-ftImp10852581.oob_consent = "";
-ftImp10852581.gdprStoredConsent = "";
-ftImp10852581.us_privacy = "!!US_PRIVACY!";
-ftImp10852581.gpc = "0";
-
-ftImp10852581.jsAppend = "1";
-var ftCreativeId_10852581 = "6137425";
-(function(){var tag=document.getElementById("ft_servedby_10852581")||function(s){return s[s.length-1]}(document.getElementsByTagName("script")),js=document.createElement("script");js.src="https://ajs-assets.ftstatic.com/ftUtils.js";js.id="ftscript_m10852581";js.setAttribute("name","ftscript_m10852581");tag.parentNode.insertBefore(js,tag)})();window.fTChecker=window.fTChecker||function(id){if(!id)return false;id=""+id;if(window.hasOwnProperty("ftUtils")){window["ft"+id]=Object.assign({},window.ftUtils.common);window["ft"+id].getBannerConfig(id)}else(function(id){window.setTimeout(function(){window.fTChecker(id)},50)})(id)};window.fTChecker("10852581");
-
