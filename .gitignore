@@ -41,3 +41,31 @@ next-env.d.ts
 /UsersgisowDownloadswebsitescreenshots
 
 .vercel
+
+# local scratch / reference material (saved web pages, screenshots, design refs)
+# — not part of the site; kept on disk locally but never committed.
+# Anchored to repo root so source dirs like src/app/skills/fishing are unaffected.
+/castle dress/
+/cool items/
+/fishing/
+/hero boos/
+/lumina/
+/pirate rampage/
+/random/
+/wine rush/
+/header hero card.png
+/projects/boss hunter.png
+/food and wine/*.html
+/food and wine/bonterra cab real.png
+/food and wine/example.png
+/food and wine/example 2.png
+/food and wine/galveston.png
+/food and wine/matua new.png
+/food and wine/matua nn.png
+/food and wine/matua wine back ground.png
+/food and wine/matua wine back ground.webp
+/food and wine/new bogle.png
+/food and wine/tab prfile pic.png
+
+# saved web-page asset folders (e.g. "Page Name_files/") anywhere in the tree
+*_files/
