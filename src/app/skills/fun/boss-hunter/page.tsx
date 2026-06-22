@@ -2751,7 +2751,6 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
     const headNod = Math.sin(t * 1.2) * sz * 0.03           // head dips & rises
     const headTurn = Math.sin(t * 0.6) * 0.07               // slow side-to-side scan
     const brScale = 1 + breatheCy * 0.02                    // subtle breathing swell
-    const blink = (t % 3.4) < 0.13 ? 0.12 : 1               // occasional eye blink
     const lift = spread * (24 + flap * 9) + idleBob * 0.6
     const cDark = hitW ? '#FFF' : (enr ? '#155878' : '#1c4459')
     const cMid  = hitW ? '#FFF' : (enr ? '#3f93c2' : '#3a78a0')
@@ -2957,7 +2956,7 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
       const sway = Math.sin(t * 1.3) * sz * 0.012
       const neckEndX = sz * 0.8 + headFwd
       const neckAt = (u: number) => ({ x: sz * 0.06 + u * (neckEndX - sz * 0.06), y: breath * 0.4 * (1 - u) + sway * u })
-      const neckW = (u: number) => sz * (0.075 + 0.165 * Math.pow(1 - u, 1.4))   // slim, gently flaring at the chest
+      const neckW = (u: number) => sz * (0.075 + 0.225 * Math.pow(1 - u, 1.5))   // slim head, flaring wide into the chest to blend
       const band = (pad: number) => { ctx.beginPath()
         for (let i = 0; i <= nSEG; i++) { const u = i / nSEG, p = neckAt(u), w = neckW(u) + pad; if (i === 0) ctx.moveTo(p.x, p.y - w); else ctx.lineTo(p.x, p.y - w) }
         for (let i = nSEG; i >= 0; i--) { const u = i / nSEG, p = neckAt(u), w = neckW(u) + pad; ctx.lineTo(p.x, p.y + w) }
@@ -2986,6 +2985,26 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
       ctx.shadowBlur = 0
     }
 
+    // ── blend the neck root into the chest: re-lay the two front vertebra plates on top of it ──
+    for (let i = 0; i < 2; i++) {
+      const u = (i + 0.5) / NB, cx = segAt(u), h = segH(u), l = segL(u)
+      ctx.shadowColor = cGlow; ctx.shadowBlur = enr ? 22 : 14
+      const pg = ctx.createRadialGradient(cx, breath - h * 0.25, 0, cx, breath, h * 1.15)
+      pg.addColorStop(0, hitW ? '#FFF' : cLite); pg.addColorStop(0.55, cMid); pg.addColorStop(1, cDark)
+      ctx.fillStyle = hitW ? '#FFF' : pg
+      ctx.beginPath()
+      ctx.moveTo(cx + l, breath)
+      ctx.quadraticCurveTo(cx + l * 0.35, breath - h * 0.78, cx, breath - h)
+      ctx.quadraticCurveTo(cx - l * 0.35, breath - h * 0.78, cx - l, breath)
+      ctx.quadraticCurveTo(cx - l * 0.35, breath + h * 0.78, cx, breath + h)
+      ctx.quadraticCurveTo(cx + l * 0.35, breath + h * 0.78, cx + l, breath)
+      ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0
+      const pulse = i === 0 ? 0.65 + 0.35 * Math.sin(t * 2.4) : 0.5
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = pulse
+      const cg2 = ctx.createRadialGradient(cx, breath, 0, cx, breath, l)
+      cg2.addColorStop(0, '#eafaff'); cg2.addColorStop(0.5, enr ? '#8fe6ff' : '#bfeaff'); cg2.addColorStop(1, 'rgba(120,210,255,0)')
+      ctx.fillStyle = cg2; ctx.beginPath(); ctx.ellipse(cx, breath, l * 0.85, h * 0.5, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore()
+    }
     // ── MASSIVE HEAD (fierce top-down skull) — nods & scans for life ──
     ctx.save(); ctx.translate(sz * 0.82 + headFwd, headNod); ctx.rotate(headTurn); ctx.translate(-sz * 0.82, 0)
     // 1) frozen CROWN — a fan of ice horns swept back over the skull (drawn first, behind it)
@@ -3028,16 +3047,19 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
     // 4) glowing frost rune on the brow
     { const rp = 0.5 + 0.5 * Math.sin(t * 3); ctx.save(); ctx.globalAlpha = 0.4 + 0.4 * rp; ctx.strokeStyle = cEdge; ctx.lineWidth = 1.5; ctx.shadowColor = cGlow; ctx.shadowBlur = 8
       ctx.translate(sz * 0.9, 0); ctx.beginPath(); ctx.moveTo(0, -sz * 0.055); ctx.lineTo(sz * 0.035, 0); ctx.lineTo(0, sz * 0.055); ctx.lineTo(-sz * 0.035, 0); ctx.closePath(); ctx.stroke(); ctx.restore() }
-    // 5) fierce angled glowing slit-eyes
+    // 5) ANGRY triangular eyes — solid glowing wedges, no eyeball (sharp point toward the snout, furrowed back)
     const ep = 0.6 + 0.4 * Math.sin(t * 4)
     for (const side of [-1, 1]) {
-      ctx.save(); ctx.translate(sz * 0.99, side * sz * 0.1); ctx.rotate(side * -0.5)
-      const eg = ctx.createRadialGradient(0, 0, 0, 0, 0, sz * 0.09); eg.addColorStop(0, '#FFFFFF'); eg.addColorStop(0.4, enr ? '#bdf3ff' : '#9fe8ff'); eg.addColorStop(1, enr ? '#1788bd' : '#27607f')
-      ctx.shadowColor = cGlow; ctx.shadowBlur = 20 * ep; ctx.fillStyle = hitW ? '#FFF' : eg
-      ctx.beginPath(); ctx.ellipse(0, 0, sz * 0.09, sz * 0.045 * blink, 0, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0
-      ctx.fillStyle = '#06121a'; ctx.beginPath(); ctx.ellipse(0, 0, sz * 0.016, sz * 0.036 * blink, 0, 0, Math.PI * 2); ctx.fill()
-      if (blink > 0.5) { ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.arc(-sz * 0.022, -sz * 0.014, sz * 0.013, 0, Math.PI * 2); ctx.fill() }
-      ctx.restore()
+      const p1x = sz * 1.12, p1y = side * sz * 0.06    // sharp front point (toward snout + centre)
+      const p2x = sz * 0.9, p2y = side * sz * 0.205    // wide outer-back corner
+      const p3x = sz * 0.96, p3y = side * sz * 0.05    // inner-back corner (forms the furrow)
+      // solid, bright, menacing — pops off the head
+      ctx.fillStyle = hitW ? '#FFF' : (enr ? '#cdf5ff' : '#a6ecff')
+      ctx.shadowColor = cGlow; ctx.shadowBlur = 20 * ep
+      ctx.beginPath(); ctx.moveTo(p1x, p1y); ctx.lineTo(p2x, p2y); ctx.lineTo(p3x, p3y); ctx.closePath(); ctx.fill()
+      // hot inner core so the eye reads as a glare
+      ctx.shadowBlur = 0; ctx.globalAlpha = 0.55 + 0.3 * ep; ctx.fillStyle = '#ffffff'
+      ctx.beginPath(); ctx.moveTo((p1x * 2 + p2x) / 3, (p1y * 2 + p2y) / 3); ctx.lineTo((p1x + p2x) / 2, (p1y + p2y) / 2); ctx.lineTo((p1x + p3x) / 2, (p1y + p3y) / 2); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1
     }
     // 6) nostrils
     ctx.fillStyle = cDark
