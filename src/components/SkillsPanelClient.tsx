@@ -146,7 +146,7 @@ function ChannelRow({
           {cfg.label}
         </span>
 
-        {id !== 'QUESTS' && (
+        {isAdmin && id !== 'QUESTS' && (
           <span style={{
             flexShrink: 0,
             background: 'rgba(200,155,60,0.13)',
