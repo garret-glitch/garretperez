@@ -2762,12 +2762,7 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
     const cGlow = enr ? '#00d6ff' : '#7fd4ff'
     const cHorn = hitW ? '#FFF' : '#eaf6fc'
     const cIce  = hitW ? '#FFF' : '#bfe9f7'
-    // ── ground frost ring + shadow (unrotated) ──
-    ctx.save(); ctx.globalAlpha = 0.45 - spread * 0.3; ctx.strokeStyle = cGlow; ctx.lineWidth = 2; ctx.shadowColor = cGlow; ctx.shadowBlur = 10
-    ctx.beginPath(); ctx.ellipse(0, sz * 0.55 + 8, sz * 1.2, sz * 0.46, 0, 0, Math.PI * 2); ctx.stroke()
-    ctx.globalAlpha = 0.22 - spread * 0.16; ctx.lineWidth = 1.2
-    for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; ctx.beginPath(); ctx.moveTo(Math.cos(a) * sz * 0.45, sz * 0.55 + 8 + Math.sin(a) * sz * 0.18); ctx.lineTo(Math.cos(a) * sz * 1.15, sz * 0.55 + 8 + Math.sin(a) * sz * 0.44); ctx.stroke() }
-    ctx.restore()
+    // ── ground shadow (unrotated) — no ring ──
     ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.30)'; ctx.beginPath(); ctx.ellipse(0, sz * 0.55 + 8, sz * (0.95 - spread * 0.25), sz * (0.34 - spread * 0.13), 0, 0, Math.PI * 2); ctx.fill(); ctx.restore()
     // ── vast cold aura ──
     ctx.shadowColor = cGlow; ctx.shadowBlur = enr ? 50 : 30
@@ -3072,12 +3067,6 @@ function renderBoss(ctx: CanvasRenderingContext2D, g: GS, bossId: BossId, t: num
       for (let i = 0; i < 6; i++) { const a = t * 1.6 + i * (Math.PI / 3), rr = sz * (1.35 + 0.1 * Math.sin(t * 3 + i)), x = Math.cos(a) * rr, y = -lift + Math.sin(a) * rr * 0.6
         ctx.fillStyle = cIce; ctx.beginPath(); ctx.moveTo(x, y - 7); ctx.lineTo(x + 4.5, y); ctx.lineTo(x, y + 7); ctx.lineTo(x - 4.5, y); ctx.closePath(); ctx.fill() }
       ctx.restore() }
-    // ── damage-gate shimmer: hardened scales (ranged-immune) shown as a deflecting aura ──
-    if (g.dmgGate === 'melee') {
-      const sp = 0.5 + 0.5 * Math.sin(t * 4); ctx.save(); ctx.globalAlpha = 0.28 + 0.22 * sp
-      ctx.strokeStyle = cEdge; ctx.lineWidth = 2.5; ctx.shadowColor = cGlow; ctx.shadowBlur = 12
-      ctx.beginPath(); ctx.arc(0, -lift, sz * 1.05 + sp * 5, 0, Math.PI * 2); ctx.stroke(); ctx.restore()
-    }
     ctx.shadowBlur = 0
   }
   ctx.restore()
