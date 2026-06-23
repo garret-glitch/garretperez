@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 
-// Record a Boss Hunter fastest-kill run. Users may submit many runs per boss.
+// Record a Boss Hunter fastest-kill run (boss 0-3). Users may submit many runs per boss.
 export async function POST(req: Request) {
   const session = await auth()
   if (!session?.user?.id) {
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => null)
   const boss = body?.boss
   const timeMs = body?.timeMs
-  if (typeof boss !== 'number' || !Number.isInteger(boss) || boss < 0 || boss > 2) {
+  if (typeof boss !== 'number' || !Number.isInteger(boss) || boss < 0 || boss > 3) {
     return NextResponse.json({ error: 'Invalid boss' }, { status: 400 })
   }
   if (typeof timeMs !== 'number' || !Number.isFinite(timeMs) || timeMs < 1000 || timeMs > 3_600_000) {
