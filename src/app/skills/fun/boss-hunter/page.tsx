@@ -1839,6 +1839,7 @@ function tick(g: GS, dt: number, wpn: WeaponDef, bossId: BossId, gear: GearId[],
       g.sigTimer = 0.36
     } else if (bossId === 3) {
       // Frost Wyrm: enters a frenzy but KEEPS its stance discipline — lands in melee stance and swaps faster from here
+      g.bossDmgTakenMult = 0.6              // final stand: hardened scales — ~1.67x effective HP for the last stage
       g.wyrmFlying = false; g.dmgGate = 'melee'; g.wyrmStagger = 0; g.wyrmPhaseTimer = 1.6
       for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2, rr = bossDef.size + 90
         spawnZone(g, v(clamp(b.pos.x + Math.cos(a) * rr, 80, WW - 80), clamp(b.pos.y + Math.sin(a) * rr, 80, WH - 80)), 'ice', 56, 12, 4.0)
