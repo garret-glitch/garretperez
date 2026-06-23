@@ -596,7 +596,9 @@ function mkState(wpn: WeaponDef, boss: BossDef, gear: GearId[]): GS {
 
 /* ═══ HELPERS ═══ */
 let _pid = 0
+const MAX_PARTICLES = 850   // hard cap — keeps frame cost bounded during phase-3 bursts
 function spawnParticles(g: GS, pos: V2, count: number, color: string, speed = 120, life = 0.5) {
+  count = Math.min(count, MAX_PARTICLES - g.particles.length)
   for (let i = 0; i < count; i++) {
     const a = Math.random() * Math.PI * 2, spd = rnd(speed * 0.4, speed)
     g.particles.push({ id: ++_pid, pos: { ...pos }, vel: v(Math.cos(a) * spd, Math.sin(a) * spd), life, maxLife: life, color, size: rnd(2, 5.5) })
@@ -4008,12 +4010,16 @@ function renderProjectiles(ctx: CanvasRenderingContext2D, g: GS, t: number) {
   g.projectiles.forEach(proj => {
     ctx.save()
     if (proj.trail && proj.trail.length > 1) {
+      // Perf: no per-segment shadowBlur — the trail alpha tops out at 0.5 so the
+      // glow was invisible, but it cost a blurred stroke per segment per projectile.
+      ctx.shadowBlur = 0; ctx.strokeStyle = proj.color
+      const baseW = proj.isPowerShot?8:proj.isFireball?7:proj.isFirebolt?5:3
       for (let i=1;i<proj.trail.length;i++) {
-        const a=(i/proj.trail.length)*0.5
-        ctx.save(); ctx.globalAlpha=a; ctx.strokeStyle=proj.color; ctx.lineWidth=(proj.isPowerShot?8:proj.isFireball?7:proj.isFirebolt?5:3)*(i/proj.trail.length)
-        ctx.shadowColor=proj.color; ctx.shadowBlur=6
-        ctx.beginPath(); ctx.moveTo(proj.trail[i-1].x,proj.trail[i-1].y); ctx.lineTo(proj.trail[i].x,proj.trail[i].y); ctx.stroke(); ctx.restore()
+        const f = i/proj.trail.length
+        ctx.globalAlpha = f*0.5; ctx.lineWidth = baseW*f
+        ctx.beginPath(); ctx.moveTo(proj.trail[i-1].x,proj.trail[i-1].y); ctx.lineTo(proj.trail[i].x,proj.trail[i].y); ctx.stroke()
       }
+      ctx.globalAlpha = 1
     }
     ctx.shadowColor=proj.color; ctx.shadowBlur=proj.isPowerShot?28:proj.isFireball?24:proj.isLightning?20:12
     if (proj.isPowerShot) {
@@ -4230,11 +4236,19 @@ function renderFx(ctx: CanvasRenderingContext2D, g: GS, t: number) {
 }
 
 function renderParticles(ctx: CanvasRenderingContext2D, g: GS) {
-  g.particles.forEach(pt => {
-    const a=pt.life/pt.maxLife; ctx.save(); ctx.globalAlpha=a
-    ctx.fillStyle=pt.color; ctx.shadowColor=pt.color; ctx.shadowBlur=4
-    ctx.beginPath(); ctx.arc(pt.pos.x,pt.pos.y,pt.size*a,0,Math.PI*2); ctx.fill(); ctx.restore()
-  })
+  // Perf: no per-particle shadowBlur/save-restore — those are the single biggest
+  // cost in the frame when hundreds of particles are alive. The tiny glow they
+  // added is imperceptible; plain alpha-blended arcs look the same and run ~10x faster.
+  ctx.shadowBlur = 0
+  const parts = g.particles
+  for (let i = 0; i < parts.length; i++) {
+    const pt = parts[i]
+    const a = pt.life / pt.maxLife
+    ctx.globalAlpha = a
+    ctx.fillStyle = pt.color
+    ctx.beginPath(); ctx.arc(pt.pos.x, pt.pos.y, pt.size * a, 0, Math.PI * 2); ctx.fill()
+  }
+  ctx.globalAlpha = 1
 }
 
 function renderDamageNumbers(ctx: CanvasRenderingContext2D, g: GS) {
