@@ -103,6 +103,7 @@ src/
       fun/dress-empress/page.tsx# Dress-up sandbox (Castle Dress Up)
       fun/boss-hunter/page.tsx  # Boss Hunter — full canvas action-RPG boss-fight game (see "Boss Hunter" section)
       fun/pirate-carnage/page.tsx # Pirate Carnage — canvas action game + 4-boss gauntlet (see "Pirate Carnage" section)
+      fun/sunset-drift/page.tsx   # Sunset Drift — top-down arcade street racer + garage (see "Sunset Drift" section)
     blog/page.tsx       # Static MDX blog index
     blog/[slug]/page.tsx  # Individual blog post (statically generated)
     api/
@@ -394,6 +395,45 @@ A second self-contained **canvas action game** (Twisted Metal × Vampire Survivo
 - **God Mode / invincibility:** `g.god` is set from the component each frame; `hurtPlayer()` early-returns when true. Leaderboard score is submitted on win/sink via `/api/minigame/score`.
 - **Touch devices:** an on-screen joystick + BOOST + 🚀 buttons (`TouchControls`) appear during play; auto-pauses on tab blur; HTML pause menu (Resume / Quit).
 - Bosses, ship art, and SFX are verified by rendering to a PNG with `@napi-rs/canvas` (install `--no-save`, render in a temp script, inspect, then port the identical code in — `next build` cannot show canvas output).
+
+## Sunset Drift mini-game (`/skills/fun/sunset-drift`)
+
+A self-contained **top-down arcade street racer** (sunset coastal-highway theme) in one client component
+(`src/app/skills/fun/sunset-drift/page.tsx`). No assets — hand-drawn 2D canvas + synthesized Web Audio.
+Built on the same architecture as Boss Hunter / Pirate Carnage; keep new work inside the file. It is
+**standalone** — no XP/leaderboard/God Mode wiring; progress is saved to **localStorage** (`sd-save` for
+coins/career-stage/owned-parts/per-car garages/unlocked cars; `sd-sound` for mute).
+
+**Architecture (module scope):** `Sfx` IIFE (synth SFX + procedural music `TRACKS`: menu/race/turbo/victory/
+defeat, plus a **persistent engine drone** via `engineStart/engineSet/engineStop` whose pitch tracks rpm, and
+a looping **tyre-screech** via `screechSet/screechStop`). `GS` interface; `mkState(trackIdx, car, garage,
+rivalIdxs)`; module-scope `tick(g, dt, keys, edges)` + `render(ctx, g)`. The React component owns the RAF loop
+and `screen` state (`menu | garage | select | taunt | playing | finish`), keyboard/touch input, pause-on-blur,
+and persistence.
+
+**Driving model:** arcade physics — velocity vector decomposed into forward/lateral relative to `heading`;
+lateral velocity is damped by grip (much less while handbraking → drift). Drifting + near-misses + big air fill
+the **nitrous** meter; nitrous adds forward force + raised top speed + camera shake/zoom/speed-blur + roar. Cars
+have per-vehicle stat personalities (`CARS`), tuned further by performance parts (`statFor()`).
+
+**Tracks (`TRACK_DEFS`):** closed-loop centerline point arrays + width, built by `buildTrack()` (precomputes
+cumulative `along` distances). `progress()` projects a point onto the main path **and** the optional shortcut
+(taking the sand shortcut yields faster `along` progress). Features: traffic cars, ramp **jumps** (`def.jumps`
+segment indices → `z`/`vz` launch), a **shortcut** branch, static obstacles, checkpoints via `along`/lap-wrap
+detection. Camera is **rotating** (player points up): `render` translates to player, rotates by `-PI/2 - heading`.
+
+**Rivals (`RIVALS`):** 4 bosses (MIRAGE drift / BRUNO blocker / VOLT nitro / APEX tech), each with a catchphrase,
+signature color/custom car, AI profile (`aiInput()` — look-ahead racing line, curvature-based braking/drifting,
+rubber-banding, personality quirks like the blocker swerving at the player), and a pre-race taunt screen.
+
+**Garage:** `GaragePanel` — buy/equip cosmetics (paint/finish/rims/kit/spoiler/hood/underglow/vinyl/tint/
+headlights, all visible top-down via `drawCar()`) and performance parts (engine/tires/turbo/weight) with coins;
+live preview canvas. Career ladder (`CAREER`) = events (track + rivals + guaranteed unlock); winning advances
+the stage and grants the unlock. Every finish awards coins (place-scaled) so a race never feels empty.
+
+**Verify before pushing:** `npm run build`; the car/track art can be sanity-rendered to PNG with `@napi-rs/canvas`
+(`drawCar`/`drawRoad` are pure) since `next build` can't show canvas output. Watch for `react/no-unescaped-entities`
+(use `&apos;`/`&ldquo;` etc. in JSX text — rival catchphrases use the `ʼ` modifier-letter apostrophe in data strings).
 
 ## Common tasks
 

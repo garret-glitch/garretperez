@@ -23,6 +23,7 @@ const GAMES: GameDef[] = [
   { icon: '⚔️', title: 'Boss Hunter', desc: 'Top-down action RPG. Hunt 3 legendary bosses.', href: '/skills/fun/boss-hunter', xp: '+25 XP', bg: 'linear-gradient(135deg,#1a0a2a,#0e0518)', glow: '#9060c0', featured: true },
   { icon: '🏴‍☠️', title: 'Pirate Carnage', desc: 'Twisted Metal on the ocean. 1-2P co-op vs a 3-boss gauntlet.', href: '/skills/fun/pirate-carnage', xp: '+25 XP', bg: 'linear-gradient(135deg,#0a2438,#06121e)', glow: '#ff6b2b', featured: true },
   { icon: '👑', title: 'Castle Dress Up', desc: 'Magical dress-up adventure. Style your empress, win fashion shows, unlock outfits & pets.', href: '/skills/fun/dress-empress', xp: '+25 XP', bg: 'linear-gradient(135deg,#3a1430,#2a0e22)', glow: '#ff8fc0', featured: true },
+  { icon: '🏎️', title: 'Sunset Drift', desc: 'Arcade street racer. Drift, boost, beat rivals, and build your dream car.', href: '/skills/fun/sunset-drift', xp: 'Career + Garage', bg: 'linear-gradient(135deg,#3a2350,#ff9e57)', glow: '#ff8a3d', featured: true },
 ]
 
 export default async function FunPage() {
