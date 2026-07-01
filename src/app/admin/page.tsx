@@ -22,6 +22,7 @@ const QUICK_LINKS = [
   { label: 'Community', href: '/admin/community', icon: '💬' },
   { label: 'Analytics', href: '/admin/analytics', icon: '📈' },
   { label: 'RPG System', href: '/admin/rpg', icon: '🎮' },
+  { label: 'Goodies', href: '/admin/goodies', icon: '🎁' },
   { label: 'Settings', href: '/admin/settings', icon: '⚙️' },
   { label: 'Live Site', href: '/', icon: '🌐' },
 ]
